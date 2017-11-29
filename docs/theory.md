@@ -16,8 +16,8 @@ and $p_{ij}$ as a normalized affinity, I won't blame you.
 * $w_{ij}$ are the weights, aka un-normalized affinities or similarities. 
 $q_{ij} = w_{ij} / Z$ where $Z$ is the sum of all the weights: 
 $Z = \sum_{ij} w_{ij}$.
-* $w_{ij}$ in both t-SNE is the Student's t-distribution with one degree of
-freedom (or the Cauchy distribution, if you prefer), 
+* $w_{ij}$ in both t-SNE and LargeVis is defined as the Student's t-distribution 
+with one degree of freedom (or the Cauchy distribution, if you prefer), 
 $w_{ij} = 1 / \left(1 + d_{ij}^2 \right)$. $d_{ij}$ is the Euclidean distance
 between point $i$ and $j$ in the output coordinates.
 * $\mathbf{y_{i}}$ is the vector of coordinates of point $i$ (with $N$ points 
