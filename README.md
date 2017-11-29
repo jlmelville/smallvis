@@ -76,7 +76,8 @@ iterations compared to optimizing t-SNE.
 * The LargeVis gradient requires quite a large value of epsilon to
 avoid division by zero and get results. It's hard-coded to 0.1 in the LargeVis
 source code, so I have used the same value by default in `smallvis`.
-* Mainly for my own benefit, there is also a [theory](docs/theory.html) page 
+* Mainly for my own benefit, there is also a 
+[theory](https://jlmelville.github.io/smallvis/theory.html) page 
 showing a comparison of the cost function and gradient for t-SNE and LargeVis.
 
 ## See Also
