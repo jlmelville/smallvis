@@ -73,6 +73,9 @@ descent approach with a decaying learning rate. The implementation in `smallvis`
 uses the same delta-bar-delta optimization method used in t-SNE. It works well
 in my experience, but may require some tuning and seems to require more 
 iterations compared to optimizing t-SNE.
+* The LargeVis gradient requires quite a large value of epsilon to
+avoid division by zero and get results. It's hard-coded to 0.1 in the LargeVis
+source code, so I have used the same value by default in smallvis.
 
 ## See Also
 
