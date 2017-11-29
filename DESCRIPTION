@@ -9,7 +9,9 @@ Description: Neighborhood embedding methods for small scale visualization, such
     function.
 License: GPL (>= 2)
 Imports:
-    methods
+    methods,
+    vizier
+Remotes: jlmelville/vizier
 Encoding: UTF-8
 LazyData: true
 Date: 2017-11-28

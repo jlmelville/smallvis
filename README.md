@@ -17,6 +17,14 @@ Unlike LargeVis (and the
 [Barnes-Hut implementation of t-SNE](https://github.com/lvdmaaten/bhtsne)) it is
 therefore *not* suitable for large scale visualization. Hence the name smallvis.
 
+## Prerequisites
+
+By default, `smallvis` uses the [vizier](https://github.com/jlmelville/vizier)
+package to plot the coordinates during optimization. It's not on CRAN, and 
+therefore requires a fairly new version of 
+[devtools](https://cran.r-project.org/package=devtools) (1.9 or greater) to 
+install this as a dependency from github.
+
 ## Installing
 
 ```R
@@ -28,6 +36,12 @@ library(smallvis)
 ## Using
 
 ```R
+# By default, we use all numeric columns found in a data frame, so you don't need to filter out factor or strings
+# set verbose = TRUE to log progress to the console
+# Automatically plots the results during optimization
+tsne_iris <- smallvis(iris, perplexity = 25, verbose = TRUE)
+
+# Using a custom epoch_callback
 uniq_spec <- unique(iris$Species)
 colors <- rainbow(length(uniq_spec))
 names(colors) <- uniq_spec

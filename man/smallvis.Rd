@@ -6,7 +6,7 @@
 \usage{
 smallvis(X, k = 2, scale = "absmax", Y_init = "rand", perplexity = 30,
   inp_kernel = "gauss", max_iter = 1000, pca = FALSE, initial_dims = 50,
-  method = "tsne", epoch_callback = NULL,
+  method = "tsne", epoch_callback = TRUE,
   epoch = base::round(max_iter/10), min_cost = 0, momentum = 0.5,
   final_momentum = 0.8, mom_switch_iter = 250, eta = 500,
   min_gain = 0.01, exaggeration_factor = 4, stop_lying_iter = 100,
@@ -58,9 +58,9 @@ or no PCA or whitening will be carried out.}
 
 \item{method}{A neighbor embedding method. See "Details".}
 
-\item{epoch_callback}{Function to call after each epoch. Should have the
-signature \code{epoch_callback(Y)} where \code{Y} is the output coordinate
-matrix.}
+\item{epoch_callback}{Function to call after each epoch. See "Details". By
+default the current set of coordinates will be plotted. Set to
+\code{FALSE} or \code{NULL} to turn this off.}
 
 \item{epoch}{After every \code{epoch} number of steps, calculates and
 displays the cost value and calls \code{epoch_callback}, if supplied.}
@@ -176,19 +176,43 @@ Note that only the cost function is used from these methods in the context
 of creating the full distance matrix as part of the gradient calculation.
 None of the approximations or other speed-ups (e.g. Barnes-Hut or approximate
 nearest neighbors routines) are used.
+
+During the optimization, the vizier package
+(\url{https://www.github.com/jlmelville/vizier}) is used for visualization.
+To use a custom callback, provide to the \code{epoch_callback} parameter a
+function with the following signature:
+
+function(Y, iter, cost = NULL)
+
+where \code{Y} is the matrix of coordinates, \code{iter} is the current
+iteration and \code{cost} is the current error value, which will be
+\code{NULL} the first time this function is called (at iteration 0).
+The function should have no return value, and presumably will call a plot
+function. See the "Examples" section for the use of a custom callback.
+Explicitly set \code{epoch_callback} to \code{NULL} or \code{FALSE} to turn
+this off.
 }
 \examples{
 \dontrun{
+
+# tsne is the default. verbose = TRUE logs progress to console
+# Also automatically uses github vizier package for plotting coordinates
+# during optimization
+tsne_iris <- smallvis(iris, perplexity = 50, verbose = TRUE)
+
+# Can use a custom epoch_callback for visualization
 colors = rainbow(length(unique(iris$Species)))
 names(colors) = unique(iris$Species)
 ecb = function(x, y) {
   plot(x, t = 'n')
   text(x, labels = iris$Species, col = colors[iris$Species])
 }
-# tsne is the default. verbose = TRUE logs progress to console
 tsne_iris <- smallvis(iris, epoch_callback = ecb, perplexity = 50, verbose = TRUE)
 
-# or try the LargeVis cost function, which also requires a gamma parameter to
+# To turn off visualization entirely:
+tsne_iris <- smallvis(iris, epoch_callback = FALSE, perplexity = 50, verbose = TRUE)
+
+# Try the LargeVis cost function, which also requires a gamma parameter to
 # be specified:
 largevis_iris <- smallvis(iris, method = "largevis", gamma = 7,
                           epoch_callback = ecb, perplexity = 50, verbose = TRUE)
