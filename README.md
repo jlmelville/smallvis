@@ -1,6 +1,6 @@
 # smallvis
 
-An R package for small-scale visualization of datasets using neighbor embedding
+An R package for small-scale dimensionality reduction using neighbor embedding 
 methods.
 
 A package to compare the cost functions used in [t-Distributed Stochastic Neighbor Embedding](https://lvdmaaten.github.io/tsne/) and 
