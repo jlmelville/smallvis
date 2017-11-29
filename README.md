@@ -89,4 +89,8 @@ of Justin Donaldson's R package for [t-SNE](https://cran.r-project.org/package=t
 
 ## License
 
-[GPLv2 or later](https://www.gnu.org/licenses/gpl-2.0.txt).
+[GPLv2 or later](https://www.gnu.org/licenses/gpl-2.0.txt), although any 
+LargeVis-specific code (e.g. cost and gradient calculation) can also be 
+considered [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0).
+
+
