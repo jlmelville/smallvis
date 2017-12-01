@@ -876,11 +876,11 @@ x2p <- function(X, perplexity = 15, tol = 1e-5, kernel = "exp",
       thisP <- hbeta$P
       Hdiff <- H - logU
       tries <- tries + 1
-      # initialize guess for next point with optimized beta for this point
-      # doesn't save many iterations, but why not?
-      if (i < n) {
-        beta[i + 1] <- beta[i]
-      }
+    }
+    # initialize guess for next point with optimized beta for this point
+    # doesn't save many iterations, but why not?
+    if (i < n) {
+      beta[i + 1] <- beta[i]
     }
     P[i, -i] <- thisP
   }
