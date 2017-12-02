@@ -229,7 +229,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
                  min_cost = 0,
                  momentum = 0.5, final_momentum = 0.8, mom_switch_iter = 250,
                  eta = 500, min_gain = 0.01,
-                 exaggeration_factor = 4, stop_lying_iter = 100,
+                 exaggeration_factor = 1, stop_lying_iter = 100,
                  gamma = 7, lveps = 0.1,
                  ret_extra = FALSE,
                  verbose = TRUE) {
@@ -310,7 +310,6 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
     if (methods::is(Y_init, "matrix")) {
       Y <- Y_init
       Y_init <- "matrix"
-      exaggeration_factor <- 1
     }
     else {
       Y_init <- match.arg(tolower(Y_init), c("rand", "pca", "spca"))
