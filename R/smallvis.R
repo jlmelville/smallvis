@@ -440,7 +440,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
       }
     }
 
-    if (iter == stop_lying_iter) {
+    if (iter == stop_lying_iter && exaggeration_factor != 1) {
       if (verbose) {
         message("Switching off exaggeration at iter ", iter)
       }
