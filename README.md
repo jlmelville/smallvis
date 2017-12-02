@@ -49,8 +49,6 @@ iris_plot <- function(x) {
   plot(x, col = colors[iris$Species])
 }
 
-# By default, we use all numeric columns found in a data frame, so you don't need to filter out factor or strings
-# set verbose = TRUE to log progress to the console
 tsne_iris <- smallvis(iris, perplexity = 25, epoch_callback = iris_plot, verbose = TRUE)
 
 # Default method is t-SNE, use largevis cost function instead
@@ -61,6 +59,9 @@ largevis_iris <- smallvis(iris, method = "largevis", gamma = 1, perplexity = 25,
 
 # use (scaled) PCA initialization so embedding is repeatable
 tsne_iris_spca <- smallvis(iris, perplexity = 25, epoch_callback = iris_plot, Y_init = "spca")
+
+# or initialize from Laplacian Eigenmap (similar to UMAP)
+tsne_iris_lap <- smallvis(iris, perplexity = 25, epoch_callback = iris_plot, Y_init = "lap")
 
 # return extra information in a list, like with Rtsne
 tsne_iris_extra <- smallvis(iris, perplexity = 25, epoch_callback = iris_plot, ret_extra = TRUE)

@@ -25,14 +25,8 @@ divided by absolute maximum value; \code{"scale"} does the same as using
 \code{TRUE}. To use the input data as-is, use \code{FALSE}, \code{NULL}
 or \code{"none"}.}
 
-\item{Y_init}{How to initialize the output coordinates. One of: \code{"rand"},
-which initializes from a Gaussian distribution with mean 0 and standard
-deviation 1e-4; \code{"pca"}, which uses the first \code{k} scores of the
-PCA: columns are centered, but no scaling beyond that which is applied by
-the \code{scale} parameter is carried out; \code{"spca"}, which uses the
-PCA scores and then scales each score to a standard deviation of 1e-4; or a
-matrix can be used to set the coordinates directly. It must have dimensions
-\code{n} by \code{k}, where \code{n} is the number of rows in \code{X}.}
+\item{Y_init}{How to initialize the output coordinates. See
+the 'Output initialization' section.}
 
 \item{perplexity}{The target perplexity for parameterizing the input
 probabilities.}
@@ -58,9 +52,10 @@ or no PCA or whitening will be carried out.}
 
 \item{method}{A neighbor embedding method. See "Details".}
 
-\item{epoch_callback}{Function to call after each epoch. See "Details". By
-default the current set of coordinates will be plotted. Set to
-\code{FALSE} or \code{NULL} to turn this off.}
+\item{epoch_callback}{Function to call after each epoch. See the
+"Visualization callback" section. By default the current set of
+coordinates will be plotted. Set to\code{FALSE} or \code{NULL} to turn
+this off.}
 
 \item{epoch}{After every \code{epoch} number of steps, calculates and
 displays the cost value and calls \code{epoch_callback}, if supplied.}
@@ -176,13 +171,44 @@ Note that only the cost function is used from these methods in the context
 of creating the full distance matrix as part of the gradient calculation.
 None of the approximations or other speed-ups (e.g. Barnes-Hut or approximate
 nearest neighbors routines) are used.
+}
+\section{Output initialization}{
+
+
+For initializing the output coordinates, set the \code{Y_init} parameter
+to one of the following:
+
+\enumerate{
+  \item{A matrix}: which must have dimensions \code{n} by \code{k}, where
+  \code{n} is the number of rows in \code{X}.
+  \item{\code{"rand"}}: initialize from a Gaussian distribution with mean 0
+  and standard deviation 1e-4.
+  \item{\code{"pca"}}: use the first \code{k} scores of the
+  PCA: columns are centered, but no scaling beyond that which is applied by
+  the \code{scale} parameter is carried out.
+  \item{\code{"spca"}}: uses the PCA scores and then scales each score to a
+  standard deviation of 1e-4.
+  \item{\code{"laplacian"}}: initialize from Laplacian Eigenmap (Belkin and
+  Niyogi, 2002).
+}
+
+As a spectral method, using \code{"laplacian"} is effectively the same as
+turning off the repulsive interactions in the cost function (see Linderman
+and Steinerberger, 2017): it is therefore unnecessary to use the
+\code{exaggeration_factor} setting. However, it can be quite slow for larger
+datasets. It should also behave similarly to the initialization method used
+in UMAP.
+}
+
+\section{Visualization callback}{
+
 
 During the optimization, the vizier package
 (\url{https://www.github.com/jlmelville/vizier}) is used for visualization.
 To use a custom callback, provide to the \code{epoch_callback} parameter a
 function with the following signature:
 
-function(Y, iter, cost = NULL)
+\code{function(Y, iter, cost = NULL)}
 
 where \code{Y} is the matrix of coordinates, \code{iter} is the current
 iteration and \code{cost} is the current error value, which will be
@@ -192,6 +218,7 @@ function. See the "Examples" section for the use of a custom callback.
 Explicitly set \code{epoch_callback} to \code{NULL} or \code{FALSE} to turn
 this off.
 }
+
 \examples{
 \dontrun{
 
@@ -225,6 +252,10 @@ tsne_iris_ls <- smallvis(iris, epoch_callback = ecb, perplexity = 50,
 tsne_iris_spca <- smallvis(iris, epoch_callback = ecb, perplexity = 50,
                            exaggeration_factor = "ls", Y_init = "spca")
 
+# Or use Laplacian Eigenmap for initialization (no exaggeration needed)
+tsne_iris_lap <- smallvis(iris, epoch_callback = ecb, perplexity = 50,
+                          Y_init = "laplacian")
+
 # Return extra details about the embedding
 tsne_iris_extra <- smallvis(iris, epoch_callback = ecb, perplexity = 50,
                             exaggeration_factor = "ls", Y_init = "spca", ret_extra = TRUE)
@@ -245,6 +276,12 @@ tsne_iris_whiten <- smallvis(iris, epoch_callback = ecb, perplexity = 50,
 }
 }
 \references{
+Belkin, M., & Niyogi, P. (2002).
+Laplacian eigenmaps and spectral techniques for embedding and clustering.
+In \emph{Advances in neural information processing systems}
+(pp. 585-591).
+\url{http://papers.nips.cc/paper/1961-laplacian-eigenmaps-and-spectral-techniques-for-embedding-and-clustering.pdf}
+
 Van der Maaten, L., & Hinton, G. (2008).
 Visualizing data using t-SNE.
 \emph{Journal of Machine Learning Research}, \emph{9} (2579-2605).
@@ -261,4 +298,7 @@ Linderman, G. C., & Steinerberger, S. (2017).
 Clustering with t-SNE, provably.
 \emph{arXiv preprint} \emph{arXiv}:1706.02582.
 \url{https://arxiv.org/abs/1706.02582}
+
+UMAP: Universal Manifold Approximation and Mapping.
+\url{https://github.com/lmcinnes/umap}
 }
