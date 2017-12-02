@@ -395,8 +395,22 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
       # Recenter Y during epoch only
       Y <- sweep(Y, 2, colMeans(Y))
 
-      cost <- do_epoch(method, Y, P, W, G, Q = W / Z, eps, gamma = gamma,
-                       iter, epoch_callback, verbose)
+      if (method == "tsne") {
+        cost <- sum(P * log((P + eps) / ((W / Z) + eps)))
+      }
+      else {
+        cost <- sum(-P * log(W + eps) - gamma * log1p(-W + eps))
+      }
+
+      if (verbose) {
+        message(stime(), " Iteration #", iter, " error: ",
+                formatC(cost)
+                , " ||G||2 = ", formatC(sqrt(sum(G * G))))
+      }
+
+      if (!is.null(epoch_callback)) {
+        do_callback(epoch_callback, Y, iter, cost)
+      }
 
       if (ret_extra) {
         names(cost) <- iter
@@ -557,10 +571,7 @@ pca_preprocess <- function(X, pca, whiten, initial_dims, verbose = FALSE) {
   X
 }
 
-
 # Output Initialization ---------------------------------------------------
-
-
 
 # Initialization of the output coordinates
 init_out <- function(Y_init, X, ndim, pca_preprocessed, verbose = FALSE) {
@@ -614,32 +625,6 @@ do_callback <- function(cb, Y, iter, cost = NULL) {
   else if (nfs == 3) {
     cb(Y, iter, cost)
   }
-}
-
-# Carry out epoch-related jobs, e.g. logging, callback
-do_epoch <- function(method, Y, P, W, G, Q = NULL,
-                     eps = .Machine$double.eps,
-                     gamma = 7,
-                     iter,
-                     epoch_callback = NULL, verbose = FALSE) {
-  if (method == "tsne") {
-    error <- sum(P * log((P + eps) / (Q + eps)))
-  }
-  else {
-    error <- sum(-P * log(W + eps) - gamma * log1p(-(W + eps)))
-  }
-
-  if (verbose) {
-    message(stime(), " Iteration #", iter, " error: ",
-            formatC(error)
-            , " ||G||2 = ", formatC(sqrt(sum(G * G))))
-  }
-
-  if (!is.null(epoch_callback)) {
-    do_callback(epoch_callback, Y, iter, error)
-  }
-
-  error
 }
 
 # Create a callback for visualization
