@@ -290,36 +290,35 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
     n <- nrow(X)
   }
 
+  # Fail early as possible if matrix initializer is invalid
+  if (methods::is(Y_init, "matrix")) {
+    if (nrow(Y_init) != n || ncol(Y_init) != k) {
+      stop("Y_init matrix does not match necessary configuration for X")
+    }
+  }
+
+  # Perplexity Calibration
+  P <- x2p(X, perplexity, tol = 1e-5, kernel = inp_kernel, verbose = verbose)$P
+  P <- 0.5 * (P + t(P))
+  P <- P / sum(P)
+
+  # Output Initialization
   if (!is.null(Y_init)) {
     if (methods::is(Y_init, "matrix")) {
-      if (nrow(Y_init) != n || ncol(Y_init) != k) {
-        stop("Y_init matrix does not match necessary configuration for X")
-      }
       Y <- Y_init
       Y_init <- "matrix"
       exaggeration_factor <- 1
     }
     else {
       Y_init <- match.arg(tolower(Y_init), c("rand", "pca", "spca"))
-      Y <- init_out(Y_init, X, k, pca_preprocessed = pca,
-                    verbose = verbose)
+      Y <- init_out(Y_init, X, k, pca_preprocessed = pca, verbose = verbose)
     }
   }
+
   # Display initialization
   if (!is.null(epoch_callback)) {
     do_callback(epoch_callback, Y, 0)
   }
-
-  itercosts <- c()
-  if (tolower(exaggeration_factor) == "ls") {
-    # Linderman-Steinerberger exaggeration
-    exaggeration_factor <- 0.1 * n
-    names(exaggeration_factor) <- "ls"
-  }
-  else {
-    names(exaggeration_factor) <- "ex"
-  }
-
   if (max_iter < 1) {
     return(ret_value(Y, ret_extra, X, scale, Y_init, iter = 0,
                      start_time = start_time, optionals = ret_optionals,
@@ -327,17 +326,21 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
                      whiten = ifelse(pca && whiten, initial_dims, 0)))
   }
 
-  P <- x2p(X, perplexity, tol = 1e-5, kernel = inp_kernel, verbose = verbose)$P
-  P <- 0.5 * (P + t(P))
-  P <- P / sum(P)
-
-  if (names(exaggeration_factor) == "ls") {
+  if (tolower(exaggeration_factor) == "ls") {
+    # Linderman-Steinerberger exaggeration
+    exaggeration_factor <- 0.1 * n
+    names(exaggeration_factor) <- "ls"
     if (verbose) {
-      message("Linderman-Steinerberger exaggeration = ", formatC(exaggeration_factor))
+      message("Linderman-Steinerberger exaggeration = ",
+              formatC(exaggeration_factor))
     }
+  }
+  else {
+    names(exaggeration_factor) <- "ex"
   }
   P <- P * exaggeration_factor
 
+  itercosts <- c()
   uY <- matrix(0, n, k)
   gains <- matrix(1, n, k)
   mu <- momentum
