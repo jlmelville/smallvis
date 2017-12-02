@@ -384,7 +384,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
       }
     }
 
-    if (iter == stop_lying_iter && Y_init != "matrix") {
+    if (iter == stop_lying_iter) {
       if (verbose) {
         message("Switching off exaggeration at iter ", iter)
       }
