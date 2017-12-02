@@ -832,7 +832,7 @@ x2p <- function(X, perplexity = 15, tol = 1e-5, kernel = "exp",
       Di <- D[i, -i]
     }
     else {
-      Di <- (XX[i] + XX - 2 * as.vector(X %*% X[i, ]))[-i]
+      Di <- (XX[i] + XX - 2 * colSums(tcrossprod(X[i, ], X)))[-i]
       Di[Di < 0] <- 0
       if (kernel == "exp") {
         Di <- sqrt(Di)
