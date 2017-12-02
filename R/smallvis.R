@@ -298,6 +298,9 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
   }
 
   # Perplexity Calibration
+  if (verbose) {
+    message(stime(), " Commencing perplexity calibration")
+  }
   P <- x2p(X, perplexity, tol = 1e-5, kernel = inp_kernel, verbose = verbose)$P
   P <- 0.5 * (P + t(P))
   P <- P / sum(P)
@@ -346,6 +349,9 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
   mu <- momentum
   eps <- .Machine$double.eps
   Z <- 0
+  if (verbose) {
+    message(stime(), " Optimizing coordinates")
+  }
   for (iter in 1:max_iter) {
     # D2
     W <- dist2(Y)
