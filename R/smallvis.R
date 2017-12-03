@@ -133,8 +133,11 @@
 #'   \code{method = "umap"} only. Controls the length over which the output
 #'   kernel decays from 1 to 0.
 #' @param min_dist Parameter controlling the output kernel function for
-#'   \code{method = "UMAP"} only. Controls the distance over which output
-#'   weights are clipped to 1.
+#'   \code{method = "UMAP"} only. According to the UMAP documentation, controls
+#'   "how tightly the embedding is allowed compress points together.
+#'   Larger values ensure embedded points are more evenly distributed, while
+#'   smaller values allow the algorithm to optimise more accurately with regard
+#'   to local structure. Sensible values are in the range 0.001 to 0.5".
 #' @param verbose If \code{TRUE}, log progress messages to the console.
 #' @return If \code{ret_extra} is \code{FALSE}, the embedded output coordinates
 #'   as a matrix. Otherwise, a list with the following items:

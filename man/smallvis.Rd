@@ -100,8 +100,11 @@ A comparatively large value (0.1) is recommended.}
 kernel decays from 1 to 0.}
 
 \item{min_dist}{Parameter controlling the output kernel function for
-\code{method = "UMAP"} only. Controls the distance over which output
-weights are clipped to 1.}
+\code{method = "UMAP"} only. According to the UMAP documentation, controls
+"how tightly the embedding is allowed compress points together.
+Larger values ensure embedded points are more evenly distributed, while
+smaller values allow the algorithm to optimise more accurately with regard
+to local structure. Sensible values are in the range 0.001 to 0.5".}
 
 \item{ret_extra}{If \code{TRUE}, return value is a list containing additional
 values associated with the embedding; otherwise just the output
