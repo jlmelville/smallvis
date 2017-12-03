@@ -10,7 +10,8 @@ smallvis(X, k = 2, scale = "absmax", Y_init = "rand", perplexity = 30,
   epoch = base::round(max_iter/10), min_cost = 0, momentum = 0.5,
   final_momentum = 0.8, mom_switch_iter = 250, eta = 500,
   min_gain = 0.01, exaggeration_factor = 1, stop_lying_iter = 100,
-  gamma = 7, lveps = 0.1, ret_extra = FALSE, verbose = TRUE)
+  gamma = 7, lveps = 0.1, spread = 1, min_dist = 0.001,
+  ret_extra = FALSE, verbose = TRUE)
 }
 \arguments{
 \item{X}{Input coordinates or distance matrix.}
@@ -29,7 +30,8 @@ or \code{"none"}.}
 the 'Output initialization' section.}
 
 \item{perplexity}{The target perplexity for parameterizing the input
-probabilities.}
+probabilities. For method \code{"umap"}, controls the neighborhood size
+for parameterizing the smoothed k-nearest neighbor distances.}
 
 \item{inp_kernel}{The input kernel function. Can be either \code{"gauss"}
 (the default), or \code{"exp"}, which uses the unsquared distances.
@@ -75,22 +77,34 @@ stop early.}
 \item{min_gain}{Minimum gradient descent step size.}
 
 \item{exaggeration_factor}{Numerical value to multiply input probabilities
-by, during the early exaggeration phase. Not used if \code{Y_init} is a
-matrix. May also provide the string \code{"ls"}, in which case the
-dataset-dependent exaggeration technique suggested by Linderman and
-Steinerberger (2017) is used.}
+by, during the early exaggeration phase. May also provide the string
+\code{"ls"}, in which case the dataset-dependent exaggeration technique
+suggested by Linderman and Steinerberger (2017) is used. A value between
+4-12 is normal. If using \code{Y_init = "laplacian"}, or supplying a matrix
+of an existing configuration that you want refined, it is suggested not to
+set this to \code{1} (effectively turning off early exaggeration).}
 
 \item{stop_lying_iter}{Iteration at which early exaggeration is turned
 off.}
 
-\item{gamma}{Weighting term for therepulsive versus attractive forces in the
-LargeVis cost function. Used only if \code{method = "largevis"}.}
+\item{gamma}{Weighting term for the repulsive versus attractive forces in the
+LargeVis and UMAP cost functions. Used only if \code{method = "largevis"}
+or \code{"umap"}.}
 
-\item{lveps}{Epsilon used in the LargeVis gradient to prevent division by
-zero. Used only if \code{method = "largevis"}.}
+\item{lveps}{Epsilon used in the LargeVis and UMAP gradient to prevent
+division by zero. Used only if \code{method = "largevis"} or \code{"umap"}.
+A comparatively large value (0.1) is recommended.}
+
+\item{spread}{Parameter controlling the output kernel function for
+\code{method = "umap"} only. Controls the length over which the output
+kernel decays from 1 to 0.}
+
+\item{min_dist}{Parameter controlling the output kernel function for
+\code{method = "UMAP"} only. Controls the distance over which output
+weights are clipped to 1.}
 
 \item{ret_extra}{If \code{TRUE}, return value is a list containing additional
-values associated with the t-SNE procedure; otherwise just the output
+values associated with the embedding; otherwise just the output
 coordinates. You may also provide a vector of names of potentially large or
 expensive-to-calculate values to return, which will be returned in addition
 to those value which are returned when this value is \code{TRUE}. See the
@@ -165,6 +179,10 @@ to the \code{method} parameter are:
   (van der Maaten and Hinton, 2008).
   \item \code{"largevis"} the cost function of the LargeVis algorithm
   (Tang et al, 2016).
+  \item \code{"umap"} the cost function the UMAP method (McInnes, 2017).
+  Unlike LargeVis and t-SNE, UMAP uses un-normalized input weights, which
+  are calibrated via calculating smoothed k-nearest-neighbor distances,
+  rather than perplexity (the procedure is similar, however).
 }
 
 Note that only the cost function is used from these methods in the context
@@ -244,6 +262,11 @@ tsne_iris <- smallvis(iris, epoch_callback = FALSE, perplexity = 50, verbose = T
 largevis_iris <- smallvis(iris, method = "largevis", gamma = 7,
                           epoch_callback = ecb, perplexity = 50, verbose = TRUE)
 
+# Use the UMAP cost function and input weights (perplexity here refers to the
+# smoothed number of nearest neigbors)
+umap_iris <- smallvis(iris, method = "umap", gamma = 1, eta = 0.1,
+                      epoch_callback = ecb, perplexity = 50, verbose = TRUE)
+
 # Use the early exaggeration suggested by Linderman and Steinerberger
 tsne_iris_ls <- smallvis(iris, epoch_callback = ecb, perplexity = 50,
                          exaggeration_factor = "ls")
@@ -299,6 +322,7 @@ Clustering with t-SNE, provably.
 \emph{arXiv preprint} \emph{arXiv}:1706.02582.
 \url{https://arxiv.org/abs/1706.02582}
 
+McInnes, L (2017).
 UMAP: Universal Manifold Approximation and Mapping.
 \url{https://github.com/lmcinnes/umap}
 }

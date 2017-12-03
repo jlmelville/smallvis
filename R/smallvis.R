@@ -10,6 +10,10 @@
 #'   (van der Maaten and Hinton, 2008).
 #'   \item \code{"largevis"} the cost function of the LargeVis algorithm
 #'   (Tang et al, 2016).
+#'   \item \code{"umap"} the cost function the UMAP method (McInnes, 2017).
+#'   Unlike LargeVis and t-SNE, UMAP uses un-normalized input weights, which
+#'   are calibrated via calculating smoothed k-nearest-neighbor distances,
+#'   rather than perplexity (the procedure is similar, however).
 #' }
 #'
 #' Note that only the cost function is used from these methods in the context
@@ -72,7 +76,8 @@
 #' @param Y_init How to initialize the output coordinates. See
 #'  the 'Output initialization' section.
 #' @param perplexity The target perplexity for parameterizing the input
-#'   probabilities.
+#'   probabilities. For method \code{"umap"}, controls the neighborhood size
+#'   for parameterizing the smoothed k-nearest neighbor distances.
 #' @param inp_kernel The input kernel function. Can be either \code{"gauss"}
 #'   (the default), or \code{"exp"}, which uses the unsquared distances.
 #'   \code{"exp"} is not the usual literature function, but matches the original
@@ -104,22 +109,32 @@
 #' @param eta Learning rate value.
 #' @param min_gain Minimum gradient descent step size.
 #' @param exaggeration_factor Numerical value to multiply input probabilities
-#'   by, during the early exaggeration phase. Not used if \code{Y_init} is a
-#'   matrix. May also provide the string \code{"ls"}, in which case the
-#'   dataset-dependent exaggeration technique suggested by Linderman and
-#'   Steinerberger (2017) is used.
+#'   by, during the early exaggeration phase. May also provide the string
+#'   \code{"ls"}, in which case the dataset-dependent exaggeration technique
+#'   suggested by Linderman and Steinerberger (2017) is used. A value between
+#'   4-12 is normal. If using \code{Y_init = "laplacian"}, or supplying a matrix
+#'   of an existing configuration that you want refined, it is suggested not to
+#'   set this to \code{1} (effectively turning off early exaggeration).
 #' @param stop_lying_iter Iteration at which early exaggeration is turned
 #'   off.
-#' @param gamma Weighting term for therepulsive versus attractive forces in the
-#'   LargeVis cost function. Used only if \code{method = "largevis"}.
-#' @param lveps Epsilon used in the LargeVis gradient to prevent division by
-#'   zero. Used only if \code{method = "largevis"}.
+#' @param gamma Weighting term for the repulsive versus attractive forces in the
+#'   LargeVis and UMAP cost functions. Used only if \code{method = "largevis"}
+#'   or \code{"umap"}.
+#' @param lveps Epsilon used in the LargeVis and UMAP gradient to prevent
+#'   division by zero. Used only if \code{method = "largevis"} or \code{"umap"}.
+#'   A comparatively large value (0.1) is recommended.
 #' @param ret_extra If \code{TRUE}, return value is a list containing additional
-#'   values associated with the t-SNE procedure; otherwise just the output
+#'   values associated with the embedding; otherwise just the output
 #'   coordinates. You may also provide a vector of names of potentially large or
 #'   expensive-to-calculate values to return, which will be returned in addition
 #'   to those value which are returned when this value is \code{TRUE}. See the
 #'   \code{Value} section for details.
+#' @param spread Parameter controlling the output kernel function for
+#'   \code{method = "umap"} only. Controls the length over which the output
+#'   kernel decays from 1 to 0.
+#' @param min_dist Parameter controlling the output kernel function for
+#'   \code{method = "UMAP"} only. Controls the distance over which output
+#'   weights are clipped to 1.
 #' @param verbose If \code{TRUE}, log progress messages to the console.
 #' @return If \code{ret_extra} is \code{FALSE}, the embedded output coordinates
 #'   as a matrix. Otherwise, a list with the following items:
@@ -200,6 +215,11 @@
 #' largevis_iris <- smallvis(iris, method = "largevis", gamma = 7,
 #'                           epoch_callback = ecb, perplexity = 50, verbose = TRUE)
 #'
+#' # Use the UMAP cost function and input weights (perplexity here refers to the
+#' # smoothed number of nearest neigbors)
+#' umap_iris <- smallvis(iris, method = "umap", gamma = 1, eta = 0.1,
+#'                       epoch_callback = ecb, perplexity = 50, verbose = TRUE)
+#'
 #' # Use the early exaggeration suggested by Linderman and Steinerberger
 #' tsne_iris_ls <- smallvis(iris, epoch_callback = ecb, perplexity = 50,
 #'                          exaggeration_factor = "ls")
@@ -254,6 +274,7 @@
 #' \emph{arXiv preprint} \emph{arXiv}:1706.02582.
 #' \url{https://arxiv.org/abs/1706.02582}
 #'
+#' McInnes, L (2017).
 #' UMAP: Universal Manifold Approximation and Mapping.
 #' \url{https://github.com/lmcinnes/umap}
 #'
@@ -268,6 +289,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
                  eta = 500, min_gain = 0.01,
                  exaggeration_factor = 1, stop_lying_iter = 100,
                  gamma = 7, lveps = 0.1,
+                 spread = 1, min_dist = 0.001,
                  ret_extra = FALSE,
                  verbose = TRUE) {
 
@@ -282,7 +304,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
   else if (is.function(epoch_callback)) {
     force(epoch_callback)
   }
-  method <- match.arg(tolower(method), c("tsne", "largevis"))
+  method <- match.arg(tolower(method), c("tsne", "largevis", "umap"))
 
   if (class(pca) == "character" && pca == "whiten") {
     pca <- TRUE
@@ -334,13 +356,24 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
     }
   }
 
-  # Perplexity Calibration
-  if (verbose) {
-    message(stime(), " Commencing perplexity calibration")
+  # Perplexity (and Related) Calibration
+  if (method == "umap") {
+    if (verbose) {
+      message(stime(), " Commencing smooth kNN distance calibration")
+    }
+    P <- smooth_knn_distances(X, k = perplexity, tol = 1e-5,
+                              verbose = verbose)$P
+    # Fuzzy set union
+    P <- P + t(P) - P * t(P)
   }
-  P <- x2p(X, perplexity, tol = 1e-5, kernel = inp_kernel, verbose = verbose)$P
-  P <- 0.5 * (P + t(P))
-  P <- P / sum(P)
+  else {
+    if (verbose) {
+      message(stime(), " Commencing perplexity calibration")
+    }
+    P <- x2p(X, perplexity, tol = 1e-5, kernel = inp_kernel, verbose = verbose)$P
+    P <- 0.5 * (P + t(P))
+    P <- P / sum(P)
+  }
 
   # Output Initialization
   if (!is.null(Y_init)) {
@@ -390,6 +423,15 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
   }
   P <- P * exaggeration_factor
 
+  if (method == "umap") {
+    ab_params <- find_ab_params(spread = spread, min_dist = min_dist)
+    a <- ab_params[1]
+    b <- ab_params[2]
+    if (verbose) {
+      message("Umap curve parameters = ", formatC(a), ", ", formatC(b))
+    }
+  }
+
   itercosts <- c()
   uY <- matrix(0, n, k)
   gains <- matrix(1, n, k)
@@ -403,12 +445,25 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
     # D2
     W <- dist2(Y)
     # W
-    W <- 1 / (1 + W)
+    if (method == "umap") {
+      D2 <- W
+      W <- 1 / (1 + a * W ^ b)
+    }
+    else {
+      W <- 1 / (1 + W)
+    }
     diag(W) <- 0
     # Force constant (aka stiffness)
     if (method == "tsne") {
       Z <- sum(W)
       G <- 4 * W * (P - W / Z)
+    }
+    else if (method == "umap") {
+      F <- a * b * (D2 + eps) ^ (b - 1)
+      diag(F) <- 0
+      Grep <- (gamma * W * W * F) / ((1 - W) + lveps)
+      Gattr <- P * W * F
+      G <- 4 * (Gattr - Grep)
     }
     else {
       G <- 4 * P * W - ((gamma * W * W) / ((1 - W) + lveps))
@@ -455,6 +510,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
         cost <- sum(P * log((P + eps) / ((W / Z) + eps)))
       }
       else {
+        # UMAP and LargeVis
         cost <- sum(-P * log(W + eps) - gamma * log1p(-W + eps))
       }
 
@@ -989,4 +1045,129 @@ norm2 <- function(X) {
 # Simple time stamp
 stime <- function() {
   format(Sys.time(), "%T")
+}
+
+# UMAP  -------------------------------------------------------------------
+
+# Fits a kernel for the output distances of the form w = 1 / (1 + a dsq ^ b)
+# where dsq is the squared Euclidean distance.
+# Standard t-SNE function is a = 1, b = 1.
+# Default UMAP values are a = 1.929, b = 0.7915.
+find_ab_params <- function(spread = 1, min_dist = 0.001) {
+  xv <- seq(from = 0, to = spread * 3, length.out = 300)
+  yv <- rep(0, length(xv))
+  yv[xv < min_dist] <- 1
+  yv[xv >= min_dist] <- exp(-(xv[xv >= min_dist] - min_dist) / spread)
+  stats::nls(yv ~ 1 / (1 + a * xv ^ (2 * b)),
+             start = list(a = 1, b = 1))$m$getPars()
+}
+
+# The UMAP equivalent of perplexity calibration in x2p. k is continuous rather
+# than integral and so is analogous to perplexity.
+# Some differences:
+# 1. The target value is the log2 of k, not the Shannon entropy associated
+# with the desired perplexity.
+# 2. Input weights are exponential, rather than Gaussian, with respect to the
+# distances. The distances are also centered with respect to the distance to
+# the nearest neighbor.
+# 3. The weights are not normalized. Their raw sum is compared to the target
+# value.
+smooth_knn_distances <- function(X, k = 15, tol = 1e-5,
+                                 min_k_dist_scale = 1e-3, verbose = FALSE) {
+  x_is_dist <- methods::is(X, "dist")
+  if (x_is_dist) {
+    D <- X
+    n <- attr(D, "Size")
+
+    D <- as.matrix(D)
+  }
+  else {
+    XX <- rowSums(X * X)
+    n <- nrow(X)
+  }
+
+  P <- matrix(0, n, n)
+  sigma <- rep(1, n)
+  logU <- log2(k)
+  # Will contain index of any point where all neighbors have zero distance
+  # Hopefully not too many of these
+  badi <- c()
+  # Running total of distances, to be converted to a mean if badi is non-empty
+  sumD <- 0
+
+  for (i in 1:n) {
+    sigma_min <- 0
+    sigma_max <- Inf
+
+    if (x_is_dist) {
+      Di <- D[i, -i]
+    }
+    else {
+      Di <- (XX[i] + XX - 2 * colSums(tcrossprod(X[i, ], X)))[-i]
+      Di[Di < 0] <- 0
+      Di <- sqrt(Di)
+    }
+    sumD <- sumD + sum(Di)
+    rho <- min(Di[Di > 0])
+    Di[Di < rho] <- rho
+    thisP <- exp(-(Di - rho) / sigma[i])
+    H <- sum(thisP)
+
+    Hdiff <- H - logU
+    tries <- 0
+
+    while (abs(Hdiff) > tol && tries < 50) {
+      if (Hdiff > 0) {
+        sigma_max <- sigma[i]
+        sigma[i] <- 0.5 * (sigma[i] + sigma_min)
+      }
+      else {
+        sigma_min <- sigma[i]
+        if (is.infinite(sigma_max)) {
+          sigma[i] <- 2 * sigma[i]
+        } else {
+          sigma[i] <- 0.5 * (sigma[i] + sigma_max)
+        }
+      }
+
+      thisP <- exp(-(Di - rho) / sigma[i])
+      H <- sum(thisP)
+      Hdiff <- H - logU
+      tries <- tries + 1
+    }
+
+    if (rho > 0.0) {
+      meanDi <- mean(Di)
+      if (sigma[i] < min_k_dist_scale * meanDi) {
+        sigma[i] <- min_k_dist_scale * meanDi
+        thisP <- exp(-(Di - rho) / sigma[i])
+      }
+    }
+    else {
+      badi <- c(badi, i)
+    }
+
+    P[i, -i] <- thisP
+  }
+
+  # Deal with completely pathological cases:
+  # NB this should be impossible if considering all other points in the dataset
+  # because it implies that all distances are zero. Might become relevant if
+  # we only consider distances of the k-neighborhood
+  if (length(badi) > 0) {
+    meanD <- sumD / (n * n)
+    bad_sigma <- min_k_dist_scale * meanD
+    bad_P <- exp(-1 / bad_sigma)
+    for (i in 1:length(badi)) {
+      sigma[badi[i]] <- bad_sigma
+      P[badi[i], -badi[i]] <- bad_P
+    }
+  }
+
+  if (verbose) {
+    summary_sigma <- summary(sigma, digits = max(3, getOption("digits") - 3))
+    message(stime(), " sigma summary: ",
+            paste(names(summary_sigma), ":", summary_sigma, "|", collapse = ""))
+  }
+  list(P = P, sigma = sigma)
 }
