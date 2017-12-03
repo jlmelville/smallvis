@@ -849,11 +849,11 @@ ret_value <- function(Y, ret_extra, X, scale, Y_init, iter, start_time = NULL,
           res$DX <- X
         }
         else {
-          res$DX <- dist2(X)
+          res$DX <- sqrt(dist2(X))
         }
       }
       else if (o == "dy") {
-        res$DY <- dist2(Y)
+        res$DY <- sqrt(dist2(Y))
       }
     }
 
