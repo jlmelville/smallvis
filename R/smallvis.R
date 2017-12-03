@@ -403,7 +403,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
     do_callback(epoch_callback, Y, 0)
   }
   if (max_iter < 1) {
-    return(ret_value(Y, ret_extra, X, scale, Y_init, iter = 0,
+    return(ret_value(Y, ret_extra, method, X, scale, Y_init, iter = 0,
                      start_time = start_time, optionals = ret_optionals,
                      pca = ifelse(pca && !whiten, initial_dims, 0),
                      whiten = ifelse(pca && whiten, initial_dims, 0)))
@@ -506,13 +506,15 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
       # Recenter Y during epoch only
       Y <- sweep(Y, 2, colMeans(Y))
 
+      # Store costs as per-point vector for use in extended return value
       if (method == "tsne") {
-        cost <- sum(P * log((P + eps) / ((W / Z) + eps)))
+        pcosts <- colSums(P * log((P + eps) / ((W / Z) + eps)))
       }
       else {
         # UMAP and LargeVis
-        cost <- sum(-P * log(W + eps) - gamma * log1p(-W + eps))
+        pcosts <- colSums(-P * log(W + eps) - gamma * log1p(-W + eps))
       }
+      cost <- sum(pcosts)
 
       if (verbose) {
         message(stime(), " Iteration #", iter, " error: ",
@@ -535,8 +537,9 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
     }
   }
 
-  ret_value(Y, ret_extra, X, scale, Y_init, iter, start_time,
-            P, W / Z, eps, perplexity, itercosts,
+  ret_value(Y, ret_extra, method, X, scale, Y_init, iter, start_time,
+            pcosts = pcosts, P, ifelse(method == "tsne", W / Z, W), eps,
+            perplexity, itercosts,
             stop_lying_iter, mom_switch_iter, momentum, final_momentum, eta,
             exaggeration_factor, optionals = ret_optionals,
             pca = ifelse(pca && !whiten, initial_dims, 0),
@@ -772,8 +775,9 @@ make_smallvis_cb <- function(df) {
 # If ret_extra is TRUE and iter > 0, then all the NULL-default parameters are
 # expected to be present. If iter == 0 then the return list will contain only
 # scaling and initialization information.
-ret_value <- function(Y, ret_extra, X, scale, Y_init, iter, start_time = NULL,
-                      P = NULL, Q = NULL,
+# Note that Q is the un-normalized output affinities when method = LargeVis or UMAP
+ret_value <- function(Y, ret_extra, method, X, scale, Y_init, iter, start_time = NULL,
+                      pcosts = NULL, P = NULL, Q = NULL,
                       eps = NULL, perplexity = NULL, pca = 0, whiten = 0,
                       itercosts = NULL,
                       stop_lying_iter = NULL, mom_switch_iter = NULL,
@@ -809,9 +813,9 @@ ret_value <- function(Y, ret_extra, X, scale, Y_init, iter, start_time = NULL,
     }
 
     if (iter > 0) {
-      # this was already calculated in the final epoch, but unlikely to be
-      # worth the extra coupling and complication of getting it over here
-      costs <- colSums(P * log((P + eps) / (Q + eps)))
+      if (!is.null(pcosts)) {
+        res$costs <- pcosts
+      }
 
       if (names(exaggeration_factor) != "ls") {
         names(exaggeration_factor) <- NULL
@@ -819,7 +823,6 @@ ret_value <- function(Y, ret_extra, X, scale, Y_init, iter, start_time = NULL,
 
       res <- c(res, list(
         perplexity = perplexity,
-        costs = costs,
         itercosts = itercosts,
         stop_lying_iter = stop_lying_iter,
         mom_switch_iter = mom_switch_iter,
