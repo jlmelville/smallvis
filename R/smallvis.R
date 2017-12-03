@@ -801,6 +801,7 @@ ret_value <- function(Y, ret_extra, method, X, scale, Y_init, iter, start_time =
       origD = origD,
       scale = scale,
       Y_init = Y_init,
+      method = method,
       iter = iter,
       time_secs = as.numeric(end_time - start_time, units = "secs")
     )
