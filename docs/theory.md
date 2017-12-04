@@ -149,6 +149,14 @@ are duplicates) and $\sigma_{i}$ is chosen by a binary search such that
 $\sum_{j} v_{ij} = \log_{2} k$ where $k$ is the size of the neighborhood. This
 is similar in spirit to the perplexity calibration used by t-SNE and LargeVis.
 
+As the use of $v_{ij}$ indicates, the input weight are not normalized in UMAP.
+They are symmetrized, but in a different way to the arithmetic mean approach
+in t-SNE:
+
+$$V_{symm} = V + V^{T} - V \circ V^{T}$$
+where $T$ indicates the transpose and $\circ$ is the Hadamard (i.e. entry-wise) 
+product. This effectively carries out a fuzzy set union.
+
 The output weights are given by:
 
 $$w_{ij} = 1 / \left(1 + ad_{ij}^{2b}\right)$$
