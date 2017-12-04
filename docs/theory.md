@@ -1,4 +1,12 @@
-# Some Theory
+---
+title: "Some Theory"
+output:
+  html_document:
+    theme: cosmo
+    toc: true
+    toc_float:
+      collapsed: false
+---
 
 Here are the t-SNE and LargeVis cost functions and gradients, making it a bit
 easier to see how they are related. 
@@ -183,7 +191,7 @@ $$
    \left(\mathbf{y_i - y_j}\right)
 $$
 The UMAP gradient is a good deal less simple than the t-SNE or LargeVis 
-gradient, but it can be seen it has a similar structure.
+gradient, but it can be seen that it has a similar structure.
 
 The $\epsilon$ term in the LargeVis and UMAP gradient is needed computationally
 to avoid division by zero. Results can be quite sensitive to changing this value.
