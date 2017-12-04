@@ -181,7 +181,8 @@ to the \code{method} parameter are:
   \item \code{"tsne"} t-Distributed Stochastic Neighbor Embedding
   (van der Maaten and Hinton, 2008).
   \item \code{"largevis"} the cost function of the LargeVis algorithm
-  (Tang et al, 2016).
+  (Tang et al, 2016). Input affinities are calculated and symmetrized using
+  the same perplexity calibration method as t-SNE, but are not normalized.
   \item \code{"umap"} the cost function the UMAP method (McInnes, 2017).
   Unlike LargeVis and t-SNE, UMAP uses un-normalized input weights, which
   are calibrated via calculating smoothed k-nearest-neighbor distances,

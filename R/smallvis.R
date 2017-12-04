@@ -9,7 +9,8 @@
 #'   \item \code{"tsne"} t-Distributed Stochastic Neighbor Embedding
 #'   (van der Maaten and Hinton, 2008).
 #'   \item \code{"largevis"} the cost function of the LargeVis algorithm
-#'   (Tang et al, 2016).
+#'   (Tang et al, 2016). Input affinities are calculated and symmetrized using
+#'   the same perplexity calibration method as t-SNE, but are not normalized.
 #'   \item \code{"umap"} the cost function the UMAP method (McInnes, 2017).
 #'   Unlike LargeVis and t-SNE, UMAP uses un-normalized input weights, which
 #'   are calibrated via calculating smoothed k-nearest-neighbor distances,
@@ -375,7 +376,12 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
     }
     P <- x2p(X, perplexity, tol = 1e-5, kernel = inp_kernel, verbose = verbose)$P
     P <- 0.5 * (P + t(P))
-    P <- P / sum(P)
+    # In the LargeVis paper, eq 2 says to normalize the input affinities
+    # but the implementation doesn't, so we won't either
+    # (also it leads to over-weighted repulsions)
+    if (method == "tsne") {
+      P <- P / sum(P)
+    }
   }
 
   # Output Initialization
