@@ -60,15 +60,15 @@ tsne_iris <- smallvis(iris, perplexity = 25, epoch_callback = iris_plot, verbose
 # Also needs a gamma value specified, and not as easy to optimize as t-SNE:
 # reduce learning rate (eta) and increase maximum iterations
 largevis_iris <- smallvis(iris, method = "largevis", gamma = 1, perplexity = 25, epoch_callback = iris_plot, 
-                          eta = 10, max_iter = 5000, verbose = TRUE)
+                          eta = 0.1, max_iter = 5000, verbose = TRUE)
 
 # UMAP: see https://github.com/lmcinnes/umap
-umap_iris <- smallvis(iris, method = "umap", gamma = 1, perplexity = 25, eta = 0.1)
+umap_iris <- smallvis(iris, method = "umap", perplexity = 25, eta = 0.01)
 
 # use (scaled) PCA initialization so embedding is repeatable
 tsne_iris_spca <- smallvis(iris, perplexity = 25, epoch_callback = iris_plot, Y_init = "spca")
 
-# or initialize from Laplacian Eigenmap (similar to UMAP)
+# or initialize from Laplacian Eigenmap (similar to UMAP initialization)
 tsne_iris_lap <- smallvis(iris, perplexity = 25, epoch_callback = iris_plot, Y_init = "lap")
 
 # return extra information in a list, like with Rtsne
@@ -97,7 +97,6 @@ it is recommended to set this value to `7`, but this relies on the specifics of
 the stochastic gradient descent method. In `smallvis`, this value is very 
 dataset dependent: the more data you have, the smaller gamma should be to avoid
 over-emphasising repulsive interactions.
-* UMAP currently also uses a `gamma` value, but the suggested setting is `1`.
 * Both UMAP and LargeVis use a classic stochastic gradient descent approach 
 with a decaying learning rate. The implementation in `smallvis`
 uses the same delta-bar-delta optimization method used in t-SNE. It works well

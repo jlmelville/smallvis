@@ -221,7 +221,7 @@
 #'
 #' # Use the UMAP cost function and input weights (perplexity here refers to the
 #' # smoothed number of nearest neigbors)
-#' umap_iris <- smallvis(iris, method = "umap", gamma = 1, eta = 0.1,
+#' umap_iris <- smallvis(iris, method = "umap", eta = 0.1,
 #'                       epoch_callback = ecb, perplexity = 50, verbose = TRUE)
 #'
 #' # Use the early exaggeration suggested by Linderman and Steinerberger
@@ -470,7 +470,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
     else if (method == "umap") {
       F <- a * b * (D2 + eps) ^ (b - 1)
       diag(F) <- 0
-      Grep <- (gamma * W * W * F) / ((1 - W) + lveps)
+      Grep <- ((1 - P) * W * W * F) / ((1 - W) + lveps)
       Gattr <- P * W * F
       G <- 4 * (Gattr - Grep)
     }
@@ -519,8 +519,11 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
       if (method == "tsne") {
         pcosts <- colSums(P * log((P + eps) / ((W / Z) + eps)))
       }
+      else if (method == "umap") {
+        pcosts <- colSums(-P * log(W + eps) - (1 - P) * log1p(-W + eps))
+      }
       else {
-        # UMAP and LargeVis
+        # LargeVis
         pcosts <- colSums(-P * log(W + eps) - gamma * log1p(-W + eps))
       }
       cost <- sum(pcosts)

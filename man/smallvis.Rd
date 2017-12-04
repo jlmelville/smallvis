@@ -268,7 +268,7 @@ largevis_iris <- smallvis(iris, method = "largevis", gamma = 7,
 
 # Use the UMAP cost function and input weights (perplexity here refers to the
 # smoothed number of nearest neigbors)
-umap_iris <- smallvis(iris, method = "umap", gamma = 1, eta = 0.1,
+umap_iris <- smallvis(iris, method = "umap", eta = 0.1,
                       epoch_callback = ecb, perplexity = 50, verbose = TRUE)
 
 # Use the early exaggeration suggested by Linderman and Steinerberger
