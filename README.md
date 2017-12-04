@@ -97,6 +97,8 @@ it is recommended to set this value to `7`, but this relies on the specifics of
 the stochastic gradient descent method. In `smallvis`, this value is very 
 dataset dependent: the more data you have, the smaller gamma should be to avoid
 over-emphasising repulsive interactions.
+* LargeVis partitions each pairwise interaction into either an attractive or repulsive
+contribution. In `smallvis`, each interaction is a combination of both.
 * Both UMAP and LargeVis use a classic stochastic gradient descent approach 
 with a decaying learning rate. The implementation in `smallvis`
 uses the same delta-bar-delta optimization method used in t-SNE. It works well

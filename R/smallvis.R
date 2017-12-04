@@ -470,11 +470,10 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
     else if (method == "umap") {
       F <- a * b * (D2 + eps) ^ (b - 1)
       diag(F) <- 0
-      Grep <- ((1 - P) * W * W * F) / ((1 - W) + lveps)
-      Gattr <- P * W * F
-      G <- 4 * (Gattr - Grep)
+      G <- 4 * (P * W * F - ((1 - P) * W * W * F) / ((1 - W) + lveps))
     }
     else {
+      # LargeVis
       G <- 4 * P * W - ((gamma * W * W) / ((1 - W) + lveps))
     }
 
