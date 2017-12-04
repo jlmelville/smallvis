@@ -474,7 +474,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
     }
     else {
       # LargeVis
-      G <- 4 * P * W - ((gamma * W * W) / ((1 - W) + lveps))
+      G <- 4 * (P * W - ((gamma * W * W) / ((1 - W) + lveps)))
     }
 
     G <- Y * rowSums(G) - (G %*% Y)
