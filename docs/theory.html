@@ -126,9 +126,10 @@ $(document).ready(function () {
 <p>Here are the t-SNE and LargeVis cost functions and gradients, making it a bit easier to see how they are related.</p>
 <p>A bit of nomenclature first:</p>
 <ul>
-<li><span class="math inline">\(p_{ij}\)</span> is the input (joint) probability of… um, well, it’s not totally obvious. Let’s say it’s the probability of observing an edge between the two vertices <span class="math inline">\(i\)</span> and <span class="math inline">\(j\)</span> in the graph representing the neigborhood relationship of your input data. These are dependent only on the input data (and the choice of perplexity) and so are constant with respect to optimizing the output coordinates. If you decide to think of the problem in terms of graph laplacians and <span class="math inline">\(p_{ij}\)</span> as a normalized affinity, I won’t blame you.</li>
-<li><span class="math inline">\(q_{ij}\)</span> is the equivalent “probability” based on the output coordinates.</li>
-<li><span class="math inline">\(w_{ij}\)</span> are the weights, aka un-normalized affinities or similarities. <span class="math inline">\(q_{ij} = w_{ij} / Z\)</span> where <span class="math inline">\(Z\)</span> is the sum of all the weights: <span class="math inline">\(Z = \sum_{ij} w_{ij}\)</span>.</li>
+<li><span class="math inline">\(v_{ij}\)</span> are the un-normalized input affinities. A large affinity means that the data points are similar in the input space, so you’d probably like to see them close together in the output configuration.</li>
+<li><span class="math inline">\(p_{ij}\)</span> are the normalized input affinities, so that they sum to one. They are symmetric, so that <span class="math inline">\(p_{ij} = p_{ji}\)</span> They are often interpreted as joint probabilities. Probabilities of what exactly? It’s not totally obvious. Let’s say it’s the probability of observing an edge between the two vertices <span class="math inline">\(i\)</span> and <span class="math inline">\(j\)</span> in the graph representing the neigborhood relationship of your input data. These are dependent only on the input data (and the choice of perplexity) and so are constant with respect to optimizing the output coordinates. If you decide to think of the problem in terms of graph laplacians and <span class="math inline">\(p_{ij}\)</span> as “just” a normalized affinity, I won’t blame you.</li>
+<li><span class="math inline">\(w_{ij}\)</span> are the output configuration weights, aka un-normalized affinities or similarities.</li>
+<li><span class="math inline">\(q_{ij}\)</span> are the output probabilities, where <span class="math inline">\(q_{ij} = w_{ij} / Z\)</span> and <span class="math inline">\(Z\)</span> is the sum of all the weights: <span class="math inline">\(Z = \sum_{ij} w_{ij}\)</span>.</li>
 <li><span class="math inline">\(w_{ij}\)</span> in both t-SNE and LargeVis is defined as the Student’s t-distribution with one degree of freedom (or the Cauchy distribution, if you prefer), <span class="math inline">\(w_{ij} = 1 / \left(1 + d_{ij}^2 \right)\)</span>. <span class="math inline">\(d_{ij}\)</span> is the Euclidean distance between point <span class="math inline">\(i\)</span> and <span class="math inline">\(j\)</span> in the output coordinates.</li>
 <li><span class="math inline">\(\mathbf{y_{i}}\)</span> is the vector of coordinates of point <span class="math inline">\(i\)</span> (with <span class="math inline">\(N\)</span> points in total).</li>
 </ul>
@@ -160,19 +161,46 @@ Cp - \sum_{ij} p_{ij} \ln w_{ij} + \ln \sum_{ij} w_{ij}
 <p>For computational efficiency, the LargeVis cost function partitions the data into a set of nearest neighbors, which only feel an attractive force; and everything else, which only feel repulsive forces. But as <code>smallvis</code> has abandoned such efficiencies, we can write it similarly to the t-SNE cost function:</p>
 <p><span class="math display">\[
 C_{LV} = 
--\sum_{ij} p_{ij} \ln w_{ij} 
--\gamma \sum_{ij} \ln \left( 1 - w_{ij} \right)
-\]</span></p>
-<p>If we want, we can expand the right hand sum further to:</p>
-<p><span class="math display">\[
-C_{LV} = 
--\sum_{ij} p_{ij} \ln w_{ij} 
--\gamma \sum_{ij} \ln w_{ij}
--2 \gamma \sum_{ij} \ln d_{ij}
-\]</span></p>
-<p>Don’t know if that makes anything much clearer, though.</p>
-<p>You can see that in both t-SNE and LargeVis, the attractive terms are identical. Any difference in behavior we see must therefore be due to how repulsion between points is handled.</p>
+-\sum_{ij} v_{ij} \ln w_{ij} 
+-\left(1 - v_{ij} \right) \sum_{ij} \ln \left( 1 - w_{ij} \right)
+\]</span> We should pause to note two things here:</p>
+<ul>
+<li>In the LargeVis paper, equation 2 seems to suggest that the input affinities are normalized, i.e. they use <span class="math inline">\(p_{ij}\)</span>, not <span class="math inline">\(v_{ij}\)</span>. But looking at the source code, the affinities seem to be un-normalized. So we’ll show there here.</li>
+<li>In the real LargeVis cost function, input affinities are not calculated for pairs of points that aren’t in the set of nearest neighbors, so the <span class="math inline">\((1 - v_{ij})\)</span> term that is part of the repulsion component is replaced by a constant <span class="math inline">\(\gamma\)</span>, which also takes into account contributions to the cost which wouldn’t be sampled when evaluating the gradient with a stochastic gradient descent.</li>
+</ul>
+<p>You can see that in both t-SNE and LargeVis, the attractive terms are identical, except for whether the input affinity weighting is normalized or not. Any difference in behavior we see must therefore be due to how repulsion between points is handled.</p>
 </div>
+</div>
+<div id="umap" class="section level2">
+<h2>UMAP</h2>
+<p><a href="https://github.com/lmcinnes/umap">UMAP</a> (Uniform Manifold Approximation and Projection) attempts to model the underlying manifold of a dataset via a fuzzy topological structure.</p>
+<p>UMAP treats the input and output data as two fuzzy sets, with strength of membership being equivalent to <span class="math inline">\(v_{ij}\)</span> and <span class="math inline">\(w_{ij}\)</span>, respectively. The cost function for UMAP is the cross entropy of the fuzzy sets:</p>
+<p><span class="math display">\[
+C_{UMAP} = 
+\sum_{ij} \left[ v_{ij} \log \left( \frac{v_{ij}}{w_{ij}} \right) + 
+(1 - v_{ij}) \log \left( \frac{1 - v_{ij}}{1 - w_{ij}} \right) \right]
+\]</span></p>
+<p>which can be expanded to:</p>
+<p><span class="math display">\[
+C_{UMAP} =
+\sum_{ij} \left[ v_{ij} \log(v_{ij}) + 
+(1 - v_{ij})\log(1 - v_{ij}) \right] - 
+\sum_{ij} \left[ v_{ij} \log(w_{ij}) \right] - 
+\sum_{ij} \left[ (1 - v_{ij}) \log(1 - w_{ij}) \right]
+\]</span></p>
+<p>Just like with t-SNE, the first term is a constant, which this time we’ll call <span class="math inline">\(C_{V}\)</span>, leaving:</p>
+<p><span class="math display">\[
+C_{UMAP} =
+C_{V}
+\sum_{ij} \left[ v_{ij} \log(w_{ij}) \right] - 
+\sum_{ij} \left[ (1 - v_{ij}) \log(1 - w_{ij}) \right]
+\]</span></p>
+<p>which looks a lot like LargeVis. However, the input and output weight terms are defined differently to LargeVis.</p>
+<p>The UMAP input weights are given by:</p>
+<p><span class="math display">\[v_{ij} = \exp \left[ -\left( r_{ij} - \rho_{i} \right) / \sigma_{i} \right]\]</span></p>
+<p>where <span class="math inline">\(r_{ij}\)</span> are the input distances (not necessarily Euclidean), <span class="math inline">\(\rho_{i}\)</span> is the distance to the nearest neighbor (ignoring zero distances where neighbors are duplicates) and <span class="math inline">\(\sigma_{i}\)</span> is chosen by a binary search such that <span class="math inline">\(\sum_{j} v_{ij} = \log_{2} k\)</span> where <span class="math inline">\(k\)</span> is the size of the neighborhood. This is similar in spirit to the perplexity calibration used by t-SNE and LargeVis.</p>
+<p>The output weights are given by:</p>
+<p><span class="math display">\[w_{ij} = 1 / \left(1 + ad_{ij}^{2b}\right)\]</span></p>
 </div>
 <div id="gradients" class="section level2">
 <h2>Gradients</h2>
@@ -189,12 +217,31 @@ C_{LV} =
 <p><span class="math display">\[
 \frac{\partial C_{LV}}{\partial \mathbf{y_i}} = 
   4\sum_j^N \left(
-    p_{ij} w_{ij}
-    -\frac{\gamma w_{ij}}{d_{ij}^2 + \epsilon}
+    v_{ij} w_{ij}
+    -\frac{\left(1 - v_{ij}\right) w_{ij}}{d_{ij}^2 + \epsilon}
    \right)
    \left(\mathbf{y_i - y_j}\right)
 \]</span></p>
 <p>The <span class="math inline">\(\epsilon\)</span> term in the LargeVis gradient is needed computationally to avoid division by zero. Results are quite sensitive to changing this value. In <code>smallvis</code> you can see the effect of it via the <code>lveps</code> parameter.</p>
+<p>Using fuzzy set terminology, the cross entropy between fuzzy sets <span class="math inline">\(\mu\)</span> and <span class="math inline">\(\nu\)</span>, and the w Consider fuzzy sets (E, ) and (E, ) where the E is the set of edges of the complete graph on data points and the fuzzy membership strengths and are derived as per appropriate theory*. Then the fuzzy set cross entropy is given by</p>
+<p>J(, )</p>
+<p><span class="math display">\[
+J(\mu, \nu)  = 
+\sum_{x\in E} \left[ \mu(x) \log \left( \frac{\mu(x)}{\nu(x)} \right) + 
+(1 - \mu(x)) \log \left( \frac{1 - \mu(x)}{1 - \nu(x)} \right) \right]
+\]</span></p>
+<p>expanding this out we have</p>
+<p><span class="math display">\[
+\sum_{x\in E} \left[ \mu(x) \log(\mu(x)) + 
+(1 - \mu(x))\log(1 - \mu(x)) \right] - 
+\sum_{x\in E} \left[ \mu(x) \log(\nu(x)) \right] - 
+\sum_{x\in E} \left[ (1 - \mu(x)) \log(1 - \nu(x)) \right]
+\]</span></p>
+<p><span class="math display">\[\sum_{x \in E} w_{ij} \log(p_{ij})  +  \sum_{x \in \bar{E}} \gamma \log(1 - p_{ij})\]</span></p>
+<p>where the points to note are: the use of gamma in the second term; the fact that the left hand sum is summing over non-zeros of the matrix and the right right hand sum is summing over zeros of the matrix.</p>
+<p>In contrast the equivalent UMAP objective formula would be minimising</p>
+<p><span class="math display">\[- \sum_{ij} w_{ij} \log(p_{ij})  + (1 - w_{ij}) \log(1 - p_{ij})\]</span></p>
+<p>The differences being that both the attraction and repulsion terms are computed over the whole matrix (rather than just nonzero, and zero terms respectively) and that the repulsion term includes the <span class="math inline">\((1 - w_{ij})\)</span> coefficient. Note that for <span class="math inline">\(w_{ij} = 0\)</span> (the terms LargeVis sums over) this coefficient is simply 1 and can be ignored … however ideally we are summing over everything and should also include the <span class="math inline">\((1 - w_{ij})\)</span> coefficient for non-zero <span class="math inline">\(w_{ij}\)</span>.</p>
 </div>
 </div>
 
