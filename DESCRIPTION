@@ -11,6 +11,8 @@ License: GPL (>= 2)
 Imports:
     methods,
     vizier
+Suggests:
+    RSpectra
 Remotes: jlmelville/vizier
 Encoding: UTF-8
 LazyData: true

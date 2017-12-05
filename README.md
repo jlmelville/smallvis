@@ -30,6 +30,18 @@ therefore requires a fairly new version of
 [devtools](https://cran.r-project.org/package=devtools) (1.9 or greater) to 
 install this as a dependency from github.
 
+There is also an optional dependency on the 
+[RSpectra](https://cran.r-project.org/package=RSpectra) package, which is used
+only if you want to initialize from a spectral method 
+(set `Y_init = "laplacian"` to do this and see the paper by 
+[Linderman and Steinerberger](https://arxiv.org/abs/1706.02582) for details on
+why you might want to). If not present, then the standard R function `eigen`
+is used, but this is much slower (because we only need the first few eigenvectors,
+and `eigen` calculates all of them). On my Sandy Bridge-era laptop running
+R 3.4.2 on Windows 10, using `Rspectra::eigs` to fetch the top 3 eigenvectors 
+from a 6,000 x 6,000 affinity matrix takes about 6 seconds; using `eigen` takes 
+around 25 minutes.
+
 ## Installing
 
 ```R
@@ -118,11 +130,14 @@ For large scale visualization in R see:
 
 * The Barnes-Hut t-SNE package [Rtsne](https://cran.r-project.org/package=Rtsne)
 * The [largeVis](https://cran.r-project.org/package=largeVis) package.
+* RSpectra [https://cran.r-project.org/package=RSpectra] can help spectral methods
+scale.
 
 Also of relevance are:
 
 * [UMAP](https://github.com/lmcinnes/umap) (in Python)
 * [LargeVis](https://github.com/lferry007/LargeVis) (in C++)
+* [Spectra](http://spectralib.org/), the C++ library that RSpectra wraps.
 
 Much of the code here is based on my [fork](https://github.com/jlmelville/rtsne) 
 of Justin Donaldson's R package for [t-SNE](https://cran.r-project.org/package=tsne).

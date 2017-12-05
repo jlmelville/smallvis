@@ -750,12 +750,23 @@ init_out <- function(Y_init, X, ndim, pca_preprocessed, verbose = FALSE) {
 # This is equivalent to using the top eigenvectors from the usual
 # eigendecomposition of a row-normalized Laplacian D^-1 A, so we don't need to
 # depend on an external package for generalized eigenvalues.
-laplacian_eigenmap <- function(A, ndim = 2) {
+# As we only need to calculate the top ndim + 1 eigenvectors (i.e. normally 3)
+# it's incredibly wasteful to calculate all of them. Therefore, if the
+# RSpectra library is available, we use that instead, which allows for only the
+# top eigenvectors to be extracted. Otherwise, use the slower eigen routine.
+# A must be symmetric and positive semi definite, but not necessarily
+# normalized in any specific way.
+laplacian_eigenmap <- function(A, ndim = 2, eps = .Machine$double.eps) {
   # Equivalent to: D <- diag(colSums(A)); M <- solve(D) %*% A
   # This effectively row-normalizes A: colSums is normally faster than rowSums
   # and because A is symmetric, they're equivalent
   M <- A / colSums(A)
-  eigen(M, symmetric = FALSE)$vectors[, 2:(ndim + 1)]
+  if (requireNamespace("Rspectra", quietly = TRUE, warn.conflicts = FALSE)) {
+    Re(RSpectra::eigs(M, k = ndim + 1)$vectors[, 2:(ndim + 1)])
+  }
+  else {
+    eigen(M, symmetric = FALSE)$vectors[, 2:(ndim + 1)]
+  }
 }
 
 # Epoch Functions ---------------------------------------------------------
