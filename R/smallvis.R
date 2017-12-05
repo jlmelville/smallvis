@@ -38,7 +38,9 @@
 #'   \item{\code{"spca"}}: uses the PCA scores and then scales each score to a
 #'   standard deviation of 1e-4.
 #'   \item{\code{"laplacian"}}: initialize from Laplacian Eigenmap (Belkin and
-#'   Niyogi, 2002).
+#'   Niyogi, 2002). The affinity matrix used as input is the result of the
+#'   perplexity or smoothed k-nearest neighbor distance calibration after
+#'   symmetrization but before any normalization.
 #' }
 #'
 #' As a spectral method, using \code{"laplacian"} is effectively the same as
@@ -375,13 +377,8 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
       message(stime(), " Commencing perplexity calibration")
     }
     P <- x2p(X, perplexity, tol = 1e-5, kernel = inp_kernel, verbose = verbose)$P
+    # Symmetrize by arithmetic mean, but t-SNE normalization occurs later
     P <- 0.5 * (P + t(P))
-    # In the LargeVis paper, eq 2 says to normalize the input affinities
-    # but the implementation doesn't, so we won't either
-    # (also it leads to over-weighted repulsions)
-    if (method == "tsne") {
-      P <- P / sum(P)
-    }
   }
 
   # Output Initialization
@@ -405,6 +402,15 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
         Y <- laplacian_eigenmap(P, ndim = k)
       }
     }
+  }
+
+  # t-SNE Weight Normalization (which we leave until now in case of Laplacian
+  # Eigenmap initialization)
+  # In the LargeVis paper, eq 2 says to normalize the input affinities
+  # but the implementation doesn't, so we won't either
+  # (also it leads to over-weighted repulsions)
+  if (method == "tsne") {
+    P <- P / sum(P)
   }
 
   # Display initialization
@@ -477,6 +483,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
       G <- 4 * (P * W - ((gamma * W * W) / ((1 - W) + lveps)))
     }
 
+    # Gradient
     G <- Y * rowSums(G) - (G %*% Y)
 
     if (names(exaggeration_factor) == "ls" && iter <= stop_lying_iter) {

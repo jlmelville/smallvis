@@ -211,7 +211,9 @@ to one of the following:
   \item{\code{"spca"}}: uses the PCA scores and then scales each score to a
   standard deviation of 1e-4.
   \item{\code{"laplacian"}}: initialize from Laplacian Eigenmap (Belkin and
-  Niyogi, 2002).
+  Niyogi, 2002). The affinity matrix used as input is the result of the
+  perplexity or smoothed k-nearest neighbor distance calibration after
+  symmetrization but before any normalization.
 }
 
 As a spectral method, using \code{"laplacian"} is effectively the same as
