@@ -744,8 +744,10 @@ init_out <- function(Y_init, X, ndim, pca_preprocessed, verbose = FALSE) {
 # eigendecomposition of a row-normalized Laplacian D^-1 A, so we don't need to
 # depend on an external package for generalized eigenvalues.
 laplacian_eigenmap <- function(A, ndim = 2) {
-  D <- diag(colSums(A))
-  M <- solve(D) %*% A
+  # Equivalent to: D <- diag(colSums(A)); M <- solve(D) %*% A
+  # This effectively row-normalizes A: colSums is normally faster than rowSums
+  # and because A is symmetric, they're equivalent
+  M <- A / colSums(A)
   eigen(M, symmetric = FALSE)$vectors[, 2:(ndim + 1)]
 }
 
