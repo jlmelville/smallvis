@@ -83,12 +83,15 @@ $$
 L_{LV} = \sum_{ \left(i, j\right) \in E} p_{ij} \ln w_{ij} 
 +\gamma \sum_{\left(i, j\right) \in \bar{E}} \ln \left( 1 - w_{ij} \right)
 $$
-Likelihood functions are normally maximized, so the final cost function will be
-the $-L_{LV}$, so that we can minimize it and not have any confusion about the
-signs of the gradients. Before we get to that though, I believe that the
-likelihood function as given above is not a totally accurate representation of
-the current state of the LargeVis implementation. The following is my understanding
-of how it currently works.
+Likelihood functions are maximized, so the final cost function we're
+interested in will be $-L_{LV}$, in order that we have a function to minimize.
+Otherwise, it gets a bit confusing keeping track of the signs of the gradients 
+compared to the other methods in `smallvis`.
+
+Before we get to that though, I believe that the likelihood function as given
+above is not a totally accurate representation of the current state of the
+LargeVis implementation. The following is my understanding of how it works at
+the moment.
 
 First, although equation 2 of the LargeVis paper indicates that the input 
 weights are normalized, I don't think the input weights actually are normalized, 
@@ -105,7 +108,7 @@ happen to be initialized close to each other will feel a strong mutual force
 that results in them reducing their distances to zero, which will overwhelm any
 longer range attraction from more distant neighbors. I also can't find any 
 evidence in the LargeVis source code that prevents neighborhood points from
-being turning up as part of the non-neighborhood sample: there *is* a check 
+turning up as part of the non-neighborhood sample: there *is* a check 
 made in the code, but it only prevents one of the $k$ neighbors from 
 contributing to the repulsive part of the gradient applied to any given point.
 
