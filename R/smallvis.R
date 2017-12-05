@@ -761,7 +761,7 @@ laplacian_eigenmap <- function(A, ndim = 2, eps = .Machine$double.eps) {
   # This effectively row-normalizes A: colSums is normally faster than rowSums
   # and because A is symmetric, they're equivalent
   M <- A / colSums(A)
-  if (requireNamespace("Rspectra", quietly = TRUE, warn.conflicts = FALSE)) {
+  if (requireNamespace("RSpectra", quietly = TRUE, warn.conflicts = FALSE)) {
     Re(RSpectra::eigs(M, k = ndim + 1)$vectors[, 2:(ndim + 1)])
   }
   else {
