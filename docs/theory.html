@@ -261,13 +261,21 @@ Cp - \sum_{ij} p_{ij} \ln w_{ij} + \ln \sum_{ij} w_{ij}
 </div>
 <div id="largevis" class="section level3">
 <h3>LargeVis</h3>
-<p>LargeVis partitions the data into a set of nearest neighbors, which only feel an attractive force; and everything else, which only feel repulsive forces. When evaluated over an entire dataset, this seems to be difficult to optimize, so for now, <code>smallvis</code> assigns both attractive and repulsive components to all pairs:</p>
+<p>The LargeVis paper describes partitioning the data into a set of nearest neighbors (we’ll call that <span class="math inline">\(E\)</span>), which only feel an attractive force; and everything else (<span class="math inline">\(\bar{E}\)</span>), which only feel repulsive forces. Perplexity calibration and weight definition are carried out as in t-SNE, to give the following (log) likelihood function:</p>
+<p><span class="math display">\[
+L_{LV} = \sum_{ \left(i, j\right) \in E} p_{ij} \ln w_{ij} 
++\gamma \sum_{\left(i, j\right) \in \bar{E}} \ln \left( 1 - w_{ij} \right)
+\]</span> Likelihood functions are normally maximized, so the final cost function will be the <span class="math inline">\(-L_{LV}\)</span>, so that we can minimize it and not have any confusion about the signs of the gradients. Before we get to that though, I believe that the likelihood function as given above is not a totally accurate representation of the current state of the LargeVis implementation. The following is my understanding of how it currently works.</p>
+<p>First, although equation 2 of the LargeVis paper indicates that the input weights are normalized, I don’t think the input weights actually are normalized, i.e. <span class="math inline">\(v_{ij}\)</span> is used rather than <span class="math inline">\(p_{ij}\)</span>.</p>
+<p>Second, I think that the repulsive terms are actually applied to both neighborhood and non-neighborhood points, so that the repulsive (second) term in the likelihood function is actually a sum over all points, not just <span class="math inline">\(\bar{E}\)</span>. I have experimented with restricting the repulsion to only the non-neighbors in <code>smallvis</code>, but this leads to some horrible results involving lots of very small well-separated clusters. On reflection it seems like this would be the expected outcome of not allowing neighbors to repel each other: neighboring points that happen to be initialized close to each other will feel a strong mutual force that results in them reducing their distances to zero, which will overwhelm any longer range attraction from more distant neighbors. I also can’t find any evidence in the LargeVis source code that prevents neighborhood points from being turning up as part of the non-neighborhood sample: there <em>is</em> a check made in the code, but it only prevents one of the <span class="math inline">\(k\)</span> neighbors from contributing to the repulsive part of the gradient applied to any given point.</p>
+<p>That leaves the attractive part. The partitioning works here and the non-neighbors <em>are</em> excluded from contributing to the attractive part of the cost, but that term is weighted by <span class="math inline">\(p_{ij}\)</span> anyway, so the perplexity calibration guarantees that even if you did calculate probabilities for all pairs of points, those that weren’t part of the neighborhood would contribute negligibly to that component of the cost function.</p>
+<p>Taken together, you could therefore ignore the partitioning scheme, as long as you were prepared to calculate the complete O(N^2) matrices, which is exactly what <code>smallvis</code> does.</p>
+<p>Based on the above discussion, along with using the un-normalized input weights, and wanting a cost function to minimize, the <code>smallvis</code> version of the LargeVis cost function is:</p>
 <p><span class="math display">\[
 C_{LV} = 
 -\sum_{ij} v_{ij} \ln w_{ij} 
 -\gamma \sum_{ij} \ln \left( 1 - w_{ij} \right)
-\]</span> Equation 2 of the LargeVis paper indicates that the input affinities are normalized, i.e. they use <span class="math inline">\(p_{ij}\)</span>, not <span class="math inline">\(v_{ij}\)</span> in the first term. But looking at the source code, the affinities seem to be un-normalized. So we’re doing the same here.</p>
-<p>Nonetheless, you can see that the attractive terms of both t-SNE and LargeVis are very similar.</p>
+\]</span> In this form, apart from the issue of whether the input weights are normalized or not, the attractive terms of both t-SNE and LargeVis are very similar.</p>
 </div>
 <div id="umap" class="section level3">
 <h3>UMAP</h3>

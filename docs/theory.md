@@ -73,24 +73,64 @@ will minimize the log of the sum.
 
 ### LargeVis
 
-LargeVis partitions the data into a set of nearest neighbors, which only feel 
-an attractive force; and everything else, which only feel repulsive forces. 
-When evaluated over an entire dataset, this seems to be difficult to optimize,
-so for now, `smallvis` assigns both attractive and repulsive components to all
-pairs:
+The LargeVis paper describes partitioning the data into a set  of nearest
+neighbors (we'll call that $E$), which only feel an attractive force; and
+everything else ($\bar{E}$), which only feel repulsive forces. Perplexity
+calibration and weight definition are carried out as in t-SNE, to give the
+following (log) likelihood function:
+
+$$
+L_{LV} = \sum_{ \left(i, j\right) \in E} p_{ij} \ln w_{ij} 
++\gamma \sum_{\left(i, j\right) \in \bar{E}} \ln \left( 1 - w_{ij} \right)
+$$
+Likelihood functions are normally maximized, so the final cost function will be
+the $-L_{LV}$, so that we can minimize it and not have any confusion about the
+signs of the gradients. Before we get to that though, I believe that the
+likelihood function as given above is not a totally accurate representation of
+the current state of the LargeVis implementation. The following is my understanding
+of how it currently works.
+
+First, although equation 2 of the LargeVis paper indicates that the input 
+weights are normalized, I don't think the input weights actually are normalized, 
+i.e. $v_{ij}$ is used rather than $p_{ij}$.
+
+Second, I think that the repulsive terms are actually applied to both
+neighborhood and non-neighborhood points, so that the repulsive (second) term in
+the likelihood function is actually a sum over all points, not just $\bar{E}$. I
+have experimented with restricting the repulsion to only the non-neighbors in
+`smallvis`, but this leads to some horrible results involving lots of very small
+well-separated clusters. On reflection it seems like this would be the expected
+outcome of not allowing neighbors to repel each other: neighboring points that
+happen to be initialized close to each other will feel a strong mutual force
+that results in them reducing their distances to zero, which will overwhelm any
+longer range attraction from more distant neighbors. I also can't find any 
+evidence in the LargeVis source code that prevents neighborhood points from
+being turning up as part of the non-neighborhood sample: there *is* a check 
+made in the code, but it only prevents one of the $k$ neighbors from 
+contributing to the repulsive part of the gradient applied to any given point.
+
+That leaves the attractive part. The partitioning works here and the
+non-neighbors *are* excluded from contributing to the attractive part
+of the cost, but that term is weighted by $p_{ij}$ anyway, so the perplexity
+calibration guarantees that even if you did calculate probabilities for all
+pairs of points, those that weren't part of the neighborhood would contribute
+negligibly to that component of the cost function.
+
+Taken together, you could therefore ignore the partitioning scheme, as long as
+you were prepared to calculate the complete O(N^2) matrices, which is exactly
+what `smallvis` does. 
+
+Based on the above discussion, along with using the un-normalized input weights,
+and wanting a cost function to minimize, the `smallvis` version of the LargeVis
+cost function is:
 
 $$
 C_{LV} = 
 -\sum_{ij} v_{ij} \ln w_{ij} 
 -\gamma \sum_{ij} \ln \left( 1 - w_{ij} \right)
 $$
-Equation 2 of the LargeVis paper indicates that the input affinities
-are normalized, i.e. they use $p_{ij}$, not $v_{ij}$ in the first term. But 
-looking at the source code, the affinities seem to be un-normalized. So we're
-doing the same here.
-
-Nonetheless, you can see that the attractive terms of both t-SNE and LargeVis 
-are very similar.
+In this form, apart from the issue of whether the input weights are normalized
+or not, the attractive terms of both t-SNE and LargeVis are very similar.
 
 ### UMAP
 
