@@ -95,10 +95,9 @@ Solve the generalized eigenvalue problem:
 
 $$Lv = \lambda_{L} v$$
 
-The resulting eigenvalues will be real and positive. The Laplacian Eigenmap uses
-the smallest eigenvectors associated. But not the very smallest eigenvector,
-which is constant. So if you want a 2D plot, you use the second-smallest and
-third-smallest eigenvectors.
+The Laplacian Eigenmap uses the smallest eigenvectors. But not the very smallest
+eigenvector, which is constant. So if you want to reduce to two dimensions, use
+the second-smallest and third-smallest eigenvectors.
 
 It turns out that the following standard eigenvalue problem will produce the 
 same eigenvectors:
@@ -160,7 +159,7 @@ eigenvalues required are those of the generalized eigenproblem involving $L$,
 not the eigenvalues of $P$, so if you are generating the map using $P$, the
 correct scaling is:
 
-$$\left[\left(1 - \lambda_{P,2}^{t}\right) v_2, \left(1 - \lambda_{P,3}^{t} v_3\right) \right]$$
+$$\left[\left(1 - \lambda_{P,2}^{t}\right) v_2, \left(1 - \lambda_{P,3}^{t}\right) v_3 \right]$$
 
 ### Anisotropic Diffusion
 

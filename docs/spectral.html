@@ -228,8 +228,8 @@ div.tocify {
 
 <p>Spectral methods are only tangentially related to <code>smallvis</code>, in that a spectral method is available for initialization (<code>Y_init = &quot;laplacian&quot;</code>) and that the attractive part of most of the cost functions approximates a spectral method. Various methods are related to each other, but the nomenclature is not always consistent between papers, and a lot of the more accessible material seems to be a bit unclear, so I need something brief to remind myself without having to work it all out over and over again every time. So it’s going here.</p>
 <p>This page is just to remind me of the definitions of matrices and the algorithmic procedures, not anything to do with theoretical properties. For that, see the further reading section.</p>
-<div id="lets-get-started" class="section level2">
-<h2>Let’s Get Started</h2>
+<div id="the-usual-preliminaries" class="section level2">
+<h2>The Usual Preliminaries</h2>
 <p>We have a matrix of input data, <span class="math inline">\(X\)</span>, with <span class="math inline">\(N\)</span> observations of <span class="math inline">\(K\)</span> features.</p>
 <p>Now let’s represent it as a fully-connected undirected graph, where each object in the dataset is a vertex, and the strength of the connection between each vertex is given by a weighted edge.</p>
 <p>The graph is represented as a matrix, <span class="math inline">\(W\)</span>: an <span class="math inline">\(N\)</span> x <span class="math inline">\(N\)</span> matrix of edge weights (or “similarities” or “affinities”), where if <span class="math inline">\(w_{ij}\)</span> is large, that means object <span class="math inline">\(i\)</span> and <span class="math inline">\(j\)</span> are considered similar. <span class="math inline">\(W\)</span> is sometimes also called a kernel matrix and the function that generated the similarities as a kernel.</p>
@@ -276,7 +276,7 @@ div.tocify {
 <h2>Laplacian Eigenmaps</h2>
 <p>Solve the generalized eigenvalue problem:</p>
 <p><span class="math display">\[Lv = \lambda_{L} v\]</span></p>
-<p>The resulting eigenvalues will be real and positive. The Laplacian Eigenmap uses the smallest eigenvectors associated. But not the very smallest eigenvector, which is constant. So if you want a 2D plot, you use the second-smallest and third-smallest eigenvectors.</p>
+<p>The Laplacian Eigenmap uses the smallest eigenvectors. But not the very smallest eigenvector, which is constant. So if you want to reduce to two dimensions, use the second-smallest and third-smallest eigenvectors.</p>
 <p>It turns out that the following standard eigenvalue problem will produce the same eigenvectors:</p>
 <p><span class="math display">\[Pv = \lambda_{P} v\]</span></p>
 <p>except with this expression, you want the <em>largest</em> eigenvectors (except not the very largest one), rather than the smallest eigenvectors. The eigenvalues themselves are not the same, but are related via:</p>
@@ -298,7 +298,7 @@ div.tocify {
 <p>For the basic diffusion map, the only difference from Laplacian Eigenmaps is that the eigenvectors should be scaled by the eigenvalues. For example, the 2D diffusion map would be given by the pair of vectors:</p>
 <p><span class="math display">\[(\lambda_{L,2}^{t} v_2, \lambda_{L,3}^{t} v_3)\]</span></p>
 <p>where <span class="math inline">\(\lambda_{L,n}\)</span> means the <span class="math inline">\(n\)</span>th largest eigenvalue as in LE, raised to the power of <span class="math inline">\(t\)</span>, according to the time step you want. But do note that the eigenvalues required are those of the generalized eigenproblem involving <span class="math inline">\(L\)</span>, not the eigenvalues of <span class="math inline">\(P\)</span>, so if you are generating the map using <span class="math inline">\(P\)</span>, the correct scaling is:</p>
-<p><span class="math display">\[\left[\left(1 - \lambda_{P,2}^{t}\right) v_2, \left(1 - \lambda_{P,3}^{t} v_3\right) \right]\]</span></p>
+<p><span class="math display">\[\left[\left(1 - \lambda_{P,2}^{t}\right) v_2, \left(1 - \lambda_{P,3}^{t}\right) v_3 \right]\]</span></p>
 <div id="anisotropic-diffusion" class="section level3">
 <h3>Anisotropic Diffusion</h3>
 <p>So Diffusion Maps are just like Laplacian Eigenmaps but with some slight stretching of the axes. Big deal! Actually, there’s a bit more to them than that. You can also define different diffusion operators. At this point, sadly, I’ve never actually seen the procedure written down unambiguously. Both the Socher report and Wikipedia page seem to leave out some steps. Here’s my attempt. I’ll try and stick with the notation I’ve seen used elsewhere, which is truly unfortunate.</p>
