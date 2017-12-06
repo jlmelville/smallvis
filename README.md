@@ -122,7 +122,9 @@ epsilon to avoid division by zero and get decent results. It's hard-coded to
 `smallvis`. It can be controlled by the `lveps` parameter.
 * Mainly for my own benefit, there is also a 
 [theory](https://jlmelville.github.io/smallvis/theory.html) page 
-showing a comparison of cost functions and gradients.
+showing a comparison of cost functions and gradients. Also, some material on
+the various [spectral](https://jlmelville.github.io/smallvis/spectral.html)
+methods, which justifies the use of Laplacian Eigenmaps (a bit).
 
 ## See Also
 
