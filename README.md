@@ -125,6 +125,9 @@ epsilon to avoid division by zero and get decent results. It's hard-coded to
 showing a comparison of cost functions and gradients. Also, some material on
 the various [spectral](https://jlmelville.github.io/smallvis/spectral.html)
 methods, which justifies the use of Laplacian Eigenmaps (a bit).
+* As an example of `smallvis` results, you can read about the 
+[effect of initialization methods](https://jlmelville.github.io/smallvis/init.html)
+on t-SNE.
 
 ## See Also
 
