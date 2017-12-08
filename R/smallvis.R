@@ -318,6 +318,10 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
   }
   method <- match.arg(tolower(method), c("tsne", "largevis", "umap", "tumap"))
 
+  if (stop_lying_iter < 1) {
+    stop("stop_lying_iter must be >= 1")
+  }
+
   if (class(pca) == "character" && pca == "whiten") {
     pca <- TRUE
     whiten <- TRUE
