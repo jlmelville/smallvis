@@ -187,6 +187,9 @@ to the \code{method} parameter are:
   Unlike LargeVis and t-SNE, UMAP uses un-normalized input weights, which
   are calibrated via calculating smoothed k-nearest-neighbor distances,
   rather than perplexity (the procedure is similar, however).
+  \item \code{"tumap"} Like UMAP, except the output weight function is the
+  t-distribution with one degree of freedom, like t-SNE and LargeVis. This
+  simplifies the gradient calculation compared to UMAP, so it runs faster.
 }
 
 Note that only the cost function is used from these methods in the context

@@ -1,3 +1,6 @@
+#'
+
+
 #' Dimensionality Reduction via Neighbor Embedding
 #'
 #' Carry out dimensionality reduction of a (small) dataset using one of a
@@ -15,6 +18,9 @@
 #'   Unlike LargeVis and t-SNE, UMAP uses un-normalized input weights, which
 #'   are calibrated via calculating smoothed k-nearest-neighbor distances,
 #'   rather than perplexity (the procedure is similar, however).
+#'   \item \code{"tumap"} Like UMAP, except the output weight function is the
+#'   t-distribution with one degree of freedom, like t-SNE and LargeVis. This
+#'   simplifies the gradient calculation compared to UMAP, so it runs faster.
 #' }
 #'
 #' Note that only the cost function is used from these methods in the context
@@ -310,7 +316,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
   else if (is.function(epoch_callback)) {
     force(epoch_callback)
   }
-  method <- match.arg(tolower(method), c("tsne", "largevis", "umap"))
+  method <- match.arg(tolower(method), c("tsne", "largevis", "umap", "tumap"))
 
   if (class(pca) == "character" && pca == "whiten") {
     pca <- TRUE
@@ -474,9 +480,13 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
       G <- 4 * W * (P - W / Z)
     }
     else if (method == "umap") {
-      F <- a * b * (D2 + eps) ^ (b - 1)
-      diag(F) <- 0
-      G <- 4 * (P * W * F - ((1 - P) * W * W * F) / ((1 - W) + lveps))
+      WF <- a * b * (D2 + eps) ^ (b - 1)
+      diag(WF) <- 0
+      WF <- W * WF
+      G <- 4 * (P * WF - ((1 - P) * W * WF) / ((1 - W) + lveps))
+    }
+    else if (method == "tumap") {
+      G <- 4 * (P * W - ((1 - P) * W * W) / ((1 - W) + lveps))
     }
     else {
       # LargeVis
@@ -485,7 +495,6 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
 
     # Gradient
     G <- Y * rowSums(G) - (G %*% Y)
-
     if (names(exaggeration_factor) == "ls" && iter <= stop_lying_iter) {
       # during LS exaggeration, use gradient descent only with eta = 1
       uY <- -G
@@ -498,7 +507,6 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
       gains[gains < min_gain] <- min_gain
       uY <- mu * uY - eta * gains * G
     }
-
     # Update
     Y <- Y + uY
 
@@ -525,7 +533,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
       if (method == "tsne") {
         pcosts <- colSums(P * log((P + eps) / ((W / Z) + eps)))
       }
-      else if (method == "umap") {
+      else if (method == "umap" || method == "tumap") {
         pcosts <- colSums(-P * log(W + eps) - (1 - P) * log1p(-W + eps))
       }
       else {
