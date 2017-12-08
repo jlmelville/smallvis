@@ -756,7 +756,7 @@ init_out <- function(Y_init, X, ndim, pca_preprocessed, verbose = FALSE) {
 # top eigenvectors to be extracted. Otherwise, use the slower eigen routine.
 # A must be symmetric and positive semi definite, but not necessarily
 # normalized in any specific way.
-laplacian_eigenmap <- function(A, ndim = 2, eps = .Machine$double.eps) {
+laplacian_eigenmap <- function(A, ndim = 2) {
   # Equivalent to: D <- diag(colSums(A)); M <- solve(D) %*% A
   # This effectively row-normalizes A: colSums is normally faster than rowSums
   # and because A is symmetric, they're equivalent
