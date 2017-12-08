@@ -516,7 +516,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
 
     if (iter == mom_switch_iter) {
       mu <- final_momentum
-      if (verbose) {
+      if (verbose && momentum != final_momentum) {
         message("Switching to final momentum ", formatC(final_momentum),
                 " at iter ", iter)
       }
