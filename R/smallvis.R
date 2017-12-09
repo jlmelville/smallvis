@@ -480,8 +480,8 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
     diag(W) <- 0
     # Force constant (aka stiffness)
     if (method == "tsne") {
-      Z <- sum(W)
-      G <- 4 * W * (P - W / Z)
+      invZ <- 1 / sum(W)
+      G <- 4 * W * (P - W * invZ)
     }
     else if (method == "umap") {
       WF <- a * b * (D2 + eps) ^ (b - 1)
@@ -535,7 +535,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
 
       # Store costs as per-point vector for use in extended return value
       if (method == "tsne") {
-        pcosts <- colSums(P * log((P + eps) / ((W / Z) + eps)))
+        pcosts <- colSums(P * log((P + eps) / ((W * invZ) + eps)))
       }
       else if (method == "umap" || method == "tumap") {
         pcosts <- colSums(-P * log(W + eps) - (1 - P) * log1p(-W + eps))
@@ -568,7 +568,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
   }
 
   ret_value(Y, ret_extra, method, X, scale, Y_init, iter, start_time,
-            pcosts = pcosts, P, ifelse(method == "tsne", W / Z, W), eps,
+            pcosts = pcosts, P, ifelse(method == "tsne", W * invZ, W), eps,
             perplexity, itercosts,
             stop_lying_iter, mom_switch_iter, momentum, final_momentum, eta,
             exaggeration_factor, optionals = ret_optionals,
@@ -1077,11 +1077,10 @@ dist_to_prob <- function(D, beta) {
 
 # Create matrix of squared Euclidean distances
 # For low dimension, X %*% t(X) seems to a bit faster than tcrossprod(X)
+# Small -ve distances are possible
 dist2 <- function(X) {
   D2 <- rowSums(X * X)
-  D2 <- D2 + sweep(X %*% t(X) * -2, 2, t(D2), `+`)
-  D2[D2 < 0] <- 0
-  D2
+  D2 + sweep(X %*% t(X) * -2, 2, t(D2), `+`)
 }
 
 # 2-norm of a vector or matrix
