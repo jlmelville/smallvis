@@ -155,6 +155,8 @@ If \code{ret_extra} is \code{FALSE}, the embedded output coordinates
 \item{\code{whiten_dims}} If PCA whitening was carried out to reduce the
   dimensionality of the input, the number of components retained, as
   specified by the \code{initial_dims} parameter.
+\item{\code{G2norm}} The 2-norm of the gradient on the final iteration.
+  A rough measure of convergence.
 }
 Additionally, if you set \code{ret_extra} to a vector of names, these will
 be returned in addition to the values given above. These values are optional

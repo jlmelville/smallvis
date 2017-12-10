@@ -1,6 +1,3 @@
-#'
-
-
 #' Dimensionality Reduction via Neighbor Embedding
 #'
 #' Carry out dimensionality reduction of a (small) dataset using one of a
@@ -187,6 +184,8 @@
 #' \item{\code{whiten_dims}} If PCA whitening was carried out to reduce the
 #'   dimensionality of the input, the number of components retained, as
 #'   specified by the \code{initial_dims} parameter.
+#' \item{\code{G2norm}} The 2-norm of the gradient on the final iteration.
+#'   A rough measure of convergence.
 #' }
 #' Additionally, if you set \code{ret_extra} to a vector of names, these will
 #' be returned in addition to the values given above. These values are optional
@@ -568,7 +567,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
   }
 
   ret_value(Y, ret_extra, method, X, scale, Y_init, iter, start_time,
-            pcosts = pcosts, P, ifelse(method == "tsne", W * invZ, W), eps,
+            pcosts = pcosts, P, ifelse(method == "tsne", W * invZ, W), G, eps,
             perplexity, itercosts,
             stop_lying_iter, mom_switch_iter, momentum, final_momentum, eta,
             exaggeration_factor, optionals = ret_optionals,
@@ -820,7 +819,7 @@ make_smallvis_cb <- function(df) {
 # scaling and initialization information.
 # Note that Q is the un-normalized output affinities when method = LargeVis or UMAP
 ret_value <- function(Y, ret_extra, method, X, scale, Y_init, iter, start_time = NULL,
-                      pcosts = NULL, P = NULL, Q = NULL,
+                      pcosts = NULL, P = NULL, Q = NULL, G = NULL,
                       eps = NULL, perplexity = NULL, pca = 0, whiten = 0,
                       itercosts = NULL,
                       stop_lying_iter = NULL, mom_switch_iter = NULL,
@@ -848,6 +847,10 @@ ret_value <- function(Y, ret_extra, method, X, scale, Y_init, iter, start_time =
       iter = iter,
       time_secs = as.numeric(end_time - start_time, units = "secs")
     )
+
+    if (!is.null(G)) {
+      res$G2norm <- norm2(G)
+    }
 
     if (pca > 0) {
       res$pca_dims <- pca
