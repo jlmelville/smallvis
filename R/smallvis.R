@@ -548,7 +548,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
       if (verbose) {
         message(stime(), " Iteration #", iter, " error: ",
                 formatC(cost)
-                , " ||G||2 = ", formatC(sqrt(sum(G * G))))
+                , " ||G||2 = ", formatC(norm2(G)))
       }
 
       if (!is.null(epoch_callback)) {
