@@ -871,11 +871,11 @@ ret_value <- function(Y, ret_extra, method, X, scale, Y_init, iter, start_time =
           res$DX <- X
         }
         else {
-          res$DX <- sqrt(dist2(X))
+          res$DX <- sqrt(safe_dist2(X))
         }
       }
       else if (o == "dy") {
-        res$DY <- sqrt(dist2(Y))
+        res$DY <- sqrt(safe_dist2(Y))
       }
     }
 
@@ -1057,6 +1057,14 @@ dist2 <- function(X) {
   D2 <- rowSums(X * X)
   D2 + sweep(X %*% t(X) * -2, 2, t(D2), `+`)
 }
+
+# Squared Euclidean distances, ensuring no small -ve distances can occur
+safe_dist2 <- function(X) {
+  D2 <- dist2(X)
+  D2[D2 < 0] <- 0
+  D2
+}
+
 
 # 2-norm of a vector or matrix
 norm2 <- function(X) {
