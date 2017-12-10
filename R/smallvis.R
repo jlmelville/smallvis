@@ -115,9 +115,7 @@
 #' @param eta Learning rate value.
 #' @param min_gain Minimum gradient descent step size.
 #' @param exaggeration_factor Numerical value to multiply input probabilities
-#'   by, during the early exaggeration phase. May also provide the string
-#'   \code{"ls"}, in which case the dataset-dependent exaggeration technique
-#'   suggested by Linderman and Steinerberger (2017) is used. A value between
+#'   by, during the early exaggeration phase. A value between
 #'   4-12 is normal. If using \code{Y_init = "laplacian"}, or supplying a matrix
 #'   of an existing configuration that you want refined, it is suggested not to
 #'   set this to \code{1} (effectively turning off early exaggeration).
@@ -176,8 +174,7 @@
 #'   optimization, as specified by the \code{final_momentum} parameter.
 #' \item{\code{eta}} Learning rate, as specified by the \code{eta} parameter.
 #' \item{\code{exaggeration_factor}} Multiplier of the input probabilities
-#'   during the exaggeration phase. If the Linderman-Steinerberger exaggeration
-#'   scheme is used, this value will have the name \code{"ls"}.
+#'   during the exaggeration phase.
 #' \item{\code{pca_dims}} If PCA was carried out to reduce the initial
 #'   dimensionality of the input, the number of components retained, as
 #'   specified by the \code{initial_dims} parameter.
@@ -231,13 +228,9 @@
 #' umap_iris <- smallvis(iris, method = "umap", eta = 0.1,
 #'                       epoch_callback = ecb, perplexity = 50, verbose = TRUE)
 #'
-#' # Use the early exaggeration suggested by Linderman and Steinerberger
-#' tsne_iris_ls <- smallvis(iris, epoch_callback = ecb, perplexity = 50,
-#'                          exaggeration_factor = "ls")
-#'
 #' # Make embedding deterministic by initializing with scaled PCA scores
-#' tsne_iris_spca <- smallvis(iris, epoch_callback = ecb, perplexity = 50,
-#'                            exaggeration_factor = "ls", Y_init = "spca")
+#' tsne_iris_spca <- smallvis(iris, epoch_callback = ecb, perplexity = 50, Y_init = "spca",
+#'                            exaggeration_factor = 4)
 #'
 #' # Or use Laplacian Eigenmap for initialization (no exaggeration needed)
 #' tsne_iris_lap <- smallvis(iris, epoch_callback = ecb, perplexity = 50,
@@ -245,12 +238,11 @@
 #'
 #' # Return extra details about the embedding
 #' tsne_iris_extra <- smallvis(iris, epoch_callback = ecb, perplexity = 50,
-#'                             exaggeration_factor = "ls", Y_init = "spca", ret_extra = TRUE)
+#'                             Y_init = "spca", ret_extra = TRUE)
 #'
 #' # Return even more details (which can be slow to calculate or take up a lot of memory)
 #' tsne_iris_xextra <- smallvis(iris, epoch_callback = ecb, perplexity = 50,
-#'                              exaggeration_factor = "ls", Y_init = "spca",
-#'                              ret_extra = c("P", "Q", "X", "DX", "DY"))
+#'                              Y_init = "spca", ret_extra = c("P", "Q", "X", "DX", "DY"))
 #'
 #' # Reduce initial dimensionality to 3 via PCA
 #' # (But you would normally do this with a much larger dataset)
@@ -433,18 +425,6 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
                      whiten = ifelse(pca && whiten, initial_dims, 0)))
   }
 
-  if (tolower(exaggeration_factor) == "ls") {
-    # Linderman-Steinerberger exaggeration
-    exaggeration_factor <- 0.1 * n
-    names(exaggeration_factor) <- "ls"
-    if (verbose) {
-      message("Linderman-Steinerberger exaggeration = ",
-              formatC(exaggeration_factor))
-    }
-  }
-  else {
-    names(exaggeration_factor) <- "ex"
-  }
   P <- P * exaggeration_factor
 
   if (method == "umap") {
@@ -498,18 +478,14 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
 
     # Gradient
     G <- Y * rowSums(G) - (G %*% Y)
-    if (names(exaggeration_factor) == "ls" && iter <= stop_lying_iter) {
-      # during LS exaggeration, use gradient descent only with eta = 1
-      uY <- -G
-    }
-    else {
-      # compare signs of G with -update (== previous G, if we ignore momentum)
-      # abs converts TRUE/FALSE to 1/0
-      dbd <- abs(sign(G) != sign(uY))
-      gains <- (gains + 0.2) * dbd + (gains * 0.8) * (1 - dbd)
-      gains[gains < min_gain] <- min_gain
-      uY <- mu * uY - eta * gains * G
-    }
+
+    # compare signs of G with -update (== previous G, if we ignore momentum)
+    # abs converts TRUE/FALSE to 1/0
+    dbd <- abs(sign(G) != sign(uY))
+    gains <- (gains + 0.2) * dbd + (gains * 0.8) * (1 - dbd)
+    gains[gains < min_gain] <- min_gain
+    uY <- mu * uY - eta * gains * G
+
     # Update
     Y <- Y + uY
 
@@ -862,10 +838,6 @@ ret_value <- function(Y, ret_extra, method, X, scale, Y_init, iter, start_time =
     if (iter > 0) {
       if (!is.null(pcosts)) {
         res$costs <- pcosts
-      }
-
-      if (names(exaggeration_factor) != "ls") {
-        names(exaggeration_factor) <- NULL
       }
 
       res <- c(res, list(
