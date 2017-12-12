@@ -9,9 +9,9 @@ smallvis(X, k = 2, scale = "absmax", Y_init = "rand", perplexity = 30,
   method = "tsne", epoch_callback = TRUE,
   epoch = base::round(max_iter/10), min_cost = 0, momentum = 0.5,
   final_momentum = 0.8, mom_switch_iter = 250, eta = 500,
-  min_gain = 0.01, exaggeration_factor = 1, stop_lying_iter = 100,
-  gamma = 7, lveps = 0.1, spread = 1, min_dist = 0.001,
-  ret_extra = FALSE, verbose = TRUE)
+  min_gain = 0.01, opt = list("dbd"), exaggeration_factor = 1,
+  stop_lying_iter = 100, gamma = 7, lveps = 0.1, spread = 1,
+  min_dist = 0.001, ret_extra = FALSE, verbose = TRUE)
 }
 \arguments{
 \item{X}{Input coordinates or distance matrix.}
@@ -76,6 +76,9 @@ stop early.}
 
 \item{min_gain}{Minimum gradient descent step size.}
 
+\item{opt}{Optional list specifying alternative minimization method. See
+"Alternative optimizers" section.}
+
 \item{exaggeration_factor}{Numerical value to multiply input probabilities
 by, during the early exaggeration phase. A value between
 4-12 is normal. If using \code{Y_init = "laplacian"}, or supplying a matrix
@@ -136,14 +139,10 @@ If \code{ret_extra} is \code{FALSE}, the embedded output coordinates
 \item{\code{itercosts}} KL cost at each epoch.
 \item{\code{stop_lying_iter}} Iteration at which early exaggeration is
   stopped, as specified by the \code{stop_lying_iter} parameter.
-\item{\code{mom_switch_iter}} Iteration at which momentum used in
-  optimization switches from \code{momentum} to \code{final_momentum}, as
-  specified by the \code{mom_switch_iter} parameter.
-\item{\code{momentum}} Momentum used in the initial part of the optimization,
-  as specified by the \code{momentum} parameter.
-\item{\code{final_momentum}} Momentum used in the second part of the
-  optimization, as specified by the \code{final_momentum} parameter.
-\item{\code{eta}} Learning rate, as specified by the \code{eta} parameter.
+\item{\code{opt}} List containing optimization parameters. For the default
+  delta-bar-delta method, \code{mom_switch_iter}, \code{momentum},
+  \code{final_momentum} and \code{eta}. Otherwise, the contents of the
+  \code{opt} parameter argument.
 \item{\code{exaggeration_factor}} Multiplier of the input probabilities
   during the exaggeration phase.
 \item{\code{pca_dims}} If PCA was carried out to reduce the initial
@@ -245,6 +244,83 @@ Explicitly set \code{epoch_callback} to \code{NULL} or \code{FALSE} to turn
 this off.
 }
 
+\section{Alternative optimizers}{
+
+
+Instead of the delta-bar-deta optimizer used in t-SNE, other optimizers can
+be used, by passing a list to the \code{opt} parameter. The first item
+is the name of the optimizer. Subsequent items should be named values of
+the parameters specific to that optimizer. Optimizer and their parameters
+are as follows:
+
+\itemize{
+  \item{\code{"adagrad"}} Adagrad.
+  \itemize{
+    \item{\code{eta}} Initial learning rate.
+    \item{\code{eps}} Epsilon.
+  }
+  \item{\code{"adadelta"}} Adadelta.
+  \itemize{
+    \item{\code{rho}} Momentum-like term.
+    \item{\code{eps}} Epsilon.
+  }
+  \item{\code{"rmsprop"}} RMSProp.
+  \itemize{
+    \item{\code{eta}} Initial learning rate.
+    \item{\code{rho}} Momentum-like term.
+    \item{\code{eps}} Epsilon.
+  }
+  \item{\code{"ndbd"}} Delta-bar-delta with Nesterov momentum.
+  \itemize{
+    \item{\code{eta}} Initial learning rate.
+    \item{\code{momentum}} Momentum before iteration given by
+      \code{mom_switch_iter}.
+    \item{\code{final_momentum}} Momentum after iteration given by
+      \code{mom_switch_iter}.
+    \item{\code{mom_switch_iter}} Switch from \code{momentum} to
+      \code{final_momentum} at this iteration.
+    \item{\code{min_gain}} Minimum step size.
+  }
+  Arguments to \code{smallvis} that apply to the default delta-bar-delta
+  optimizer can also be used to set these arguments.
+  \item{\code{"adam"}} Adam.
+  \itemize{
+    \item{\code{eta}} Initial learning rate.
+    \item{\code{beta1}} Momentum-like term.
+    \item{\code{beta2}} Momentum-like term for variance decay.
+    \item{\code{eps}} Epsilon.
+  }
+  \item{\code{"adamax"}} Adamax.
+  \itemize{
+    \item{\code{eta}} Initial learning rate.
+    \item{\code{beta1}} Momentum-like term.
+    \item{\code{beta2}} Momentum-like term for variance decay.
+    \item{\code{eps}} Epsilon.
+  }
+  \item{\code{"nadam"}} Adam with Nesterov momentum.
+  \itemize{
+    \item{\code{eta}} Initial learning rate.
+    \item{\code{beta1}} Momentum-like term.
+    \item{\code{beta2}} Momentum-like term for variance decay.
+    \item{\code{eps}} Epsilon.
+  }
+  \item{\code{"steepd"}} Steepest descent with fixed step size.
+  \itemize{
+    \item{\code{eta}} Step size.
+  }
+  \item{\code{"mom"}} Classical momentum with fixed step size.
+  \itemize{
+    \item{\code{eta}} Step size.
+    \item{\code{mu}} Momentum.
+  }
+}
+
+Note that the majority of these are intended for use in stochastic gradient
+descent for deep learning. For \code{method = "tsne"}, you probably are better
+to stick with the default delta-bar-delta method. For other methods, one of
+these methods may provide greater stability.
+}
+
 \examples{
 \dontrun{
 
@@ -299,6 +375,10 @@ tsne_iris_pca <- smallvis(iris, epoch_callback = ecb, perplexity = 50,
 # Or use PCA whitening, so all columns of X have variance = 1
 tsne_iris_whiten <- smallvis(iris, epoch_callback = ecb, perplexity = 50,
                              pca = "whiten", initial_dims = 3)
+
+# Classical momentum optimization instead of delta-bar-delta
+umap_iris <- smallvis(iris, scale = FALSE, opt = list("mom", eta = 1e-2, mu = 0.8),
+                      method = "umap", Y_init = "spca")
 }
 }
 \references{
