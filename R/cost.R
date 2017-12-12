@@ -221,15 +221,9 @@ cost_init <- function(cost, X, verbose = FALSE) {
 }
 
 cost_grad <- function(cost, P, Y) {
-  if (!is.null(cost$gr)) {
-    cost <- cost$gr(cost, P, Y)
-  }
-  cost
+  cost$gr(cost, P, Y)
 }
 
 cost_point <- function(cost, P, Y) {
-  if (!is.null(cost$pfn)) {
-    cost <- cost$pfn(cost, P, Y)
-  }
-  cost
+  cost$pfn(cost, P, Y)
 }
