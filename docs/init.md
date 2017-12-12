@@ -98,7 +98,7 @@ For example, for the `tsne_iris_rxr` result given above, the `mnp@40` value is
 calculated using:
 
 ```r
-av_pres <- quadra::nbr_pres(tsne_iris_rxr$DX, tsne_iris_rxr$DY, tsne_iris_rxr$perplexity)
+av_pres <- mean(quadra::nbr_pres(tsne_iris_rxr$DX, tsne_iris_rxr$DY, tsne_iris_rxr$perplexity))
 ```
 
 This calculation requires extra data to be calculated when results are reported:
