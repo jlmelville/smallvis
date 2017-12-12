@@ -385,7 +385,8 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
   else if (is.function(epoch_callback)) {
     force(epoch_callback)
   }
-  method <- match.arg(tolower(method), c("tsne", "largevis", "umap", "tumap"))
+  method <- match.arg(tolower(method), c("tsne", "largevis", "umap", "tumap",
+                                         "ntumap"))
 
   if (stop_lying_iter < 1) {
     stop("stop_lying_iter must be >= 1")
@@ -501,7 +502,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
   # In the LargeVis paper, eq 2 says to normalize the input affinities
   # but the implementation doesn't, so we won't either
   # (also it leads to over-weighted repulsions)
-  if (method == "tsne") {
+  if (method == "tsne" || method == "ntumap") {
     P <- P / sum(P)
   }
 
@@ -560,6 +561,12 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
     else if (method == "tumap") {
       G <- 4 * (P * W - ((1 - P) * W * W) / ((1 - W) + lveps))
     }
+    else if (method == "ntumap") {
+      invZ <- 1 / sum(W)
+      Q <- W * invZ
+      C <- (P - Q) / (1 - Q)
+      G <- 4 * W * (C - sum(C) * Q)
+    }
     else {
       # LargeVis
       G <- 4 * (P * W - ((gamma * W * W) / ((1 - W) + lveps)))
@@ -590,6 +597,9 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
       else if (method == "umap" || method == "tumap") {
         pcosts <- colSums(-P * log(W + eps) - (1 - P) * log1p(-W + eps))
       }
+      else if (method == "ntumap") {
+        pcosts <- colSums(-P * log(Q + eps) - (1 - P) * log1p(-Q + eps))
+      }
       else {
         # LargeVis
         pcosts <- colSums(-P * log(W + eps) - gamma * log1p(-W + eps))
@@ -618,7 +628,8 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
   }
 
   ret_value(Y, ret_extra, method, X, scale, Y_init, iter, start_time,
-            pcosts = pcosts, P, ifelse(method == "tsne", W * invZ, W), G, eps,
+            pcosts = pcosts, P,
+            ifelse(method == "tsne" || method == "ntumap", W * invZ, W), G, eps,
             perplexity, itercosts,
             stop_lying_iter, opt_list,
             exaggeration_factor, optionals = ret_optionals,
