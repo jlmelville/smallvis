@@ -17,7 +17,7 @@ tsne <- function(perplexity, inp_kernel = "gaussian") {
       cost
     },
     pfn = function(cost, Y) {
-      P <- cost$fn
+      P <- cost$P
       eps <- cost$eps
       invZ <- cost$invZ
       W <- cost$W
