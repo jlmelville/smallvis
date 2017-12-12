@@ -456,7 +456,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
   opt <- opt_init(opt, n, k, verbose = verbose)
 
   # Perplexity (and Related) Calibration
-  if (method == "umap" || method == "tumap") {
+  if (method %in% c("umap", "tumap", "ntumap")) {
     if (verbose) {
       message(stime(), " Commencing smooth kNN distance calibration")
     }
