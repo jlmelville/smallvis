@@ -390,11 +390,13 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
   method <- match.arg(tolower(method), c("tsne", "largevis", "umap", "tumap",
                                          "ntumap"))
   cost_fn <- switch(method,
-       tsne = tsne(),
-       umap = umap(spread = spread, min_dist = min_dist, gr_eps = lveps),
-       largevis = largevis(gamma = gamma, gr_eps = lveps),
-       tumap = tumap(gr_eps = lveps),
-       ntumap = ntumap(gr_eps = lveps)
+       tsne = tsne(perplexity = perplexity, inp_kernel = inp_kernel),
+       umap = umap(perplexity = perplexity, spread = spread,
+                   min_dist = min_dist, gr_eps = lveps),
+       largevis = largevis(perplexity = perplexity, inp_kernel = inp_kernel,
+                           gamma = gamma, gr_eps = lveps),
+       tumap = tumap(perplexity = perplexity, gr_eps = lveps),
+       ntumap = ntumap(perplexity = perplexity, gr_eps = lveps)
   )
 
   if (stop_lying_iter < 1) {
@@ -464,24 +466,8 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
   opt <- opt_create(opt_list)
   opt <- opt_init(opt, n, k, verbose = verbose)
 
-  # Perplexity (and Related) Calibration
-  if (method %in% c("umap", "tumap", "ntumap")) {
-    if (verbose) {
-      message(stime(), " Commencing smooth kNN distance calibration")
-    }
-    P <- smooth_knn_distances(X, k = perplexity, tol = 1e-5,
-                              verbose = verbose)$P
-    # Fuzzy set union
-    P <- P + t(P) - P * t(P)
-  }
-  else {
-    if (verbose) {
-      message(stime(), " Commencing perplexity calibration")
-    }
-    P <- x2p(X, perplexity, tol = 1e-5, kernel = inp_kernel, verbose = verbose)$P
-    # Symmetrize by arithmetic mean, but t-SNE normalization occurs later
-    P <- 0.5 * (P + t(P))
-  }
+  # Initialize the cost function and create P
+  cost_fn <- cost_init(cost_fn, X, verbose = verbose)
 
   # Output Initialization
   if (!is.null(Y_init)) {
@@ -490,29 +476,23 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
       Y_init <- "matrix"
     }
     else {
-      Y_init <- match.arg(tolower(Y_init), c("rand", "pca", "spca",
-                                             "laplacian"))
+      Y_init <- match.arg(tolower(Y_init),
+                          c("rand", "pca", "spca", "laplacian"))
 
       if (Y_init != "laplacian") {
         Y <- init_out(Y_init, X, k, pca_preprocessed = pca,
                       verbose = verbose)
       }
       else {
-        if (verbose) {
-          message(stime(), " Initializing from Laplacian Eigenmaps")
+        if (is.null(cost_fn$P)) {
+          stop("No suitable input for initialization from Laplacian Eigenmap")
         }
-        Y <- laplacian_eigenmap(P, ndim = k)
+        if (verbose) {
+          message(stime(), " Initializing from Laplacian Eigenmap")
+        }
+        Y <- laplacian_eigenmap(cost_fn$P, ndim = k)
       }
     }
-  }
-
-  # t-SNE Weight Normalization (which we leave until now in case of Laplacian
-  # Eigenmap initialization)
-  # In the LargeVis paper, eq 2 says to normalize the input affinities
-  # but the implementation doesn't, so we won't either
-  # (also it leads to over-weighted repulsions)
-  if (method %in% c("tsne", "ntumap")) {
-    P <- P / sum(P)
   }
 
   # Display initialization
@@ -526,39 +506,29 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
                      whiten = ifelse(pca && whiten, initial_dims, 0)))
   }
 
-  if (method == "umap") {
-    ab_params <- find_ab_params(spread = spread, min_dist = min_dist)
-    a <- ab_params[1]
-    b <- ab_params[2]
-    if (verbose) {
-      message("Umap curve parameters = ", formatC(a), ", ", formatC(b))
-    }
+  # Start exaggerating
+  if (!is.null(cost_fn$P)) {
+    cost_fn$P <- cost_fn$P * exaggeration_factor
   }
 
-  # Initialize the cost function
-  cost_fn <- cost_init(cost_fn, X, verbose = verbose)
-
-
-  # Start exaggerating
-  P <- P * exaggeration_factor
   itercosts <- c()
-
   if (verbose) {
     message(stime(), " Optimizing coordinates")
   }
   for (iter in 1:max_iter) {
-    cost_fn <- cost_grad(cost_fn, P, Y)
+    cost_fn <- cost_grad(cost_fn, Y)
     G <- cost_fn$G
 
     # Update
     opt <- opt_upd(opt, G, iter)
     Y <- Y + opt$uY
 
-    if (iter == stop_lying_iter && exaggeration_factor != 1) {
+    if (!is.null(cost_fn$P) && iter == stop_lying_iter &&
+        exaggeration_factor != 1) {
       if (verbose) {
         message("Switching off exaggeration at iter ", iter)
       }
-      P <- P / exaggeration_factor
+      cost_fn$P <- cost_fn$P / exaggeration_factor
     }
 
     if (iter %% epoch == 0 || iter == max_iter) {
@@ -566,7 +536,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
       Y <- sweep(Y, 2, colMeans(Y))
 
       # Store costs as per-point vector for use in extended return value
-      cost_fn <- cost_point(cost_fn, P, Y)
+      cost_fn <- cost_point(cost_fn, Y)
       pcosts <- cost_fn$pcost
       cost <- sum(pcosts)
 
@@ -592,7 +562,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
   }
 
   ret_value(Y, ret_extra, method, X, scale, Y_init, iter, start_time,
-            cost_fn = cost_fn, pcosts = pcosts, P, G,
+            cost_fn = cost_fn, G,
             perplexity, itercosts,
             stop_lying_iter, opt_list,
             exaggeration_factor, optionals = ret_optionals,
@@ -844,7 +814,7 @@ make_smallvis_cb <- function(df) {
 # scaling and initialization information.
 ret_value <- function(Y, ret_extra, method, X, scale, Y_init, iter, start_time = NULL,
                       cost_fn = NULL,
-                      pcosts = NULL, P = NULL, G = NULL,
+                      G = NULL,
                       perplexity = NULL, pca = 0, whiten = 0,
                       itercosts = NULL,
                       stop_lying_iter = NULL, opt = NULL,
@@ -884,8 +854,8 @@ ret_value <- function(Y, ret_extra, method, X, scale, Y_init, iter, start_time =
     }
 
     if (iter > 0) {
-      if (!is.null(pcosts)) {
-        res$costs <- pcosts
+      if (!is.null(cost_fn) && !is.null(cost_fn$pcost)) {
+        res$costs <- cost_fn$pcost
       }
 
       if (!is.null(opt)) {
@@ -901,12 +871,7 @@ ret_value <- function(Y, ret_extra, method, X, scale, Y_init, iter, start_time =
     }
 
     for (o in tolower(unique(optionals))) {
-      if (o == "p") {
-        if (!is.null(P)) {
-          res$P <- P
-        }
-      }
-      else if (o == "q" || o == "w") {
+      if (o %in% c("p", "q", "w")) {
         if (!is.null(cost_fn)) {
           exported <- cost_fn$export(cost_fn, o)
           if (!is.null(exported)) {

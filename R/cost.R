@@ -1,20 +1,31 @@
 # Cost Functions ----------------------------------------------------------
 
 # t-SNE
-tsne <- function() {
+tsne <- function(perplexity, inp_kernel = "gaussian") {
   list(
     init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE) {
+      if (verbose) {
+        message(stime(), " Commencing perplexity calibration")
+      }
+      P <- x2p(X, perplexity, tol = 1e-5, kernel = inp_kernel, verbose = verbose)$P
+      # Symmetrize
+      P <- 0.5 * (P + t(P))
+      # Normalize
+      cost$P <- P / sum(P)
+
       cost$eps <- eps
       cost
     },
-    pfn = function(cost, P, Y) {
+    pfn = function(cost, Y) {
+      P <- cost$fn
       eps <- cost$eps
       invZ <- cost$invZ
       W <- cost$W
       cost$pcost <- colSums(P * log((P + eps) / ((W * invZ) + eps)))
       cost
     },
-    gr = function(cost, P, Y) {
+    gr = function(cost, Y) {
+      P <- cost$P
       W <- dist2(Y)
       W <- 1 / (1 + W)
       diag(W) <- 0
@@ -32,6 +43,9 @@ tsne <- function() {
         },
         q = {
           res <- cost$W * cost$invZ
+        },
+        p = {
+          res <- cost$P
         }
       )
       res
@@ -40,7 +54,7 @@ tsne <- function() {
 }
 
 # UMAP
-umap <- function(spread = 1, min_dist = 0.001, gr_eps = 0.1) {
+umap <- function(perplexity, spread = 1, min_dist = 0.001, gr_eps = 0.1) {
   list(
     init = function(cost, X, eps = 1e-9, verbose = FALSE) {
 
@@ -51,19 +65,30 @@ umap <- function(spread = 1, min_dist = 0.001, gr_eps = 0.1) {
         message("Umap curve parameters = ", formatC(a), ", ", formatC(b))
       }
 
+      if (verbose) {
+        message(stime(), " Commencing smooth kNN distance calibration")
+      }
+      P <- smooth_knn_distances(X, k = perplexity, tol = 1e-5,
+                                verbose = verbose)$P
+      # Fuzzy set union
+      P <- P + t(P) - P * t(P)
+      cost$P <- P
+
       cost$a <- a
       cost$b <- b
       cost$eps <- eps
 
       cost
     },
-    pfn = function(cost, P, Y) {
+    pfn = function(cost, Y) {
+      P <- cost$P
       eps <- cost$eps
       W <- cost$W
       cost$pcost <- colSums(-P * log(W + eps) - (1 - P) * log1p(-W + eps))
       cost
     },
-    gr = function(cost, P, Y) {
+    gr = function(cost, Y) {
+      P <- cost$P
       a <- cost$a
       b <- cost$b
       eps <- cost$eps
@@ -87,6 +112,9 @@ umap <- function(spread = 1, min_dist = 0.001, gr_eps = 0.1) {
       switch(val,
              w = {
                res <- cost$W
+             },
+             p = {
+               res <- cost$P
              }
       )
       res
@@ -95,19 +123,29 @@ umap <- function(spread = 1, min_dist = 0.001, gr_eps = 0.1) {
 }
 
 # LargeVis
-largevis <- function(gamma = 7, gr_eps = 0.1) {
+# NB This version doesn't normalize the input P, despite what the paper
+# indicates (source code of the current implementation doesn't seem to either)
+largevis <- function(perplexity, inp_kernel = "gaussian", gamma = 7, gr_eps = 0.1) {
   list(
     init = function(cost, X, eps = 1e-9, verbose = FALSE) {
+      if (verbose) {
+        message(stime(), " Commencing perplexity calibration")
+      }
+      P <- x2p(X, perplexity, tol = 1e-5, kernel = inp_kernel, verbose = verbose)$P
+      # Symmetrize by arithmetic mean
+      cost$P <- 0.5 * (P + t(P))
       cost$eps <- eps
       cost
     },
-    pfn = function(cost, P, Y) {
+    pfn = function(cost, Y) {
+      P <- cost$P
       eps <- cost$eps
       W <- cost$W
       cost$pcost <- colSums(-P * log(W + eps) - gamma * log1p(-W + eps))
       cost
     },
-    gr = function(cost, P, Y) {
+    gr = function(cost, Y) {
+      P <- cost$P
       W <- dist2(Y)
 
       W <- 1 / (1 + W)
@@ -121,6 +159,9 @@ largevis <- function(gamma = 7, gr_eps = 0.1) {
       switch(val,
              w = {
                res <- cost$W
+             },
+             p = {
+               res <- cost$P
              }
       )
       res
@@ -129,19 +170,31 @@ largevis <- function(gamma = 7, gr_eps = 0.1) {
 }
 
 # UMAP with the output kernel fixed to the t-distribution
-tumap <- function(gr_eps = 0.1) {
+tumap <- function(perplexity, gr_eps = 0.1) {
   list(
     init = function(cost, X, eps = 1e-9, verbose = FALSE) {
       cost$eps <- eps
+
+      if (verbose) {
+        message(stime(), " Commencing smooth kNN distance calibration")
+      }
+      P <- smooth_knn_distances(X, k = perplexity, tol = 1e-5,
+                                verbose = verbose)$P
+      # Fuzzy set union
+      P <- P + t(P) - P * t(P)
+      cost$P <- P
+
       cost
     },
-    pfn = function(cost, P, Y) {
+    pfn = function(cost, Y) {
+      P <- cost$P
       eps <- cost$eps
       W <- cost$W
       cost$pcost <- colSums(-P * log(W + eps) - (1 - P) * log1p(-W + eps))
       cost
     },
-    gr = function(cost, P, Y) {
+    gr = function(cost, Y) {
+      P <- cost$P
       W <- dist2(Y)
       W <- 1 / (1 + W)
       diag(W) <- 0
@@ -155,6 +208,9 @@ tumap <- function(gr_eps = 0.1) {
       switch(val,
              w = {
                res <- cost$W
+             },
+             p = {
+               res <- cost$P
              }
       )
       res
@@ -163,13 +219,23 @@ tumap <- function(gr_eps = 0.1) {
 }
 
 # t-UMAP where output and input affinities are normalized
-ntumap <- function(gr_eps = 0.1) {
+ntumap <- function(perplexity, gr_eps = 0.1) {
   list(
     init = function(cost, X, eps = 1e-9, verbose = FALSE) {
+      if (verbose) {
+        message(stime(), " Commencing smooth kNN distance calibration")
+      }
+      P <- smooth_knn_distances(X, k = perplexity, tol = 1e-5,
+                                verbose = verbose)$P
+      # Symmetrize by fuzzy set union
+      P <- P + t(P) - P * t(P)
+      # Normalize
+      cost$P <- P / sum(P)
       cost$eps <- eps
       cost
     },
-    pfn = function(cost, P, Y) {
+    pfn = function(cost, Y) {
+      P <- cost$P
       eps <- cost$eps
       W <- cost$W
       Q <- W * cost$invZ
@@ -177,7 +243,8 @@ ntumap <- function(gr_eps = 0.1) {
       cost$pcost <- colSums(-P * log(Q + eps) - (1 - P) * log1p(-Q + eps))
       cost
     },
-    gr = function(cost, P, Y) {
+    gr = function(cost, Y) {
+      P <- cost$P
       W <- dist2(Y)
       W <- 1 / (1 + W)
       diag(W) <- 0
@@ -199,6 +266,9 @@ ntumap <- function(gr_eps = 0.1) {
              },
              q = {
                res <- cost$W * cost$invZ
+             },
+             p = {
+               res <- cost$P
              }
       )
       res
@@ -220,10 +290,10 @@ cost_init <- function(cost, X, verbose = FALSE) {
   cost
 }
 
-cost_grad <- function(cost, P, Y) {
-  cost$gr(cost, P, Y)
+cost_grad <- function(cost, Y) {
+  cost$gr(cost, Y)
 }
 
-cost_point <- function(cost, P, Y) {
-  cost$pfn(cost, P, Y)
+cost_point <- function(cost, Y) {
+  cost$pfn(cost, Y)
 }
