@@ -10,6 +10,7 @@ Description: Neighborhood embedding methods for small scale visualization, such
 License: GPL (>= 2)
 Imports:
     methods,
+    mize,
     vizier
 Suggests:
     RSpectra

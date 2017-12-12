@@ -93,6 +93,14 @@ tsne_iris_extra_extra <- smallvis(iris, perplexity = 25, epoch_callback = iris_p
 # Repeat embedding 10 times and keep the one with the best cost
 tsne_iris_best <- smallvis_rep(nrep = 10, iris, perplexity = 25, ret_extra = TRUE)
 plot(tsne_iris_best$Y)
+
+# Classical momentum optimization instead of delta-bar-delta
+umap_iris_mom <- smallvis(iris, scale = FALSE, opt = list("mom", eta = 1e-2, mu = 0.8),
+                          method = "umap", Y_init = "spca")
+
+# L-BFGS optimization via the mize package
+umap_iris_lbfgs <- smallvis(iris, scale = FALSE, opt = list("l-bfgs", c1 = 1e-4, c2 = 0.9),
+                            method = "umap", Y_init = "spca", max_iter = 300)
 ```
 
 ## Things To Be Aware Of

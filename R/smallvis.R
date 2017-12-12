@@ -148,6 +148,13 @@
 #' to stick with the default delta-bar-delta method. For other methods, one of
 #' these methods may provide greater stability.
 #'
+#' Alternatively, optimization methods from the mize package,
+#' \url{https://cran.r-project.org/package=mize}, can also be used, with the
+#' same format: provide the name of the optimizer as the first element of the
+#' list, followed by named pairs of arguments.
+#'
+#' See the examples for the use of alternative optimizers interface.
+#'
 #' @param X Input coordinates or distance matrix.
 #' @param k Number of output dimensions for the embedding.
 #' @param scale If \code{TRUE}, scale each column to zero mean and unit
@@ -330,8 +337,12 @@
 #'                              pca = "whiten", initial_dims = 3)
 #'
 #' # Classical momentum optimization instead of delta-bar-delta
-#' umap_iris <- smallvis(iris, scale = FALSE, opt = list("mom", eta = 1e-2, mu = 0.8),
-#'                       method = "umap", Y_init = "spca")
+#' umap_iris_mom <- smallvis(iris, scale = FALSE, opt = list("mom", eta = 1e-2, mu = 0.8),
+#'                           method = "umap", Y_init = "spca")
+#'
+#' # L-BFGS optimization via the mize package
+#' umap_iris_lbfgs <- smallvis(iris, scale = FALSE, opt = list("l-bfgs", c1 = 1e-4, c2 = 0.9),
+#'                             method = "umap", Y_init = "spca", max_iter = 300)
 #' }
 #' @references
 #' Belkin, M., & Niyogi, P. (2002).
@@ -471,8 +482,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
   else {
     opt_list <- opt
   }
-  opt <- opt_create(opt_list)
-  opt <- opt_init(opt, n, k, verbose = verbose)
+  opt <- opt_create(opt_list, verbose = verbose)
 
   # Initialize the cost function and create P
   cost_fn <- cost_init(cost_fn, X, verbose = verbose)
@@ -524,12 +534,10 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
     message(stime(), " Optimizing coordinates")
   }
   for (iter in 1:max_iter) {
-    cost_fn <- cost_grad(cost_fn, Y)
-    G <- cost_fn$G
-
-    # Update
-    opt <- opt_upd(opt, G, iter)
-    Y <- Y + opt$uY
+    opt_res <- opt_step(opt, cost_fn, Y, iter)
+    opt <- opt_res$opt
+    cost_fn <- opt_res$cost_fn
+    Y <- opt_res$Y
 
     if (!is.null(cost_fn$P) && iter == stop_lying_iter &&
         exaggeration_factor != 1) {
@@ -543,15 +551,19 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
       # Recenter Y during epoch only
       Y <- sweep(Y, 2, colMeans(Y))
 
-      # Store costs as per-point vector for use in extended return value
-      cost_fn <- cost_point(cost_fn, Y)
-      pcosts <- cost_fn$pcost
-      cost <- sum(pcosts)
+      if (is.null(opt_res$f)) {
+        cost_fn <- cost_point(cost_fn, Y)
+        pcosts <- cost_fn$pcost
+        cost <- sum(pcosts)
+      }
+      else {
+        cost <- opt_res$f
+      }
 
       if (verbose) {
         message(stime(), " Iteration #", iter, " error: ",
                 formatC(cost)
-                , " ||G||2 = ", formatC(norm2(G)))
+                , " ||G||2 = ", formatC(norm2(opt_res$G)))
       }
 
       if (!is.null(epoch_callback)) {
@@ -570,7 +582,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
   }
 
   ret_value(Y, ret_extra, method, X, scale, Y_init, iter, start_time,
-            cost_fn = cost_fn, G,
+            cost_fn = cost_fn, opt_res$G,
             perplexity, itercosts,
             stop_lying_iter, opt_list,
             exaggeration_factor, optionals = ret_optionals,
@@ -862,9 +874,11 @@ ret_value <- function(Y, ret_extra, method, X, scale, Y_init, iter, start_time =
     }
 
     if (iter > 0) {
-      if (!is.null(cost_fn) && !is.null(cost_fn$pcost)) {
-        res$costs <- cost_fn$pcost
+      if (is.null(cost_fn$pcost)) {
+        cost_fn <- cost_grad(cost_fn, Y)
+        cost_fn <- cost_point(cost_fn, Y)
       }
+      res$costs <- cost_fn$pcost
 
       if (!is.null(opt)) {
         res$opt <- opt

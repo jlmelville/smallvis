@@ -2,11 +2,11 @@
 
 # Adagrad -----------------------------------------------------------------
 
-adagrad <- function(eta = 0.01, eps = 1e-8) {
+adagrad <- function(eta = 0.01, eps = 1e-8, verbose = FALSE) {
   list(
     eta = eta,
     eps = eps,
-    init = function(opt, n, k, verbose = FALSE) {
+    init = function(opt, n, k) {
       opt$Ghist <- matrix(0, nrow = n, ncol = k)
       opt
     },
@@ -26,11 +26,11 @@ adagrad <- function(eta = 0.01, eps = 1e-8) {
 
 # Adadelta ----------------------------------------------------------------
 
-adadelta <- function(rho = 0.95, eps = 1e-6) {
+adadelta <- function(rho = 0.95, eps = 1e-6, verbose = FALSE) {
   list(
     rho = rho,
     eps = eps,
-    init = function(opt, n, k, verbose = FALSE) {
+    init = function(opt, n, k) {
       opt$Ghist <- matrix(0, nrow = n, ncol = k)
       opt$uYhist <- matrix(0, nrow = n, ncol = k)
 
@@ -55,12 +55,12 @@ adadelta <- function(rho = 0.95, eps = 1e-6) {
 
 # RMSprop -----------------------------------------------------------------
 
-rmsprop <- function(eta = 0.001, rho = 0.9, eps = 1e-6) {
+rmsprop <- function(eta = 0.001, rho = 0.9, eps = 1e-6, verbose = FALSE) {
   list(
     eta = eta,
     rho = rho,
     eps = eps,
-    init = function(opt, n, k, verbose = FALSE) {
+    init = function(opt, n, k) {
       opt$Ghist <- matrix(0, nrow = n, ncol = k)
 
       opt
@@ -89,17 +89,16 @@ rmsprop <- function(eta = 0.001, rho = 0.9, eps = 1e-6) {
 # @param eta Learning rate value.
 # @param min_gain Minimum gradient descent step size.
 dbd <- function(eta = 500, momentum = 0.5, final_momentum = 0.8,
-                mom_switch_iter = 250, min_gain = 0.01) {
+                mom_switch_iter = 250, min_gain = 0.01, verbose = FALSE) {
   list(
     eta = eta,
     mu = momentum,
     final_momentum = final_momentum,
     mom_switch_iter = mom_switch_iter,
     min_gain = min_gain,
-    init = function(opt, n, k, verbose = FALSE) {
+    init = function(opt, n, k) {
       opt$uY <- matrix(0, nrow = n, ncol = k)
       opt$gains <- matrix(1, nrow = n, ncol = k)
-      opt$verbose <- verbose
       opt
     },
     upd = function(opt, G, iter) {
@@ -118,7 +117,7 @@ dbd <- function(eta = 500, momentum = 0.5, final_momentum = 0.8,
 
       if (iter == mom_switch_iter && momentum != final_momentum) {
         opt$mu <- opt$final_momentum
-        if (opt$verbose) {
+        if (verbose) {
           message("Iteration #", iter,
                   " switching to final momentum = ", formatC(final_momentum))
         }
@@ -131,18 +130,17 @@ dbd <- function(eta = 500, momentum = 0.5, final_momentum = 0.8,
 # Nesterov DBD ------------------------------------------------------------
 
 ndbd <- function(eta = 500, momentum = 0.5, final_momentum = 0.8,
-                 mom_switch_iter = 250, min_gain = 0.01) {
+                 mom_switch_iter = 250, min_gain = 0.01, verbose = FALSE) {
   list(
     eta = eta,
     mu = momentum,
     final_momentum = final_momentum,
     mom_switch_iter = mom_switch_iter,
     min_gain = min_gain,
-    init = function(opt, n, k, verbose = FALSE) {
+    init = function(opt, n, k) {
       opt$gd <- matrix(0, nrow = n, ncol = k)
       opt$uY <- matrix(0, nrow = n, ncol = k)
       opt$gains <- matrix(1, nrow = n, ncol = k)
-      opt$verbose <- verbose
       opt
     },
     upd = function(opt, G, iter) {
@@ -170,7 +168,7 @@ ndbd <- function(eta = 500, momentum = 0.5, final_momentum = 0.8,
 
       if (iter == mom_switch_iter && momentum != final_momentum) {
         opt$mu <- opt$final_momentum
-        if (opt$verbose) {
+        if (verbose) {
           message("Iteration #", iter,
                   " switching to final momentum = ", formatC(final_momentum))
         }
@@ -183,14 +181,15 @@ ndbd <- function(eta = 500, momentum = 0.5, final_momentum = 0.8,
 
 # Adam --------------------------------------------------------------------
 
-adam <- function(eta = 0.002, beta1 = 0.9, beta2 = 0.999, eps = 1e-8) {
+adam <- function(eta = 0.002, beta1 = 0.9, beta2 = 0.999, eps = 1e-8,
+                 verbose = FALSE) {
   list(
     beta1 = beta1,
     beta2 = beta2,
     beta1t = beta1,
     beta2t = beta2,
     eps = eps,
-    init = function(opt, n, k, verbose = FALSE) {
+    init = function(opt, n, k) {
       opt$m <- matrix(0, nrow = n, ncol = k)
       opt$v <- matrix(0, nrow = n, ncol = k)
 
@@ -223,14 +222,15 @@ adam <- function(eta = 0.002, beta1 = 0.9, beta2 = 0.999, eps = 1e-8) {
 
 # AdaMax ------------------------------------------------------------------
 
-adamax <- function(eta = 0.002, beta1 = 0.9, beta2 = 0.999, eps = 1e-8) {
+adamax <- function(eta = 0.002, beta1 = 0.9, beta2 = 0.999, eps = 1e-8,
+                   verbose = FALSE) {
   list(
     beta1 = beta1,
     beta2 = beta2,
     beta1t = beta1,
     eta = eta,
     eps = eps,
-    init = function(opt, n, k, verbose = FALSE) {
+    init = function(opt, n, k) {
       opt$m <- matrix(0, nrow = n, ncol = k)
       opt$u <- matrix(0, nrow = n, ncol = k)
 
@@ -261,7 +261,8 @@ adamax <- function(eta = 0.002, beta1 = 0.9, beta2 = 0.999, eps = 1e-8) {
 
 # Nadam -------------------------------------------------------------------
 
-nadam <- function(eta = 0.002, beta1 = 0.9, beta2 = 0.999, eps = 1e-8) {
+nadam <- function(eta = 0.002, beta1 = 0.9, beta2 = 0.999, eps = 1e-8,
+                  verbose = FALSE) {
   list(
     beta1 = beta1,
     beta2 = beta2,
@@ -269,7 +270,7 @@ nadam <- function(eta = 0.002, beta1 = 0.9, beta2 = 0.999, eps = 1e-8) {
     beta2t = beta2,
     eta = eta,
     eps = eps,
-    init = function(opt, n, k, verbose = FALSE) {
+    init = function(opt, n, k) {
       opt$m <- matrix(0, nrow = n, ncol = k)
       opt$v <- matrix(0, nrow = n, ncol = k)
 
@@ -305,7 +306,7 @@ nadam <- function(eta = 0.002, beta1 = 0.9, beta2 = 0.999, eps = 1e-8) {
 
 # Steepest Descent --------------------------------------------------------
 
-steepd <- function(eta = 1) {
+steepd <- function(eta = 1, verbose = FALSE) {
   list(
     upd = function(opt, G, iter) {
       opt$uY <- -eta * G
@@ -316,7 +317,7 @@ steepd <- function(eta = 1) {
 
 # Classical Momentum ------------------------------------------------------
 
-mom <- function(eta = 1, mu = 0) {
+mom <- function(eta = 1, mu = 0, verbose = FALSE) {
   list(
     upd = function(opt, G, iter) {
       opt$uY <- -eta * G + opt$mu * opt$uY
@@ -327,31 +328,109 @@ mom <- function(eta = 1, mu = 0) {
   )
 }
 
+
+
+# Mize Bridge -------------------------------------------------------------
+
+# Adapt the smallvis cost function into the mize form
+mizify_cost <- function(cost, nrow) {
+  fg <- function(par) {
+    dim(par) <- c(nrow, length(par) / nrow)
+    cost <- cost_grad(cost, par)
+    G <- cost$G
+
+    cost <- cost_point(cost, par)
+    pcosts <- cost$pcost
+    fn <- sum(pcosts)
+
+    dim(G) <- NULL
+    list(fn = fn, gr = G)
+  }
+  fn <- function(par) {
+    fg(par)$fn
+  }
+  gr <- function(par) {
+    fg(par)$gr
+  }
+  list(
+    fn = fn, gr = gr, fg = fg
+  )
+}
+
+# One step of mize optimization
+opt_step_mize <- function(opt, cost_fn, Y, iter) {
+  nr <- nrow(Y)
+  fg <- mizify_cost(cost_fn, nr)
+  dim(Y) <- NULL
+
+  if (iter == 1) {
+    opt <- mize::mize_init(opt, Y, fg)
+  }
+
+  res <- mize::mize_step(opt, Y, fg)
+  Y <- res$par
+  dim(Y) <- c(nr, length(Y) / nr)
+
+  list(
+    Y = Y,
+    cost_fn = cost_fn,
+    opt = res$opt,
+    f = res$f,
+    G = res$g
+  )
+}
+
 # Generic Functions -------------------------------------------------------
 
-# Creates the optimizer
-opt_create <- function(optlist) {
+# Creates the optimizer: mize or internal
+opt_create <- function(optlist, verbose = FALSE) {
   name <- optlist[[1]]
-  name <- match.arg(tolower(name), c("adagrad", "adadelta", "rmsprop", "dbd",
-                                     "ndbd", "adam", "adamax", "nadam",
-                                     "steepd", "mom"))
   optlist[[1]] <- NULL
-  do.call(get(name), optlist)
+  optlist$verbose <- verbose
+
+  if (tolower(name) %in% c("adagrad", "adadelta", "rmsprop", "dbd",
+                           "ndbd", "adam", "adamax", "nadam",
+                           "steepd", "mom")) {
+    opt <- do.call(get(name), optlist)
+    opt$smallvis_step <- opt_step_internal
+  }
+  else {
+    optlist$method <- name
+    opt <- do.call(mize::make_mize, optlist)
+    opt$smallvis_step <- opt_step_mize
+  }
+
+  opt
 }
 
-# Initializes the optimizer - called once after creation
-opt_init <- function(opt, n, ndim, verbose = FALSE) {
+# Initializes the optimizer - called on the first iteration
+opt_init <- function(opt, n, ndim) {
   if (!is.null(opt$init)) {
-    opt <- opt$init(opt, n, ndim, verbose = verbose)
+    opt <- opt$init(opt, n, ndim)
   }
   opt
 }
 
-# Gets the update vector. Called once per iteration
-opt_upd <- function(opt, G, iter) {
-  if (!is.null(opt$upd)) {
-    opt <- opt$upd(opt, G, iter)
+# Runs one "step" of optimization - could be multiple f/g evaluations with
+# mize optimizers
+opt_step <- function(opt, cost_fn, Y, iter) {
+  opt$smallvis_step(opt, cost_fn, Y, iter)
+}
+
+# One step of optimization using the non-mize optimizers
+opt_step_internal <- function(opt, cost_fn, Y, iter) {
+  if (iter == 1) {
+    opt <- opt_init(opt, nrow(Y), ncol(Y))
   }
-  opt
+
+  cost_fn <- cost_grad(cost_fn, Y)
+
+  opt <- opt$upd(opt, cost_fn$G, iter)
+  list(
+    Y = Y + opt$uY,
+    cost_fn = cost_fn,
+    opt = opt,
+    G = cost_fn$G
+  )
 }
 

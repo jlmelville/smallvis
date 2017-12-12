@@ -322,6 +322,13 @@ Note that the majority of these are intended for use in stochastic gradient
 descent for deep learning. For \code{method = "tsne"}, you probably are better
 to stick with the default delta-bar-delta method. For other methods, one of
 these methods may provide greater stability.
+
+Alternatively, optimization methods from the mize package,
+\url{https://cran.r-project.org/package=mize}, can also be used, with the
+same format: provide the name of the optimizer as the first element of the
+list, followed by named pairs of arguments.
+
+See the examples for the use of alternative optimizers interface.
 }
 
 \examples{
@@ -380,8 +387,12 @@ tsne_iris_whiten <- smallvis(iris, epoch_callback = ecb, perplexity = 50,
                              pca = "whiten", initial_dims = 3)
 
 # Classical momentum optimization instead of delta-bar-delta
-umap_iris <- smallvis(iris, scale = FALSE, opt = list("mom", eta = 1e-2, mu = 0.8),
-                      method = "umap", Y_init = "spca")
+umap_iris_mom <- smallvis(iris, scale = FALSE, opt = list("mom", eta = 1e-2, mu = 0.8),
+                          method = "umap", Y_init = "spca")
+
+# L-BFGS optimization via the mize package
+umap_iris_lbfgs <- smallvis(iris, scale = FALSE, opt = list("l-bfgs", c1 = 1e-4, c2 = 0.9),
+                            method = "umap", Y_init = "spca", max_iter = 300)
 }
 }
 \references{
