@@ -386,11 +386,11 @@ opt_step_mize <- function(opt, cost_fn, Y, iter) {
 opt_create <- function(optlist, verbose = FALSE) {
   name <- optlist[[1]]
   optlist[[1]] <- NULL
-  optlist$verbose <- verbose
 
   if (tolower(name) %in% c("adagrad", "adadelta", "rmsprop", "dbd",
                            "ndbd", "adam", "adamax", "nadam",
                            "steepd", "mom")) {
+    optlist$verbose <- verbose
     opt <- do.call(get(name), optlist)
     opt$smallvis_step <- opt_step_internal
   }
