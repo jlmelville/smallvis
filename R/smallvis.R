@@ -385,8 +385,17 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
   else if (is.function(epoch_callback)) {
     force(epoch_callback)
   }
+
+  # The embedding method
   method <- match.arg(tolower(method), c("tsne", "largevis", "umap", "tumap",
                                          "ntumap"))
+  cost_fn <- switch(method,
+       tsne = tsne(),
+       umap = umap(spread = spread, min_dist = min_dist, gr_eps = lveps),
+       largevis = largevis(gamma = gamma, gr_eps = lveps),
+       tumap = tumap(gr_eps = lveps),
+       ntumap = ntumap(gr_eps = lveps)
+  )
 
   if (stop_lying_iter < 1) {
     stop("stop_lying_iter must be >= 1")
@@ -502,7 +511,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
   # In the LargeVis paper, eq 2 says to normalize the input affinities
   # but the implementation doesn't, so we won't either
   # (also it leads to over-weighted repulsions)
-  if (method == "tsne" || method == "ntumap") {
+  if (method %in% c("tsne", "ntumap")) {
     P <- P / sum(P)
   }
 
@@ -517,8 +526,6 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
                      whiten = ifelse(pca && whiten, initial_dims, 0)))
   }
 
-  P <- P * exaggeration_factor
-
   if (method == "umap") {
     ab_params <- find_ab_params(spread = spread, min_dist = min_dist)
     a <- ab_params[1]
@@ -528,52 +535,20 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
     }
   }
 
+  # Initialize the cost function
+  cost_fn <- cost_init(cost_fn, X, verbose = verbose)
+
+
+  # Start exaggerating
+  P <- P * exaggeration_factor
   itercosts <- c()
-  eps <- .Machine$double.eps
 
   if (verbose) {
     message(stime(), " Optimizing coordinates")
   }
   for (iter in 1:max_iter) {
-    # D2
-    W <- dist2(Y)
-    # W
-    if (method == "umap") {
-      W[W < 0] <- 0
-      D2 <- W
-      W <- 1 / (1 + a * W ^ b)
-    }
-    else {
-      W <- 1 / (1 + W)
-    }
-    diag(W) <- 0
-    # Force constant (aka stiffness)
-    if (method == "tsne") {
-      invZ <- 1 / sum(W)
-      G <- 4 * W * (P - W * invZ)
-    }
-    else if (method == "umap") {
-      WF <- a * b * (D2 + eps) ^ (b - 1)
-      diag(WF) <- 0
-      WF <- W * WF
-      G <- 4 * (P * WF - ((1 - P) * W * WF) / ((1 - W) + lveps))
-    }
-    else if (method == "tumap") {
-      G <- 4 * (P * W - ((1 - P) * W * W) / ((1 - W) + lveps))
-    }
-    else if (method == "ntumap") {
-      invZ <- 1 / sum(W)
-      Q <- W * invZ
-      C <- (P - Q) / (1 - Q)
-      G <- 4 * W * (C - sum(C) * Q)
-    }
-    else {
-      # LargeVis
-      G <- 4 * (P * W - ((gamma * W * W) / ((1 - W) + lveps)))
-    }
-
-    # Gradient
-    G <- Y * rowSums(G) - (G %*% Y)
+    cost_fn <- cost_grad(cost_fn, P, Y)
+    G <- cost_fn$G
 
     # Update
     opt <- opt_upd(opt, G, iter)
@@ -591,19 +566,8 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
       Y <- sweep(Y, 2, colMeans(Y))
 
       # Store costs as per-point vector for use in extended return value
-      if (method == "tsne") {
-        pcosts <- colSums(P * log((P + eps) / ((W * invZ) + eps)))
-      }
-      else if (method == "umap" || method == "tumap") {
-        pcosts <- colSums(-P * log(W + eps) - (1 - P) * log1p(-W + eps))
-      }
-      else if (method == "ntumap") {
-        pcosts <- colSums(-P * log(Q + eps) - (1 - P) * log1p(-Q + eps))
-      }
-      else {
-        # LargeVis
-        pcosts <- colSums(-P * log(W + eps) - gamma * log1p(-W + eps))
-      }
+      cost_fn <- cost_point(cost_fn, P, Y)
+      pcosts <- cost_fn$pcost
       cost <- sum(pcosts)
 
       if (verbose) {
@@ -628,8 +592,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
   }
 
   ret_value(Y, ret_extra, method, X, scale, Y_init, iter, start_time,
-            pcosts = pcosts, P,
-            ifelse(method == "tsne" || method == "ntumap", W * invZ, W), G, eps,
+            cost_fn = cost_fn, pcosts = pcosts, P, G,
             perplexity, itercosts,
             stop_lying_iter, opt_list,
             exaggeration_factor, optionals = ret_optionals,
@@ -879,10 +842,10 @@ make_smallvis_cb <- function(df) {
 # If ret_extra is TRUE and iter > 0, then all the NULL-default parameters are
 # expected to be present. If iter == 0 then the return list will contain only
 # scaling and initialization information.
-# Note that Q is the un-normalized output affinities when method = LargeVis or UMAP
 ret_value <- function(Y, ret_extra, method, X, scale, Y_init, iter, start_time = NULL,
-                      pcosts = NULL, P = NULL, Q = NULL, G = NULL,
-                      eps = NULL, perplexity = NULL, pca = 0, whiten = 0,
+                      cost_fn = NULL,
+                      pcosts = NULL, P = NULL, G = NULL,
+                      perplexity = NULL, pca = 0, whiten = 0,
                       itercosts = NULL,
                       stop_lying_iter = NULL, opt = NULL,
                       exaggeration_factor = NULL, optionals = c()) {
@@ -943,9 +906,12 @@ ret_value <- function(Y, ret_extra, method, X, scale, Y_init, iter, start_time =
           res$P <- P
         }
       }
-      else if (o == "q") {
-        if (!is.null(Q)) {
-          res$Q <- Q
+      else if (o == "q" || o == "w") {
+        if (!is.null(cost_fn)) {
+          exported <- cost_fn$export(cost_fn, o)
+          if (!is.null(exported)) {
+            res[[toupper(o)]] <- exported
+          }
         }
       }
       else if (o == "x") {
