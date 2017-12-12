@@ -18,6 +18,9 @@
 #'   \item \code{"tumap"} Like UMAP, except the output weight function is the
 #'   t-distribution with one degree of freedom, like t-SNE and LargeVis. This
 #'   simplifies the gradient calculation compared to UMAP, so it runs faster.
+#'   \item \code{"mmds"} Metric Multidimensional Scaling (Borg and Groenen,
+#'   2005), which reduces the "strain", i.e. the square loss between the input
+#'   and output distances.
 #' }
 #'
 #' Note that only the cost function is used from these methods in the context
@@ -337,6 +340,10 @@
 #' (pp. 585-591).
 #' \url{http://papers.nips.cc/paper/1961-laplacian-eigenmaps-and-spectral-techniques-for-embedding-and-clustering.pdf}
 #'
+#' Borg, I., & Groenen, P. J. (2005).
+#' \emph{Modern multidimensional scaling: Theory and applications.}
+#' Springer Science & Business Media.
+#'
 #' Van der Maaten, L., & Hinton, G. (2008).
 #' Visualizing data using t-SNE.
 #' \emph{Journal of Machine Learning Research}, \emph{9} (2579-2605).
@@ -388,7 +395,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
 
   # The embedding method
   method <- match.arg(tolower(method), c("tsne", "largevis", "umap", "tumap",
-                                         "ntumap"))
+                                         "ntumap", "mmds"))
   cost_fn <- switch(method,
        tsne = tsne(perplexity = perplexity, inp_kernel = inp_kernel),
        umap = umap(perplexity = perplexity, spread = spread,
@@ -396,7 +403,8 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
        largevis = largevis(perplexity = perplexity, inp_kernel = inp_kernel,
                            gamma = gamma, gr_eps = lveps),
        tumap = tumap(perplexity = perplexity, gr_eps = lveps),
-       ntumap = ntumap(perplexity = perplexity, gr_eps = lveps)
+       ntumap = ntumap(perplexity = perplexity, gr_eps = lveps),
+       mmds = mmds()
   )
 
   if (stop_lying_iter < 1) {
@@ -871,27 +879,27 @@ ret_value <- function(Y, ret_extra, method, X, scale, Y_init, iter, start_time =
     }
 
     for (o in tolower(unique(optionals))) {
-      if (o %in% c("p", "q", "w")) {
-        if (!is.null(cost_fn)) {
-          exported <- cost_fn$export(cost_fn, o)
-          if (!is.null(exported)) {
-            res[[toupper(o)]] <- exported
+      if (o %in% c("p", "q", "w", "dx", "dy")) {
+        exported <- cost_fn$export(cost_fn, o)
+        if (!is.null(exported)) {
+          res[[toupper(o)]] <- exported
+        }
+        # For DX and DY, we can calculate if not done so already
+        else if (o == "dx") {
+          if (methods::is(X, "dist")) {
+            res$DX <- X
+          }
+          else {
+            res$DX <- sqrt(safe_dist2(X))
           }
         }
+        else if (o == "dy") {
+          res$DY <- sqrt(safe_dist2(Y))
+        }
       }
+
       else if (o == "x") {
         res$X <- X
-      }
-      else if (o == "dx") {
-        if (methods::is(X, "dist")) {
-          res$DX <- X
-        }
-        else {
-          res$DX <- sqrt(safe_dist2(X))
-        }
-      }
-      else if (o == "dy") {
-        res$DY <- sqrt(safe_dist2(Y))
       }
     }
 

@@ -188,6 +188,9 @@ to the \code{method} parameter are:
   \item \code{"tumap"} Like UMAP, except the output weight function is the
   t-distribution with one degree of freedom, like t-SNE and LargeVis. This
   simplifies the gradient calculation compared to UMAP, so it runs faster.
+  \item \code{"mmds"} Metric Multidimensional Scaling (Borg and Groenen,
+  2005), which reduces the "strain", i.e. the square loss between the input
+  and output distances.
 }
 
 Note that only the cost function is used from these methods in the context
@@ -387,6 +390,10 @@ Laplacian eigenmaps and spectral techniques for embedding and clustering.
 In \emph{Advances in neural information processing systems}
 (pp. 585-591).
 \url{http://papers.nips.cc/paper/1961-laplacian-eigenmaps-and-spectral-techniques-for-embedding-and-clustering.pdf}
+
+Borg, I., & Groenen, P. J. (2005).
+\emph{Modern multidimensional scaling: Theory and applications.}
+Springer Science & Business Media.
 
 Van der Maaten, L., & Hinton, G. (2008).
 Visualizing data using t-SNE.
