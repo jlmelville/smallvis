@@ -450,6 +450,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
     W <- dist2(Y)
     # W
     if (method == "umap") {
+      W[W < 0] <- 0
       D2 <- W
       W <- 1 / (1 + a * W ^ b)
     }
