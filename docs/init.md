@@ -1,5 +1,6 @@
 ---
 title: "t-SNE Initialization Options"
+date: "December 7, 2017"
 output:
   html_document:
     theme: cosmo
