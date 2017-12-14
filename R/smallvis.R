@@ -932,23 +932,42 @@ ret_value <- function(Y, ret_extra, method, X, scale, Y_init, iter, start_time =
 # is returned also containing the eigenvalues
 pca_scores <- function(X, ncol = min(dim(X)), verbose = FALSE,
                        ret_extra = FALSE) {
-  X <- scale(X, center = TRUE, scale = FALSE)
-  # do SVD on X directly rather than forming covariance matrix
   ncomp <- ncol
-  s <- svd(X, nu = ncomp, nv = 0)
-  D <- diag(c(s$d[1:ncomp]))
-  if (verbose || ret_extra) {
-    # calculate eigenvalues of covariance matrix from singular values
-    lambda <- (s$d ^ 2) / (nrow(X) - 1)
-    varex <- sum(lambda[1:ncomp]) / sum(lambda)
-    message("PCA: ", ncomp, " components explained ", formatC(varex * 100),
-            "% variance")
+
+  if (methods::is(X, "dist")) {
+    res_mds <- stats::cmdscale(X, x.ret = TRUE, eig = TRUE, k = ncol)
+
+    if (ret_extra || verbose) {
+      lambda <- res_mds$eig
+      varex <- sum(lambda[1:ncol]) / sum(ncol)
+      if (verbose) {
+        message("Classical MDS: ", ncol, " components explained ",
+                formatC(varex * 100), "% variance")
+      }
+    }
+    scores <- res_mds$points
   }
-  scores <- s$u %*% D
+  else {
+    X <- scale(X, center = TRUE, scale = FALSE)
+    # do SVD on X directly rather than forming covariance matrix
+    s <- svd(X, nu = ncol, nv = 0)
+    D <- diag(c(s$d[1:ncol]))
+    if (verbose || ret_extra) {
+      # calculate eigenvalues of covariance matrix from singular values
+      lambda <- (s$d ^ 2) / (nrow(X) - 1)
+      varex <- sum(lambda[1:ncol]) / sum(lambda)
+      if (verbose) {
+        message("PCA: ", ncol, " components explained ", formatC(varex * 100),
+                "% variance")
+      }
+    }
+    scores <- s$u %*% D
+  }
+
   if (ret_extra) {
     list(
       scores = scores,
-      lambda = lambda[1:ncomp]
+      lambda = lambda[1:ncol]
     )
   }
   else {
