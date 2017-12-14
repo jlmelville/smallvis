@@ -406,7 +406,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
 
   # The embedding method
   method <- match.arg(tolower(method), c("tsne", "largevis", "umap", "tumap",
-                                         "ntumap", "mmds"))
+                                         "ntumap", "mmds", "geommds"))
   cost_fn <- switch(method,
        tsne = tsne(perplexity = perplexity, inp_kernel = inp_kernel),
        umap = umap(perplexity = perplexity, spread = spread,
@@ -415,7 +415,9 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
                            gamma = gamma, gr_eps = lveps),
        tumap = tumap(perplexity = perplexity, gr_eps = lveps),
        ntumap = ntumap(perplexity = perplexity, gr_eps = lveps),
-       mmds = mmds()
+       mmds = mmds(),
+       geommds = geommds(k = perplexity),
+       stop("BUG: someone forgot to implement option: '", method, "'")
   )
 
   if (stop_lying_iter < 1) {
@@ -1104,6 +1106,44 @@ dist_to_prob <- function(D, beta) {
   }
   list(H = H, P = P)
 }
+
+# Create a symmetrized distance matrix based on the k-nearest neighbors
+# Non-neighbor distances are set to Inf
+knndist <- function(X, k) {
+  n <- nrow(X)
+  knn <- FNN::get.knn(X, k = k)
+
+  D <- matrix(Inf, nrow = n, ncol = n)
+  diag(D) <- 0
+  for (i in 1:n) {
+    D[i, knn$nn.index[i, ]] <- knn$nn.dist[i, ]
+  }
+
+  # symmetrize
+  D <- pmin(D, t(D))
+}
+
+# Given data X and k nearest neighbors, return a geodisic distance matrix
+# Disconnections are treated by using the Euclidean distance.
+geodesic <- function(X, k, verbose = FALSE) {
+  # Geodesics not implemented for distance matrix (yet)
+  if (methods::is(X, "dist")) {
+    stop("Can't calculate geodesics for a distance matrix")
+  }
+  R <- sqrt(safe_dist2(X))
+  if (verbose) {
+    message(stime(), " Calculating geodesic distances with k = ", k)
+  }
+  G <- Rfast::floyd(knndist(X, k))
+  if (any(is.infinite(G))) {
+    if (verbose) {
+      message("k = ", k, " resulted in disconnections: filling with Euclidean distances")
+    }
+    G[is.infinite(G)] <- R[is.infinite(G)]
+  }
+  G
+}
+
 
 # Utility Functions -------------------------------------------------------
 

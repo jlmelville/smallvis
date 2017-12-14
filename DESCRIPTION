@@ -9,8 +9,10 @@ Description: Neighborhood embedding methods for small scale visualization, such
     function.
 License: GPL (>= 2)
 Imports:
+    FNN,
     methods,
     mize,
+    Rfast,
     vizier
 Suggests:
     RSpectra

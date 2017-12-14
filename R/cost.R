@@ -280,7 +280,12 @@ ntumap <- function(perplexity, gr_eps = 0.1) {
 mmds <- function() {
   list(
     init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE) {
-      cost$R <- sqrt(safe_dist2(X))
+      if (methods::is(X, "dist")) {
+        cost$R <- X
+      }
+      else {
+        cost$R <- sqrt(safe_dist2(X))
+      }
       cost$eps <- eps
       cost
     },
@@ -302,6 +307,58 @@ mmds <- function() {
       res <- NULL
       switch(val,
              dx = {
+               res <- cost$R
+             },
+             dy = {
+               res <- cost$D
+             }
+      )
+      res
+    }
+  )
+}
+
+geommds <- function(k) {
+  list(
+    init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE) {
+      # Geodesics with distance matrix not yet implemented
+      if (methods::is(X, "dist")) {
+        stop("Can't use geommds with a distance matrix")
+      }
+      R <- sqrt(safe_dist2(X))
+      if (verbose) {
+        message(stime(), " Calculating geodesic distances with k = ", k)
+      }
+      G <- Rfast::floyd(knndist(X, k))
+      if (any(is.infinite(G))) {
+        if (verbose) {
+          message("k = ", k, " resulted in disconnections: filling with Euclidean distances")
+        }
+        G[is.infinite(G)] <- R[is.infinite(G)]
+      }
+      cost$R <- G
+
+      cost$eps <- eps
+      cost
+    },
+    pfn = function(cost, Y) {
+      R <- cost$R
+      D <- cost$D
+      cost$pcost <- colSums((R - D) ^ 2)
+      cost
+    },
+    gr = function(cost, Y) {
+      eps <- cost$eps
+      R <- cost$R
+      D <- sqrt(safe_dist2(Y))
+      cost$G <- k2g(Y,  -4 * (R - D) / (D + eps))
+      cost$D <- D
+      cost
+    },
+    export = function(cost, val) {
+      res <- NULL
+      switch(val,
+             geo = {
                res <- cost$R
              },
              dy = {
