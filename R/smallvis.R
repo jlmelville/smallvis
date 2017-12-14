@@ -941,9 +941,9 @@ pca_scores <- function(X, ncol = min(dim(X)), verbose = FALSE,
 
     if (ret_extra || verbose) {
       lambda <- res_mds$eig
-      varex <- sum(lambda[1:ncol]) / sum(ncol)
+      varex <- sum(lambda[1:ncol]) / sum(lambda)
       if (verbose) {
-        message("Classical MDS: ", ncol, " components explained ",
+        message("PCA (using classical MDS): ", ncol, " components explained ",
                 formatC(varex * 100), "% variance")
       }
     }
