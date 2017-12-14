@@ -343,6 +343,18 @@
 #' # L-BFGS optimization via the mize package
 #' umap_iris_lbfgs <- smallvis(iris, scale = FALSE, opt = list("l-bfgs", c1 = 1e-4, c2 = 0.9),
 #'                             method = "umap", Y_init = "spca", max_iter = 300)
+#'
+#' ## Example using distance matrix
+#' # Use geommds: metric MDS using geodesic distances estimated from kNN distances
+#' # k is set via the perplexity argument. Use an epoch callback to get useful color
+#' # in the visualization
+#' iris_gmmds <- smallvis(dist(iris[, -5]),
+#'                        epoch_callback = function(Y) { plot(Y, col = iris$Species) },
+#'                        method = "geommds", max_iter = 200, perplexity = 8, eta = 1e-4,
+#'                        Y_init = "spca")
+#' The above should give equivalent results to this non-distance matrix version
+#' iris_gmmds <- smallvis(iris, method = "geommds", max_iter = 400, perplexity = 8, eta = 1e-4,
+#'                        Y_init = "spca")
 #' }
 #' @references
 #' Belkin, M., & Niyogi, P. (2002).
@@ -1110,40 +1122,67 @@ dist_to_prob <- function(D, beta) {
 # Create a symmetrized distance matrix based on the k-nearest neighbors
 # Non-neighbor distances are set to Inf
 knndist <- function(X, k) {
-  n <- nrow(X)
-  knn <- FNN::get.knn(X, k = k)
+  if (methods::is(X, "dist")) {
+    # If it's already a distance matrix, find k-smallest distance per column
+    # (ignoring self-distances of zero) and set everything larger to Inf
+    # (potentially more than k finite distances in the event of ties, not
+    # going to worry about that)
+    D <- as.matrix(X)
+    n <- nrow(D)
+    if (k > n - 1) {
+      stop("k must be not be > n - 1")
+    }
+    kdists <- Rfast::colnth(D, rep(k + 1, n))
+    for (i in 1:n) {
+      Di <- D[, i]
+      Di[Di > kdists[i]] <- Inf
+      D[, i] <- Di
+    }
+  }
+  else {
+    # Find the k-nearest indexes and distances of X, and set the corresponding
+    # distance matrix elements
+    n <- nrow(X)
+    if (k > n - 1) {
+      stop("k must be not be > n - 1")
+    }
+    knn <- FNN::get.knn(X, k = k)
 
-  D <- matrix(Inf, nrow = n, ncol = n)
-  diag(D) <- 0
-  for (i in 1:n) {
-    D[i, knn$nn.index[i, ]] <- knn$nn.dist[i, ]
+    D <- matrix(Inf, nrow = n, ncol = n)
+    diag(D) <- 0
+    for (i in 1:n) {
+      D[i, knn$nn.index[i, ]] <- knn$nn.dist[i, ]
+    }
   }
 
   # symmetrize
-  D <- pmin(D, t(D))
+  pmin(D, t(D))
 }
 
 # Given data X and k nearest neighbors, return a geodisic distance matrix
 # Disconnections are treated by using the Euclidean distance.
-geodesic <- function(X, k, verbose = FALSE) {
-  # Geodesics not implemented for distance matrix (yet)
-  if (methods::is(X, "dist")) {
-    stop("Can't calculate geodesics for a distance matrix")
-  }
-  R <- sqrt(safe_dist2(X))
+geodesic <- function(X, k, fill = TRUE, verbose = FALSE) {
   if (verbose) {
     message(stime(), " Calculating geodesic distances with k = ", k)
   }
+
+  # The hard work is done by Rfast's implementation of Floyd's algorithm
   G <- Rfast::floyd(knndist(X, k))
-  if (any(is.infinite(G))) {
+
+  if (any(is.infinite(G)) && fill) {
     if (verbose) {
       message("k = ", k, " resulted in disconnections: filling with Euclidean distances")
+    }
+    if (methods::is(X, "dist")) {
+      R <- as.matrix(X)
+    }
+    else {
+      R <- sqrt(safe_dist2(X))
     }
     G[is.infinite(G)] <- R[is.infinite(G)]
   }
   G
 }
-
 
 # Utility Functions -------------------------------------------------------
 

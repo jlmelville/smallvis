@@ -393,6 +393,18 @@ umap_iris_mom <- smallvis(iris, scale = FALSE, opt = list("mom", eta = 1e-2, mu 
 # L-BFGS optimization via the mize package
 umap_iris_lbfgs <- smallvis(iris, scale = FALSE, opt = list("l-bfgs", c1 = 1e-4, c2 = 0.9),
                             method = "umap", Y_init = "spca", max_iter = 300)
+
+## Example using distance matrix
+# Use geommds: metric MDS using geodesic distances estimated from kNN distances
+# k is set via the perplexity argument. Use an epoch callback to get useful color
+# in the visualization
+iris_gmmds <- smallvis(dist(iris[, -5]),
+                       epoch_callback = function(Y) { plot(Y, col = iris$Species) },
+                       method = "geommds", max_iter = 200, perplexity = 8, eta = 1e-4,
+                       Y_init = "spca")
+The above should give equivalent results to this non-distance matrix version
+iris_gmmds <- smallvis(iris, method = "geommds", max_iter = 400, perplexity = 8, eta = 1e-4,
+                       Y_init = "spca")
 }
 }
 \references{
