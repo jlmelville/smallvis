@@ -321,21 +321,6 @@ mmds <- function() {
 geommds <- function(k) {
   list(
     init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE) {
-      # # Geodesics with distance matrix not yet implemented
-      # if (methods::is(X, "dist")) {
-      #   stop("Can't use geommds with a distance matrix")
-      # }
-      # R <- sqrt(safe_dist2(X))
-      # if (verbose) {
-      #   message(stime(), " Calculating geodesic distances with k = ", k)
-      # }
-      # G <- Rfast::floyd(knndist(X, k))
-      # if (any(is.infinite(G))) {
-      #   if (verbose) {
-      #     message("k = ", k, " resulted in disconnections: filling with Euclidean distances")
-      #   }
-      #   G[is.infinite(G)] <- R[is.infinite(G)]
-      # }
       cost$R <- geodesic(X, k)
 
       cost$eps <- eps
