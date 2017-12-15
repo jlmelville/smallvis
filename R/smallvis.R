@@ -488,10 +488,10 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
 
   # Optimizer
   if (opt[[1]] == "dbd" || opt[[1]] == "ndbd") {
-    opt_list <- update_list(opt, list(momentum = momentum,
-                            final_momentum = final_momentum,
-                            mom_switch_iter = mom_switch_iter,
-                            eta = eta, min_gain = min_gain))
+    opt_list <- lmerge(opt, list(momentum = momentum,
+                       final_momentum = final_momentum,
+                       mom_switch_iter = mom_switch_iter,
+                       eta = eta, min_gain = min_gain))
   }
   else {
     opt_list <- opt
@@ -1211,8 +1211,11 @@ stime <- function() {
   format(Sys.time(), "%T")
 }
 
-# Add any item in l2 that isn't already present in l
-update_list <- function(l, l2) {
+# merge lists, where anything non-NULL in l is kept
+# e.g.
+# all(unlist(update_list(list(a = 1, b = 2), list(a = 10, c = 3))) ==
+#     unlist(list(a = 1, b = 2, c = 3)))
+lmerge <- function(l, l2) {
   for (name in names(l2)) {
     if (is.null(l[[name]])) {
       l[[name]] <- l2[[name]]
@@ -1220,6 +1223,19 @@ update_list <- function(l, l2) {
   }
   l
 }
+
+# replaces the contents of l with the named arguments
+# e.g.
+# all(lreplace(c(a = 1, b = 2), a = 10, c = 3) ==
+#     c(a = 10, b = 2, c = 3))
+lreplace <- function(l, ...) {
+  varargs <- list(...)
+  for (i in names(varargs)) {
+    l[[i]] <- varargs[[i]]
+  }
+  l
+}
+
 
 # UMAP  -------------------------------------------------------------------
 

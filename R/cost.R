@@ -319,25 +319,12 @@ mmds <- function() {
 }
 
 geommds <- function(k) {
-  list(
+  lreplace(
+    mmds(),
     init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE) {
       cost$R <- geodesic(X, k)
 
       cost$eps <- eps
-      cost
-    },
-    pfn = function(cost, Y) {
-      R <- cost$R
-      D <- cost$D
-      cost$pcost <- colSums((R - D) ^ 2)
-      cost
-    },
-    gr = function(cost, Y) {
-      eps <- cost$eps
-      R <- cost$R
-      D <- sqrt(safe_dist2(Y))
-      cost$G <- k2g(Y,  -4 * (R - D) / (D + eps))
-      cost$D <- D
       cost
     },
     export = function(cost, val) {
