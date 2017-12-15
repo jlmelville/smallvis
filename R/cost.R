@@ -5,7 +5,7 @@ tsne <- function(perplexity, inp_kernel = "gaussian") {
   list(
     init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE) {
       if (verbose) {
-        message(stime(), " Commencing perplexity calibration")
+        tsmessage("Commencing perplexity calibration")
       }
       P <- x2p(X, perplexity, tol = 1e-5, kernel = inp_kernel, verbose = verbose)$P
       # Symmetrize
@@ -66,7 +66,7 @@ umap <- function(perplexity, spread = 1, min_dist = 0.001, gr_eps = 0.1) {
       }
 
       if (verbose) {
-        message(stime(), " Commencing smooth kNN distance calibration")
+        tsmessage("Commencing smooth kNN distance calibration")
       }
       P <- smooth_knn_distances(X, k = perplexity, tol = 1e-5,
                                 verbose = verbose)$P
@@ -129,7 +129,7 @@ largevis <- function(perplexity, inp_kernel = "gaussian", gamma = 7, gr_eps = 0.
   list(
     init = function(cost, X, eps = 1e-9, verbose = FALSE) {
       if (verbose) {
-        message(stime(), " Commencing perplexity calibration")
+        tsmessage("Commencing perplexity calibration")
       }
       P <- x2p(X, perplexity, tol = 1e-5, kernel = inp_kernel, verbose = verbose)$P
       # Symmetrize by arithmetic mean
@@ -176,7 +176,7 @@ tumap <- function(perplexity, gr_eps = 0.1) {
       cost$eps <- eps
 
       if (verbose) {
-        message(stime(), " Commencing smooth kNN distance calibration")
+        tsmessage("Commencing smooth kNN distance calibration")
       }
       P <- smooth_knn_distances(X, k = perplexity, tol = 1e-5,
                                 verbose = verbose)$P
@@ -223,7 +223,7 @@ ntumap <- function(perplexity, gr_eps = 0.1) {
   list(
     init = function(cost, X, eps = 1e-9, verbose = FALSE) {
       if (verbose) {
-        message(stime(), " Commencing smooth kNN distance calibration")
+        tsmessage("Commencing smooth kNN distance calibration")
       }
       P <- smooth_knn_distances(X, k = perplexity, tol = 1e-5,
                                 verbose = verbose)$P

@@ -520,7 +520,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
           stop("No suitable input for initialization from Laplacian Eigenmap")
         }
         if (verbose) {
-          message(stime(), " Initializing from Laplacian Eigenmap")
+          tsmessage("Initializing from Laplacian Eigenmap")
         }
         Y <- laplacian_eigenmap(cost_fn$P, ndim = k)
       }
@@ -646,7 +646,7 @@ smallvis_rep <- function(nrep = 10, ...) {
   varargs$Y_init <- "rand"
   for (i in 1:nrep) {
     if (!is.null(varargs$verbose) && varargs$verbose) {
-      message(stime(), " Starting embedding # ", i, " of ", nrep)
+      tsmessage("Starting embedding # ", i, " of ", nrep)
     }
     res <- do.call(smallvis, varargs)
     final_cost <- res$itercosts[length(res$itercosts)]
@@ -688,7 +688,7 @@ scale_input <- function(X, scale, verbose = FALSE) {
   switch(scale,
          range = {
            if (verbose) {
-             message(stime(), " Range scaling X")
+             tsmessage("Range scaling X")
            }
            X <- as.matrix(X)
            X <- X - min(X)
@@ -696,14 +696,14 @@ scale_input <- function(X, scale, verbose = FALSE) {
          },
          absmax = {
            if (verbose) {
-             message(stime(), " Normalizing by abs-max")
+             tsmessage("Normalizing by abs-max")
            }
            X <- base::scale(X, scale = FALSE)
            X <- X / abs(max(X))
          },
          scale = {
            if (verbose) {
-             message(stime(), " Scaling to zero mean and unit variance")
+             tsmessage("Scaling to zero mean and unit variance")
            }
            X <- Filter(stats::var, X)
            if (verbose) {
@@ -728,14 +728,14 @@ pca_preprocess <- function(X, pca, whiten, initial_dims, verbose = FALSE) {
   if (pca) {
     if (whiten) {
       if (verbose) {
-        message(stime(), " Reducing initial dimensionality with PCA and ",
+        tsmessage("Reducing initial dimensionality with PCA and ",
                 "whitening to ", initial_dims, " dims")
       }
       X <- pca_whiten(X = X, ncol = initial_dims, verbose = verbose)
     }
     else {
       if (verbose) {
-        message(stime(), " Reducing initial dimensionality with PCA to ",
+        tsmessage("Reducing initial dimensionality with PCA to ",
                 initial_dims, " dims")
       }
       X <- pca_scores(X = X, ncol = initial_dims, verbose = verbose)
@@ -752,7 +752,7 @@ init_out <- function(Y_init, X, ndim, pca_preprocessed, verbose = FALSE) {
   switch(Y_init,
          pca = {
            if (verbose) {
-             message(stime(), " Initializing from PCA scores")
+             tsmessage("Initializing from PCA scores")
            }
            if (pca_preprocessed) {
              X[, 1:2]
@@ -763,7 +763,7 @@ init_out <- function(Y_init, X, ndim, pca_preprocessed, verbose = FALSE) {
          },
          spca = {
            if (verbose) {
-             message(stime(), " Initializing from scaled PCA scores")
+             tsmessage("Initializing from scaled PCA scores")
            }
            # If we've already done PCA, we can just take the first two columns
            if (pca_preprocessed) {
@@ -776,7 +776,7 @@ init_out <- function(Y_init, X, ndim, pca_preprocessed, verbose = FALSE) {
          },
          rand = {
            if (verbose) {
-             message(stime(), " Initializing from random Gaussian with sd = 1e-4")
+             tsmessage("Initializing from random Gaussian with sd = 1e-4")
            }
            matrix(stats::rnorm(ndim * n, sd = 1e-4), n)
          }
@@ -1091,7 +1091,7 @@ x2p <- function(X, perplexity = 15, tol = 1e-5, kernel = "exp",
 
   if (verbose) {
     summary_sigma <- summary(sigma, digits = max(3, getOption("digits") - 3))
-    message(stime(), " sigma summary: ",
+    tsmessage("sigma summary: ",
             paste(names(summary_sigma), ":", summary_sigma, "|", collapse = ""))
   }
   list(P = P, beta = beta)
@@ -1163,7 +1163,7 @@ knndist <- function(X, k) {
 # Disconnections are treated by using the Euclidean distance.
 geodesic <- function(X, k, fill = TRUE, verbose = FALSE) {
   if (verbose) {
-    message(stime(), " Calculating geodesic distances with k = ", k)
+    tsmessage("Calculating geodesic distances with k = ", k)
   }
 
   # The hard work is done by Rfast's implementation of Floyd's algorithm
@@ -1209,6 +1209,12 @@ norm2 <- function(X) {
 # Simple time stamp
 stime <- function() {
   format(Sys.time(), "%T")
+}
+
+
+# message with a time stamp
+tsmessage <- function(..., domain = NULL, appendLF = TRUE) {
+  message(stime(), " ", ..., domain = domain, appendLF = appendLF)
 }
 
 # merge lists, where anything non-NULL in l is kept
@@ -1356,7 +1362,7 @@ smooth_knn_distances <- function(X, k = 15, tol = 1e-5,
 
   if (verbose) {
     summary_sigma <- summary(sigma, digits = max(3, getOption("digits") - 3))
-    message(stime(), " sigma summary: ",
+    tsmessage("sigma summary: ",
             paste(names(summary_sigma), ":", summary_sigma, "|", collapse = ""))
   }
   list(P = P, sigma = sigma)
