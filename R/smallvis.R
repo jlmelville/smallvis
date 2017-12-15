@@ -613,7 +613,8 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
       }
 
       # Don't stop early if still exaggerating
-      if (iter < stop_lying_iter && !is.null(tolval) && tolval < tol) {
+      if ((exaggeration_factor == 1 || iter > stop_lying_iter) &&
+          !is.null(tolval) && tolval < tol) {
         tsmessage("Stopping early: relative tolerance (", formatC(tol), ") met")
         break
       }
