@@ -187,6 +187,9 @@
 #' @param method A neighbor embedding method. See "Details".
 #' @param min_cost If the cost falls below this value, the optimization will
 #'   stop early.
+#' @param tol If the relative tolerance between successive cost values falls
+#'   below this value, the optimization will stop early (but not during
+#'   early exaggeration).
 #' @param epoch_callback Function to call after each epoch. See the
 #'   "Visualization callback" section. By default the current set of
 #'   coordinates will be plotted. Set to\code{FALSE} or \code{NULL} to turn
@@ -394,7 +397,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
                  pca = FALSE, initial_dims = 50,
                  method = "tsne",
                  epoch_callback = TRUE, epoch = base::round(max_iter / 10),
-                 min_cost = 0,
+                 min_cost = 0, tol = 1e-5,
                  momentum = 0.5, final_momentum = 0.8, mom_switch_iter = 250,
                  eta = 500, min_gain = 0.01,
                  opt = list("dbd"),
@@ -544,8 +547,10 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
   }
 
   itercosts <- c()
+  old_cost <- NULL
+  tolval <- NULL
   if (verbose) {
-    message(stime(), " Optimizing coordinates")
+    tsmessage("Optimizing coordinates")
   }
   for (iter in 1:max_iter) {
     opt_res <- opt_step(opt, cost_fn, Y, iter)
@@ -574,10 +579,23 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
         cost <- opt_res$f
       }
 
+      if (!is.null(old_cost)) {
+        tolval <- reltol(cost, old_cost)
+      }
+      old_cost <- cost
+
       if (verbose) {
-        message(stime(), " Iteration #", iter, " error: ",
+        tsmessage("Iteration #", iter, " error: ",
                 formatC(cost)
-                , " ||G||2 = ", formatC(norm2(opt_res$G)))
+                , " ||G||2 = ", formatC(norm2(opt_res$G))
+                , appendLF = FALSE
+                )
+        if (!is.null(tolval)) {
+          message(" tol = ", formatC(tolval))
+        }
+        else {
+          message()
+        }
       }
 
       if (!is.null(epoch_callback)) {
@@ -590,6 +608,12 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
       }
 
       if (cost < min_cost) {
+        tsmessage("Stopping early: cost fell below min_cost")
+        break
+      }
+
+      if (!is.null(tolval) && tolval < tol) {
+        tsmessage("Stopping early: relative tolerance (", formatC(tol), ") met")
         break
       }
     }
@@ -1242,6 +1266,10 @@ lreplace <- function(l, ...) {
   l
 }
 
+# relative tolerance between x and y
+reltol <- function(x, y) {
+  abs(x - y) / min(abs(x), abs(y))
+}
 
 # UMAP  -------------------------------------------------------------------
 

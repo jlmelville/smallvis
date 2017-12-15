@@ -7,11 +7,12 @@
 smallvis(X, k = 2, scale = "absmax", Y_init = "rand", perplexity = 30,
   inp_kernel = "gauss", max_iter = 1000, pca = FALSE, initial_dims = 50,
   method = "tsne", epoch_callback = TRUE,
-  epoch = base::round(max_iter/10), min_cost = 0, momentum = 0.5,
-  final_momentum = 0.8, mom_switch_iter = 250, eta = 500,
-  min_gain = 0.01, opt = list("dbd"), exaggeration_factor = 1,
-  stop_lying_iter = 100, gamma = 7, lveps = 0.1, spread = 1,
-  min_dist = 0.001, ret_extra = FALSE, verbose = TRUE)
+  epoch = base::round(max_iter/10), min_cost = 0, tol = 1e-05,
+  momentum = 0.5, final_momentum = 0.8, mom_switch_iter = 250,
+  eta = 500, min_gain = 0.01, opt = list("dbd"),
+  exaggeration_factor = 1, stop_lying_iter = 100, gamma = 7,
+  lveps = 0.1, spread = 1, min_dist = 0.001, ret_extra = FALSE,
+  verbose = TRUE)
 }
 \arguments{
 \item{X}{Input coordinates or distance matrix.}
@@ -64,6 +65,10 @@ displays the cost value and calls \code{epoch_callback}, if supplied.}
 
 \item{min_cost}{If the cost falls below this value, the optimization will
 stop early.}
+
+\item{tol}{If the relative tolerance between successive cost values falls
+below this value, the optimization will stop early (but not during
+early exaggeration).}
 
 \item{momentum}{Initial momentum value.}
 
