@@ -1034,6 +1034,9 @@ pca_whiten <- function(X, ncol = min(dim(X)), eps = 1e-5, verbose = FALSE) {
 # Set the kernel to "gauss" to get the squared distance version.
 x2p <- function(X, perplexity = 15, tol = 1e-5, kernel = "exp",
                 verbose = FALSE) {
+  if (verbose) {
+    tsmessage("Commencing calibration for perplexity = ", formatC(perplexity))
+  }
   x_is_dist <- methods::is(X, "dist")
   if (x_is_dist) {
     D <- X
@@ -1300,6 +1303,9 @@ find_ab_params <- function(spread = 1, min_dist = 0.001) {
 # value.
 smooth_knn_distances <- function(X, k = 15, tol = 1e-5,
                                  min_k_dist_scale = 1e-3, verbose = FALSE) {
+  if (verbose) {
+    tsmessage("Commencing smooth kNN distance calibration for k = ", formatC(k))
+  }
   x_is_dist <- methods::is(X, "dist")
   if (x_is_dist) {
     D <- X

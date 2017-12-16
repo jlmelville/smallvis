@@ -4,9 +4,6 @@
 tsne <- function(perplexity, inp_kernel = "gaussian") {
   list(
     init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE) {
-      if (verbose) {
-        tsmessage("Commencing perplexity calibration")
-      }
       P <- x2p(X, perplexity, tol = 1e-5, kernel = inp_kernel, verbose = verbose)$P
       # Symmetrize
       P <- 0.5 * (P + t(P))
@@ -65,9 +62,6 @@ umap <- function(perplexity, spread = 1, min_dist = 0.001, gr_eps = 0.1) {
         message("Umap curve parameters = ", formatC(a), ", ", formatC(b))
       }
 
-      if (verbose) {
-        tsmessage("Commencing smooth kNN distance calibration")
-      }
       P <- smooth_knn_distances(X, k = perplexity, tol = 1e-5,
                                 verbose = verbose)$P
       # Fuzzy set union
@@ -128,9 +122,6 @@ umap <- function(perplexity, spread = 1, min_dist = 0.001, gr_eps = 0.1) {
 largevis <- function(perplexity, inp_kernel = "gaussian", gamma = 7, gr_eps = 0.1) {
   list(
     init = function(cost, X, eps = 1e-9, verbose = FALSE) {
-      if (verbose) {
-        tsmessage("Commencing perplexity calibration")
-      }
       P <- x2p(X, perplexity, tol = 1e-5, kernel = inp_kernel, verbose = verbose)$P
       # Symmetrize by arithmetic mean
       cost$P <- 0.5 * (P + t(P))
@@ -175,9 +166,6 @@ tumap <- function(perplexity, gr_eps = 0.1) {
     init = function(cost, X, eps = 1e-9, verbose = FALSE) {
       cost$eps <- eps
 
-      if (verbose) {
-        tsmessage("Commencing smooth kNN distance calibration")
-      }
       P <- smooth_knn_distances(X, k = perplexity, tol = 1e-5,
                                 verbose = verbose)$P
       # Fuzzy set union
@@ -222,9 +210,7 @@ tumap <- function(perplexity, gr_eps = 0.1) {
 ntumap <- function(perplexity, gr_eps = 0.1) {
   list(
     init = function(cost, X, eps = 1e-9, verbose = FALSE) {
-      if (verbose) {
-        tsmessage("Commencing smooth kNN distance calibration")
-      }
+
       P <- smooth_knn_distances(X, k = perplexity, tol = 1e-5,
                                 verbose = verbose)$P
       # Symmetrize by fuzzy set union
