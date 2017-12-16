@@ -232,6 +232,35 @@ sandal, shirt, sneaker, bag or ankle boot).
 ![fashion random](../img/init/rand/fashion.png)|![fashion Laplacian Eigenmap](../img/init/le/fashion.png)
 ![fashion SPCA](../img/init/spca/fashion.png)|![fashion SPCA + exaggeration](../img/init/spcax/fashion.png)
 
+## Milder Optimization?
+
+The optimization parameters used were those given in the t-SNE paper, which
+uses the random initialization. Let's just check that they aren't too aggressive
+when using a different initialization. In the following I reduce the learning
+rate by an order of magnitude and use a much lower initial momentum, initializing
+from Laplacian Eigenmaps:
+
+```
+tsne_iris_lap <- smallvis(iris, method = "tsne", perplexity = 40, max_iter = 1000, verbose = TRUE, Y_init = "lap", scale = FALSE, ret_extra = c("dx", "dy"), eta = 10, momentum = 0.1)
+```
+
+Here are the results, alongside the Laplacian eigenmap results (repeated from
+the results above):
+
+|Original Optimization        |Milder Optimization        |
+:----------------------------:|:--------------------------:
+![iris LE](../img/init/le/iris.png)|![iris LE mild](../img/init/le/iris_mild.png)
+![s1k LE](../img/init/le/s1k.png)|![s1k LE mild](../img/init/le/s1k_mild.png)
+![oli LE](../img/init/le/oli.png)|![oli LE mild](../img/init/le/oli_mild.png)
+![frey LE](../img/init/le/frey.png)|![frey LE mild](../img/init/le/frey_mild.png)
+![coil20 LE](../img/init/le/coil20.png)|![coil20 LE mild](../img/init/le/coil20_mild.png)
+![MNIST LE](../img/init/le/mnist.png)|![MNIST LE mild](../img/init/le/mnist_mild.png)
+![fashion LE](../img/init/le/fashion.png)|![fashion LE mild](../img/init/le/fashion_mild.png)
+
+I observe no exciting differences in either the final layout of the preservation
+values, although in all cases except `oli`, the milder optimization values 
+result in higher preservations.
+
 ## Conclusions
 
 Visually, I'm not sure there's a lot to choose between the different 
