@@ -259,7 +259,8 @@ the results above):
 
 I observe no exciting differences in either the final layout of the preservation
 values, although in all cases except `oli`, the milder optimization values 
-result in higher preservations.
+result in higher preservations. I repeated this for the `spca` initialization
+and got the same results, so no need to show those.
 
 ## Conclusions
 
