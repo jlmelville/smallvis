@@ -731,20 +731,20 @@ smallvis_rep <- function(nrep = 10, ...) {
 #' specified by the user is reached.
 #'
 #' The number of iterations spent in the larger perplexity values is specified
-#' by the \code{perp_step_iter} parameter. This determines the total number
-#' of iterations, e.g. if \code{perp_step_iter = 250} and extra optimizations
+#' by the \code{step_iter} parameter. This determines the total number
+#' of iterations, e.g. if \code{step_iter = 250} and extra optimizations
 #' at a perplexity of 1024, 512, 256, 128 and 64 will be carried out, these will
 #' run for 50 iterations each. To keep the number of iterations equivalent to
 #' that used by a single run of \code{\link{smallvis}}, the value of
-#' \code{perp_step_iter} is subtracted from the value of \code{max_iter} before
+#' \code{step_iter} is subtracted from the value of \code{max_iter} before
 #' the optimization at the target perplexity is carried out, e.g. if
-#' \code{max_iter = 1000} and \code{perp_step_iter = 250}, the final
+#' \code{max_iter = 1000} and \code{step_iter = 250}, the final
 #' optimization will run for 750 iterations only.
 #'
 #' Any value of \code{tol}, \code{exaggeration_factor} and
 #' \code{stop_lying_iter} provided is used only with the final optimization.
 #'
-#' @param perp_step_iter Number of iterations to carry out the perplexity
+#' @param step_iter Number of iterations to carry out the perplexity
 #'  stepping. Must be < the value of \code{max_iter}.
 #' @param ... Arguments to be passed to \code{\link{smallvis}}. See 'Details'
 #'  for information on which arguments may be modified or ignored during certain
@@ -757,7 +757,7 @@ smallvis_rep <- function(nrep = 10, ...) {
 #' # The 1000 max_iter is split between 250 iterations at perplexity = 64
 #' # and then 750 iterations at perplexity = 40.
 #' iris_lbfgs_pstep <- smallvis_perpscale(
-#'   perp_step_iter = 250, X = iris, scale = FALSE, verbose = TRUE, Y_init = "spca",
+#'   step_iter = 250, X = iris, scale = FALSE, verbose = TRUE, Y_init = "spca",
 #'   ret_extra = c("DX", "DY"), perplexity = 40, max_iter = 1000, opt = list("l-bfgs"))
 #' }
 #' @export
@@ -771,14 +771,14 @@ smallvis_rep <- function(nrep = 10, ...) {
 #' Type 1 and 2 mixtures of Kullback-Leibler divergences as cost functions in
 #' dimensionality reduction based on similarity preservation.
 #' \emph{Neurocomputing}, \emph{112}, 92-108.
-smallvis_perpstep <- function(perp_step_iter = 250, ...) {
+smallvis_perpstep <- function(step_iter = 250, ...) {
   varargs <- list(...)
   max_iter <- varargs$max_iter
   if (is.null(max_iter)) {
     max_iter <- 1000
   }
-  if (max_iter <= perp_step_iter) {
-    stop("max_iter must be > perp_step_iter")
+  if (max_iter <= step_iter) {
+    stop("max_iter must be > step_iter")
   }
 
   target_perplexity <- varargs$perplexity
@@ -797,8 +797,8 @@ smallvis_perpstep <- function(perp_step_iter = 250, ...) {
 
   nperps <- length(perps)
   if (nperps > 0) {
-    max_iter_step <- max(1, floor(perp_step_iter / nperps))
-    max_iter_target <- max(1, max_iter - perp_step_iter)
+    max_iter_step <- max(1, floor(step_iter / nperps))
+    max_iter_target <- max(1, max_iter - step_iter)
 
     # Save/Modify some options between step iteratons and final optimization
     ret_extra <- varargs$ret_extra

@@ -4,10 +4,10 @@
 \alias{smallvis_perpstep}
 \title{Dimensionality Reduction With Perplexity Stepping}
 \usage{
-smallvis_perpstep(perp_step_iter = 250, ...)
+smallvis_perpstep(step_iter = 250, ...)
 }
 \arguments{
-\item{perp_step_iter}{Number of iterations to carry out the perplexity
+\item{step_iter}{Number of iterations to carry out the perplexity
 stepping. Must be < the value of \code{max_iter}.}
 
 \item{...}{Arguments to be passed to \code{\link{smallvis}}. See 'Details'
@@ -40,14 +40,14 @@ are then carried out halving the perplexity each time, until the perplexity
 specified by the user is reached.
 
 The number of iterations spent in the larger perplexity values is specified
-by the \code{perp_step_iter} parameter. This determines the total number
-of iterations, e.g. if \code{perp_step_iter = 250} and extra optimizations
+by the \code{step_iter} parameter. This determines the total number
+of iterations, e.g. if \code{step_iter = 250} and extra optimizations
 at a perplexity of 1024, 512, 256, 128 and 64 will be carried out, these will
 run for 50 iterations each. To keep the number of iterations equivalent to
 that used by a single run of \code{\link{smallvis}}, the value of
-\code{perp_step_iter} is subtracted from the value of \code{max_iter} before
+\code{step_iter} is subtracted from the value of \code{max_iter} before
 the optimization at the target perplexity is carried out, e.g. if
-\code{max_iter = 1000} and \code{perp_step_iter = 250}, the final
+\code{max_iter = 1000} and \code{step_iter = 250}, the final
 optimization will run for 750 iterations only.
 
 Any value of \code{tol}, \code{exaggeration_factor} and
@@ -59,7 +59,7 @@ Any value of \code{tol}, \code{exaggeration_factor} and
 # The 1000 max_iter is split between 250 iterations at perplexity = 64
 # and then 750 iterations at perplexity = 40.
 iris_lbfgs_pstep <- smallvis_perpscale(
-  perp_step_iter = 250, X = iris, scale = FALSE, verbose = TRUE, Y_init = "spca",
+  step_iter = 250, X = iris, scale = FALSE, verbose = TRUE, Y_init = "spca",
   ret_extra = c("DX", "DY"), perplexity = 40, max_iter = 1000, opt = list("l-bfgs"))
 }
 }

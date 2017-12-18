@@ -218,8 +218,8 @@ stepping down from larger perplexities. Results were generated using (with
 `iris` as an example):
 
 ```
-iris_dbd_pstep <- smallvis_perpstep(perp_step_iter = 250, X = iris, scale = FALSE, verbose = TRUE, Y_init = "spca", ret_extra = c("DX", "DY"), perplexity = 40, eta = 100, mom_switch_iter = 185, max_iter = 1000)
-iris_lbfgs_pstep <- smallvis_perpstep(perp_step_iter = 250, X = iris, scale = FALSE, verbose = TRUE, Y_init = "spca", ret_extra = c("DX", "DY"), perplexity = 40, max_iter = 1000, opt = list("l-bfgs"))
+iris_dbd_pstep <- smallvis_perpstep(step_iter = 250, X = iris, scale = FALSE, verbose = TRUE, Y_init = "spca", ret_extra = c("DX", "DY"), perplexity = 40, eta = 100, mom_switch_iter = 185, max_iter = 1000)
+iris_lbfgs_pstep <- smallvis_perpstep(step_iter = 250, X = iris, scale = FALSE, verbose = TRUE, Y_init = "spca", ret_extra = c("DX", "DY"), perplexity = 40, max_iter = 1000, opt = list("l-bfgs"))
 ```
 
 Results are shown with the equivalent non-stepped version from the previous
