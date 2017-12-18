@@ -368,6 +368,9 @@ opt_step_mize <- function(opt, cost_fn, Y, iter) {
   }
 
   res <- mize::mize_step(opt, Y, fg)
+  step_summary <- mize::mize_step_summary(res$opt, res$par, fg, par_old = Y)
+  res$opt <- mize::check_mize_convergence(step_summary)
+
   Y <- res$par
   dim(Y) <- c(nr, length(Y) / nr)
 
@@ -396,6 +399,7 @@ opt_create <- function(optlist, verbose = FALSE) {
   }
   else {
     optlist$method <- name
+    optlist$max_iter <- Inf
     opt <- do.call(mize::make_mize, optlist)
     opt$smallvis_step <- opt_step_mize
   }

@@ -566,6 +566,15 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
       cost_fn$P <- cost_fn$P / exaggeration_factor
     }
 
+    if (nnat(opt$is_terminated)) {
+      if (verbose) {
+        tsmessage("Iteration #", iter,
+                  " stopping early: optimizer reports convergence: ",
+                  opt$terminate$what)
+      }
+      max_iter <- iter
+    }
+
     if (iter %% epoch == 0 || iter == max_iter) {
       # Recenter Y during epoch only
       Y <- sweep(Y, 2, colMeans(Y))
@@ -613,9 +622,15 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
       }
 
       # Don't stop early if still exaggerating
-      if ((exaggeration_factor == 1 || iter > stop_lying_iter) &&
-          !is.null(tolval) && tolval < tol) {
-        tsmessage("Stopping early: relative tolerance (", formatC(tol), ") met")
+      if ((exaggeration_factor == 1 || iter > stop_lying_iter)) {
+        if (!is.null(tolval) && tolval < tol) {
+          tsmessage("Stopping early: relative tolerance (", formatC(tol),
+                    ") met")
+          break
+        }
+      }
+
+      if (nnat(opt$is_terminated)) {
         break
       }
     }
@@ -1240,7 +1255,6 @@ stime <- function() {
   format(Sys.time(), "%T")
 }
 
-
 # message with a time stamp
 tsmessage <- function(..., domain = NULL, appendLF = TRUE) {
   message(stime(), " ", ..., domain = domain, appendLF = appendLF)
@@ -1275,6 +1289,12 @@ lreplace <- function(l, ...) {
 reltol <- function(x, y) {
   abs(x - y) / min(abs(x), abs(y))
 }
+
+# Check if a value is non-null and true
+nnat <- function(x) {
+  !is.null(x) && x
+}
+
 
 # UMAP  -------------------------------------------------------------------
 
