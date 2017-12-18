@@ -24,11 +24,13 @@ Hence the name smallvis.
 
 ## Prerequisites
 
-By default, `smallvis` uses the [vizier](https://github.com/jlmelville/vizier)
+`smallvis` uses the [vizier](https://github.com/jlmelville/vizier)
 package to plot the coordinates during optimization. It's not on CRAN, and 
 therefore requires a fairly new version of 
 [devtools](https://cran.r-project.org/package=devtools) (1.9 or greater) to 
-install this as a dependency from github.
+install this as a dependency from github. Similarly, it uses a development
+version of the [mize](https://github.com/jlmelville/mize) package (which is
+on CRAN but not in a sufficiently advanced state currently).
 
 There is also an optional dependency on the 
 [RSpectra](https://cran.r-project.org/package=RSpectra) package, which is used

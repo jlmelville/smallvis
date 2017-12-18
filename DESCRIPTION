@@ -16,7 +16,7 @@ Imports:
     vizier
 Suggests:
     RSpectra
-Remotes: jlmelville/vizier
+Remotes: jlmelville/vizier, jlmelville/mize
 Encoding: UTF-8
 LazyData: true
 Date: 2017-11-28
