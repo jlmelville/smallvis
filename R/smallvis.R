@@ -709,6 +709,166 @@ smallvis_rep <- function(nrep = 10, ...) {
   best_res
 }
 
+#' Dimensionality Reduction With Perplexity Stepping
+#'
+#' Carry out dimensionality reduction of a (small) dataset using one of a
+#' variety of neighbor embedding methods, using a decreasing value of
+#' perplexity to avoid bad local minima.
+#'
+#' This function uses ideas similar to those in the NeRV (Venna et al., 2010)
+#' and JSE (Lee et al., 2013), where to avoid local minima, the initial
+#' optimization steps use affinities with larger bandwidths (NeRV) or larger
+#' perplexity values (JSE). This implementation uses a series of decreasing
+#' perplexity values, as in JSE.
+#'
+#' For details on the arguments that can be passed to the dimensionality
+#' reduction routine, see the help text for \code{\link{smallvis}}.
+#'
+#' To avoid spending too much extra time in perplexity calibrations, the extra
+#' perplexities start at the power of 2 closest to, but not greater than,
+#' half the dataset size (in terms of number of objects). Further calibrations
+#' are then carried out halving the perplexity each time, until the perplexity
+#' specified by the user is reached.
+#'
+#' The number of iterations spent in the larger perplexity values is specified
+#' by the \code{perp_step_iter} parameter. This determines the total number
+#' of iterations, e.g. if \code{perp_step_iter = 250} and extra optimizations
+#' at a perplexity of 1024, 512, 256, 128 and 64 will be carried out, these will
+#' run for 50 iterations each. To keep the number of iterations equivalent to
+#' that used by a single run of \code{\link{smallvis}}, the value of
+#' \code{perp_step_iter} is subtracted from the value of \code{max_iter} before
+#' the optimization at the target perplexity is carried out, e.g. if
+#' \code{max_iter = 1000} and \code{perp_step_iter = 250}, the final
+#' optimization will run for 750 iterations only.
+#'
+#' Any value of \code{tol}, \code{exaggeration_factor} and
+#' \code{stop_lying_iter} provided is used only with the final optimization.
+#'
+#' @param perp_step_iter Number of iterations to carry out the perplexity
+#'  stepping. Must be < the value of \code{max_iter}.
+#' @param ... Arguments to be passed to \code{\link{smallvis}}. See 'Details'
+#'  for information on which arguments may be modified or ignored during certain
+#'  parts of the embedding.
+#' @return The result of the final run of \code{\link{smallvis}} at the target
+#'   perplexity.
+#' @examples
+#' \dontrun{
+#' # t-SNE on the iris with L-BFGS optimization
+#' # The 1000 max_iter is split between 250 iterations at perplexity = 64
+#' # and then 750 iterations at perplexity = 40.
+#' iris_lbfgs_pstep <- smallvis_perpscale(
+#'   perp_step_iter = 250, X = iris, scale = FALSE, verbose = TRUE, Y_init = "spca",
+#'   ret_extra = c("DX", "DY"), perplexity = 40, max_iter = 1000, opt = list("l-bfgs"))
+#' }
+#' @export
+#' @references
+#' Venna, J., Peltonen, J., Nybo, K., Aidos, H., & Kaski, S. (2010).
+#' Information retrieval perspective to nonlinear dimensionality reduction for
+#' data visualization.
+#' \emph{Journal of Machine Learning Research}, \emph{11}, 451-490.
+#'
+#' Lee, J. A., Renard, E., Bernard, G., Dupont, P., & Verleysen, M. (2013).
+#' Type 1 and 2 mixtures of Kullback-Leibler divergences as cost functions in
+#' dimensionality reduction based on similarity preservation.
+#' \emph{Neurocomputing}, \emph{112}, 92-108.
+smallvis_perpstep <- function(perp_step_iter = 250, ...) {
+  varargs <- list(...)
+  max_iter <- varargs$max_iter
+  if (is.null(max_iter)) {
+    max_iter <- 1000
+  }
+  if (max_iter <= perp_step_iter) {
+    stop("max_iter must be > perp_step_iter")
+  }
+
+  target_perplexity <- varargs$perplexity
+  if (is.null(target_perplexity)) {
+    target_perplexity <- 30
+  }
+
+  X <- varargs$X
+  if (methods::is(X, "dist")) {
+    n <- attr(X, "Size")
+  }
+  else {
+    n <- nrow(X)
+  }
+  perps <- scale_perps(target_perp = target_perplexity, n = n)
+
+  nperps <- length(perps)
+  if (nperps > 0) {
+    max_iter_step <- max(1, floor(perp_step_iter / nperps))
+    max_iter_target <- max(1, max_iter - perp_step_iter)
+
+    # Save/Modify some options between step iteratons and final optimization
+    ret_extra <- varargs$ret_extra
+    varargs$ret_extra <- FALSE
+    varargs$max_iter <- max_iter_step
+    tol <- varargs$tol
+    varargs$tol <- 0
+    exaggeration_factor <- varargs$exaggeration_factor
+    varargs$exaggeration_factor <- 1
+
+    epoch <- varargs$epoch
+    varargs$epoch <- max_iter_step
+
+    # Loop over initial perplexities
+    res <- NULL
+    for (i in 1:nperps) {
+      if (nnat(varargs$verbose)) {
+        tsmessage("Optimizing at step perplexity ", formatC(perps[i]),
+                  " for ", max_iter_step, " iterations")
+      }
+      varargs$perplexity <- perps[i]
+      if (i > 1) {
+        varargs$Y_init <- res
+      }
+      res <- do.call(smallvis, varargs)
+    }
+
+    varargs$Y_init <- res
+    varargs$max_iter <- max_iter_target
+    # Put the old arguments back before final optimization
+    varargs$perplexity <- target_perplexity
+    if (!is.null(ret_extra)) {
+      varargs$ret_extra <- ret_extra
+    }
+    if (!is.null(tol)) {
+      varargs$tol <- tol
+    }
+    if (!is.null(epoch)) {
+      varargs$epoch <- epoch
+    }
+    if (!is.null(exaggeration_factor)) {
+      varargs$exaggeration_factor <- exaggeration_factor
+    }
+  }
+
+  if (nnat(varargs$verbose)) {
+    tsmessage("Optimizing at target perplexity ", formatC(target_perplexity),
+              " for ", max_iter_target, " iterations")
+  }
+  do.call(smallvis, varargs)
+}
+
+# Utility function for perplexity step
+scale_perps <- function(n, target_perp) {
+  max_perp <- n / 2
+  max_perp <- 2 ^ floor(log(max_perp, 2))
+  perp <- max_perp
+
+  if (max_perp > target_perp) {
+    perps <- c()
+    while (perp > target_perp) {
+      perps <- c(perps, perp)
+      perp <- perp / 2
+    }
+  }
+
+  perps
+}
+
+
 # Input Preprocess --------------------------------------------------------
 
 # Scale X according to various strategies
