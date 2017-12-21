@@ -236,10 +236,14 @@ div.tocify {
 <p>The <a href="https://arxiv.org/abs/1206.4646">Spectral Directions</a> paper introduced a quasi-Newton method using the Hessian based on a sparse approximation to just the attractive part of the t-SNE cost function. On a large dataset, it out-performed L-BFGS and conjugate gradient for optimizing t-SNE and <a href="http://faculty.ucmerced.edu/mcarreira-perpinan/papers/icml10.pdf">elastic embedding (PDF)</a>, although it didn’t compare the delta-bar-delta method for t-SNE, and only a back-tracking line search was used with L-BFGS. Nor is any early exaggeration used. The JSE and multi-scale JSE papers use a series of optimizations with a decreasing perplexity (similar techniques are used in the SNE and NeRV papers), so it’s possible that other optimization methods do better when the input probabilities are modified during the initial iterations, although an increased perplexity would seem to have an opposite effect to early exaggeration in terms of relative emphasis on short and long distances. Finally, it should be noted that the differences between L-BFGS, CG and spectral direction became pronounced only when looking at a 20,000-member subset of the MNIST digits dataset. The JSE papers, for instance, don’t look at datasets larger than 6,000 items (although also sampled from the MNIST digits).</p>
 <p><code>smallvis</code> can’t handle large datasets, so we will also restrict ourselves to nothing larger than a 6,000 subset of the MNIST digits. But it certainly would be nice if we could just point L-BFGS (or delta-bar-delta) at pretty much any cost function and not have to worry about initialization and perplexity annealing or early exaggeration.</p>
 </div>
+<div id="datasets" class="section level2">
+<h2>Datasets</h2>
+<p>See the <a href="https://jlmelville.github.io/smallvis/datasets.html">Datasets</a> page.</p>
+</div>
 <div id="details" class="section level2">
 <h2>Details</h2>
 <p>If you want to know more about the provenance of the datasets, they are described in reasonable detail on the <a href="https://jlmelville.github.io/smallvis/init.html">initialization</a> experiment page.</p>
-<p>The L-BFGS implementation is from the <a href="https://cran.r-project.org/package=mize">mize</a> package. The memory size is 5, and a loose Wolfe line search was used with the More-Thuente method. These are pretty standard settings. It should be noted that the L-BFGS method</p>
+<p>The L-BFGS implementation is from the <a href="https://cran.r-project.org/package=mize">mize</a> package. The memory size is 5, and a loose Wolfe line search was used with the More-Thuente method. These are pretty standard settings.</p>
 </div>
 <div id="settings" class="section level2">
 <h2>Settings</h2>

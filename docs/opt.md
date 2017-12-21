@@ -63,6 +63,10 @@ be nice if we could just point L-BFGS (or delta-bar-delta) at pretty much any
 cost function and not have to worry about initialization and perplexity 
 annealing or early exaggeration.
 
+## Datasets
+
+See the [Datasets](https://jlmelville.github.io/smallvis/datasets.html) page.
+
 ## Details
 
 If you want to know more about the provenance of the datasets, they are 
@@ -73,7 +77,7 @@ page.
 The L-BFGS implementation is from the 
 [mize](https://cran.r-project.org/package=mize) package. The memory size
 is 5, and a loose Wolfe line search was used with the More-Thuente method. 
-These are pretty standard settings. It should be noted that the L-BFGS method
+These are pretty standard settings.
 
 ## Settings
 

@@ -55,6 +55,10 @@ Based on the above, we'll consider four different initialization methods below:
 * Scaled PCA.
 * Scaled PCA with early exaggeration.
 
+## Datasets
+
+See the [Datasets](https://jlmelville.github.io/smallvis/datasets.html) page.
+
 ## Settings
 
 Results below were generated using the following commands (exemplified by the
@@ -121,22 +125,12 @@ the data points belong to (except for the Frey faces, see below).
 
 ### iris
 
-The famous `iris` dataset, as given in R's `datasets` package. 150 observations
-and 4 features. Observations are colored by species.
-
 |                             |                           |
 :----------------------------:|:--------------------------:
 ![iris random](../img/init/rand/iris.png)|![iris Laplacian Eigenmap](../img/init/le/iris.png)
 ![iris SPCA](../img/init/spca/iris.png)|![iris SPCA + exaggeration](../img/init/spcax/iris.png)
 
 ### s1k
-
-A synthetic dataset consisting of a fuzzy 9D simplex made of ten roughly-equally 
-spaced isotropic clusters. Created for the 
-[sneer](https://github.com/jlmelville/sneer) package and designed to be too
-high-dimensional to produce a good result by reproducing distances. 1000
-observations and 9 features. Observations are colored by the cluster they belong
-to.
 
 |                             |                           |
 :----------------------------:|:--------------------------:
@@ -145,32 +139,12 @@ to.
 
 ### Olivetti Faces
 
-The 
-[ORL Database of Faces](http://www.cl.cam.ac.uk/research/dtg/attarchive/facedatabase.html),
-consisting of forty different people's faces, with ten images per person. 
-Installed via the [snedata](https://github.com/jlmelville/snedata) package, 
-which defers to the 
-[https://cran.r-project.org/package=RnavGraphImageData](RnavGraphImageData)
-package for the heavy lifting. 400 observations and 4096 features. Observations
-are colored according to the face they represent.
-
 |                             |                           |
 :----------------------------:|:--------------------------:
 ![oli random](../img/init/rand/oli.png)|![oli Laplacian Eigenmap](../img/init/le/oli.png)
 ![oli SPCA](../img/init/spca/oli.png)|![oli SPCA + exaggeration](../img/init/spcax/oli.png)
 
 ### Frey Faces
-
-2000 consecutive images of Brendan Frey's face, taken from video footage.
-Seems to originate from [Saul Roweis' page](https://cs.nyu.edu/~roweis/data.html).
-2000 observations and 560 features. This is the one dataset without any categories
-for the points. Instead, the color of the point represents its position in the
-2000 frames, colored by a rainbow scheme. Early frames are colored red, and then
-progress through green to blue and so on.
-
-Like the Olivetti Faces, installed using the 
-[snedata](https://github.com/jlmelville/snedata) package, via
-[https://cran.r-project.org/package=RnavGraphImageData](RnavGraphImageData)
 
 |                             |                           |
 :----------------------------:|:--------------------------:
@@ -179,13 +153,6 @@ Like the Olivetti Faces, installed using the
 
 ### COIL-20
 
-The 
-[Columbia Object Image Library](http://www.cs.columbia.edu/CAVE/software/softlib/coil-20.php): 
-images of 20 objects, with 72 poses each. 1440 observations with 16384 features. 
-Each observation is colored by the object it is an image of.
-
-Installed using the [coil20](https://github.com/jlmelville/coil20) package.
-
 |                             |                           |
 :----------------------------:|:--------------------------:
 ![coil20 random](../img/init/rand/coil20.png)|![coil20 Laplacian Eigenmap](../img/init/le/coil20.png)
@@ -193,39 +160,12 @@ Installed using the [coil20](https://github.com/jlmelville/coil20) package.
 
 ### MNIST (6,000)
 
-A subset of the 
-[MNIST database of handwrittens digits](http://yann.lecun.com/exdb/mnist/), 
-images of handwritten digits from 0-9. 
-
-Downloaded using the [snedata](https://github.com/jlmelville/snedata) package 
-and 6,000 examples were sampled randomly, with 600 examples per digit:
-
-```
-mnist <- snedata::download_mnist()
-# install.packages(c("dpylr", "magrittr"))
-library("dplyr")
-library("magrittr")
-mnist6k <- sample_n(mnist %>% group_by(Label), 600)
-```
-6,000 observations and 784 features. Observations are colored by the digit
-they represent.
-
 |                             |                           |
 :----------------------------:|:--------------------------:
 ![mnist random](../img/init/rand/mnist.png)|![mnist Laplacian Eigenmap](../img/init/le/mnist.png)
 ![mnist SPCA](../img/init/spca/mnist.png)|![mnist SPCA + exaggeration](../img/init/spcax/mnist.png)
 
 ### Fashion (6,000)
-
-A subset of the [Fashion MNIST](https://github.com/zalandoresearch/fashion-mnist)
-database, designed to be similar to the MNIST digits database, but using images
-of fashion items. Once again downloaded using the 
-[snedata](https://github.com/jlmelville/snedata) package the same procedure as 
-for the MNIST dataset was used to sample 6,000 images, 600 per object class.
-
-6,000 observations and 784 features. Observations are colored by the fashion 
-item they represent (one of T-shirt/top, trousers, pullover, dress, coat, 
-sandal, shirt, sneaker, bag or ankle boot).
 
 |                             |                           |
 :----------------------------:|:--------------------------:

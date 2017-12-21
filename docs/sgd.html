@@ -228,9 +228,31 @@ div.tocify {
 </div>
 
 
+<p>The <a href="https://dx.doi.org/10.1016/0893-6080%2888%2990003-2">delta-bar-delta</a> method used for optimizing t-SNE is an adaptive learning rate technique that was originally suggested for neural network training. It is mentioned in the same set of lecture notes that described the <a href="https://www.cs.toronto.edu/~tijmen/csc321/slides/lecture_slides_lec6.pdf">RMSprop (PDF)</a> stochastic gradient method.</p>
+<p>Unlike stochastic gradient methods, DBD is meant for batch learning and only uses the sign of the gradient, whereas SGD methods need to take into account the magnitude of the gradient too. Given what I consider to be the surprisingly good performance of DBD compared to methods like L-BFGS (see the <a href="%5BL-BFGS%20experiments%5D(https://jlmelville.github.io/smallvis/opt.html)%20for%20details">optimization</a>, it would be interesting (to me) to see how SGD methods perform. They certainly have an advantage of traditional unconstrained optimization methods as being much easier to implement.</p>
+<div id="datasets" class="section level2">
+<h2>Datasets</h2>
+<p>See the <a href="https://jlmelville.github.io/smallvis/datasets.html">Datasets</a> page.</p>
+</div>
 <div id="comparison-with-adam" class="section level2">
-<h2>Comparison with ADAM</h2>
+<h2>Comparison with Adam</h2>
+<p><a href="https://arxiv.org/abs/1412.6980">Adam</a> is a popular technique that seems to do pretty well for optimizing deep learning tasks.</p>
 <p>The delta-bar-delta results from the <a href="https://jlmelville.github.io/smallvis/opt.html">L-BFGS experiments</a> are included for comparison.</p>
+<p>Apart from visualizing the results, the mean neighbor preservation of the 40 closest neighbors is used to provide a rough quantification of the quality of the result, labelled as <code>mnp@40</code> in the plots.</p>
+</div>
+<div id="settings" class="section level2">
+<h2>Settings</h2>
+<p>Here’s an example of generating the t-SNE results with Adam.</p>
+<p>The Adam results differ from the recommended defaults given by the authors for deep learning. I settled on these values by experimenting with the <code>iris</code> dataset results.</p>
+<pre><code>tsne_iris_adam &lt;- smallvis(iris, method = &quot;tsne&quot;, perplexity = 40, max_iter = 1000, verbose = TRUE, Y_init = &quot;spca&quot;, scale = FALSE, ret_extra = c(&quot;dx&quot;, &quot;dy&quot;), opt = list(&quot;adam&quot;, eta = 0.25, beta1 = 0.8))</code></pre>
+</div>
+<div id="evaluation" class="section level2">
+<h2>Evaluation</h2>
+<p>For each initializaion, the mean neighbor preservation of the 40 nearest neighbors, calculated using the <a href="https://github.com/jlmelville/quadra">quadra</a> package: for each point the 40 nearest neighbors are calculated in the input and output space, and the fraction of neighbors in common is recorded (0 means no neighbors are in common, 1 means all the neighbors were preserved). The number reported is the mean average over all results and is labelled as <code>mnp@40</code> in the plots. 40 was chosen for these results to match the <code>perplexity</code>.</p>
+</div>
+<div id="results" class="section level2">
+<h2>Results</h2>
+<p>The DBD results are on the left, the Adam results are on the right.</p>
 <div id="iris" class="section level3">
 <h3>iris</h3>
 <table>
@@ -308,6 +330,11 @@ div.tocify {
 </tbody>
 </table>
 </div>
+</div>
+<div id="conclusions" class="section level2">
+<h2>Conclusions</h2>
+<p>Given that Adam is designed for stochastic gradient descent optimization of deep learning, these are surprisingly good results, very similar to what DBD achieves. As usual, I place greater weight on the results for the MNIST and Fashion subsets, which are largest datasets considered. For MNIST, the results aren’t quite as good visually with Adam (despite showing a slightly higher mean neighbor preservation), but elsewhere they seem quite competitive.</p>
+<p>The degree of convergence didn’t seem as far along after 1000 iterations with Adam compared to DBD, probably because the learning rate might be on the conservative side. On the other hand, having to tune the momentum (called <code>beta1</code> in Adam) and learning rate parameters for each dataset would remove much of its appeal anyway.</p>
 </div>
 
 
