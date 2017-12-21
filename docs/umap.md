@@ -33,7 +33,7 @@ isn't quite as important as might be thought.
 
 Initial experiments suggested that UMAP was noticeably more difficult to 
 optimize with the delta-bar-delta optimization method that with t-SNE. However,
-L-BFGS with perplexity stepping seemes like a robust alternative, based on
+L-BFGS with perplexity stepping seems like a robust alternative, based on
 [a comparison with DBD for t-SNE optimization](https://jlmelville.github.io/smallvis/opt.html).
 
 As there is much less information around on optimizing UMAP compared to t-SNE,
