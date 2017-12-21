@@ -135,9 +135,22 @@ epsilon to avoid division by zero and get decent results. It's hard-coded to
 showing a comparison of cost functions and gradients. Also, some material on
 the various [spectral](https://jlmelville.github.io/smallvis/spectral.html)
 methods, which justifies the use of Laplacian Eigenmaps (a bit).
-* As an example of `smallvis` results, you can read about the 
-[effect of initialization methods](https://jlmelville.github.io/smallvis/init.html)
+
+## My Idle Thoughts
+
+`smallvis` exists mainly to satisfy my urge to answer the various, minor, 
+[stamp-collecting](https://quoteinvestigator.com/2015/05/08/stamp/) questions 
+that have occurred to me as I have read the dimensionality reduction literature. 
+Those that I have cobbled together into something that demonstrates the use of
+`smallvis` appear below.
+
+* The [datasets] used in my ruminations.
+* [Initialization methods](https://jlmelville.github.io/smallvis/init.html)
 on t-SNE.
+* [Optimizaton: L-BFGS](https://jlmelville.github.io/smallvis/opt.html).
+* [Optimizaton: Adam](https://jlmelville.github.io/smallvis/sgd.html).
+* Some initial results using [UMAP](https://jlmelville.github.io/smallvis/umap.html)
+and related methods.
 
 ## See Also
 
