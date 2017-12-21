@@ -144,7 +144,7 @@ that have occurred to me as I have read the dimensionality reduction literature.
 Those that I have cobbled together into something that demonstrates the use of
 `smallvis` appear below.
 
-* The [datasets] used in my ruminations.
+* The [datasets](https://jlmelville.github.io/smallvis/datasets.html) used in my ruminations.
 * [Initialization methods](https://jlmelville.github.io/smallvis/init.html)
 on t-SNE.
 * [Optimizaton: L-BFGS](https://jlmelville.github.io/smallvis/opt.html).
