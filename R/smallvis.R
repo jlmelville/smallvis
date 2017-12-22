@@ -600,11 +600,13 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
                 , appendLF = FALSE
                 )
         if (!is.null(tolval)) {
-          message(" tol = ", formatC(tolval))
+          message(" tol = ", formatC(tolval), appendLF = FALSE)
         }
-        else {
-          message()
+        if (!is.null(opt$counts)) {
+          message(" nf = ", opt$counts$fn, " ng = ", opt$counts$gr,
+                  appendLF = FALSE)
         }
+        message()
       }
 
       if (!is.null(epoch_callback)) {
