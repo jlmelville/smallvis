@@ -51,7 +51,7 @@ tsne <- function(perplexity, inp_kernel = "gaussian") {
 }
 
 # UMAP
-umap <- function(perplexity, spread = 1, min_dist = 0.001, gr_eps = 0.1) {
+umap <- function(perplexity, spread = 1, min_dist = 0.001, gr_eps = 0.001) {
   list(
     init = function(cost, X, eps = 1e-9, verbose = FALSE) {
 
