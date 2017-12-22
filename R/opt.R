@@ -360,19 +360,46 @@ mizify_cost <- function(cost, nrow) {
 # One step of mize optimization
 opt_step_mize <- function(opt, cost_fn, Y, iter) {
   nr <- nrow(Y)
+  nc <- ncol(Y)
   fg <- mizify_cost(cost_fn, nr)
+  if (nnat(opt$requires_B) && iter == 1) {
+    # The Spectral Direction is the positive part of the Hessian, 4L+.
+    # mize stores the gradient as a vector, so the Hessian should be a dN x dN
+    # block diagonal matrix, with this block repeated d times (d being the
+    # output dimension), but shamefully, mize has a hack inside the hessian solve
+    # code to recognize when the Hessian is too small for exactly this case.
+
+    # Graph Laplacian , L+ = D+ - W+
+    if (is.null(cost_fn$P)) {
+      stop("No P matrix in cost for use in approximate Hessian")
+    }
+    Lp <- diag(colSums(cost_fn$P)) - cost_fn$P
+    mu <- min(Lp[Lp > 0]) * 1e-10
+    B <- 4 * (Lp + mu)
+
+    fg$hs <- function(par) {
+      B
+    }
+  }
+  # Quasi Newton methods need the inverse Hessian
+  # so just use the easy-to-invert diagonal
+  if (nnat(opt$requires_H) && iter == 1) {
+    H <- 4 * colSums(cost_fn$P)
+    fg$hi <- function(par) {
+      rep(1 / H, nc)
+    }
+  }
   dim(Y) <- NULL
 
   if (iter == 1) {
     opt <- mize::mize_init(opt, Y, fg)
   }
-
   res <- mize::mize_step(opt, Y, fg)
   step_summary <- mize::mize_step_summary(res$opt, res$par, fg, par_old = Y)
   res$opt <- mize::check_mize_convergence(step_summary)
 
   Y <- res$par
-  dim(Y) <- c(nr, length(Y) / nr)
+  dim(Y) <- c(nr, nc)
 
   list(
     Y = Y,
@@ -398,10 +425,26 @@ opt_create <- function(optlist, verbose = FALSE) {
     opt$smallvis_step <- opt_step_internal
   }
   else {
-    optlist$method <- name
+    if (tolower(name) == "specd") {
+      optlist$method <- "PHESS"
+    }
+    else {
+      optlist$method <- name
+    }
     optlist$max_iter <- Inf
+    approx_hess <- optlist$approx_hess
+    optlist$approx_hess <- NULL
     opt <- do.call(mize::make_mize, optlist)
+    opt$name <- name
     opt$smallvis_step <- opt_step_mize
+    if (tolower(name) %in% c("specd")) {
+      opt$requires_B <- TRUE
+    }
+    # Use the diagonal of the Spectral Direction Hessian approximation
+    # to initialize the quasi-Newton methods
+    if (nnat(approx_hess) && tolower(name) %in% c("bfgs", "l-bfgs", "sr1")) {
+      opt$requires_H <- TRUE
+    }
   }
 
   opt

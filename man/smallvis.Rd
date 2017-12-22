@@ -331,9 +331,30 @@ these methods may provide greater stability.
 Alternatively, optimization methods from the mize package,
 \url{https://cran.r-project.org/package=mize}, can also be used, with the
 same format: provide the name of the optimizer as the first element of the
-list, followed by named pairs of arguments.
+list, followed by named pairs of arguments. Some possible settings are:
 
-See the examples for the use of alternative optimizers interface.
+\itemize{
+  \item{\code{"BFGS"}} The Broyden-Fletcher-Goldfarb-Shanno quasi-Newton
+  method. Best used with small datasets.
+  \item{\code{"L-BFGS"}} The limited-memory BFGS, a good default choice
+  if the standard delta-bar-delta optimizer fails to converge.
+  \item{\code{"SPECD"}} A non-sparse version of the spectral direction
+  method of Vladymyrov and Carreira-Perpinan (2012). Suitable only for
+  methods which generate a normalized input affinity matrix (like t-SNE).
+  Due to its non-sparse forumulation, this is even more time-consuming to use
+  than BFGS in its current state.
+}
+
+Because these optimizers can carry out multiple gradient and function
+evaluations per iteration (compared to the default which only calculates
+one gradient calculation), you may wish to set the \code{"step_tol"}
+(minimum step size) and/or \code{"max_gr"} (maximum number of gradient
+evaluation) settings in the list to keep the number of calculations these
+optimization methods use comparable to the default settings.
+
+See the examples for the use of alternative optimizers interface. For best
+results, you may also consider using the \code{\link{smallvis_perpstep}}
+function with these optimizers.
 }
 
 \examples{
@@ -398,7 +419,11 @@ umap_iris_mom <- smallvis(iris, scale = FALSE, opt = list("mom", eta = 1e-2, mu 
 # L-BFGS optimization via the mize package
 umap_iris_lbfgs <- smallvis(iris, scale = FALSE, opt = list("l-bfgs", c1 = 1e-4, c2 = 0.9),
                             method = "umap", Y_init = "spca", max_iter = 300)
-
+# L-BFGS controlling maximum number of gradient evaluations and a further stopping
+# criterion for when the step size gets too small
+umap_iris_lbfgs <- smallvis(iris, scale = FALSE, opt = list("l-bfgs", max_gr = 1000,
+                            step_tol = 1e-6), method = "umap", Y_init = "spca",
+                            max_iter = 300)
 ## Example using distance matrix
 # Use geommds: metric MDS using geodesic distances estimated from kNN distances
 # k is set via the perplexity argument. Use an epoch callback to get useful color
