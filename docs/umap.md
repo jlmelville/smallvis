@@ -77,7 +77,7 @@ smooth k-nearest-neighbor calibration.
 
 ## Evaluation
 
-For each initializaion, the mean neighbor preservation of the
+For each initialization, the mean neighbor preservation of the
 40 nearest neighbors, calculated using the 
 [quadra](https://github.com/jlmelville/quadra) package: for each point the 40
 nearest neighbors are calculated in the input and output space, and the fraction

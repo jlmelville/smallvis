@@ -257,7 +257,7 @@ tsne_iris_lbfgs &lt;- smallvis(iris, method = &quot;tsne&quot;, perplexity = 40,
 </div>
 <div id="evaluation" class="section level2">
 <h2>Evaluation</h2>
-<p>For each initializaion, the mean neighbor preservation of the 40 nearest neighbors, calculated using the <a href="https://github.com/jlmelville/quadra">quadra</a> package. The number reported is the mean average over all results and is labelled as <code>mnp@40</code> in the plots. 40 was chosen for these results to match the <code>perplexity</code>.</p>
+<p>For each initialization, the mean neighbor preservation of the 40 nearest neighbors, calculated using the <a href="https://github.com/jlmelville/quadra">quadra</a> package. The number reported is the mean average over all results and is labelled as <code>mnp@40</code> in the plots. 40 was chosen for these results to match the <code>perplexity</code>.</p>
 <p>For example, for the <code>tsne_iris_dbd</code> result given above, the <code>mnp@40</code> value is calculated using:</p>
 <pre class="r"><code>av_pres &lt;- mean(quadra::nbr_pres(tsne_iris_dbd$DX, tsne_iris_dbd$DY, tsne_iris_dbd$perplexity))</code></pre>
 <p>Again, more details in the <a href="https://jlmelville.github.io/smallvis/init.html">initialization</a> experiment page.</p>

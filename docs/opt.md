@@ -100,7 +100,7 @@ initialization experiment, due to various minor code changes since that
 
 ## Evaluation
 
-For each initializaion, the mean neighbor preservation of the 40 nearest
+For each initialization, the mean neighbor preservation of the 40 nearest
 neighbors, calculated using the
 [quadra](https://github.com/jlmelville/quadra) package. The number reported is 
 the mean average over all results and is labelled as `mnp@40` in the plots. 40
