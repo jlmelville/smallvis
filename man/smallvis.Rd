@@ -448,18 +448,6 @@ Borg, I., & Groenen, P. J. (2005).
 \emph{Modern multidimensional scaling: Theory and applications.}
 Springer Science & Business Media.
 
-Van der Maaten, L., & Hinton, G. (2008).
-Visualizing data using t-SNE.
-\emph{Journal of Machine Learning Research}, \emph{9} (2579-2605).
-\url{http://www.jmlr.org/papers/v9/vandermaaten08a.html}
-
-Tang, J., Liu, J., Zhang, M., & Mei, Q. (2016, April).
-Visualizing large-scale and high-dimensional data.
-In \emph{Proceedings of the 25th International Conference on World Wide Web}
-(pp. 287-297).
-International World Wide Web Conferences Steering Committee.
-\url{https://arxiv.org/abs/1602.00370}
-
 Linderman, G. C., & Steinerberger, S. (2017).
 Clustering with t-SNE, provably.
 \emph{arXiv preprint} \emph{arXiv}:1706.02582.
@@ -468,4 +456,21 @@ Clustering with t-SNE, provably.
 McInnes, L (2017).
 UMAP: Universal Manifold Approximation and Mapping.
 \url{https://github.com/lmcinnes/umap}
+
+Tang, J., Liu, J., Zhang, M., & Mei, Q. (2016, April).
+Visualizing large-scale and high-dimensional data.
+In \emph{Proceedings of the 25th International Conference on World Wide Web}
+(pp. 287-297).
+International World Wide Web Conferences Steering Committee.
+\url{https://arxiv.org/abs/1602.00370}
+
+Van der Maaten, L., & Hinton, G. (2008).
+Visualizing data using t-SNE.
+\emph{Journal of Machine Learning Research}, \emph{9} (2579-2605).
+\url{http://www.jmlr.org/papers/v9/vandermaaten08a.html}
+
+Vladymyrov, M., & Carreira-Perpinan, M. A. (2012).
+Partial-Hessian Strategies for Fast Learning of Nonlinear Embeddings.
+In \emph{Proceedings of the 29th International Conference on Machine Learning (ICML-12)}
+(pp. 345-352).
 }
