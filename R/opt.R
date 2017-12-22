@@ -184,8 +184,6 @@ ndbd <- function(eta = 500, momentum = 0.5, final_momentum = 0.8,
 adam <- function(eta = 0.002, beta1 = 0.9, beta2 = 0.999, eps = 1e-8,
                  verbose = FALSE) {
   list(
-    beta1 = beta1,
-    beta2 = beta2,
     beta1t = beta1,
     beta2t = beta2,
     eps = eps,
@@ -196,18 +194,21 @@ adam <- function(eta = 0.002, beta1 = 0.9, beta2 = 0.999, eps = 1e-8,
       opt
     },
     upd = function(opt, G, iter) {
+      # Uses the slightly simpler formulation from section 2 of the paper
+      # which doesn't explicitly store m_hat or v_hat - eps is different
+      # between the two versions, though
       m <- opt$m
       v <- opt$v
-      beta1 <- opt$beta1
-      beta2 <- opt$beta2
       beta1t <- opt$beta1t
       beta2t <- opt$beta2t
 
+      # The bias correction part of the update
+      bc <- sqrt(1 - beta2t) / (1 - beta1t)
+
       m <- beta1 * m + (1 - beta1) * G
       v <- beta2 * v + (1 - beta2) * G * G
-      m_hat <- m / (1 - beta1t)
-      v_hat <- v / (1 - beta2t)
-      gains <- m_hat / (sqrt(v_hat) + opt$eps)
+
+      gains <- m * bc / (sqrt(v) + opt$eps)
 
       opt$uY <- -eta * gains
       opt$m <- m
