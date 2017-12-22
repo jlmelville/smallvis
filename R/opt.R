@@ -221,6 +221,50 @@ adam <- function(eta = 0.002, beta1 = 0.9, beta2 = 0.999, eps = 1e-8,
   )
 }
 
+# A correction to Adam, with better theoretical convergence properties
+# https://openreview.net/forum?id=ryQu7f-RZ
+amsgrad <- function(eta = 0.002, beta1 = 0.9, beta2 = 0.999, eps = 1e-8,
+                    verbose = FALSE) {
+  list(
+    beta1t = beta1,
+    beta2t = beta2,
+    eps = eps,
+    init = function(opt, n, k) {
+      opt$m <- matrix(0, nrow = n, ncol = k)
+      opt$v <- matrix(0, nrow = n, ncol = k)
+      opt$v_hat <- matrix(0, nrow = n, ncol = k)
+
+      opt
+    },
+    upd = function(opt, G, iter) {
+      m <- opt$m
+      v <- opt$v
+      v_hat <- opt$v_hat
+      beta1t <- opt$beta1t
+      beta2t <- opt$beta2t
+
+      # The bias correction part of the update
+      bc <- sqrt(1 - beta2t) / (1 - beta1t)
+
+      m <- beta1 * m + (1 - beta1) * G
+      v <- beta2 * v + (1 - beta2) * G * G
+
+      v_hat <- pmax(v_hat, v)
+
+      gains <- m * bc / (sqrt(v_hat) + opt$eps)
+
+      opt$uY <- -eta * gains
+      opt$m <- m
+      opt$v <- v
+      opt$v_hat <- v_hat
+      opt$beta1t <- beta1t * beta1
+      opt$beta2t <- beta2t * beta2
+
+      opt
+    }
+  )
+}
+
 # AdaMax ------------------------------------------------------------------
 
 adamax <- function(eta = 0.002, beta1 = 0.9, beta2 = 0.999, eps = 1e-8,
@@ -419,7 +463,7 @@ opt_create <- function(optlist, verbose = FALSE) {
   optlist[[1]] <- NULL
 
   if (tolower(name) %in% c("adagrad", "adadelta", "rmsprop", "dbd",
-                           "ndbd", "adam", "adamax", "nadam",
+                           "ndbd", "adam", "adamax", "nadam", "amsgrad",
                            "steepd", "mom")) {
     optlist$verbose <- verbose
     opt <- do.call(get(name), optlist)
