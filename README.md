@@ -150,7 +150,7 @@ on t-SNE.
 * [Optimizaton: L-BFGS](https://jlmelville.github.io/smallvis/opt.html).
 * [Optimizaton: Spectral Direction](https://jlmelville.github.io/smallvis/specd.html).
 * [Optimizaton: Conjugate Gradient](https://jlmelville.github.io/smallvis/cg.html).
-* [Optimizaton: Adam](https://jlmelville.github.io/smallvis/sgd.html).
+* [Optimizaton: SGD methods](https://jlmelville.github.io/smallvis/sgd.html).
 * Some initial results using [UMAP](https://jlmelville.github.io/smallvis/umap.html)
 and related methods.
 
