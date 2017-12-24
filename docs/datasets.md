@@ -11,7 +11,12 @@ output:
 
 Most of the docs illustrating the use of `smallvis` use some relatively small
 datasets which have been used elsewhere or are otherwise convenient to chuck
-a dimensionality reduction algorithm at.
+a dimensionality reduction algorithm at. Two plots are shown for each dataset:
+the PCA results, using the first two principal components, and the results of
+running t-SNE with some standard parameters taken from the 
+[t-SNE paper](http://www.jmlr.org/papers/v9/vandermaaten08a.html). This should
+demonstrate that, in most cases, PCA does a fairly bad job of visualizing the 
+data, and t-SNE does a substantially better job. 
 
 ## Iris
 
@@ -19,6 +24,14 @@ The famous `iris` dataset, as given in R's `datasets` package. 150 observations
 and 4 features. Observations are colored by species. This a very low dimensional
 dataset that certainly doesn't need t-SNE applied to it. Very convenient for
 sanity checking, though.
+
+```
+iris_tsne <- smallvis(iris, scale = FALSE, perplexity = 40, Y_init = "spca", eta = 100, exaggeration_factor = 4)
+```
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![iris pca](../img/datasets/iris_pca.png)|![iris tsne](../img/datasets/iris_tsne.png)
 
 ### s1k
 
@@ -32,7 +45,13 @@ to. A good embedding would show ten round but fuzzy clusters.
 ```
 devtools::install_github("jlmelville/sneer")
 library(sneer)
+
+s1k_tsne <- smallvis(s1k, scale = FALSE, perplexity = 40, Y_init = "spca", eta = 100, exaggeration_factor = 4)
 ```
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![s1k pca](../img/datasets/s1k_pca.png)|![s1k tsne](../img/datasets/s1k_tsne.png)
 
 ### Olivetti Faces
 
@@ -50,7 +69,13 @@ install.packages("RnavGraphImageData")
 library(RnavGraphImageData)
 devtools::install_github("jlmelville/snedata")
 oli <- snedata::olivetti_faces()
+
+oli_tsne <- smallvis(oli, scale = FALSE, perplexity = 40, Y_init = "spca", eta = 100, exaggeration_factor = 4)
 ```
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![oli pca](../img/datasets/oli_pca.png)|![oli tsne](../img/datasets/oli_tsne.png)
 
 ### Frey Faces
 
@@ -70,7 +95,13 @@ install.packages("RnavGraphImageData")
 library(RnavGraphImageData)
 devtools::install_github("jlmelville/snedata")
 frey <- snedata::frey_faces()
+
+
+frey_tsne <- smallvis(frey, scale = FALSE, perplexity = 40, Y_init = "spca", eta = 100, exaggeration_factor = 4)
 ```
+|                             |                           |
+:----------------------------:|:--------------------------:
+![frey pca](../img/datasets/frey_pca.png)|![frey tsne](../img/datasets/frey_tsne.png)
 
 ### COIL-20
 
@@ -86,7 +117,13 @@ devtools::install_github("jlmelville/coil20")
 # For some reason it takes ages to unzip the downloaded file on my machine
 # so be patient
 coil20 <- coil20::download_coil20(verbose = TRUE)
+
+coil20_tsne <- smallvis(coil20, scale = FALSE, perplexity = 40, Y_init = "spca", eta = 100, exaggeration_factor = 4)
 ```
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![coil20 pca](../img/datasets/coil20_pca.png)|![coil20 tsne](../img/datasets/coil20_tsne.png)
 
 ### MNIST (6,000)
 
@@ -104,6 +141,8 @@ install.packages(c("dpylr", "magrittr"))
 library("dplyr")
 library("magrittr")
 mnist6k <- sample_n(mnist %>% group_by(Label), 600)
+
+mnist_tsne <- smallvis(mnist6k, scale = FALSE, perplexity = 40, Y_init = "spca", eta = 100, exaggeration_factor = 4)
 ```
 6,000 observations and 784 features. Observations are colored by the digit
 they represent.
@@ -111,6 +150,10 @@ they represent.
 t-SNE (among other methods) does a pretty good job at separating the digits,
 even in 2D. MNIST is considered to be quite an easy dataset to do well at in
 various machine learning tasks.
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![mnist pca](../img/datasets/mnist_pca.png)|![mnist tsne](../img/datasets/mnist_tsne.png)
 
 ### Fashion (6,000)
 
@@ -135,4 +178,11 @@ install.packages(c("dpylr", "magrittr"))
 library("dplyr")
 library("magrittr")
 fashion6k <- sample_n(fashion %>% group_by(Label), 600)
+
+fashion_tsne <- smallvis(fashion6k, scale = FALSE, perplexity = 40, Y_init = "spca", eta = 100, exaggeration_factor = 4)
 ```
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![fashion pca](../img/datasets/fashion_pca.png)|![fashion tsne](../img/datasets/fashion_tsne.png)
+
