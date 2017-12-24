@@ -43,7 +43,7 @@ adadelta <- function(rho = 0.95, eps = 1e-6, verbose = FALSE) {
       rho <- opt$rho
 
       Ghist <- rho * Ghist + (1 - rho) * G * G
-      uY <- -G * sqrt(uYhist + eps) / sqrt(Ghist + eps)
+      uY <- -G * sqrt((uYhist + eps) / (Ghist + eps))
 
       opt$uY <- uY
       opt$Ghist <- Ghist
