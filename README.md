@@ -160,7 +160,7 @@ For large scale visualization in R see:
 
 * The Barnes-Hut t-SNE package [Rtsne](https://cran.r-project.org/package=Rtsne)
 * The [largeVis](https://cran.r-project.org/package=largeVis) package.
-* RSpectra [https://cran.r-project.org/package=RSpectra] can help spectral methods
+* [RSpectra](https://cran.r-project.org/package=RSpectra) can help spectral methods
 scale.
 
 Also of relevance are:
