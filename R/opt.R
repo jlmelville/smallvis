@@ -360,9 +360,10 @@ steepd <- function(eta = 1, verbose = FALSE) {
   )
 }
 
-# Classical Momentum ------------------------------------------------------
+# Momentum ------------------------------------------------------
 
-mom <- function(eta = 1, mu = 0, verbose = FALSE) {
+# Classical momentum
+mom <- function(eta = 1, mu = 0.9, verbose = FALSE) {
   list(
     upd = function(opt, G, iter) {
       opt$uY <- -eta * G + opt$mu * opt$uY
@@ -372,6 +373,75 @@ mom <- function(eta = 1, mu = 0, verbose = FALSE) {
     uY = 0
   )
 }
+
+# Nesterov-style momentum
+# if mu is set to a non numeric value, uses the Nesterov schedule
+nag <- function(eta = 1, mu = 0.9, verbose = FALSE) {
+  list(
+    upd = function(opt, G, iter) {
+      if (!is.numeric(mu)) {
+        mu_t <- 1 - 3 / (5 + iter)
+      }
+      else {
+        mu_t <- mu
+      }
+
+      gd <- eta * G
+      old_uY <- opt$uY
+      old_gd <- opt$old_gd
+      if (is.null(opt$old_gd)) {
+        uY <- -gd
+      }
+      else {
+        uY <- mu_t * (old_uY + old_gd) - (1 + mu_t) * gd
+      }
+
+      opt$old_gd <- gd
+      opt$uY <- uY
+
+      opt
+    },
+    mu = mu
+  )
+}
+
+# A "generalized" momentum, beta = 0 for classical, beta = 1 for Nesterov
+# if mu is set to a non numeric value, uses the Nesterov schedule
+gmom <- function(eta = 1, mu = 0.9, beta = 0.5, verbose = FALSE) {
+  list(
+    upd = function(opt, G, iter) {
+      gd <- eta * G
+      old_uY <- opt$uY
+      old_gd <- opt$old_gd
+
+      if (!is.numeric(mu)) {
+        mu_t <- 1 - 3 / (5 + iter)
+      }
+      else {
+        mu_t <- mu
+      }
+
+      # Steepest Descent on first iteration
+      if (is.null(opt$old_gd)) {
+        uY <- -gd
+      }
+      else {
+        # Classical momentum term
+        uY <- mu_t * old_uY - gd
+        if (beta != 0) {
+          uY <- uY + beta * mu_t * (old_gd - gd)
+        }
+      }
+
+      opt$old_gd <- gd
+      opt$uY <- uY
+
+      opt
+    },
+    mu = mu
+  )
+}
+
 
 
 
@@ -464,7 +534,7 @@ opt_create <- function(optlist, verbose = FALSE) {
 
   if (tolower(name) %in% c("adagrad", "adadelta", "rmsprop", "dbd",
                            "ndbd", "adam", "adamax", "nadam", "amsgrad",
-                           "steepd", "mom")) {
+                           "steepd", "mom", "nag", "gmom")) {
     optlist$verbose <- verbose
     opt <- do.call(get(name), optlist)
     opt$smallvis_step <- opt_step_internal
