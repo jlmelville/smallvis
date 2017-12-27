@@ -144,6 +144,10 @@ hssne <- function(perplexity, inp_kernel = "gaussian", alpha = 0.5) {
   )
 }
 
+# Yang, Z., Peltonen, J., & Kaski, S. (2014).
+# Optimization equivalence of divergences improves neighbor embedding.
+# In \emph{Proceedings of the 31st International Conference on Machine Learning (ICML-14)}
+# (pp. 460-468).
 wtsne <- function(perplexity, inp_kernel = "gaussian") {
   list(
     init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE) {
@@ -195,6 +199,10 @@ wtsne <- function(perplexity, inp_kernel = "gaussian") {
   )
 }
 
+# Yang, Z., Peltonen, J., & Kaski, S. (2014).
+# Optimization equivalence of divergences improves neighbor embedding.
+# In \emph{Proceedings of the 31st International Conference on Machine Learning (ICML-14)}
+# (pp. 460-468).
 wssne <- function(perplexity) {
   lreplace(
     wtsne(perplexity = perplexity),
