@@ -1154,7 +1154,8 @@ ret_value <- function(Y, ret_extra, method, X, scale, Y_init, iter, start_time =
       ))
     }
 
-    for (o in tolower(unique(optionals))) {
+    optionals <- tolower(unique(optionals))
+    for (o in optionals) {
       if (o %in% c("p", "q", "w", "dx", "dy")) {
         exported <- cost_fn$export(cost_fn, o)
         if (!is.null(exported)) {
@@ -1173,7 +1174,6 @@ ret_value <- function(Y, ret_extra, method, X, scale, Y_init, iter, start_time =
           res$DY <- sqrt(safe_dist2(Y))
         }
       }
-
       else if (o == "x") {
         res$X <- X
       }
