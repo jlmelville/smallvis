@@ -196,6 +196,9 @@ to the \code{method} parameter are:
   \item \code{"mmds"} Metric Multidimensional Scaling (Borg and Groenen,
   2005), which reduces the "strain", i.e. the square loss between the input
   and output distances.
+  \item \code{"asne"} The original asymmetric Stochastic Neighbor Embedding
+  method of Roweis and Hinton (2002).
+  \item \code{"ssne"} The symmetric SNE method of Cook and co-workers (2007).
 }
 
 Note that only the cost function is used from these methods in the context
@@ -447,6 +450,14 @@ In \emph{Advances in neural information processing systems}
 Borg, I., & Groenen, P. J. (2005).
 \emph{Modern multidimensional scaling: Theory and applications.}
 Springer Science & Business Media.
+
+Cook, J., Sutskever, I., Mnih, A., & Hinton, G. E. (2007).
+Visualizing similarity data with a mixture of maps.
+In \emph{International Conference on Artificial Intelligence and Statistics} (pp. 67-74).
+
+Hinton, G. E., & Roweis, S. T. (2002).
+Stochastic neighbor embedding.
+In \emph{Advances in neural information processing systems} (pp. 833-840).
 
 Linderman, G. C., & Steinerberger, S. (2017).
 Clustering with t-SNE, provably.

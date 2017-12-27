@@ -21,6 +21,9 @@
 #'   \item \code{"mmds"} Metric Multidimensional Scaling (Borg and Groenen,
 #'   2005), which reduces the "strain", i.e. the square loss between the input
 #'   and output distances.
+#'   \item \code{"asne"} The original asymmetric Stochastic Neighbor Embedding
+#'   method of Roweis and Hinton (2002).
+#'   \item \code{"ssne"} The symmetric SNE method of Cook and co-workers (2007).
 #' }
 #'
 #' Note that only the cost function is used from these methods in the context
@@ -395,6 +398,14 @@
 #' \emph{Modern multidimensional scaling: Theory and applications.}
 #' Springer Science & Business Media.
 #'
+#' Cook, J., Sutskever, I., Mnih, A., & Hinton, G. E. (2007).
+#' Visualizing similarity data with a mixture of maps.
+#' In \emph{International Conference on Artificial Intelligence and Statistics} (pp. 67-74).
+#'
+#' Hinton, G. E., & Roweis, S. T. (2002).
+#' Stochastic neighbor embedding.
+#' In \emph{Advances in neural information processing systems} (pp. 833-840).
+#'
 #' Linderman, G. C., & Steinerberger, S. (2017).
 #' Clustering with t-SNE, provably.
 #' \emph{arXiv preprint} \emph{arXiv}:1706.02582.
@@ -450,7 +461,8 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
 
   # The embedding method
   method <- match.arg(tolower(method), c("tsne", "largevis", "umap", "tumap",
-                                         "ntumap", "mmds", "geommds"))
+                                         "ntumap", "mmds", "geommds",
+                                         "asne", "ssne", "wssne", "wtsne"))
   cost_fn <- switch(method,
        tsne = tsne(perplexity = perplexity, inp_kernel = inp_kernel),
        umap = umap(perplexity = perplexity, spread = spread,
@@ -461,6 +473,10 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
        ntumap = ntumap(perplexity = perplexity, gr_eps = lveps),
        mmds = mmds(),
        geommds = geommds(k = perplexity),
+       asne = asne(perplexity = perplexity),
+       ssne = ssne(perplexity = perplexity),
+       wssne = wssne(perplexity = perplexity),
+       wtsne = wtsne(perplexity = perplexity),
        stop("BUG: someone forgot to implement option: '", method, "'")
   )
 

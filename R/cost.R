@@ -1,55 +1,5 @@
 # Cost Functions ----------------------------------------------------------
 
-# t-SNE
-tsne <- function(perplexity, inp_kernel = "gaussian") {
-  list(
-    init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE) {
-      P <- x2p(X, perplexity, tol = 1e-5, kernel = inp_kernel, verbose = verbose)$P
-      # Symmetrize
-      P <- 0.5 * (P + t(P))
-      # Normalize
-      cost$P <- P / sum(P)
-
-      cost$eps <- eps
-      cost
-    },
-    pfn = function(cost, Y) {
-      P <- cost$P
-      eps <- cost$eps
-      invZ <- cost$invZ
-      W <- cost$W
-      cost$pcost <- colSums(P * log((P + eps) / ((W * invZ) + eps)))
-      cost
-    },
-    gr = function(cost, Y) {
-      P <- cost$P
-      W <- dist2(Y)
-      W <- 1 / (1 + W)
-      diag(W) <- 0
-      invZ <- 1 / sum(W)
-      cost$invZ <- invZ
-      cost$W <- W
-      cost$G <- k2g(Y, 4 * W * (P - W * invZ))
-      cost
-    },
-    export = function(cost, val) {
-      res <- NULL
-      switch(val,
-        w = {
-          res <- cost$W
-        },
-        q = {
-          res <- cost$W * cost$invZ
-        },
-        p = {
-          res <- cost$P
-        }
-      )
-      res
-    }
-  )
-}
-
 # UMAP
 umap <- function(perplexity, spread = 1, min_dist = 0.001, gr_eps = 0.001) {
   list(
@@ -331,7 +281,10 @@ geommds <- function(k) {
 # Generic Functions -------------------------------------------------------
 
 # Convert Force constant to Gradient
-k2g <- function(Y, K) {
+k2g <- function(Y, K, symmetrize = FALSE) {
+  if (symmetrize) {
+    K <- K + t(K)
+  }
   Y * rowSums(K) - (K %*% Y)
 }
 
