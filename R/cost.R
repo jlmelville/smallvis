@@ -69,12 +69,11 @@ umap <- function(perplexity, spread = 1, min_dist = 0.001, gr_eps = 0.001) {
 # LargeVis
 # NB This version doesn't normalize the input P, despite what the paper
 # indicates (source code of the current implementation doesn't seem to either)
-largevis <- function(perplexity, inp_kernel = "gaussian", gamma = 7, gr_eps = 0.1) {
+largevis <- function(perplexity, gamma = 7, gr_eps = 0.1) {
   list(
     init = function(cost, X, eps = 1e-9, verbose = FALSE) {
-      P <- x2p(X, perplexity, tol = 1e-5, kernel = inp_kernel, verbose = verbose)$P
-      # Symmetrize by arithmetic mean
-      cost$P <- 0.5 * (P + t(P))
+      P <- sne_init(X = X, perplexity = perplexity, symmetrize = "symmetric",
+                    normalize = FALSE, verbose = verbose)
       cost$eps <- eps
       cost
     },

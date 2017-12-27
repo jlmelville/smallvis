@@ -222,6 +222,7 @@ wssne <- function(perplexity) {
   )
 }
 
+# Perplexity Calibration --------------------------------------------------
 
 # symmetrize: type of symmetrization:
 #  none - no symmetrization as in ASNE, JSE, NeRV
@@ -233,7 +234,8 @@ sne_init <- function(X, perplexity, inp_kernel = "gaussian",
                      symmetrize = "symmetric",
                      normalize = TRUE,
                      verbose = FALSE) {
-  P <- x2p(X, perplexity, tol = 1e-5, kernel = inp_kernel, verbose = verbose)$P
+  P <- x2aff(X, perplexity, tol = 1e-5, kernel = inp_kernel, verbose = verbose)$W
+  P <- P / rowSums(P)
 
   # Symmetrize
   P <- switch(symmetrize,
@@ -246,4 +248,25 @@ sne_init <- function(X, perplexity, inp_kernel = "gaussian",
     P <- P / sum(P)
   }
   P
+}
+
+# The intrinsic dimensionality associated with a gaussian affinity vector
+# Convenient only from in x2aff, where all these values are available
+intd_x2aff <- function(D2, beta, W, Z, H, eps = .Machine$double.eps) {
+  P <- W / Z
+  -2 * beta * sum(D2 * P * (log(P + eps) + H))
+}
+
+# More expensive but more generic intrinsic dimensionality calculation
+# where only a vector of exponential affinities, Wi, need to be available
+intrinsic_dimensionality <- function(Wi, eps = .Machine$double.eps) {
+  iZ <- 1 / sum(Wi)
+  lw <- log(Wi + eps)
+
+  wlwlw <- sum(Wi * lw * lw)
+
+  wlw2 <- sum(Wi * lw)
+  wlw2 <- wlw2 * wlw2
+
+  2 * iZ * (wlwlw - iZ * wlw2)
 }

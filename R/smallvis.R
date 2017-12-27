@@ -1248,14 +1248,15 @@ pca_whiten <- function(X, ncol = min(dim(X)), eps = 1e-5, verbose = FALSE) {
 
 # Perplexity Calibration --------------------------------------------------
 
-# Calculates the input probabilities from X, such that each row probability
-# distribution has the specified perplexity (within the supplied tolerance).
-# Returns a list containing the probabilities and beta values.
-# NB the default kernel, "exp", differs from the procedure in the TSNE paper by
-# exponentially weighting the distances, rather than the squared distances.
-# Set the kernel to "gauss" to get the squared distance version.
-x2p <- function(X, perplexity = 15, tol = 1e-5, kernel = "exp",
-                verbose = FALSE) {
+# Calculates the input affinities from X, such that each normalized row of the
+# affinity matrix has the specified perplexity (within the supplied tolerance).
+# Returns a list containing the affinities, beta values and intrinsic
+# dimensionalities.
+# NB set default kernel to "exp" to get results closer to the Rtsne package.
+# This differs from the procedure in the TSNE paper by exponentially weighting
+# the distances, rather than the squared distances.
+x2aff <- function(X, perplexity = 15, tol = 1e-5, kernel = "gauss",
+                  verbose = FALSE) {
   if (verbose) {
     tsmessage("Commencing calibration for perplexity = ", formatC(perplexity))
   }
@@ -1274,7 +1275,8 @@ x2p <- function(X, perplexity = 15, tol = 1e-5, kernel = "exp",
     n <- nrow(X)
   }
 
-  P <- matrix(0, n, n)
+  W <- matrix(0, n, n)
+  intd <- rep(0, n)
   beta <- rep(1, n)
   logU <- log(perplexity)
 
@@ -1301,9 +1303,9 @@ x2p <- function(X, perplexity = 15, tol = 1e-5, kernel = "exp",
       beta[1] <- 0.5 * perplexity / mean(Di)
     }
 
-    hbeta <- dist_to_prob(Di, beta[i])
-    H <- hbeta$H
-    thisP <- hbeta$P
+    sres <- shannon(Di, beta[i])
+    H <- sres$H
+    Wi <- sres$W
 
     Hdiff <- H - logU
     tries <- 0
@@ -1325,9 +1327,11 @@ x2p <- function(X, perplexity = 15, tol = 1e-5, kernel = "exp",
         }
       }
 
-      hbeta <- dist_to_prob(Di, beta[i])
-      H <- hbeta$H
-      thisP <- hbeta$P
+      sres <- shannon(Di, beta[i])
+      H <- sres$H
+      Wi <- sres$W
+      sumWi <- sres$Z
+
       Hdiff <- H - logU
       tries <- tries + 1
     }
@@ -1336,38 +1340,39 @@ x2p <- function(X, perplexity = 15, tol = 1e-5, kernel = "exp",
     if (i < n) {
       beta[i + 1] <- beta[i]
     }
-    P[i, -i] <- thisP
+    W[i, -i] <- Wi
+    intd[i] <- intd_x2aff(Di, beta[i], Wi, sumWi, H)
   }
   sigma <- sqrt(1 / beta)
 
   if (verbose) {
-    summary_sigma <- summary(sigma, digits = max(3, getOption("digits") - 3))
-    tsmessage("sigma summary: ",
-            paste(names(summary_sigma), ":", summary_sigma, "|", collapse = ""))
+    summarize(sigma, "sigma summary")
+    summarize(intd, "Dint")
   }
-  list(P = P, beta = beta)
+  list(W = W, beta = beta, int_dim = intd)
 }
 
-# Given a vector of squared distances and an exponential parameter beta,
-# calculates the probabilities and corresponding Shannon entropy.
-#
+# Calculates affinites based on exponential weighting of D2 with beta
+# and returns a list containing:
+# W, the affinities; Z, the sum of the affinities; H, the Shannon entropy
 # This routine relies specifically on input weights being = exp(-beta * D)
 # and calculates the Shannon entropy as log(Z) + beta * sum(W * D) / Z
 # where Z is the sum of W.
-#
-# Returns a list containing the Shannon entropy and the probability.
-dist_to_prob <- function(D, beta) {
-  P <- exp(-D * beta)
-  Z <- sum(P)
+shannon <- function(D2, beta) {
+  W <- exp(-D2 * beta)
+  Z <- sum(W)
+
   if (Z == 0) {
     H <- 0
-    P <- D * 0
   }
   else {
-    H <- log(Z) + beta * sum(D * P) / Z
-    P <- P / Z
+    H <- log(Z) + beta * sum(D2 * W) / Z
   }
-  list(H = H, P = P)
+  list(
+    W = W,
+    Z = Z,
+    H = H
+  )
 }
 
 # Create a symmetrized distance matrix based on the k-nearest neighbors
@@ -1502,6 +1507,13 @@ nnat <- function(x) {
   !is.null(x) && x
 }
 
+# log vector information
+summarize <- function(X, msg = "") {
+  summary_X <- summary(X, digits = max(3, getOption("digits") - 3))
+  tsmessage(msg, ": ", paste(names(summary_X), ":", summary_X, "|",
+                             collapse = ""))
+}
+
 
 # UMAP  -------------------------------------------------------------------
 
@@ -1518,7 +1530,7 @@ find_ab_params <- function(spread = 1, min_dist = 0.001) {
              start = list(a = 1, b = 1))$m$getPars()
 }
 
-# The UMAP equivalent of perplexity calibration in x2p. k is continuous rather
+# The UMAP equivalent of perplexity calibration in x2aff. k is continuous rather
 # than integral and so is analogous to perplexity.
 # Some differences:
 # 1. The target value is the log2 of k, not the Shannon entropy associated
@@ -1624,9 +1636,7 @@ smooth_knn_distances <- function(X, k = 15, tol = 1e-5,
   }
 
   if (verbose) {
-    summary_sigma <- summary(sigma, digits = max(3, getOption("digits") - 3))
-    tsmessage("sigma summary: ",
-            paste(names(summary_sigma), ":", summary_sigma, "|", collapse = ""))
+    summarize(sigma, "sigma summary")
   }
   list(P = P, sigma = sigma)
 }
