@@ -447,7 +447,7 @@ largevis_iris <- smallvis(iris, method = list("largevis", gamma = 1),
                           epoch_callback = ecb, perplexity = 50, verbose = TRUE)
 
 # Use the UMAP cost function and input weights (perplexity here refers to the
-# smoothed number of nearest neigbors)
+# smoothed number of nearest neighbors)
 umap_iris <- smallvis(iris, method = "umap", eta = 0.1,
                       epoch_callback = ecb, perplexity = 50, verbose = TRUE)
 
