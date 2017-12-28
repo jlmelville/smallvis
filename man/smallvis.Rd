@@ -193,6 +193,7 @@ to the \code{method} parameter are:
   \item \code{"ssne"} The symmetric SNE method of Cook and co-workers (2007).
   \item \code{"hssne"} The heavy-tailed symmetric SNE method of Yang and
   co-workers (2009).
+  \item \code{"ee"} The Elastic Embedding method of Carreira-Perpinan (2010).
 }
 
 Note that only the cost function is used from these methods in the context
@@ -233,7 +234,7 @@ Method-specific parameters are as follows:
    \item{\code{spread}} Parameter controlling the output kernel function.
     Controls the length over which the output kernel decays from 1 to 0.
     Default is \code{1}.
-   \item{\code{min_dist}} Parameter controlling the output kernel function..
+   \item{\code{min_dist}} Parameter controlling the output kernel function.
     According to the UMAP documentation, controls "how tightly the embedding
     is allowed compress points together. Larger values ensure embedded
     points are more evenly distributed, while smaller values allow the
@@ -251,6 +252,11 @@ Method-specific parameters are as follows:
    Increasing this value increases the amount of stretching that occurs in
    the output weighting function. A value of 0 performs like SSNE, and a
    value of 1 performs like t-SNE. Default is 0.5.
+   }
+   \item \code{"EE"}
+   \itemize{
+   \item{\code{lambda}} Weighting term for the repulsive versus attractive
+    forces. Default is \code{100}.
    }
 }
 
@@ -509,6 +515,10 @@ In \emph{Advances in neural information processing systems}
 Borg, I., & Groenen, P. J. (2005).
 \emph{Modern multidimensional scaling: Theory and applications.}
 Springer Science & Business Media.
+
+Carreira-Perpinan, M. A. (2010, June).
+The Elastic Embedding Algorithm for Dimensionality Reduction.
+In \emph{Proceedings of the 27th International Conference on Machine Learning (ICML-10)} (pp. 167-174).
 
 Cook, J., Sutskever, I., Mnih, A., & Hinton, G. E. (2007).
 Visualizing similarity data with a mixture of maps.

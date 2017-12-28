@@ -280,6 +280,71 @@ geommds <- function(k) {
   )
 }
 
+# Carreira-Perpinán, M. A. (2010, June).
+# The Elastic Embedding Algorithm for Dimensionality Reduction.
+# In \emph{Proceedings of the 27th International Conference on Machine Learning (ICML-10)} (pp. 167-174).
+# http://faculty.ucmerced.edu/mcarreira-perpinan/papers/icml10.pdf (PDF)
+ee <- function(perplexity, lambda = 100) {
+  list(
+    init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
+                    ret_extra = c()) {
+      if (methods::is(X, "dist")) {
+        R <- X
+      }
+      else {
+        R <- sqrt(safe_dist2(X))
+      }
+      cost$Vn <- R / sum(R)
+      cost <- sne_init(cost, X, perplexity = perplexity,
+                       symmetrize = "symmetric", normalize = TRUE,
+                       verbose = verbose, ret_extra = ret_extra)
+      cost$eps <- eps
+      cost
+    },
+    pfn = function(cost, Y) {
+      Vp <- cost$P
+      Vn <- cost$Vn
+      W <- cost$W
+      eps <- cost$eps
+      cost$pcost <- colSums(-Vp * log(W + eps) + lambda * (Vn * W))
+      cost
+    },
+    gr = function(cost, Y) {
+      Vp <- cost$P
+      Vn <- cost$Vn
+
+      W <- dist2(Y)
+      W <- exp(-W)
+      diag(W) <- 0
+      cost$W <- W
+      cost$G <- k2g(Y,  4 * (Vp - lambda * Vn * W))
+      cost
+    },
+    export = function(cost, val) {
+      res <- NULL
+      switch(val,
+             w = {
+               res <- cost$W
+             },
+             p = {
+               res <- cost$P
+             },
+             beta = {
+               res <- cost$beta
+             },
+             v = {
+               res <- cost$V
+             },
+             dint = {
+               res <- cost$dint
+             }
+      )
+      res
+    }
+  )
+}
+
+
 # Generic Functions -------------------------------------------------------
 
 # Convert Force constant to Gradient
