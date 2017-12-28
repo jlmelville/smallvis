@@ -27,7 +27,18 @@ probabilities, which are by construction extremely close to zero outside the
 k-nearest neighbors of any observation, where k is the perplexity.
 
 `smallvis` doesn't care for scalability, so its implementation of the above
-doesn't enforce sparsity.
+doesn't enforce sparsity. A very similar approach to spectral directions was 
+described by
+[van der Maarten (PDF)](http://cseweb.ucsd.edu/~lvdmaaten/workshops/nips2010/papers/vandermaaten.pdf)
+which also didn't attempt to enforce sparsity (it should also be noted that the 
+van der Maaten approach also doesn't attempt to enforce positive definiteness, 
+which could lead to the optimization failing). In this paper, the Cholesky 
+factorization didn't dominate the computation time: the dataset used was a 
+subset of MNIST with n = 5,000, so similar in size to the largest datasets 
+considered here. Therefore we can probably get away with ignoring sparsity.
+However, results in this paper were much less detailed than those presented in
+the spectral directions paper though (sadly, no visualization of the
+delta-bar-delta versus partial Hessian resulting coordinates are shown).
 
 ## Line Search
 
@@ -39,7 +50,8 @@ with $\alpha = 1$ (the Newton step) on the first iteration and then initializing
 subsequent values of $\alpha$ with the final result from the previous iteration.
 This is, as the authors note, a conservative strategy because the line search
 can never grow again, and if one iteration rejects the Newton step, it can
-never be tried again. On the other hand, the 
+never be tried again. van der Maarten's experiments use a normal Wolfe line 
+search, with $c1 = 0.02$ and $c2 = 0.9$. The 
 [L-BFGS](https://jlmelville.github.io/smallvis/opt.html) results hardly shone
 when using a full Wolfe line search (which is a requirement for the
 quasi-Newton methods). So we will try two strategies: the first will be to use
@@ -66,8 +78,11 @@ results in more resource usage than using DBD, because the line search uses
 function evaluations as well as gradient evaluations, which DBD only carries out
 when logging every 100 iterations.
 
-Initialization was from a scaled PCA using the first two PCs, without any 
-input data scaling. The target perplexity was 40.
+Initialization was from a scaled PCA using the first two PCs, without any input
+data scaling. The van der Maaten experiments also initialized from PCA,
+presumably without any scaling. No early exaggeration was used: the spectral
+directions and the van der Maaten experiments don't either. The target
+perplexity was 40.
 
 Example invocations are given below:
 
@@ -163,3 +178,14 @@ Restricting the line search to back-tracking seems to have basically no effect
 on the results. Visually, the MNIST results are better with back-tracking in 
 fact. Tentatively, I would recommend back-tracking line search with spectral
 directions, which at least agrees with the original spectral directions paper.
+
+These experiments didn't use early exaggeration. It's possible that early
+exaggeration is more useful than spectral directions: the Barnes-Hut version
+of t-SNE, despite also being written by van der Maaten, doesn't use the partial 
+Hessian approach but *does* use early exaggeration. Indeed the importance of
+making the exaggeration larger than for smaller datasets is stressed. Possibly 
+for large datasets, the Cholesky decomposition starts to dominate the 
+calculation time. Or, as noted by 
+[Yang and co-workers](http://www.jmlr.org/proceedings/papers/v38/yang15a.html) 
+in their experiments, the spectral direction method is unstable when used
+with early exaggeration.
