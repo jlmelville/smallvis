@@ -445,8 +445,9 @@ iris_amsgrad &lt;- smallvis(iris, scale = FALSE, perplexity = 40, Y_init = &quot
 </div>
 <div id="conclusions" class="section level2">
 <h2>Conclusions</h2>
-<p>Given that Adam is designed for stochastic gradient descent optimization of deep learning, these are surprisingly good results, very similar to what DBD achieves. As usual, I place greater weight on the results for the MNIST and Fashion subsets, which are largest datasets considered. For MNIST, the results aren’t quite as good visually with Adam (despite showing a slightly higher mean neighbor preservation), but elsewhere they seem quite competitive.</p>
-<p>The degree of convergence didn’t seem as far along after 1000 iterations with Adam compared to DBD, probably because the learning rate might be on the conservative side. On the other hand, having to tune the momentum (called <code>beta1</code> in Adam) and learning rate parameters for each dataset would remove much of its appeal anyway.</p>
+<p>Everything except Adadelta works amazingly well. Adadelta, which has no controllable learning rate parameter, makes extremely small updates, so it gets nowhere close to converging, or in fact reducing the initial error by even the third decimal place for the larger datasets.</p>
+<p>Everything else does very well, although not as well as Delta-Bar-Delta. On the other hand, these methods only require one gradient evaluation per iteration so are much faster than something like spectral directions.</p>
+<p>For smaller datasets, the usual story is apparent: pretty much any method gets the job done (apart from Adadelta). For MNIST, there’s a bit more difference apparent, with more of the clusters being split up compared to the DBD results. Nadam and Adagrad do the best job here. Looking at MNIST and Fashion, RMSProp also seems to be lagging behind in terms of convergence. In general, the degree of convergence wasn’t as far along after 1000 iterations with any of these alternative algorithms compared to DBD, probably because the learning rate might be on the conservative side. On the other hand, having to tune the parameters for each dataset and algorithm would remove much of its appeal anyway.</p>
 </div>
 
 
