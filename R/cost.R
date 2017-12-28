@@ -344,6 +344,64 @@ ee <- function(perplexity, lambda = 100) {
   )
 }
 
+# Venna, J., Peltonen, J., Nybo, K., Aidos, H., & Kaski, S. (2010).
+# Information retrieval perspective to nonlinear dimensionality reduction for
+# data visualization.
+# \emph{Journal of Machine Learning Research}, \emph{11}, 451-490.
+#
+# Unlike original publication, won't transfer input precisions to output kernel
+# lambda = 1 gives ASNE results
+nerv <- function(perplexity, lambda = 0.5) {
+  lreplace(
+    tsne(perplexity = perplexity),
+    init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
+                    ret_extra = c()) {
+      cost <- sne_init(cost, X, perplexity = perplexity,
+                       symmetrize = "none", normalize = FALSE,
+                       verbose = verbose, ret_extra = ret_extra)
+      cost$eps <- eps
+      cost
+    },
+    pfn = function(cost, Y) {
+      P <- cost$P
+
+      kl_fwd <- rowSums(P * cost$lPQ)
+
+      cost$pcost <- lambda * kl_fwd + (1 - lambda) * cost$kl_rev
+      cost
+    },
+    gr = function(cost, Y) {
+      eps <- cost$eps
+      P <- cost$P
+      W <- dist2(Y)
+      W <- exp(-W)
+
+      # Particularly for low lambda, need to make sure W is never all zero
+      W[W < eps] <- eps
+      diag(W) <- 0
+      invZ <- 1 / colSums(W)
+      Q <- W * invZ
+
+      # Forward KL gradient
+      K <- lambda * (P - Q)
+
+      # Reverse KL gradient
+      lPQ <- log((P + eps) / (Q + eps))
+      # for KLrev we want Q * log(Q/P), so take -ve of log(P/Q)
+      kl_rev <- rowSums(Q * -lPQ)
+
+      # Total K
+      K <- K + (1 - lambda) * (Q * (lPQ + kl_rev))
+
+      cost$G <- k2g(Y, 2 * K, symmetrize = TRUE)
+      cost$invZ <- invZ
+      cost$W <- W
+      cost$kl_rev <- kl_rev
+      cost$lPQ <- lPQ
+
+      cost
+    })
+}
 
 # Generic Functions -------------------------------------------------------
 

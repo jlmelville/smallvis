@@ -32,6 +32,8 @@
 #'   \item \code{"hssne"} The heavy-tailed symmetric SNE method of Yang and
 #'   co-workers (2009).
 #'   \item \code{"ee"} The Elastic Embedding method of Carreira-Perpinan (2010).
+#'   \item \code{"nerv"} The Neighbor Retrieval Visualizer method of Venna
+#'   and co-workers (2010).
 #' }
 #'
 #' Note that only the cost function is used from these methods in the context
@@ -87,13 +89,21 @@
 #'    \itemize{
 #'    \item{\code{alpha}} Heavy-tailedness parameter, a positive numeric scalar.
 #'    Increasing this value increases the amount of stretching that occurs in
-#'    the output weighting function. A value of 0 performs like SSNE, and a
-#'    value of 1 performs like t-SNE. Default is \code{0.5}.
+#'    the output weighting function. A value of 0 performs like method
+#'    \code{"SSNE"}, and a value of 1 performs like method \code{"TSNE"}.
+#'    Default is \code{0.5}.
 #'    }
 #'    \item \code{"EE"}
 #'    \itemize{
 #'    \item{\code{lambda}} Weighting term for the repulsive versus attractive
 #'     forces. Default is \code{100}.
+#'    }
+#'    \item \code{"NeRV"}
+#'    \itemize{
+#'    \item{\code{lambda}} Weighting term for relative cost of false positive
+#'    versus false negatives (in terms of output distances). Should be a value
+#'    between 0 and 1. Setting to 1 performs like method \code{"ASNE"}. Default
+#'     is \code{0.5}.
 #'    }
 #' }
 #'
@@ -506,6 +516,11 @@
 #' \emph{Journal of Machine Learning Research}, \emph{9} (2579-2605).
 #' \url{http://www.jmlr.org/papers/v9/vandermaaten08a.html}
 #'
+#' Venna, J., Peltonen, J., Nybo, K., Aidos, H., & Kaski, S. (2010).
+#' Information retrieval perspective to nonlinear dimensionality reduction for
+#' data visualization.
+#' \emph{Journal of Machine Learning Research}, \emph{11}, 451-490.
+#'
 #' Vladymyrov, M., & Carreira-Perpinan, M. A. (2012).
 #' Partial-Hessian Strategies for Fast Learning of Nonlinear Embeddings.
 #' In \emph{Proceedings of the 29th International Conference on Machine Learning (ICML-12)}
@@ -545,7 +560,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
   method_names <- c("tsne", "largevis", "umap", "tumap",
                     "ntumap", "mmds", "geommds",
                     "asne", "ssne", "wssne", "wtsne",
-                    "hssne", "ee")
+                    "hssne", "ee", "nerv")
   if (is.character(method)) {
     method <- match.arg(tolower(method), method_names)
     cost_fn <- switch(method,
@@ -562,6 +577,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
          wtsne = wtsne(perplexity = perplexity),
          hssne = hssne(perplexity = perplexity),
          ee = ee(perplexity = perplexity),
+         nerv = nerv(perplexity = perplexity),
          stop("BUG: someone forgot to implement option: '", method, "'")
     )
   }
