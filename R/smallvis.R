@@ -1438,6 +1438,7 @@ x2aff <- function(X, perplexity = 15, tol = 1e-5, kernel = "gauss",
     sres <- shannon(Di, beta[i])
     H <- sres$H
     Wi <- sres$W
+    sumWi <- sres$Z
 
     Hdiff <- H - logU
     tries <- 0
