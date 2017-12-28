@@ -119,6 +119,7 @@ asne <- function(perplexity) {
 # Heavy-tailed symmetric stochastic neighbor embedding.
 # In \emph{Advances in neural information processing systems} (pp. 2169-2177).
 hssne <- function(perplexity, alpha = 0.5) {
+  alpha <- max(alpha, 1e-8)
   lreplace(
     tsne(perplexity = perplexity),
     gr = function(cost, Y) {

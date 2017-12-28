@@ -191,6 +191,8 @@ to the \code{method} parameter are:
   \item \code{"asne"} The original asymmetric Stochastic Neighbor Embedding
   method of Roweis and Hinton (2002).
   \item \code{"ssne"} The symmetric SNE method of Cook and co-workers (2007).
+  \item \code{"hssne"} The heavy-tailed symmetric SNE method of Yang and
+  co-workers (2009).
 }
 
 Note that only the cost function is used from these methods in the context
@@ -242,6 +244,13 @@ Method-specific parameters are as follows:
    \itemize{
    \item{\code{lveps}} Epsilon used in the gradient to prevent
     division by zero. Default is \code{0.1}.
+   }
+   \item \code{"HSSNE"}
+   \itemize{
+   \item{\code{alpha}} Heavy-tailedness parameter, a positive numeric scalar.
+   Increasing this value increases the amount of stretching that occurs in
+   the output weighting function. A value of 0 performs like SSNE, and a
+   value of 1 performs like t-SNE. Default is 0.5.
    }
 }
 
@@ -539,4 +548,9 @@ Vladymyrov, M., & Carreira-Perpinan, M. A. (2012).
 Partial-Hessian Strategies for Fast Learning of Nonlinear Embeddings.
 In \emph{Proceedings of the 29th International Conference on Machine Learning (ICML-12)}
 (pp. 345-352).
+
+Heavy-Tailed Symmetric Stochastic Neighbor Embedding (HSSNE)
+Yang, Z., King, I., Xu, Z., & Oja, E. (2009).
+Heavy-tailed symmetric stochastic neighbor embedding.
+In \emph{Advances in neural information processing systems} (pp. 2169-2177).
 }
