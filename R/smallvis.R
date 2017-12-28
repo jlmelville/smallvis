@@ -88,7 +88,7 @@
 #'    \item{\code{alpha}} Heavy-tailedness parameter, a positive numeric scalar.
 #'    Increasing this value increases the amount of stretching that occurs in
 #'    the output weighting function. A value of 0 performs like SSNE, and a
-#'    value of 1 performs like t-SNE. Default is 0.5.
+#'    value of 1 performs like t-SNE. Default is \code{0.5}.
 #'    }
 #'    \item \code{"EE"}
 #'    \itemize{
