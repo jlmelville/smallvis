@@ -561,6 +561,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
          wssne = wssne(perplexity = perplexity),
          wtsne = wtsne(perplexity = perplexity),
          hssne = hssne(perplexity = perplexity),
+         ee = ee(perplexity = perplexity),
          stop("BUG: someone forgot to implement option: '", method, "'")
     )
   }
