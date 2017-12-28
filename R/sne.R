@@ -269,8 +269,7 @@ sne_init <- function(cost, X, perplexity, inp_kernel = "gaussian",
            },
            beta = {
              cost$beta <- x2ares$beta
-           },
-           stop("Don't know how to handle '", r, "'")
+           }
     )
   }
 
