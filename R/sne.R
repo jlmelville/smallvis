@@ -1,10 +1,11 @@
 # t-SNE
 tsne <- function(perplexity, inp_kernel = "gaussian") {
   list(
-    init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE) {
-      cost$P <- sne_init(X, perplexity = perplexity, inp_kernel = inp_kernel,
-                         symmetrize = "symmetric", normalize = TRUE,
-                         verbose = verbose)
+    init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
+                    ret_extra = c()) {
+      cost <- sne_init(cost, X, perplexity = perplexity, inp_kernel = inp_kernel,
+                       symmetrize = "symmetric", normalize = TRUE,
+                       verbose = verbose, ret_extra = ret_extra)
       cost$eps <- eps
       cost
     },
@@ -38,6 +39,15 @@ tsne <- function(perplexity, inp_kernel = "gaussian") {
              },
              p = {
                res <- cost$P
+             },
+             beta = {
+               res <- cost$beta
+             },
+             v = {
+               res <- cost$V
+             },
+             dint = {
+               res <- cost$dint
              }
       )
       res
@@ -68,12 +78,13 @@ ssne <- function(perplexity, inp_kernel = "gaussian") {
 # Hinton, G. E., & Roweis, S. T. (2002).
 # Stochastic neighbor embedding.
 # In \emph{Advances in neural information processing systems} (pp. 833-840).
-asne <- function(perplexity, inp_kernel = "gaussian") {
-  list(
-    init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE) {
-      cost$P <- sne_init(X, perplexity = perplexity, inp_kernel = inp_kernel,
-                         symmetrize = "none", normalize = FALSE,
-                         verbose = verbose)
+asne <- function(perplexity) {
+  lreplace(tsne(perplexity),
+    init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
+                    ret_extra = c()) {
+      cost <- sne_init(cost, X, perplexity = perplexity,
+                       symmetrize = "none", normalize = FALSE,
+                       verbose = verbose, ret_extra = ret_extra)
       cost$eps <- eps
       cost
     },
@@ -99,21 +110,6 @@ asne <- function(perplexity, inp_kernel = "gaussian") {
       cost$W <- W
 
       cost
-    },
-    export = function(cost, val) {
-      res <- NULL
-      switch(val,
-             w = {
-               res <- cost$W
-             },
-             q = {
-               res <- cost$W * cost$invZ
-             },
-             p = {
-               res <- cost$P
-             }
-      )
-      res
     }
   )
 }
@@ -122,9 +118,9 @@ asne <- function(perplexity, inp_kernel = "gaussian") {
 # Yang, Z., King, I., Xu, Z., & Oja, E. (2009).
 # Heavy-tailed symmetric stochastic neighbor embedding.
 # In \emph{Advances in neural information processing systems} (pp. 2169-2177).
-hssne <- function(perplexity, inp_kernel = "gaussian", alpha = 0.5) {
+hssne <- function(perplexity, alpha = 0.5) {
   lreplace(
-    tsne(perplexity = perplexity, inp_kernel = inp_kernel),
+    tsne(perplexity = perplexity),
     gr = function(cost, Y) {
       P <- cost$P
       W <- dist2(Y)
@@ -148,12 +144,13 @@ hssne <- function(perplexity, inp_kernel = "gaussian", alpha = 0.5) {
 # Optimization equivalence of divergences improves neighbor embedding.
 # In \emph{Proceedings of the 31st International Conference on Machine Learning (ICML-14)}
 # (pp. 460-468).
-wtsne <- function(perplexity, inp_kernel = "gaussian") {
+wtsne <- function(perplexity) {
   list(
-    init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE) {
-      cost$P <- sne_init(X, perplexity = perplexity, inp_kernel = inp_kernel,
+    init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
+                    ret_extra = c()) {
+      cost <- sne_init(cost, X, perplexity = perplexity,
                          symmetrize = "symmetric", normalize = TRUE,
-                         verbose = verbose)
+                         verbose = verbose, ret_extra = ret_extra)
       # degree centrality
       deg <- colSums(cost$P)
       cost$M <- outer(deg, deg) * nrow(cost$P)
@@ -192,6 +189,15 @@ wtsne <- function(perplexity, inp_kernel = "gaussian") {
              },
              p = {
                res <- cost$P
+             },
+             beta = {
+               res <- cost$beta
+             },
+             v = {
+               res <- cost$V
+             },
+             dint = {
+               res <- cost$dint
              }
       )
       res
@@ -230,11 +236,13 @@ wssne <- function(perplexity) {
 #  mutual - mutual nearest neighbor style as suggested by Schubert and Gertz in
 #  "Intrinsic t-Stochastic Neighbor Embedding for Visualization and Outlier
 #   Detection - A Remedy Against the Curse of Dimensionality?"
-sne_init <- function(X, perplexity, inp_kernel = "gaussian",
-                     symmetrize = "symmetric",
-                     normalize = TRUE,
-                     verbose = FALSE) {
-  P <- x2aff(X, perplexity, tol = 1e-5, kernel = inp_kernel, verbose = verbose)$W
+sne_init <- function(cost, X, perplexity, inp_kernel = "gaussian",
+                     symmetrize = "symmetric", normalize = TRUE,
+                     verbose = FALSE, ret_extra = c()) {
+  x2ares <- x2aff(X, perplexity, tol = 1e-5, kernel = inp_kernel,
+                  verbose = verbose)
+  # per-point normalization
+  P <- x2ares$W
   P <- P / rowSums(P)
 
   # Symmetrize
@@ -247,7 +255,25 @@ sne_init <- function(X, perplexity, inp_kernel = "gaussian",
   if (normalize) {
     P <- P / sum(P)
   }
-  P
+
+  cost$P <- P
+
+  for (r in unique(tolower(ret_extra))) {
+    switch(r,
+           v = {
+             cost$V <- x2ares$W
+           },
+           dint = {
+             cost$dint <- x2ares$dint
+           },
+           beta = {
+             cost$beta <- x2ares$beta
+           },
+           stop("Don't know how to handle '", r, "'")
+    )
+  }
+
+  cost
 }
 
 # The intrinsic dimensionality associated with a gaussian affinity vector

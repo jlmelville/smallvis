@@ -3,7 +3,7 @@
 # UMAP
 umap <- function(perplexity, spread = 1, min_dist = 0.001, gr_eps = 0.001) {
   list(
-    init = function(cost, X, eps = 1e-9, verbose = FALSE) {
+    init = function(cost, X, eps = 1e-9, verbose = FALSE, ret_extra = c()) {
 
       ab_params <- find_ab_params(spread = spread, min_dist = min_dist)
       a <- ab_params[1]
@@ -71,9 +71,10 @@ umap <- function(perplexity, spread = 1, min_dist = 0.001, gr_eps = 0.001) {
 # indicates (source code of the current implementation doesn't seem to either)
 largevis <- function(perplexity, gamma = 7, gr_eps = 0.1) {
   list(
-    init = function(cost, X, eps = 1e-9, verbose = FALSE) {
-      P <- sne_init(X = X, perplexity = perplexity, symmetrize = "symmetric",
-                    normalize = FALSE, verbose = verbose)
+    init = function(cost, X, eps = 1e-9, verbose = FALSE, ret_extra = c()) {
+      cost <- sne_init(cost, X = X, perplexity = perplexity, symmetrize = "symmetric",
+                    normalize = FALSE, verbose = verbose,
+                    ret_extra = ret_extra)$P
       cost$eps <- eps
       cost
     },
@@ -112,7 +113,7 @@ largevis <- function(perplexity, gamma = 7, gr_eps = 0.1) {
 # UMAP with the output kernel fixed to the t-distribution
 tumap <- function(perplexity, gr_eps = 0.1) {
   list(
-    init = function(cost, X, eps = 1e-9, verbose = FALSE) {
+    init = function(cost, X, eps = 1e-9, verbose = FALSE, ret_extra = c()) {
       cost$eps <- eps
 
       P <- smooth_knn_distances(X, k = perplexity, tol = 1e-5,
@@ -158,7 +159,7 @@ tumap <- function(perplexity, gr_eps = 0.1) {
 # t-UMAP where output and input affinities are normalized
 ntumap <- function(perplexity, gr_eps = 0.1) {
   list(
-    init = function(cost, X, eps = 1e-9, verbose = FALSE) {
+    init = function(cost, X, eps = 1e-9, verbose = FALSE, ret_extra = c()) {
 
       P <- smooth_knn_distances(X, k = perplexity, tol = 1e-5,
                                 verbose = verbose)$P
@@ -214,7 +215,8 @@ ntumap <- function(perplexity, gr_eps = 0.1) {
 # Metric MDS, minimizing strain.
 mmds <- function() {
   list(
-    init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE) {
+    init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
+                    ret_extra = c()) {
       if (methods::is(X, "dist")) {
         cost$R <- X
       }
@@ -256,7 +258,8 @@ mmds <- function() {
 geommds <- function(k) {
   lreplace(
     mmds(),
-    init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE) {
+    init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
+                    ret_extra = c()) {
       cost$R <- geodesic(X, k)
 
       cost$eps <- eps
@@ -287,9 +290,9 @@ k2g <- function(Y, K, symmetrize = FALSE) {
   Y * rowSums(K) - (K %*% Y)
 }
 
-cost_init <- function(cost, X, verbose = FALSE) {
+cost_init <- function(cost, X, verbose = FALSE, ret_extra = c()) {
   if (!is.null(cost$init)) {
-    cost <- cost$init(cost, X, verbose = verbose)
+    cost <- cost$init(cost, X, verbose = verbose, ret_extra = ret_extra)
   }
   cost
 }

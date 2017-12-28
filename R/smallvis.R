@@ -308,6 +308,18 @@
 #' \item{\code{DY}} Output coordinate distance matrix.
 #' }
 #'
+#' The following additional optional values are available only if the SNE-style
+#' perplexity calibration was used as part of the embedding method:
+#'
+#' \itemize{
+#' \item{\code{V}} Input affinities (un-normalized weights used to generate
+#' \code{P}).
+#' \item{\code{beta}} Precisions (inverse standard deviation) of the input
+#' kernel functions.
+#' \item{\code{dint}} Intrinsic dimensionalities associated with the input
+#' affinities.
+#' }
+#'
 #' @examples
 #' \dontrun{
 #'
@@ -460,25 +472,35 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
   }
 
   # The embedding method
-  method <- match.arg(tolower(method), c("tsne", "largevis", "umap", "tumap",
-                                         "ntumap", "mmds", "geommds",
-                                         "asne", "ssne", "wssne", "wtsne"))
-  cost_fn <- switch(method,
-       tsne = tsne(perplexity = perplexity, inp_kernel = inp_kernel),
-       umap = umap(perplexity = perplexity, spread = spread,
-                   min_dist = min_dist, gr_eps = lveps),
-       largevis = largevis(perplexity = perplexity, inp_kernel = inp_kernel,
-                           gamma = gamma, gr_eps = lveps),
-       tumap = tumap(perplexity = perplexity, gr_eps = lveps),
-       ntumap = ntumap(perplexity = perplexity, gr_eps = lveps),
-       mmds = mmds(),
-       geommds = geommds(k = perplexity),
-       asne = asne(perplexity = perplexity),
-       ssne = ssne(perplexity = perplexity),
-       wssne = wssne(perplexity = perplexity),
-       wtsne = wtsne(perplexity = perplexity),
-       stop("BUG: someone forgot to implement option: '", method, "'")
-  )
+  method_names <- c("tsne", "largevis", "umap", "tumap",
+                    "ntumap", "mmds", "geommds",
+                    "asne", "ssne", "wssne", "wtsne")
+  if (is.character(method)) {
+    method <- match.arg(tolower(method), method_names)
+    cost_fn <- switch(method,
+         tsne = tsne(perplexity = perplexity, inp_kernel = inp_kernel),
+         umap = umap(perplexity = perplexity, spread = spread,
+                     min_dist = min_dist, gr_eps = lveps),
+         largevis = largevis(perplexity = perplexity, gamma = gamma,
+                             gr_eps = lveps),
+         tumap = tumap(perplexity = perplexity, gr_eps = lveps),
+         ntumap = ntumap(perplexity = perplexity, gr_eps = lveps),
+         mmds = mmds(),
+         geommds = geommds(k = perplexity),
+         asne = asne(perplexity = perplexity),
+         ssne = ssne(perplexity = perplexity),
+         wssne = wssne(perplexity = perplexity),
+         wtsne = wtsne(perplexity = perplexity),
+         stop("BUG: someone forgot to implement option: '", method, "'")
+    )
+  }
+  else {
+    methodlist <- method
+    method_name <- methodlist[[1]]
+    methodlist[[1]] <- NULL
+    method <- match.arg(tolower(method), method_names)
+    cost_fn <- do.call(get(method_name), methodlist)
+  }
 
   if (stop_lying_iter < 1) {
     stop("stop_lying_iter must be >= 1")
@@ -547,7 +569,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
   opt <- opt_create(opt_list, verbose = verbose)
 
   # Initialize the cost function and create P
-  cost_fn <- cost_init(cost_fn, X, verbose = verbose)
+  cost_fn <- cost_init(cost_fn, X, verbose = verbose, ret_extra = ret_optionals)
 
   # Output Initialization
   if (!is.null(Y_init)) {
@@ -1156,10 +1178,15 @@ ret_value <- function(Y, ret_extra, method, X, scale, Y_init, iter, start_time =
 
     optionals <- tolower(unique(optionals))
     for (o in optionals) {
-      if (o %in% c("p", "q", "w", "dx", "dy")) {
+      if (o %in% c("p", "q", "w", "dx", "dy", "v", "beta", "dint")) {
         exported <- cost_fn$export(cost_fn, o)
         if (!is.null(exported)) {
-          res[[toupper(o)]] <- exported
+          if (nchar(o) < 3) {
+            res[[toupper(o)]] <- exported
+          }
+          else {
+            res[[o]] <- exported
+          }
         }
         # For DX and DY, we can calculate if not done so already
         else if (o == "dx") {
@@ -1349,7 +1376,7 @@ x2aff <- function(X, perplexity = 15, tol = 1e-5, kernel = "gauss",
     summarize(sigma, "sigma summary")
     summarize(intd, "Dint")
   }
-  list(W = W, beta = beta, int_dim = intd)
+  list(W = W, beta = beta, dint = intd)
 }
 
 # Calculates affinites based on exponential weighting of D2 with beta

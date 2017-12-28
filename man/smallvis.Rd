@@ -172,6 +172,18 @@ are:
   data is already a distance matrix.
 \item{\code{DY}} Output coordinate distance matrix.
 }
+
+The following additional optional values are available only if the SNE-style
+perplexity calibration was used as part of the embedding method:
+
+\itemize{
+\item{\code{V}} Input affinities (un-normalized weights used to generate
+\code{P}).
+\item{\code{beta}} Precisions (inverse standard deviation) of the input
+kernel functions.
+\item{\code{dint}} Intrinsic dimensionalities associated with the input
+affinities.
+}
 }
 \description{
 Carry out dimensionality reduction of a (small) dataset using one of a
