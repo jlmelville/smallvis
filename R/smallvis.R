@@ -34,6 +34,8 @@
 #'   \item \code{"ee"} The Elastic Embedding method of Carreira-Perpinan (2010).
 #'   \item \code{"nerv"} The Neighbor Retrieval Visualizer method of Venna
 #'   and co-workers (2010).
+#'   \item \code{"jse"} The Jensen-Shannon Embedding method of Lee and
+#'   co-workers (2013).
 #' }
 #'
 #' Note that only the cost function is used from these methods in the context
@@ -103,7 +105,15 @@
 #'    \item{\code{lambda}} Weighting term for relative cost of false positive
 #'    versus false negatives (in terms of output distances). Should be a value
 #'    between 0 and 1. Setting to 1 performs like method \code{"ASNE"}. Default
-#'     is \code{0.5}.
+#'    is \code{0.5}.
+#'    }
+#'    \item \code{"JSE"}
+#'    \itemize{
+#'    \item{\code{kappa}} Weighting term for the combination of KL divergences
+#'    used in the JSE cost function. Should be a value between 0 and 1. Setting
+#'    to 0 performs like method \code{"ASNE"}. Setting to 1 performs like
+#'    method \code{"NeRV"} with its \code{lambda} parameter set to \code{0}.
+#'    Yes, that's confusing. The default is \code{0.5}.
 #'    }
 #' }
 #'
@@ -490,6 +500,11 @@
 #' Stochastic neighbor embedding.
 #' In \emph{Advances in neural information processing systems} (pp. 833-840).
 #'
+#' Lee, J. A., Renard, E., Bernard, G., Dupont, P., & Verleysen, M. (2013).
+#' Type 1 and 2 mixtures of Kullback-Leibler divergences as cost functions in
+#' dimensionality reduction based on similarity preservation.
+#' \emph{Neurocomputing}, \emph{112}, 92-108.
+#'
 #' Linderman, G. C., & Steinerberger, S. (2017).
 #' Clustering with t-SNE, provably.
 #' \emph{arXiv preprint} \emph{arXiv}:1706.02582.
@@ -526,7 +541,6 @@
 #' In \emph{Proceedings of the 29th International Conference on Machine Learning (ICML-12)}
 #' (pp. 345-352).
 #'
-#' Heavy-Tailed Symmetric Stochastic Neighbor Embedding (HSSNE)
 #' Yang, Z., King, I., Xu, Z., & Oja, E. (2009).
 #' Heavy-tailed symmetric stochastic neighbor embedding.
 #' In \emph{Advances in neural information processing systems} (pp. 2169-2177).
@@ -560,7 +574,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
   method_names <- c("tsne", "largevis", "umap", "tumap",
                     "ntumap", "mmds", "geommds",
                     "asne", "ssne", "wssne", "wtsne",
-                    "hssne", "ee", "nerv")
+                    "hssne", "ee", "nerv", "jse")
   if (is.character(method)) {
     method <- match.arg(tolower(method), method_names)
     cost_fn <- switch(method,
@@ -578,6 +592,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
          hssne = hssne(perplexity = perplexity),
          ee = ee(perplexity = perplexity),
          nerv = nerv(perplexity = perplexity),
+         jse = jse(perplexity = perplexity),
          stop("BUG: someone forgot to implement option: '", method, "'")
     )
   }

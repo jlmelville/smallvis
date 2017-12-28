@@ -344,6 +344,9 @@ ee <- function(perplexity, lambda = 100) {
   )
 }
 
+
+# JSE and NeRV ------------------------------------------------------------
+
 # Venna, J., Peltonen, J., Nybo, K., Aidos, H., & Kaski, S. (2010).
 # Information retrieval perspective to nonlinear dimensionality reduction for
 # data visualization.
@@ -402,6 +405,81 @@ nerv <- function(perplexity, lambda = 0.5) {
       cost
     })
 }
+
+# Lee, J. A., Renard, E., Bernard, G., Dupont, P., & Verleysen, M. (2013).
+# Type 1 and 2 mixtures of Kullback-Leibler divergences as cost functions in
+# dimensionality reduction based on similarity preservation.
+# \emph{Neurocomputing}, \emph{112}, 92-108.
+# kappa = 0 behaves like ASNE
+# kappa = 1 behaves like NeRV with lambda = 0. Yes that's confusing.
+jse <- function(perplexity, kappa = 0.5) {
+  # safeguard against 0 kappa, because gradient requires kappa to be > 0
+  # check for kappa == 1 for better accuracy
+  kappa <- max(1e-8, kappa)
+  kappa_inv <- 1 / kappa
+  om_kappa <- 1 - kappa
+  om_kappa_inv <- 1 / om_kappa
+
+  lreplace(
+    tsne(perplexity = perplexity),
+    init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
+                    ret_extra = c()) {
+      cost <- sne_init(cost, X, perplexity = perplexity,
+                       symmetrize = "none", normalize = FALSE,
+                       verbose = verbose, ret_extra = ret_extra)
+      cost$eps <- eps
+      cost
+    },
+    pfn = function(cost, Y) {
+      eps <- cost$eps
+      P <- cost$P
+      Z <- cost$Z
+
+      kl_fwd <- rowSums(P * log((P + eps) /  (Z + eps)))
+
+      if (kappa == 1) {
+        cost$pcost <- cost$kl_rev
+      }
+      else {
+        cost$pcost <- om_kappa_inv * kl_fwd + kappa_inv * cost$kl_rev
+      }
+
+      cost
+    },
+    gr = function(cost, Y) {
+      eps <- cost$eps
+      P <- cost$P
+      W <- dist2(Y)
+      W <- exp(-W)
+
+      W[W < eps] <- eps
+      diag(W) <- 0
+      # nomenclature overlap problem here
+      # normally sum of W is Z, but in JSE that's the combination of P and Q
+      invS <- 1 / colSums(W)
+      Q <- W * invS
+
+      if (kappa == 1) {
+        Z <- P
+      }
+      else {
+        Z <- kappa * P + om_kappa * Q
+      }
+
+      lZQ <- log((Z + eps) / (Q + eps))
+      kl_rev <- rowSums(Q * -lZQ)
+      K <- kappa_inv * (Q * (lZQ + kl_rev))
+
+      cost$G <- k2g(Y, 2 * K, symmetrize = TRUE)
+      cost$invZ <- invS
+      cost$W <- W
+      cost$kl_rev <- kl_rev
+      cost$Z <- Z
+
+      cost
+    })
+}
+
 
 # Generic Functions -------------------------------------------------------
 
