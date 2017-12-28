@@ -5,13 +5,11 @@
 \title{Dimensionality Reduction via Neighbor Embedding}
 \usage{
 smallvis(X, k = 2, scale = "absmax", Y_init = "rand", perplexity = 30,
-  inp_kernel = "gauss", max_iter = 1000, pca = FALSE, initial_dims = 50,
-  method = "tsne", epoch_callback = TRUE,
-  epoch = base::round(max_iter/10), min_cost = 0, tol = 1e-05,
-  momentum = 0.5, final_momentum = 0.8, mom_switch_iter = 250,
-  eta = 500, min_gain = 0.01, opt = list("dbd"),
-  exaggeration_factor = 1, stop_lying_iter = 100, gamma = 7,
-  lveps = 0.1, spread = 1, min_dist = 0.001, ret_extra = FALSE,
+  max_iter = 1000, pca = FALSE, initial_dims = 50, method = "tsne",
+  epoch_callback = TRUE, epoch = base::round(max_iter/10), min_cost = 0,
+  tol = 1e-05, momentum = 0.5, final_momentum = 0.8,
+  mom_switch_iter = 250, eta = 500, min_gain = 0.01, opt = list("dbd"),
+  exaggeration_factor = 1, stop_lying_iter = 100, ret_extra = FALSE,
   verbose = TRUE)
 }
 \arguments{
@@ -34,11 +32,6 @@ the 'Output initialization' section.}
 probabilities. For method \code{"umap"}, controls the neighborhood size
 for parameterizing the smoothed k-nearest neighbor distances.}
 
-\item{inp_kernel}{The input kernel function. Can be either \code{"gauss"}
-(the default), or \code{"exp"}, which uses the unsquared distances.
-\code{"exp"} is not the usual literature function, but matches the original
-rtsne implementation (and it probably doesn't matter very much).}
-
 \item{max_iter}{Maximum number of iterations in the optimization.}
 
 \item{pca}{If \code{TRUE}, apply PCA to reduce the dimensionality of
@@ -53,7 +46,8 @@ equivalent eigenvalues, so that the variance of component is 1.}
 principal components to keep. Must be no greater than the rank of the input
 or no PCA or whitening will be carried out.}
 
-\item{method}{A neighbor embedding method. See "Details".}
+\item{method}{A neighbor embedding method. See "Details" and
+"Method-specific options" for greater control.}
 
 \item{epoch_callback}{Function to call after each epoch. See the
 "Visualization callback" section. By default the current set of
@@ -92,25 +86,6 @@ set this to \code{1} (effectively turning off early exaggeration).}
 
 \item{stop_lying_iter}{Iteration at which early exaggeration is turned
 off.}
-
-\item{gamma}{Weighting term for the repulsive versus attractive forces in the
-LargeVis and UMAP cost functions. Used only if \code{method = "largevis"}
-or \code{"umap"}.}
-
-\item{lveps}{Epsilon used in the LargeVis and UMAP gradient to prevent
-division by zero. Used only if \code{method = "largevis"} or \code{"umap"}.
-A comparatively large value (0.1) is recommended.}
-
-\item{spread}{Parameter controlling the output kernel function for
-\code{method = "umap"} only. Controls the length over which the output
-kernel decays from 1 to 0.}
-
-\item{min_dist}{Parameter controlling the output kernel function for
-\code{method = "UMAP"} only. According to the UMAP documentation, controls
-"how tightly the embedding is allowed compress points together.
-Larger values ensure embedded points are more evenly distributed, while
-smaller values allow the algorithm to optimise more accurately with regard
-to local structure. Sensible values are in the range 0.001 to 0.5".}
 
 \item{ret_extra}{If \code{TRUE}, return value is a list containing additional
 values associated with the embedding; otherwise just the output
@@ -192,7 +167,7 @@ variety of neighbor embedding methods.
 \details{
 Currently supported embedding methods, which can be used as an argument
 to the \code{method} parameter are:
-\enumerate{
+\itemize{
   \item \code{"tsne"} t-Distributed Stochastic Neighbor Embedding
   (van der Maaten and Hinton, 2008).
   \item \code{"largevis"} the cost function of the LargeVis algorithm
@@ -201,13 +176,18 @@ to the \code{method} parameter are:
   \item \code{"umap"} the cost function the UMAP method (McInnes, 2017).
   Unlike LargeVis and t-SNE, UMAP uses un-normalized input weights, which
   are calibrated via calculating smoothed k-nearest-neighbor distances,
-  rather than perplexity (the procedure is similar, however).
+  rather than perplexity (the procedure is similar, however). The value
+  of k is controlled by the \code{perplexity} parameter.
   \item \code{"tumap"} Like UMAP, except the output weight function is the
   t-distribution with one degree of freedom, like t-SNE and LargeVis. This
   simplifies the gradient calculation compared to UMAP, so it runs faster.
   \item \code{"mmds"} Metric Multidimensional Scaling (Borg and Groenen,
   2005), which reduces the "strain", i.e. the square loss between the input
   and output distances.
+  \item \code{"geommds"} Replaces the input Euclidean distances in
+  \code{"mmds"} with geodesic distances calculated using k-nearest-neighbors,
+  in the style of ISOMAP (Tenenbaum and co-workers, 2000). The value of
+  k is set by the \code{perplexity} parameter.
   \item \code{"asne"} The original asymmetric Stochastic Neighbor Embedding
   method of Roweis and Hinton (2002).
   \item \code{"ssne"} The symmetric SNE method of Cook and co-workers (2007).
@@ -218,13 +198,64 @@ of creating the full distance matrix as part of the gradient calculation.
 None of the approximations or other speed-ups (e.g. Barnes-Hut or approximate
 nearest neighbors routines) are used.
 }
+\section{Method-specific options}{
+
+
+Some of these methods require the use of extra parameters. To avoid
+cluttering up the \code{smallvis} function interface, default values are
+used. To control these, instead of passing a name to the \code{method}
+parameter, pass a list. The first element is the name of the method you wish
+to use. Subsequent elements must be named values specifying the parameters.
+Method-specific parameters are as follows:
+
+\itemize{
+   \item \code{"tsne"}
+   \itemize{
+   \item{\code{inp_kernel}} the input kernel function. Can be either
+      \code{"gauss"} (the default), or \code{"exp"}, which uses the
+      unsquared distances. \code{"exp"} is not the usual literature function,
+      but matches the original rtsne implementation (and it probably doesn't
+      matter very much).
+   }
+   \item \code{"LargeVis"}
+   \itemize{
+   \item{\code{gamma}} Weighting term for the repulsive versus attractive
+    forces. Default is \code{7}.
+   \item{\code{lveps}} Epsilon used in the gradient to prevent
+    division by zero. Default is \code{0.1}.
+   }
+   \item \code{"UMAP"}
+   \itemize{
+   \item{\code{lveps}} Epsilon used in the gradient to prevent
+    division by zero. Default is \code{0.1}.
+   \item{\code{spread}} Parameter controlling the output kernel function.
+    Controls the length over which the output kernel decays from 1 to 0.
+    Default is \code{1}.
+   \item{\code{min_dist}} Parameter controlling the output kernel function..
+    According to the UMAP documentation, controls "how tightly the embedding
+    is allowed compress points together. Larger values ensure embedded
+    points are more evenly distributed, while smaller values allow the
+    algorithm to optimise more accurately with regard to local structure.
+    Sensible values are in the range 0.001 to 0.5". Default is \code{0.001}.
+   }
+   \item \code{"tUMAP"}
+   \itemize{
+   \item{\code{lveps}} Epsilon used in the gradient to prevent
+    division by zero. Default is \code{0.1}.
+   }
+}
+
+The examples demonstrate how to use \code{method} with these optional
+parameters.
+}
+
 \section{Output initialization}{
 
 
 For initializing the output coordinates, set the \code{Y_init} parameter
 to one of the following:
 
-\enumerate{
+\itemize{
   \item{A matrix}: which must have dimensions \code{n} by \code{k}, where
   \code{n} is the number of rows in \code{X}.
   \item{\code{"rand"}}: initialize from a Gaussian distribution with mean 0
@@ -392,14 +423,21 @@ tsne_iris <- smallvis(iris, epoch_callback = ecb, perplexity = 50, verbose = TRU
 # To turn off visualization entirely:
 tsne_iris <- smallvis(iris, epoch_callback = FALSE, perplexity = 50, verbose = TRUE)
 
-# Try the LargeVis cost function, which also requires a gamma parameter to
-# be specified:
-largevis_iris <- smallvis(iris, method = "largevis", gamma = 7,
+# Try the LargeVis cost function, using its default parameters:
+largevis_iris <- smallvis(iris, method = "largevis", epoch_callback = ecb,
+                          perplexity = 50, verbose = TRUE)
+
+# Use a list with the method paramter for more control over LargeVis
+largevis_iris <- smallvis(iris, method = list("largevis", gamma = 1),
                           epoch_callback = ecb, perplexity = 50, verbose = TRUE)
 
 # Use the UMAP cost function and input weights (perplexity here refers to the
 # smoothed number of nearest neigbors)
 umap_iris <- smallvis(iris, method = "umap", eta = 0.1,
+                      epoch_callback = ecb, perplexity = 50, verbose = TRUE)
+
+# Can also control extra UMAP parameters via a list
+umap_iris <- smallvis(iris, method = list("umap", lv_eps = 0.01), eta = 0.01,
                       epoch_callback = ecb, perplexity = 50, verbose = TRUE)
 
 # Make embedding deterministic by initializing with scaled PCA scores
@@ -486,6 +524,11 @@ In \emph{Proceedings of the 25th International Conference on World Wide Web}
 (pp. 287-297).
 International World Wide Web Conferences Steering Committee.
 \url{https://arxiv.org/abs/1602.00370}
+
+Tenenbaum, J. B., De Silva, V., & Langford, J. C. (2000).
+A global geometric framework for nonlinear dimensionality reduction.
+\emph{Science}, \emph{290}(5500), 2319-2323.
+\url{https://dx.doi.org/10.1126/science.290.5500.2319}
 
 Van der Maaten, L., & Hinton, G. (2008).
 Visualizing data using t-SNE.

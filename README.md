@@ -73,10 +73,17 @@ tsne_iris <- smallvis(iris, perplexity = 25, epoch_callback = iris_plot, verbose
 # Default method is t-SNE, use largevis cost function instead
 # Also needs a gamma value specified, and not as easy to optimize as t-SNE:
 # reduce learning rate (eta) and increase maximum iterations
-largevis_iris <- smallvis(iris, method = "largevis", gamma = 1, perplexity = 25, epoch_callback = iris_plot, 
+largevis_iris <- smallvis(iris, method = "largevis", perplexity = 25, epoch_callback = iris_plot, 
+                          eta = 0.1, max_iter = 5000, verbose = TRUE)
+                          
+# For extra control over method-specific parameters pass a list as the "method" parameter:
+# In largevis, gamma controls the balance of repulsion vs attraction
+# The smallvis man page lists the method-specific parameters which can be controlled in this way
+largevis_iris <- smallvis(iris, method = list("largevis", gamma = 1), perplexity = 25, epoch_callback = iris_plot, 
                           eta = 0.1, max_iter = 5000, verbose = TRUE)
 
 # UMAP: see https://github.com/lmcinnes/umap
+# UMAP also has extra parameters, but we use the defaults here
 umap_iris <- smallvis(iris, method = "umap", perplexity = 25, eta = 0.01)
 
 # use (scaled) PCA initialization so embedding is repeatable
