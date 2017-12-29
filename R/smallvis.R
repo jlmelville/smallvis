@@ -1362,8 +1362,6 @@ ret_value <- function(Y, ret_extra, method, X, scale, Y_init, iter, start_time =
 # is returned also containing the eigenvalues
 pca_scores <- function(X, ncol = min(dim(X)), verbose = FALSE,
                        ret_extra = FALSE) {
-  ncomp <- ncol
-
   if (methods::is(X, "dist")) {
     res_mds <- stats::cmdscale(X, x.ret = TRUE, eig = TRUE, k = ncol)
 
