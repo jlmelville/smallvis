@@ -112,7 +112,7 @@
 #'    \item{\code{lambda}} Weighting term for relative cost of false positive
 #'    versus false negatives (in terms of output distances). Should be a value
 #'    between 0 and 1. Setting to 1 performs like method \code{"ASNE"}. Default
-#'    is \code{0.5}.
+#'    is \code{0.9} based on work in Yang and co-workers (2015).
 #'    }
 #'    \item \code{"JSE"}
 #'    \itemize{
@@ -560,12 +560,18 @@
 #'
 #' Yang, Z., King, I., Xu, Z., & Oja, E. (2009).
 #' Heavy-tailed symmetric stochastic neighbor embedding.
-#' In \emph{Advances in neural information processing systems} (pp. 2169-2177).
+#' In \emph{Advances in neural information processing systems}
+#' (pp. 2169-2177).
 #'
 #' Yang, Z., Peltonen, J., & Kaski, S. (2014).
 #' Optimization equivalence of divergences improves neighbor embedding.
 #' In \emph{Proceedings of the 31st International Conference on Machine Learning (ICML-14)}
 #' (pp. 460-468).
+#'
+#' Yang, Z., Peltonen, J., & Kaski, S. (2015).
+#' Majorization-Minimization for Manifold Embedding.
+#' In \emph{Proceedings of the 18th International Conference on Artificial Intelligence and Statistics (AISTATS 2015)}
+#' (pp. 1088-1097).
 #'
 #' @export
 smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",

@@ -385,7 +385,9 @@ ee <- function(perplexity, lambda = 100) {
 #
 # Unlike original publication, won't transfer input precisions to output kernel
 # lambda = 1 gives ASNE results
-nerv <- function(perplexity, lambda = 0.5) {
+# default lambda = 0.9 from "Majorization-Minimization for Manifold Embedding"
+# Yang, Peltonen, Kaski 2015
+nerv <- function(perplexity, lambda = 0.9) {
   lreplace(
     tsne(perplexity = perplexity),
     init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
