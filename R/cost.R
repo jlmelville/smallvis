@@ -187,20 +187,22 @@ ntumap <- function(perplexity, gr_eps = 0.1) {
   )
 }
 
+mmds_init <- function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
+                      ret_extra = c()) {
+  if (methods::is(X, "dist")) {
+    cost$R <- X
+  }
+  else {
+    cost$R <- sqrt(safe_dist2(X))
+  }
+  cost$eps <- eps
+  cost
+}
+
 # Metric MDS, minimizing strain.
 mmds <- function() {
   list(
-    init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
-                    ret_extra = c()) {
-      if (methods::is(X, "dist")) {
-        cost$R <- X
-      }
-      else {
-        cost$R <- sqrt(safe_dist2(X))
-      }
-      cost$eps <- eps
-      cost
-    },
+    init = mmds_init,
     pfn = function(cost, Y) {
       R <- cost$R
       D <- cost$D
