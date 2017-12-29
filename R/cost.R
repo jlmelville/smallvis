@@ -1,3 +1,29 @@
+# Generic Functions -------------------------------------------------------
+
+# Convert Force constant to Gradient
+k2g <- function(Y, K, symmetrize = FALSE) {
+  if (symmetrize) {
+    K <- K + t(K)
+  }
+  Y * rowSums(K) - (K %*% Y)
+}
+
+cost_init <- function(cost, X, verbose = FALSE, ret_extra = c()) {
+  if (!is.null(cost$init)) {
+    cost <- cost$init(cost, X, verbose = verbose, ret_extra = ret_extra)
+  }
+  cost
+}
+
+cost_grad <- function(cost, Y) {
+  cost$gr(cost, Y)
+}
+
+cost_point <- function(cost, Y) {
+  cost$pfn(cost, Y)
+}
+
+
 # Cost Functions ----------------------------------------------------------
 
 # LargeVis
@@ -203,6 +229,71 @@ mmds <- function() {
     }
   )
 }
+
+smmds <- function() {
+  lreplace(
+    mmds(),
+    init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
+                    ret_extra = c()) {
+      cost <- mmds_init(cost, X, eps, verbose, ret_extra)
+      cost$R2 <- cost$R * cost$R
+      cost$R <- NULL
+      cost
+    },
+    pfn = function(cost, Y) {
+      cost$pcost <- colSums((cost$R2 - cost$D2) ^ 2)
+      cost
+    },
+    gr = function(cost, Y) {
+      D2 <- dist2(Y)
+      cost$G <- k2g(Y,  -8 * (cost$R2 - D2))
+      cost$D2 <- D2
+      cost
+    },
+    export = function(cost, val) {
+      res <- NULL
+      switch(val,
+             dx = {
+               res <- cost$R2
+               res[res < 0] <- 0
+               sqrt(res)
+             },
+             dy = {
+               res <- cost$D2
+               res[res < 0] <- 0
+               sqrt(res)
+             }
+      )
+      res
+    })
+}
+
+sammon <- function() {
+  lreplace(mmds(),
+    init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
+                    ret_extra = c()) {
+      cost <- mmds_init(cost, X, eps, verbose, ret_extra)
+      cost$rsum_inv <- 1 / sum(cost$R)
+      cost
+    },
+    pfn = function(cost, Y) {
+      eps <- cost$eps
+      R <- cost$R
+      D <- cost$D
+      cost$pcost <- colSums((R - D) ^ 2 / (R + eps)) * cost$rsum_inv
+      cost
+    },
+    gr = function(cost, Y) {
+      eps <- cost$eps
+      R <- cost$R
+      D <- sqrt(safe_dist2(Y))
+      cost$G <- k2g(Y,  -4 * cost$rsum_inv * (R - D) / (R * D + eps))
+      cost$D <- D
+      cost
+    }
+  )
+}
+
 
 geommds <- function(k) {
   lreplace(
@@ -419,27 +510,3 @@ jse <- function(perplexity, kappa = 0.5) {
 }
 
 
-# Generic Functions -------------------------------------------------------
-
-# Convert Force constant to Gradient
-k2g <- function(Y, K, symmetrize = FALSE) {
-  if (symmetrize) {
-    K <- K + t(K)
-  }
-  Y * rowSums(K) - (K %*% Y)
-}
-
-cost_init <- function(cost, X, verbose = FALSE, ret_extra = c()) {
-  if (!is.null(cost$init)) {
-    cost <- cost$init(cost, X, verbose = verbose, ret_extra = ret_extra)
-  }
-  cost
-}
-
-cost_grad <- function(cost, Y) {
-  cost$gr(cost, Y)
-}
-
-cost_point <- function(cost, Y) {
-  cost$pfn(cost, Y)
-}
