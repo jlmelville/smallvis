@@ -155,9 +155,9 @@ perplexity calibration was used as part of the embedding method:
 \item{\code{V}} Input affinities (un-normalized weights used to generate
 \code{P}).
 \item{\code{beta}} Precisions (inverse standard deviation) of the input
-kernel functions.
+kernel functions. Only available if the gaussian kernel was used.
 \item{\code{dint}} Intrinsic dimensionalities associated with the input
-affinities.
+affinities. Only available if the gaussian kernel was used.
 \item{\code{adegin}} In-degree (column sums) from the un-normalized,
 un-symmetrized affinity matrix.
 \item{\code{adegout}} Out-degree (row sums) from the un-normalized,
@@ -235,11 +235,16 @@ Method-specific parameters are as follows:
 \itemize{
    \item \code{"tsne"}
    \itemize{
-   \item{\code{inp_kernel}} the input kernel function. Can be either
-      \code{"gauss"} (the default), or \code{"exp"}, which uses the
-      unsquared distances. \code{"exp"} is not the usual literature function,
-      but matches the original rtsne implementation (and it probably doesn't
-      matter very much).
+   \item{\code{inp_kernel}} the input kernel function. Can be one of:
+      \code{"gauss"} (the default), \code{"exp"} or \code{"knn"}.
+      \code{"exp"} uses unsquared distances to calculate similarities and is
+      not the usual literature function, but matches the implementation
+      in \code{\link[tsne]{tsne}} (and probably doesn't matter very much).
+      \code{"knn"} uses the symmetric k-nearest neighbors graph with
+      element (i, j) being set to one if i is one of j's k-nearest
+      neighbors or vice versa. Other elements are set to zero. Note that no
+      sparsification is carried out with this kernel, so there are no
+      memory or performance improvements to be had with this setting.
    }
    \item \code{"LargeVis"}
    \itemize{

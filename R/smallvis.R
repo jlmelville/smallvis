@@ -62,11 +62,16 @@
 #' \itemize{
 #'    \item \code{"tsne"}
 #'    \itemize{
-#'    \item{\code{inp_kernel}} the input kernel function. Can be either
-#'       \code{"gauss"} (the default), or \code{"exp"}, which uses the
-#'       unsquared distances. \code{"exp"} is not the usual literature function,
-#'       but matches the original rtsne implementation (and it probably doesn't
-#'       matter very much).
+#'    \item{\code{inp_kernel}} the input kernel function. Can be one of:
+#'       \code{"gauss"} (the default), \code{"exp"} or \code{"knn"}.
+#'       \code{"exp"} uses unsquared distances to calculate similarities and is
+#'       not the usual literature function, but matches the implementation
+#'       in \code{\link[tsne]{tsne}} (and probably doesn't matter very much).
+#'       \code{"knn"} uses the symmetric k-nearest neighbors graph with
+#'       element (i, j) being set to one if i is one of j's k-nearest
+#'       neighbors or vice versa. Other elements are set to zero. Note that no
+#'       sparsification is carried out with this kernel, so there are no
+#'       memory or performance improvements to be had with this setting.
 #'    }
 #'    \item \code{"LargeVis"}
 #'    \itemize{
@@ -393,9 +398,9 @@
 #' \item{\code{V}} Input affinities (un-normalized weights used to generate
 #' \code{P}).
 #' \item{\code{beta}} Precisions (inverse standard deviation) of the input
-#' kernel functions.
+#' kernel functions. Only available if the gaussian kernel was used.
 #' \item{\code{dint}} Intrinsic dimensionalities associated with the input
-#' affinities.
+#' affinities. Only available if the gaussian kernel was used.
 #' \item{\code{adegin}} In-degree (column sums) from the un-normalized,
 #' un-symmetrized affinity matrix.
 #' \item{\code{adegout}} Out-degree (row sums) from the un-normalized,
@@ -1415,14 +1420,11 @@ pca_whiten <- function(X, ncol = min(dim(X)), eps = 1e-5, verbose = FALSE) {
 # affinity matrix has the specified perplexity (within the supplied tolerance).
 # Returns a list containing the affinities, beta values and intrinsic
 # dimensionalities.
-# NB set default kernel to "exp" to get results closer to the Rtsne package.
-# This differs from the procedure in the TSNE paper by exponentially weighting
+# NB set default kernel to "exp" to get results closer to the tsne package.
+# This differs from the procedure in the t-SNE paper by exponentially weighting
 # the distances, rather than the squared distances.
 x2aff <- function(X, perplexity = 15, tol = 1e-5, kernel = "gauss",
                   verbose = FALSE) {
-  if (verbose) {
-    tsmessage("Commencing calibration for perplexity = ", formatC(perplexity))
-  }
   x_is_dist <- methods::is(X, "dist")
   if (x_is_dist) {
     D <- X
@@ -1577,6 +1579,39 @@ knndist <- function(X, k) {
 
   # symmetrize
   pmin(D, t(D))
+}
+
+# Create the knn graph: D[i, j] = 1 if j is one of i's k-nearest neighbors
+# No symmetrization is carried out
+knn_graph <- function(X, k) {
+  if (methods::is(X, "dist")) {
+    D <- as.matrix(X)
+    n <- nrow(D)
+    if (k > n - 1) {
+      stop("k must be not be > n - 1")
+    }
+    kdists <- Rfast::colnth(D, rep(k + 1, n))
+    for (i in 1:n) {
+      Di <- D[, i]
+      Di[Di > kdists[i]] <- 0
+      D[, i] <- 1
+    }
+  }
+  else {
+    # Find the k-nearest indexes and distances of X, and set the corresponding
+    # distance matrix elements
+    n <- nrow(X)
+    if (k > n - 1) {
+      stop("k must be not be > n - 1")
+    }
+    knn <- FNN::get.knn(X, k = k)
+
+    D <- matrix(0, nrow = n, ncol = n)
+    for (i in 1:n) {
+      D[i, knn$nn.index[i, ]] <- 1
+    }
+  }
+  D
 }
 
 # Given data X and k nearest neighbors, return a geodisic distance matrix

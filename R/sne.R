@@ -12,7 +12,7 @@ tsne <- function(perplexity, inp_kernel = "gaussian") {
   list(
     init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
                     ret_extra = c()) {
-      cost <- sne_init(cost, X, perplexity = perplexity, inp_kernel = inp_kernel,
+      cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
                        symmetrize = "symmetric", normalize = TRUE,
                        verbose = verbose, ret_extra = ret_extra)
       cost$eps <- eps
@@ -177,21 +177,39 @@ wtsne <- function(perplexity) {
 #  mutual - mutual nearest neighbor style as suggested by Schubert and Gertz in
 #  "Intrinsic t-Stochastic Neighbor Embedding for Visualization and Outlier
 #   Detection - A Remedy Against the Curse of Dimensionality?"
-sne_init <- function(cost, X, perplexity, inp_kernel = "gaussian",
-                     symmetrize = "symmetric", normalize = TRUE,
+sne_init <- function(cost, X, perplexity, kernel = "gaussian",
+                     symmetrize = "symmetric", row_normalize = TRUE,
+                     normalize = TRUE,
                      verbose = FALSE, ret_extra = c()) {
-  x2ares <- x2aff(X, perplexity, tol = 1e-5, kernel = inp_kernel,
-                  verbose = verbose)
-  # per-point normalization
-  P <- x2ares$W
-  P <- P / rowSums(P)
+  if (tolower(kernel) == "knn") {
+    if (verbose) {
+      tsmessage("Using knn kernel with k = ", formatC(perplexity))
+    }
+    P <- knn_graph(X, k = perplexity)
+    x2ares <- list(W = P)
+  }
+  else {
+    if (verbose) {
+      tsmessage("Commencing calibration for perplexity = ", formatC(perplexity))
+    }
+    x2ares <- x2aff(X, perplexity, tol = 1e-5, kernel = kernel,
+                    verbose = verbose)
+    P <- x2ares$W
+  }
+
+  # row normalization before anything else
+  if (row_normalize) {
+    P <- P / rowSums(P)
+  }
 
   # Symmetrize
   P <- switch(symmetrize,
               none = P,
               symmetric = 0.5 * (P + t(P)),
               mutual = sqrt(P * t(P)),
+              umap = P + t(P) - P * t(P),
               stop("unknown symmetrization: ", symmetrize))
+
   # Normalize
   if (normalize) {
     P <- P / sum(P)
@@ -205,10 +223,14 @@ sne_init <- function(cost, X, perplexity, inp_kernel = "gaussian",
              cost$V <- x2ares$W
            },
            dint = {
-             cost$dint <- x2ares$dint
+             if (!is.null(x2ares$dint)) {
+              cost$dint <- x2ares$dint
+             }
            },
            beta = {
-             cost$beta <- x2ares$beta
+             if (!is.null(x2ares$beta)) {
+              cost$beta <- x2ares$beta
+             }
            },
            adegc = {
              cost$adegc <- 0.5 * rowSums(x2ares$W) + colSums(x2ares$W)
