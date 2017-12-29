@@ -1294,7 +1294,7 @@ ret_value <- function(Y, ret_extra, method, X, scale, Y_init, iter, start_time =
     optionals <- tolower(unique(optionals))
     for (o in optionals) {
       if (o %in% c("p", "q", "w", "dx", "dy", "v", "beta", "dint", "adegc",
-                   "adegin", "adegout")) {
+                   "adegin", "adegout", "pdeg")) {
         exported <- cost_fn$export(cost_fn, o)
         if (!is.null(exported)) {
           if (nchar(o) < 3) {
