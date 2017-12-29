@@ -31,9 +31,16 @@
 #'   \item \code{"ssne"} The symmetric SNE method of Cook and co-workers (2007).
 #'   \item \code{"hssne"} The heavy-tailed symmetric SNE method of Yang and
 #'   co-workers (2009).
+#'   \item \code{"wtsne"} The weighted t-SNE Method of Yang and co-workers
+#'   (2014). The importance matrix used is the degree centrality (column sums)
+#'   of the normalized input weight matrix.
 #'   \item \code{"ee"} The Elastic Embedding method of Carreira-Perpinan (2010).
 #'   \item \code{"nerv"} The Neighbor Retrieval Visualizer method of Venna
-#'   and co-workers (2010).
+#'   and co-workers (2010). This version differs from the presentation in Venna
+#'   (2010), in that it does not use the precision values determined from the
+#'   perplexity calibration in the output kernel functon, which seems in line
+#'   with the discussion in later publications, see e.g. Yang and co-workers
+#'   (2014).
 #'   \item \code{"jse"} The Jensen-Shannon Embedding method of Lee and
 #'   co-workers (2013).
 #' }
@@ -554,6 +561,12 @@
 #' Yang, Z., King, I., Xu, Z., & Oja, E. (2009).
 #' Heavy-tailed symmetric stochastic neighbor embedding.
 #' In \emph{Advances in neural information processing systems} (pp. 2169-2177).
+#'
+#' Yang, Z., Peltonen, J., & Kaski, S. (2014).
+#' Optimization equivalence of divergences improves neighbor embedding.
+#' In \emph{Proceedings of the 31st International Conference on Machine Learning (ICML-14)}
+#' (pp. 460-468).
+#'
 #' @export
 smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
                  perplexity = 30, max_iter = 1000,
@@ -583,7 +596,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
   # The embedding method
   method_names <- c("tsne", "largevis", "umap", "tumap",
                     "ntumap", "mmds", "geommds",
-                    "asne", "ssne", "wssne", "wtsne",
+                    "asne", "ssne", "wtsne",
                     "hssne", "ee", "nerv", "jse", "smmds", "sammon")
   if (is.character(method)) {
     method <- match.arg(tolower(method), method_names)
@@ -597,7 +610,6 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
          geommds = geommds(k = perplexity),
          asne = asne(perplexity = perplexity),
          ssne = ssne(perplexity = perplexity),
-         wssne = wssne(perplexity = perplexity),
          wtsne = wtsne(perplexity = perplexity),
          hssne = hssne(perplexity = perplexity),
          ee = ee(perplexity = perplexity),

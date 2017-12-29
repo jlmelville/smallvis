@@ -1,3 +1,12 @@
+kl_cost <- function(cost, Y) {
+  P <- cost$P
+  eps <- cost$eps
+  invZ <- cost$invZ
+  W <- cost$W
+  cost$pcost <- colSums(P * log((P + eps) / ((W * invZ) + eps)))
+  cost
+}
+
 # t-SNE
 tsne <- function(perplexity, inp_kernel = "gaussian") {
   list(
@@ -9,14 +18,7 @@ tsne <- function(perplexity, inp_kernel = "gaussian") {
       cost$eps <- eps
       cost
     },
-    pfn = function(cost, Y) {
-      P <- cost$P
-      eps <- cost$eps
-      invZ <- cost$invZ
-      W <- cost$W
-      cost$pcost <- colSums(P * log((P + eps) / ((W * invZ) + eps)))
-      cost
-    },
+    pfn = kl_cost,
     gr = function(cost, Y) {
       P <- cost$P
       W <- dist2(Y)
@@ -141,21 +143,14 @@ wtsne <- function(perplexity) {
   lreplace(tsne(perplexity = perplexity),
     init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
                     ret_extra = c()) {
+      ret_extra <- c(ret_extra, "pdeg")
       cost <- sne_init(cost, X, perplexity = perplexity,
                          symmetrize = "symmetric", normalize = TRUE,
                          verbose = verbose, ret_extra = ret_extra)
-      # degree centrality
-      deg <- colSums(cost$P)
-      cost$M <- outer(deg, deg) * nrow(cost$P)
+      # P matrix degree centrality: column sums
+      deg <- cost$pdeg
+      cost$M <- outer(deg, deg)
       cost$eps <- eps
-      cost
-    },
-    pfn = function(cost, Y) {
-      P <- cost$P
-      eps <- cost$eps
-      invZ <- cost$invZ
-      W <- cost$W
-      cost$pcost <- colSums(P * log((P + eps) / ((W * invZ) + eps)))
       cost
     },
     gr = function(cost, Y) {
@@ -169,29 +164,6 @@ wtsne <- function(perplexity) {
       cost$invZ <- invZ
       cost$W <- W
       cost$G <- k2g(Y, 4 * W * (P - W * invZ))
-      cost
-    }
-  )
-}
-
-# Yang, Z., Peltonen, J., & Kaski, S. (2014).
-# Optimization equivalence of divergences improves neighbor embedding.
-# In \emph{Proceedings of the 31st International Conference on Machine Learning (ICML-14)}
-# (pp. 460-468).
-wssne <- function(perplexity) {
-  lreplace(
-    wtsne(perplexity = perplexity),
-    gr = function(cost, Y) {
-      P <- cost$P
-      M <- cost$M
-      W <- dist2(Y)
-      W <- M * exp(-W)
-      diag(W) <- 0
-
-      invZ <- 1 / sum(W)
-      cost$invZ <- invZ
-      cost$W <- W
-      cost$G <- k2g(Y, 4 * (P - W * invZ))
       cost
     }
   )
