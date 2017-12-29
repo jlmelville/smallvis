@@ -1,8 +1,40 @@
 # Cost Functions ----------------------------------------------------------
 
+# LargeVis
+# NB This version doesn't normalize the input P, despite what the paper
+# indicates (source code of the current implementation doesn't seem to either)
+largevis <- function(perplexity, gamma = 7, gr_eps = 0.1) {
+  lreplace(tsne(perplexity),
+     init = function(cost, X, eps = 1e-9, verbose = FALSE, ret_extra = c()) {
+       cost <- sne_init(cost, X = X, perplexity = perplexity, symmetrize = "symmetric",
+                        normalize = FALSE, verbose = verbose,
+                        ret_extra = ret_extra)
+       cost$eps <- eps
+       cost
+     },
+     pfn = function(cost, Y) {
+       P <- cost$P
+       eps <- cost$eps
+       W <- cost$W
+       cost$pcost <- colSums(-P * log(W + eps) - gamma * log1p(-W + eps))
+       cost
+     },
+     gr = function(cost, Y) {
+       P <- cost$P
+       W <- dist2(Y)
+
+       W <- 1 / (1 + W)
+       diag(W) <- 0
+       cost$G <- k2g(Y, 4 * (P * W - ((gamma * W * W) / ((1 - W) + gr_eps))))
+       cost$W <- W
+       cost
+     }
+  )
+}
+
 # UMAP
 umap <- function(perplexity, spread = 1, min_dist = 0.001, gr_eps = 0.001) {
-  list(
+  lreplace(tsne(perplexity),
     init = function(cost, X, eps = 1e-9, verbose = FALSE, ret_extra = c()) {
 
       ab_params <- find_ab_params(spread = spread, min_dist = min_dist)
@@ -50,69 +82,13 @@ umap <- function(perplexity, spread = 1, min_dist = 0.001, gr_eps = 0.001) {
       cost$G <- k2g(Y, 4 * (P * WF - ((1 - P) * W * WF) / ((1 - W) + gr_eps)))
       cost$W <- W
       cost
-    },
-    export = function(cost, val) {
-      res <- NULL
-      switch(val,
-             w = {
-               res <- cost$W
-             },
-             p = {
-               res <- cost$P
-             }
-      )
-      res
-    }
-  )
-}
-
-# LargeVis
-# NB This version doesn't normalize the input P, despite what the paper
-# indicates (source code of the current implementation doesn't seem to either)
-largevis <- function(perplexity, gamma = 7, gr_eps = 0.1) {
-  list(
-    init = function(cost, X, eps = 1e-9, verbose = FALSE, ret_extra = c()) {
-      cost <- sne_init(cost, X = X, perplexity = perplexity, symmetrize = "symmetric",
-                    normalize = FALSE, verbose = verbose,
-                    ret_extra = ret_extra)$P
-      cost$eps <- eps
-      cost
-    },
-    pfn = function(cost, Y) {
-      P <- cost$P
-      eps <- cost$eps
-      W <- cost$W
-      cost$pcost <- colSums(-P * log(W + eps) - gamma * log1p(-W + eps))
-      cost
-    },
-    gr = function(cost, Y) {
-      P <- cost$P
-      W <- dist2(Y)
-
-      W <- 1 / (1 + W)
-      diag(W) <- 0
-      cost$G <- k2g(Y, 4 * (P * W - ((gamma * W * W) / ((1 - W) + gr_eps))))
-      cost$W <- W
-      cost
-    },
-    export = function(cost, val) {
-      res <- NULL
-      switch(val,
-             w = {
-               res <- cost$W
-             },
-             p = {
-               res <- cost$P
-             }
-      )
-      res
     }
   )
 }
 
 # UMAP with the output kernel fixed to the t-distribution
 tumap <- function(perplexity, gr_eps = 0.1) {
-  list(
+  lreplace(tsne(perplexity),
     init = function(cost, X, eps = 1e-9, verbose = FALSE, ret_extra = c()) {
       cost$eps <- eps
 
@@ -140,25 +116,13 @@ tumap <- function(perplexity, gr_eps = 0.1) {
       cost$G <- k2g(Y,  4 * (P * W - ((1 - P) * W * W) / ((1 - W) + gr_eps)))
       cost$W <- W
       cost
-    },
-    export = function(cost, val) {
-      res <- NULL
-      switch(val,
-             w = {
-               res <- cost$W
-             },
-             p = {
-               res <- cost$P
-             }
-      )
-      res
     }
   )
 }
 
 # t-UMAP where output and input affinities are normalized
 ntumap <- function(perplexity, gr_eps = 0.1) {
-  list(
+  lreplace(tsne(perplexity),
     init = function(cost, X, eps = 1e-9, verbose = FALSE, ret_extra = c()) {
 
       P <- smooth_knn_distances(X, k = perplexity, tol = 1e-5,
@@ -193,21 +157,6 @@ ntumap <- function(perplexity, gr_eps = 0.1) {
       cost$W <- W
       cost$invZ <- invZ
       cost
-    },
-    export = function(cost, val) {
-      res <- NULL
-      switch(val,
-             w = {
-               res <- cost$W
-             },
-             q = {
-               res <- cost$W * cost$invZ
-             },
-             p = {
-               res <- cost$P
-             }
-      )
-      res
     }
   )
 }
@@ -322,23 +271,12 @@ ee <- function(perplexity, lambda = 100) {
     },
     export = function(cost, val) {
       res <- NULL
-      switch(val,
-             w = {
-               res <- cost$W
-             },
-             p = {
-               res <- cost$P
-             },
-             beta = {
-               res <- cost$beta
-             },
-             v = {
-               res <- cost$V
-             },
-             dint = {
-               res <- cost$dint
-             }
-      )
+      if (!is.null(cost[[val]])) {
+        res <- cost[[val]]
+      }
+      else if (!is.null(cost[[toupper(val)]])) {
+        res <- cost[[toupper(val)]]
+      }
       res
     }
   )

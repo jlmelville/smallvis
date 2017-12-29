@@ -158,6 +158,16 @@ perplexity calibration was used as part of the embedding method:
 kernel functions.
 \item{\code{dint}} Intrinsic dimensionalities associated with the input
 affinities.
+\item{\code{adegin}} In-degree (column sums) from the un-normalized,
+un-symmetrized affinity matrix.
+\item{\code{adegout}} Out-degree (row sums) from the un-normalized,
+un-symmetrized affinity matrix.
+\item{\code{adegc}} Degree centrality (average of in-degree and out-degree)
+from the un-normalized, un-symmetrized affinity matrix.
+\item{\code{pdeg}} Degree values from the probability matrix. This is always
+the column sums of the P matrix: For row-normalized P matrices, rows sum to
+one, so aren't informative and for symmetrized P matrices, the column sum and
+row sums are identical.
 }
 }
 \description{

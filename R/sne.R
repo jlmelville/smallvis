@@ -30,26 +30,18 @@ tsne <- function(perplexity, inp_kernel = "gaussian") {
     },
     export = function(cost, val) {
       res <- NULL
-      switch(val,
-             w = {
-               res <- cost$W
-             },
+      if (!is.null(cost[[val]])) {
+        res <- cost[[val]]
+      }
+      else if (!is.null(cost[[toupper(val)]])) {
+        res <- cost[[toupper(val)]]
+      }
+      else {
+        switch(val,
              q = {
                res <- cost$W * cost$invZ
-             },
-             p = {
-               res <- cost$P
-             },
-             beta = {
-               res <- cost$beta
-             },
-             v = {
-               res <- cost$V
-             },
-             dint = {
-               res <- cost$dint
-             }
-      )
+             })
+      }
       res
     }
   )
@@ -146,7 +138,7 @@ hssne <- function(perplexity, alpha = 0.5) {
 # In \emph{Proceedings of the 31st International Conference on Machine Learning (ICML-14)}
 # (pp. 460-468).
 wtsne <- function(perplexity) {
-  list(
+  lreplace(tsne(perplexity = perplexity),
     init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
                     ret_extra = c()) {
       cost <- sne_init(cost, X, perplexity = perplexity,
@@ -178,30 +170,6 @@ wtsne <- function(perplexity) {
       cost$W <- W
       cost$G <- k2g(Y, 4 * W * (P - W * invZ))
       cost
-    },
-    export = function(cost, val) {
-      res <- NULL
-      switch(val,
-             w = {
-               res <- cost$W
-             },
-             q = {
-               res <- cost$W * cost$invZ
-             },
-             p = {
-               res <- cost$P
-             },
-             beta = {
-               res <- cost$beta
-             },
-             v = {
-               res <- cost$V
-             },
-             dint = {
-               res <- cost$dint
-             }
-      )
-      res
     }
   )
 }
@@ -269,6 +237,18 @@ sne_init <- function(cost, X, perplexity, inp_kernel = "gaussian",
            },
            beta = {
              cost$beta <- x2ares$beta
+           },
+           adegc = {
+             cost$adegc <- 0.5 * rowSums(x2ares$W) + colSums(x2ares$W)
+           },
+           adegin = {
+             cost$adegin <- rowSums(x2ares$W)
+           },
+           adegout = {
+             cost$adegout <- colSums(x2ares$W)
+           },
+           pdeg = {
+             cost$pdeg <- colSums(P)
            }
     )
   }
