@@ -635,12 +635,18 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
     methodlist <- method
     method_name <- methodlist[[1]]
     methodlist[[1]] <- NULL
-    if (is.null(methodlist$perplexity)) {
-      methodlist$perplexity <- perplexity
-    }
+
     method <- match.arg(tolower(method_name), method_names)
     if (exists(method_name)) {
-      cost_fn <- do.call(get(method_name), methodlist)
+      fn <- get(method_name)
+      param_names <- names(formals(fn))
+      if ("perplexity" %in% param_names) {
+        methodlist$perplexity <- perplexity
+      }
+      if ("k" %in% param_names) {
+        methodlist$k <- perplexity
+      }
+      cost_fn <- do.call(fn, methodlist)
     }
     else {
       stop("Unknown method: '", method_name, "'")
