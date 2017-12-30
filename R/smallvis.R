@@ -706,7 +706,8 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
     opt_list <- lmerge(opt, list(momentum = momentum,
                        final_momentum = final_momentum,
                        mom_switch_iter = mom_switch_iter,
-                       eta = eta, min_gain = min_gain))
+                       eta = eta, min_gain = min_gain,
+                       verbose = verbose))
   }
   else {
     opt_list <- opt
