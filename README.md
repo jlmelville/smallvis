@@ -112,6 +112,20 @@ umap_iris_lbfgs <- smallvis(iris, scale = FALSE, opt = list("l-bfgs", c1 = 1e-4,
                             method = "umap", Y_init = "spca", max_iter = 300)
 ```
 
+## Available Embedding Methods 
+
+* [t-Distributed Stochastic Neighbor Embedding](https://lvdmaaten.github.io/tsne/).
+* Sammon mapping and metric Multidimensional Scaling.
+* Metric MDS with geodesic distances, like an iterative version of [Isomap](https://dx.doi.org/10.1126/science.290.5500.2319).
+* [SNE](https://papers.nips.cc/paper/2276-stochastic-neighbor-embedding) and [Symmetric SNE (PDF)](https://www.cs.toronto.edu/~amnih/papers/sne_am.pdf)
+* [Heavy-Tailed Symmetric SNE](http://papers.nips.cc/paper/3770-heavy-tailed-symmetric-stochastic-neighbor-embedding) (HSSNE).
+* [Neighbor Retrieval Visualizer](http://www.jmlr.org/papers/v11/venna10a.html) (NeRV).
+* [Jensen-Shannon Embedding](http://www.sciencedirect.com/science/article/pii/S0925231213001471) (JSE).
+* [Weighted SNE using degree centrality](http://www.jmlr.org/proceedings/papers/v32/yange14.html) (wt-SSNE).
+* [Elastic Embedding (PDF)](http://faculty.ucmerced.edu/mcarreira-perpinan/papers/icml10.pdf).
+* [LargeVis](https://arxiv.org/abs/1602.00370) (the cost function, not the stochastic gradient descent part).
+* [UMAP](https://github.com/lmcinnes/umap) (the cost function and calibration method).
+
 ## Things To Be Aware Of
 
 * There isn't a UMAP publication yet, so the implementation in `smallvis` relies
