@@ -257,16 +257,3 @@ intd_x2aff <- function(D2, beta, W, Z, H, eps = .Machine$double.eps) {
   -2 * beta * sum(D2 * P * (log(P + eps) + H))
 }
 
-# More expensive but more generic intrinsic dimensionality calculation
-# where only a vector of exponential affinities, Wi, need to be available
-intrinsic_dimensionality <- function(Wi, eps = .Machine$double.eps) {
-  iZ <- 1 / sum(Wi)
-  lw <- log(Wi + eps)
-
-  wlwlw <- sum(Wi * lw * lw)
-
-  wlw2 <- sum(Wi * lw)
-  wlw2 <- wlw2 * wlw2
-
-  2 * iZ * (wlwlw - iZ * wlw2)
-}
