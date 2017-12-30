@@ -639,7 +639,12 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
       methodlist$perplexity <- perplexity
     }
     method <- match.arg(tolower(method_name), method_names)
-    cost_fn <- do.call(get(method_name), methodlist)
+    if (exists(method_name)) {
+      cost_fn <- do.call(get(method_name), methodlist)
+    }
+    else {
+      stop("Unknown method: '", method_name, "'")
+    }
   }
 
   if (stop_lying_iter < 1) {
