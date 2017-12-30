@@ -244,28 +244,28 @@ div.tocify {
 <p>The t-SNE cost function is:</p>
 <p><span class="math display">\[
 C_{tSNE} = 
-\sum_{ij} p_{ij} \ln \frac{p_{ij}}{q_{ij}}
+\sum_{ij} p_{ij} \log \frac{p_{ij}}{q_{ij}}
 =
-\sum_{ij} \left( p_{ij} \ln p_{ij} - p_{ij} \ln q_{ij} \right)
+\sum_{ij} \left( p_{ij} \log p_{ij} - p_{ij} \log q_{ij} \right)
 \]</span> The first term in the sum has no dependence on the output coordinates, so is a constant we’ll just mark as <span class="math inline">\(C_{P}\)</span>.</p>
 <p>Now let’s write out <span class="math inline">\(q_{ij}\)</span> as <span class="math inline">\(w_{ij} / Z\)</span>:</p>
 <p><span class="math display">\[
-C_{tSNE} = C_{P} - \sum_{ij} p_{ij} \ln \left( \frac{w_{ij}}{Z} \right) = 
-Cp - \sum_{ij} p_{ij} \ln w_{ij} + \sum_{ij} p_{ij} \ln Z
+C_{tSNE} = C_{P} - \sum_{ij} p_{ij} \log \left( \frac{w_{ij}}{Z} \right) = 
+Cp - \sum_{ij} p_{ij} \log w_{ij} + \sum_{ij} p_{ij} \log Z
 \]</span> Finally, we’ll do some rearranging and re-write <span class="math inline">\(Z\)</span> back to a sum of weights:</p>
 <p><span class="math display">\[
 C_{tSNE} = 
-Cp - \sum_{ij} p_{ij} \ln w_{ij} + \ln Z \sum_{ij} p_{ij} =
-Cp - \sum_{ij} p_{ij} \ln w_{ij} + \ln \sum_{ij} w_{ij}
+Cp - \sum_{ij} p_{ij} \log w_{ij} + \log Z \sum_{ij} p_{ij} =
+Cp - \sum_{ij} p_{ij} \log w_{ij} + \log \sum_{ij} w_{ij}
 \]</span></p>
-<p>Ignoring, the constant term, we can see that the SNE cost function consists of an attractive term, where maximizing the <span class="math inline">\(w_{ij}\)</span> (which implies minimizing the distances) would minimize <span class="math inline">\(-p_{ij} \ln w_{ij}\)</span>; and a repulsive term, where minimizing the sum of <span class="math inline">\(w_{ij}\)</span> (and hence maximizing the distances), will minimize the log of the sum.</p>
+<p>Ignoring, the constant term, we can see that the SNE cost function consists of an attractive term, where maximizing the <span class="math inline">\(w_{ij}\)</span> (which implies minimizing the distances) would minimize <span class="math inline">\(-p_{ij} \log w_{ij}\)</span>; and a repulsive term, where minimizing the sum of <span class="math inline">\(w_{ij}\)</span> (and hence maximizing the distances), will minimize the log of the sum.</p>
 </div>
 <div id="largevis" class="section level3">
 <h3>LargeVis</h3>
 <p>The LargeVis paper describes partitioning the data into a set of nearest neighbors (we’ll call that <span class="math inline">\(E\)</span>), which only feel an attractive force; and everything else (<span class="math inline">\(\bar{E}\)</span>), which only feel repulsive forces. Perplexity calibration and weight definition are carried out as in t-SNE, to give the following (log) likelihood function:</p>
 <p><span class="math display">\[
-L_{LV} = \sum_{ \left(i, j\right) \in E} p_{ij} \ln w_{ij} 
-+\gamma \sum_{\left(i, j\right) \in \bar{E}} \ln \left( 1 - w_{ij} \right)
+L_{LV} = \sum_{ \left(i, j\right) \in E} p_{ij} \log w_{ij} 
++\gamma \sum_{\left(i, j\right) \in \bar{E}} \log \left( 1 - w_{ij} \right)
 \]</span> Likelihood functions are maximized, so the final cost function we’re interested in will be <span class="math inline">\(-L_{LV}\)</span>, in order that we have a function to minimize. Otherwise, it gets a bit confusing keeping track of the signs of the gradients compared to the other methods in <code>smallvis</code>.</p>
 <p>Before we get to that though, I believe that the likelihood function as given above is not a totally accurate representation of the current state of the LargeVis implementation. The following is my understanding of how it works at the moment.</p>
 <p>First, although equation 2 of the LargeVis paper indicates that the input weights are normalized, I don’t think the input weights actually are normalized, i.e. <span class="math inline">\(v_{ij}\)</span> is used rather than <span class="math inline">\(p_{ij}\)</span>.</p>
@@ -275,8 +275,8 @@ L_{LV} = \sum_{ \left(i, j\right) \in E} p_{ij} \ln w_{ij}
 <p>Based on the above discussion, along with using the un-normalized input weights, and wanting a cost function to minimize, the <code>smallvis</code> version of the LargeVis cost function is:</p>
 <p><span class="math display">\[
 C_{LV} = 
--\sum_{ij} v_{ij} \ln w_{ij} 
--\gamma \sum_{ij} \ln \left( 1 - w_{ij} \right)
+-\sum_{ij} v_{ij} \log w_{ij} 
+-\gamma \sum_{ij} \log \left( 1 - w_{ij} \right)
 \]</span> In this form, apart from the issue of whether the input weights are normalized or not, the attractive terms of both t-SNE and LargeVis are very similar.</p>
 </div>
 <div id="umap" class="section level3">

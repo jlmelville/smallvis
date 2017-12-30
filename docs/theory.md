@@ -48,9 +48,9 @@ The t-SNE cost function is:
 
 $$
 C_{tSNE} = 
-\sum_{ij} p_{ij} \ln \frac{p_{ij}}{q_{ij}}
+\sum_{ij} p_{ij} \log \frac{p_{ij}}{q_{ij}}
 =
-\sum_{ij} \left( p_{ij} \ln p_{ij} - p_{ij} \ln q_{ij} \right)
+\sum_{ij} \left( p_{ij} \log p_{ij} - p_{ij} \log q_{ij} \right)
 $$
 The first term in the sum has no dependence on the output 
 coordinates, so is a constant we'll just mark as $C_{P}$.
@@ -58,20 +58,20 @@ coordinates, so is a constant we'll just mark as $C_{P}$.
 Now let's write out $q_{ij}$ as $w_{ij} / Z$:
 
 $$
-C_{tSNE} = C_{P} - \sum_{ij} p_{ij} \ln \left( \frac{w_{ij}}{Z} \right) = 
-Cp - \sum_{ij} p_{ij} \ln w_{ij} + \sum_{ij} p_{ij} \ln Z
+C_{tSNE} = C_{P} - \sum_{ij} p_{ij} \log \left( \frac{w_{ij}}{Z} \right) = 
+Cp - \sum_{ij} p_{ij} \log w_{ij} + \sum_{ij} p_{ij} \log Z
 $$
 Finally, we'll do some rearranging and re-write $Z$ back to a sum of weights:
 
 $$
 C_{tSNE} = 
-Cp - \sum_{ij} p_{ij} \ln w_{ij} + \ln Z \sum_{ij} p_{ij} =
-Cp - \sum_{ij} p_{ij} \ln w_{ij} + \ln \sum_{ij} w_{ij}
+Cp - \sum_{ij} p_{ij} \log w_{ij} + \log Z \sum_{ij} p_{ij} =
+Cp - \sum_{ij} p_{ij} \log w_{ij} + \log \sum_{ij} w_{ij}
 $$
 
 Ignoring, the constant term, we can see that the SNE cost function consists
 of an attractive term, where maximizing the $w_{ij}$ (which implies minimizing 
-the distances) would minimize $-p_{ij} \ln w_{ij}$; and a repulsive term, where 
+the distances) would minimize $-p_{ij} \log w_{ij}$; and a repulsive term, where 
 minimizing the sum of $w_{ij}$ (and hence maximizing the distances), 
 will minimize the log of the sum.
 
@@ -84,8 +84,8 @@ calibration and weight definition are carried out as in t-SNE, to give the
 following (log) likelihood function:
 
 $$
-L_{LV} = \sum_{ \left(i, j\right) \in E} p_{ij} \ln w_{ij} 
-+\gamma \sum_{\left(i, j\right) \in \bar{E}} \ln \left( 1 - w_{ij} \right)
+L_{LV} = \sum_{ \left(i, j\right) \in E} p_{ij} \log w_{ij} 
++\gamma \sum_{\left(i, j\right) \in \bar{E}} \log \left( 1 - w_{ij} \right)
 $$
 Likelihood functions are maximized, so the final cost function we're
 interested in will be $-L_{LV}$, in order that we have a function to minimize.
@@ -133,8 +133,8 @@ cost function is:
 
 $$
 C_{LV} = 
--\sum_{ij} v_{ij} \ln w_{ij} 
--\gamma \sum_{ij} \ln \left( 1 - w_{ij} \right)
+-\sum_{ij} v_{ij} \log w_{ij} 
+-\gamma \sum_{ij} \log \left( 1 - w_{ij} \right)
 $$
 In this form, apart from the issue of whether the input weights are normalized
 or not, the attractive terms of both t-SNE and LargeVis are very similar.
