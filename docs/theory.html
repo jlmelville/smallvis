@@ -236,6 +236,7 @@ div.tocify {
 <li><span class="math inline">\(w_{ij}\)</span> in both t-SNE and LargeVis is defined as the Student’s t-distribution with one degree of freedom (or the Cauchy distribution, if you prefer), <span class="math inline">\(w_{ij} = 1 / \left(1 + d_{ij}^2 \right)\)</span>. <span class="math inline">\(d_{ij}\)</span> is the Euclidean distance between point <span class="math inline">\(i\)</span> and <span class="math inline">\(j\)</span> in the output coordinates.</li>
 <li><span class="math inline">\(\mathbf{y_{i}}\)</span> is the vector of coordinates of point <span class="math inline">\(i\)</span> (with <span class="math inline">\(N\)</span> points in total).</li>
 </ul>
+<p>If you need more detail (or to be more confused) on how to derive the embedding gradients from their cost functions, see <a href="http://jlmelville.github.io/sneer/gradients.html">here</a>.</p>
 <div id="cost-functions" class="section level2">
 <h2>Cost Functions</h2>
 <div id="t-sne" class="section level3">

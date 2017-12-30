@@ -36,6 +36,10 @@ between point $i$ and $j$ in the output coordinates.
 * $\mathbf{y_{i}}$ is the vector of coordinates of point $i$ (with $N$ points 
 in total).
 
+If you need more detail (or to be more confused) on how to derive the embedding 
+gradients from their cost functions, see 
+[here](http://jlmelville.github.io/sneer/gradients.html).
+
 ## Cost Functions
 
 ### t-SNE
