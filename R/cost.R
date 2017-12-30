@@ -302,7 +302,7 @@ geommds <- function(k) {
     mmds(),
     init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
                     ret_extra = c()) {
-      cost$R <- geodesic(X, k)
+      cost$R <- geodesic(X, k, verbose = verbose)
 
       cost$eps <- eps
       cost
