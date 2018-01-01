@@ -213,21 +213,63 @@ a couple of user-selected parameters that control the tightness of the squashing
 function. By setting $a = 1$ and $b = 1$ you get the t-SNE style weighting back.
 The current UMAP defaults result in $a = 1.929$ and $b = 0.7915$.
 
+To get to the UMAP gradient, we need the derivative of the weight with respect
+to the squared distance.
+
+$$
+\frac{\partial w_{ij}}{\partial d_{ij}^2} =  
+\frac{-b a d_{ij}^{2\left(b - 1\right)}} 
+{\left(a d_{ij}^2 + 1 \right)^2} = -b a d_{ij}^{2\left( b - 1\right)} w_{ij}^2 
+=
+-\frac{b \left( 1 - w_{ij} \right)}{d_{ij}^2}w_{ij}
+$$
+The derivative of the cost functon with respect to the weights is:
+
+$$
+\frac{\partial C}{\partial w_{ij}} =
+\left[
+-\frac{v_{ij}}{w_{ij}} +
+\frac{ \left( 1 - v_{ij} \right)}{ \left( 1 - w_{ij} \right)}
+\right]
+= 
+\left[
+-\frac{v_{ij}}{w_{ij} \left(1 - w_{ij} \right)} +
+\frac{w_{ij}}{ w_{ij} \left( 1 - w_{ij} \right)}
+\right]
+$$
+
 ## Gradients
 
-Here are the gradients for t-SNE, LargeVis and UMAP, with the t-SNE one written
-slightly differently to how its usually presented to show the sum of attractive
-and repulsive forces more clearly and for comparison with LargeVis:
+Let's look at some gradients and see how t-SNE, LargeVis and UMAP compare.
+
+First, t-SNE written slightly differently to how its usually presented, in terms
+of the un-normalized weights. This will hopefully illuminate the similarities
+and differences with LargeVis and UMAP:
 
 $$
 \frac{\partial C_{tSNE}}{\partial \mathbf{y_i}} = 
+4
+\sum_j^N \left( v_{ij} -\frac{\sum_j v_{ij}}{\sum_j w_{ij}} w_{ij} \right) 
+\frac{w_{ij}}{\sum_j v_{ij}}
+\left(\mathbf{y_i - y_j}\right)
+$$
+If you want a bit more detail in how this is derived, see [here](http://jlmelville.github.io/sneer/experimental-gradients.html).
+
+For LargeVis, the gradient can be written as:
+
+$$
+\frac{\partial C_{LV}}{\partial \mathbf{y_i}} = 
   4\sum_j^N \left(
-    p_{ij} w_{ij}
-    -
-    q_{ij} w_{ij}
+    v_{ij}
+    -\frac{\gamma}{1 - w_{ij}} w_{ij}
    \right)
+   w_{ij}
    \left(\mathbf{y_i - y_j}\right)
 $$
+
+where I've tried to retain the structure of the expression that most resembles
+that of t-SNE, but the following is probably more convenient for the purposes
+of a stochastic gradient descent optimization:
 
 $$
 \frac{\partial C_{LV}}{\partial \mathbf{y_i}} = 
@@ -237,20 +279,38 @@ $$
    \right)
    \left(\mathbf{y_i - y_j}\right)
 $$
+
+The $\epsilon$ term is needed computationally to avoid division by zero. Results
+can be quite sensitive to changing this value. In `smallvis` you can see the
+effect of it via the `lveps` parameter. It's set to `0.1` in LargeVis.
+
+Likewise, here's one way to express the UMAP gradient:
+
 $$
 \frac{\partial C_{UMAP}}{\partial \mathbf{y_i}} = 
-  4\sum_j^N \left(
-    abd_{ij}^{2\left(b - 1\right)}v_{ij} w_{ij}
-    -\frac{b \left(1 - v_{ij}\right) w_{ij}}{d_{ij}^2 + \epsilon}
-   \right)
+  4\sum_j^N 
+\left(
+   v_{ij}
+-
+  w_{ij}
+\right)
+   \frac{b}{d_{ij}^2}
    \left(\mathbf{y_i - y_j}\right)
 $$
-The UMAP gradient is a good deal less simple than the t-SNE or LargeVis 
-gradient, but it can be seen that it has a similar structure.
+and more explicitly:
 
-The $\epsilon$ term in the LargeVis and UMAP gradient is needed computationally
-to avoid division by zero. Results can be quite sensitive to changing this value.
-In `smallvis` you can see the effect of it via the `lveps` parameter. In the
-stochastic gradient descent implementations of LargeVis and UMAP, the values
-are set to `0.1` and `0.001`, respectively.
+$$
+\frac{\partial C_{UMAP}}{\partial \mathbf{y_i}} = 
+  4\sum_j^N \left[
+    abd_{ij}^{2\left(b - 1\right)} w_{ij} v_{ij} 
+    -\frac{b \left(1 - v_{ij}\right) }{d_{ij}^2 + \epsilon} w_{ij}
+   \right]
+   \left(\mathbf{y_i - y_j}\right)
+$$
+
+Again we need a value for $\epsilon$, which is `0.001` in the UMAP source.
+
+The t-SNE, LargeVis and UMAP gradients all have a similar form based around the
+difference between the input and output weights, $v_{ij} - w_{ij}$, although
+LargeVis and t-SNE re-weight the repulsion compared to UMAP. 
 
