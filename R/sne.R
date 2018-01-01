@@ -150,20 +150,23 @@ wtsne <- function(perplexity) {
       # P matrix degree centrality: column sums
       deg <- cost$pdeg
       cost$M <- outer(deg, deg)
+      cost$invM <- 1 / cost$M
       cost$eps <- eps
       cost
     },
     gr = function(cost, Y) {
       P <- cost$P
+      invM <- cost$invM
       M <- cost$M
+
       W <- dist2(Y)
       W <- M / (1 + W)
       diag(W) <- 0
-
       invZ <- 1 / sum(W)
+
       cost$invZ <- invZ
       cost$W <- W
-      cost$G <- k2g(Y, 4 * W * (P - W * invZ))
+      cost$G <- k2g(Y, 4 * W * invM * (P - W * invZ))
       cost
     }
   )
