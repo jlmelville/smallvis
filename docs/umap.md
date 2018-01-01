@@ -50,12 +50,57 @@ adopting the t-SNE weighting function: the Cauchy distribution, which arises
 naturally in UMAP by setting the `a` and `b` parameters of its weighting
 function to `1`.
 
+The gradient for t-UMAP is therefore:
+
+$$
+\frac{\partial C_{t-UMAP}}{\partial \mathbf{y_i}} = 
+  4\sum_j^N 
+\left(
+   v_{ij}
+-
+  w_{ij}
+\right)
+   \frac{1}{d_{ij}^2}
+   \left(\mathbf{y_i - y_j}\right)
+$$
+which can also be written as:
+
+$$
+\frac{\partial C_{t-UMAP}}{\partial \mathbf{y_i}} = 
+  4\sum_j^N 
+\left(
+   v_{ij}
+-
+  w_{ij}
+\right)
+   \frac{w_{ij}}{1 - w_{ij}}
+   \left(\mathbf{y_i - y_j}\right)
+$$
+
 ### Normalized t-UMAP
 
 A further modification of t-UMAP, that normalizes both the input and output
 affinities in the style of t-SNE. I have no theoretical justification for 
 doing this, but I was curious to see the effect of normalization on both
 the results and the ease of optimization was.
+
+The gradient for normalized t-UMAP is:
+
+$$
+\frac{\partial C_{nt-UMAP}}{\partial \mathbf{y_i}} = 
+  4\sum_j^N 
+\left(
+   \frac{p_{ij} - q_{ij}}{1 - q_{ij}}
++
+  \sum_{kl} \frac{p_{kl} - q_{kl}}{1 - q_{kl}}
+    q_{ij}
+\right)
+   w_{ij}
+   \left(\mathbf{y_i - y_j}\right)
+$$
+
+I'm sure there's a nicer or clearer or more efficient way to express that, but
+I wasn't motivated to find it.
 
 ## Datasets
 
