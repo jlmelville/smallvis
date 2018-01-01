@@ -15,7 +15,8 @@ Imports:
     Rfast,
     vizier
 Suggests:
-    RSpectra
+    RSpectra,
+    testthat
 Remotes: jlmelville/vizier, jlmelville/mize
 Encoding: UTF-8
 LazyData: true
