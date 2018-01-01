@@ -607,7 +607,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
   # The embedding method
   method_names <- c("tsne", "largevis", "umap", "tumap",
                     "ntumap", "mmds", "geommds",
-                    "asne", "ssne", "wtsne",
+                    "asne", "ssne", "wtsne", "wssne",
                     "hssne", "ee", "nerv", "jse", "smmds", "sammon")
   if (is.character(method)) {
     method <- match.arg(tolower(method), method_names)
@@ -622,6 +622,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
          asne = asne(perplexity = perplexity),
          ssne = ssne(perplexity = perplexity),
          wtsne = wtsne(perplexity = perplexity),
+         wssne = wssne(perplexity = perplexity),
          hssne = hssne(perplexity = perplexity),
          ee = ee(perplexity = perplexity),
          nerv = nerv(perplexity = perplexity),

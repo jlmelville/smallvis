@@ -8,6 +8,8 @@ test_that("SNE", {
   test_grad("ssne", perplexity = perp)
   test_grad("asne", perplexity = perp)
   test_grad("wtsne", perplexity = perp)
+  test_grad("wssne", perplexity = perp)
+
 })
 
 test_that("HSSNE", {

@@ -172,6 +172,26 @@ wtsne <- function(perplexity) {
   )
 }
 
+wssne <- function(perplexity) {
+  lreplace(wtsne(perplexity = perplexity),
+     gr = function(cost, Y) {
+       P <- cost$P
+       invM <- cost$invM
+       M <- cost$M
+
+       W <- dist2(Y)
+       W <- M * exp(-W)
+       diag(W) <- 0
+       invZ <- 1 / sum(W)
+
+       cost$invZ <- invZ
+       cost$W <- W
+       cost$G <- k2g(Y, 4 * (P - W * invZ))
+       cost
+     }
+  )
+}
+
 # Perplexity Calibration --------------------------------------------------
 
 # symmetrize: type of symmetrization:
