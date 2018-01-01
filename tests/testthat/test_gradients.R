@@ -54,7 +54,7 @@ test_that("LargeVis", {
 
 test_that("UMAP", {
   test_grad("umap", perplexity = perp, gr_eps = 0)
-  test_grad("umap", tolerance = 1e-5, spread = 10, min_dist = 0.01, perplexity = perp, gr_eps = 0)
+  test_grad("umap", spread = 10, min_dist = 0.01, perplexity = perp, gr_eps = 0)
   test_grad("umap", spread = 0.5, min_dist = 1e-4, perplexity = perp, gr_eps = 0)
   test_grad("tumap", perplexity = perp, gr_eps = 0)
   test_grad("ntumap", perplexity = perp, gr_eps = 0)
