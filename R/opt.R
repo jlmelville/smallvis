@@ -130,7 +130,9 @@ dbd <- function(eta = 500, momentum = 0.5, final_momentum = 0.8,
 # Nesterov DBD ------------------------------------------------------------
 
 ndbd <- function(eta = 500, momentum = 0.5, final_momentum = 0.8,
-                 mom_switch_iter = 250, min_gain = 0.01, verbose = FALSE) {
+                 mom_switch_iter = 250, min_gain = 0.01, beta = 1,
+                 scale_grad = FALSE,
+                 verbose = FALSE) {
   list(
     eta = eta,
     mu = momentum,
@@ -138,33 +140,43 @@ ndbd <- function(eta = 500, momentum = 0.5, final_momentum = 0.8,
     mom_switch_iter = mom_switch_iter,
     min_gain = min_gain,
     init = function(opt, n, k) {
-      opt$gd <- matrix(0, nrow = n, ncol = k)
       opt$uY <- matrix(0, nrow = n, ncol = k)
       opt$gains <- matrix(1, nrow = n, ncol = k)
       opt
     },
     upd = function(opt, G, iter) {
-      eta <- opt$eta
-      mu <- opt$mu
       gains <- opt$gains
       uY <- opt$uY
-      gd <- opt$gd
       min_gain <- opt$min_gain
 
-      gains <- (gains + 0.2) * abs(sign(G) != sign(uY)) +
-        (gains * 0.8) * abs(sign(G) == sign(uY))
+      if (scale_grad) {
+        G <- G / norm2(G)
+      }
+
+      # compare signs of G with -update (== previous G, if we ignore momentum)
+      # abs converts TRUE/FALSE to 1/0
+      dbd <- abs(sign(G) != sign(uY))
+      gains <- (gains + 0.2) * dbd + (gains * 0.8) * (1 - dbd)
       gains[gains < min_gain] <- min_gain
 
-      gd_new <- -eta * gains * G
-      if (all(uY == 0)) {
-        opt$uY <- gd_new
+      gd <- opt$eta * gains * G
+      old_gd <- opt$old_gd
+      # Steepest Descent on first iteration
+      if (is.null(old_gd)) {
+        uY_new <- -gd
       }
       else {
-        opt$uY <- mu * (uY - gd + gd_new) + gd_new
+        # Classical momentum term
+        uY_new <- opt$mu * uY - gd
+        if (beta != 0) {
+          # The momentum bit
+          uY_new <- uY_new + beta * opt$mu * (old_gd - gd)
+        }
       }
 
-      opt$gd <- gd_new
+      opt$uY <- uY_new
       opt$gains <- gains
+      opt$old_gd <- gd
 
       if (iter == mom_switch_iter && momentum != final_momentum) {
         opt$mu <- opt$final_momentum
@@ -173,7 +185,6 @@ ndbd <- function(eta = 500, momentum = 0.5, final_momentum = 0.8,
                   " switching to final momentum = ", formatC(final_momentum))
         }
       }
-
       opt
     }
   )
