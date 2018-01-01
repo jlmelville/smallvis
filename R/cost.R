@@ -213,7 +213,7 @@ mmds <- function() {
       eps <- cost$eps
       R <- cost$R
       D <- sqrt(safe_dist2(Y))
-      cost$G <- k2g(Y,  -4 * (R - D) / (D + eps))
+      cost$G <- k2g(Y, -4 * (R - D) / (D + eps))
       cost$D <- D
       cost
     },
