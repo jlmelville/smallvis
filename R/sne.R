@@ -149,6 +149,9 @@ wtsne <- function(perplexity) {
                          verbose = verbose, ret_extra = ret_extra)
       # P matrix degree centrality: column sums
       deg <- cost$pdeg
+      if (verbose) {
+        summarize(deg, "deg")
+      }
       cost$M <- outer(deg, deg)
       cost$invM <- 1 / cost$M
       cost$eps <- eps
