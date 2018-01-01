@@ -1735,8 +1735,14 @@ find_ab_params <- function(spread = 1, min_dist = 0.001) {
   yv <- rep(0, length(xv))
   yv[xv < min_dist] <- 1
   yv[xv >= min_dist] <- exp(-(xv[xv >= min_dist] - min_dist) / spread)
-  stats::nls(yv ~ 1 / (1 + a * xv ^ (2 * b)),
+  result <- try({
+    stats::nls(yv ~ 1 / (1 + a * xv ^ (2 * b)),
              start = list(a = 1, b = 1))$m$getPars()
+    }, silent = TRUE)
+    if (class(result) == "try-error") {
+      stop("Can't find a, b for provided spread/min_dist values")
+    }
+  result
 }
 
 # The UMAP equivalent of perplexity calibration in x2aff. k is continuous rather
