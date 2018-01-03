@@ -1333,7 +1333,12 @@ ret_value <- function(Y, ret_extra, method, X, scale, Y_init, iter, start_time =
     for (o in optionals) {
       if (o %in% c("p", "q", "w", "dx", "dy", "v", "beta", "dint", "adegc",
                    "adegin", "adegout", "pdeg")) {
-        exported <- cost_fn$export(cost_fn, o)
+        exported <- NULL
+        if (!is.null(cost_fn)) {
+          # Could be NULL if max_iter was 0
+          exported <- cost_fn$export(cost_fn, o)
+        }
+
         if (!is.null(exported)) {
           if (nchar(o) < 3) {
             res[[toupper(o)]] <- exported
