@@ -3,7 +3,8 @@ kl_cost <- function(cost, Y) {
   eps <- cost$eps
   invZ <- cost$invZ
   W <- cost$W
-  cost$pcost <- colSums(P * log((P + eps) / ((W * invZ) + eps)))
+  # P log(P / Q) = P log P - P log Q
+  cost$pcost <- cost$plogp - colSums(P * log(((W * invZ) + eps)))
   cost
 }
 
@@ -15,6 +16,12 @@ tsne <- function(perplexity, inp_kernel = "gaussian") {
       cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
                        symmetrize = "symmetric", normalize = TRUE,
                        verbose = verbose, ret_extra = ret_extra)
+      P <- cost$P
+      # cache P log P constant part of cost: incur 1 extra log operation now
+      # but saves one division operation every time we calculate cost:
+      # substantial (10-15%) speed up with Wolfe line search methods
+      cost$plogp <- colSums(P * log((P + eps)))
+
       cost$eps <- eps
       cost
     },
@@ -155,6 +162,8 @@ wtsne <- function(perplexity) {
       cost$M <- outer(deg, deg)
       cost$invM <- 1 / cost$M
       cost$eps <- eps
+
+      cost$plogp <- colSums(cost$P * log((cost$P + eps)))
       cost
     },
     gr = function(cost, Y) {
