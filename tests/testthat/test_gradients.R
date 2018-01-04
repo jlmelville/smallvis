@@ -9,7 +9,6 @@ test_that("SNE", {
   test_grad("asne", perplexity = perp)
   test_grad("wtsne", perplexity = perp)
   test_grad("wssne", perplexity = perp)
-
 })
 
 test_that("HSSNE", {
@@ -36,7 +35,7 @@ test_that("MDS", {
   test_grad("mmds")
   test_grad("smmds")
   test_grad("sammon")
-  test_grad("geommds", k = 3)
+  test_grad("gmmds", k = 3)
 })
 
 test_that("EE", {

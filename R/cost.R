@@ -277,7 +277,7 @@ sammon <- function() {
 }
 
 
-geommds <- function(k) {
+gmmds <- function(k) {
   lreplace(
     mmds(),
     init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,

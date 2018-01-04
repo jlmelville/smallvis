@@ -22,7 +22,7 @@
 #'   \item \code{"mmds"} Metric Multidimensional Scaling (Borg and Groenen,
 #'   2005), which reduces the "strain", i.e. the square loss between the input
 #'   and output distances.
-#'   \item \code{"geommds"} Replaces the input Euclidean distances in
+#'   \item \code{"gmmds"} Replaces the input Euclidean distances in
 #'   \code{"mmds"} with geodesic distances calculated using k-nearest-neighbors,
 #'   in the style of ISOMAP (Tenenbaum and co-workers, 2000). The value of
 #'   k is set by the \code{perplexity} parameter.
@@ -488,15 +488,15 @@
 #'                             step_tol = 1e-6), method = "umap", Y_init = "spca",
 #'                             max_iter = 300)
 #' ## Example using distance matrix
-#' # Use geommds: metric MDS using geodesic distances estimated from kNN distances
+#' # Use gmmds: metric MDS using geodesic distances estimated from kNN distances
 #' # k is set via the perplexity argument. Use an epoch callback to get useful color
 #' # in the visualization
 #' iris_gmmds <- smallvis(dist(iris[, -5]),
 #'                        epoch_callback = function(Y) { plot(Y, col = iris$Species) },
-#'                        method = "geommds", max_iter = 200, perplexity = 8, eta = 1e-4,
+#'                        method = "gmmds", max_iter = 200, perplexity = 8, eta = 1e-4,
 #'                        Y_init = "spca")
 #' The above should give equivalent results to this non-distance matrix version
-#' iris_gmmds <- smallvis(iris, method = "geommds", max_iter = 400, perplexity = 8, eta = 1e-4,
+#' iris_gmmds <- smallvis(iris, method = "gmmds", max_iter = 400, perplexity = 8, eta = 1e-4,
 #'                        Y_init = "spca")
 #' }
 #' @references
@@ -606,7 +606,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
 
   # The embedding method
   method_names <- c("tsne", "largevis", "umap", "tumap",
-                    "ntumap", "mmds", "geommds",
+                    "ntumap", "mmds", "gmmds",
                     "asne", "ssne", "wtsne", "wssne",
                     "hssne", "ee", "nerv", "jse", "smmds", "sammon")
   if (is.character(method)) {
@@ -618,7 +618,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
          tumap = tumap(perplexity = perplexity),
          ntumap = ntumap(perplexity = perplexity),
          mmds = mmds(),
-         geommds = geommds(k = perplexity),
+         gmmds = gmmds(k = perplexity),
          asne = asne(perplexity = perplexity),
          ssne = ssne(perplexity = perplexity),
          wtsne = wtsne(perplexity = perplexity),

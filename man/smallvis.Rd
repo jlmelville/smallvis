@@ -194,7 +194,7 @@ to the \code{method} parameter are:
   \item \code{"mmds"} Metric Multidimensional Scaling (Borg and Groenen,
   2005), which reduces the "strain", i.e. the square loss between the input
   and output distances.
-  \item \code{"geommds"} Replaces the input Euclidean distances in
+  \item \code{"gmmds"} Replaces the input Euclidean distances in
   \code{"mmds"} with geodesic distances calculated using k-nearest-neighbors,
   in the style of ISOMAP (Tenenbaum and co-workers, 2000). The value of
   k is set by the \code{perplexity} parameter.
@@ -535,15 +535,15 @@ umap_iris_lbfgs <- smallvis(iris, scale = FALSE, opt = list("l-bfgs", max_gr = 1
                             step_tol = 1e-6), method = "umap", Y_init = "spca",
                             max_iter = 300)
 ## Example using distance matrix
-# Use geommds: metric MDS using geodesic distances estimated from kNN distances
+# Use gmmds: metric MDS using geodesic distances estimated from kNN distances
 # k is set via the perplexity argument. Use an epoch callback to get useful color
 # in the visualization
 iris_gmmds <- smallvis(dist(iris[, -5]),
                        epoch_callback = function(Y) { plot(Y, col = iris$Species) },
-                       method = "geommds", max_iter = 200, perplexity = 8, eta = 1e-4,
+                       method = "gmmds", max_iter = 200, perplexity = 8, eta = 1e-4,
                        Y_init = "spca")
 The above should give equivalent results to this non-distance matrix version
-iris_gmmds <- smallvis(iris, method = "geommds", max_iter = 400, perplexity = 8, eta = 1e-4,
+iris_gmmds <- smallvis(iris, method = "gmmds", max_iter = 400, perplexity = 8, eta = 1e-4,
                        Y_init = "spca")
 }
 }
