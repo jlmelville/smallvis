@@ -166,6 +166,7 @@ Those that I have cobbled together into something that demonstrates the use of
 `smallvis` appear below.
 
 * The [datasets](https://jlmelville.github.io/smallvis/datasets.html) used in my ruminations.
+* [Distance-preserving methods](https://jlmelville.github.io/smallvis/mmds.html) (geodesic as well as Euclidean).
 * [Initialization methods](https://jlmelville.github.io/smallvis/init.html)
 on t-SNE.
 * [Optimizaton: L-BFGS](https://jlmelville.github.io/smallvis/opt.html).
