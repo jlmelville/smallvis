@@ -839,15 +839,19 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
       }
 
       if (cost < min_cost) {
-        tsmessage("Stopping early: cost fell below min_cost")
+        if (verbose) {
+          tsmessage("Stopping early: cost fell below min_cost")
+        }
         break
       }
 
       # Don't stop early if still exaggerating
       if ((exaggeration_factor == 1 || iter > stop_lying_iter)) {
         if (!nnat(opt$is_terminated) && !is.null(tolval) && tolval < tol) {
-          tsmessage("Stopping early: relative tolerance (", formatC(tol),
-                    ") met")
+          if (verbose) {
+            tsmessage("Stopping early: relative tolerance (", formatC(tol),
+                      ") met")
+          }
           break
         }
       }
