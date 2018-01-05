@@ -167,8 +167,9 @@ Those that I have cobbled together into something that demonstrates the use of
 
 * The [datasets](https://jlmelville.github.io/smallvis/datasets.html) used in my ruminations.
 * [Distance-preserving methods](https://jlmelville.github.io/smallvis/mmds.html) (geodesic as well as Euclidean).
-* [Initialization methods](https://jlmelville.github.io/smallvis/init.html)
-on t-SNE.
+* A comparison of various flavours of [Stochastic Neighbor Embedding](https://jlmelville.github.io/smallvis/sne.html) (t-distributed and otherwise).
+* Testing some different [initialization methods](https://jlmelville.github.io/smallvis/init.html)
+for t-SNE.
 * [Optimizaton: L-BFGS](https://jlmelville.github.io/smallvis/opt.html).
 * [Optimizaton: Spectral Direction](https://jlmelville.github.io/smallvis/specd.html).
 * [Optimizaton: Conjugate Gradient](https://jlmelville.github.io/smallvis/cg.html).
