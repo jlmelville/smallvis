@@ -227,6 +227,40 @@ div.tocify {
 </div>
 
 
+<p>A brief run-through of t-SNE and its variants. Although t-SNE is the most well-known, there were actually two less successful versions of SNE before it.</p>
+<div id="methods" class="section level2">
+<h2>Methods</h2>
+<p>All the methods here follow the following basic procedure for both the input and output distances.</p>
+<ol style="list-style-type: decimal">
+<li>Square the Euclidean distances between all points.</li>
+<li>Weight the distances to produce weights (or affinities or similarities), ranging from 0 to 1, with a larger weight meaning the points are more similar (closer together).</li>
+<li>Normalize the weights into “probabilities”.</li>
+<li>Optimize the Kullback-Leibler divergence between the input and output probabilities.</li>
+</ol>
+<p>Input similarities always use a Gaussian kernel, with a bandwidth calibrated by fixing the perplexity for each probability distribution associated with a point. Normally this is a number between 5-50 (and usually in the 30-50 range).</p>
+<p>Differences between the methods arise from:</p>
+<ol style="list-style-type: decimal">
+<li>How the affinities are normalized into probabilities.</li>
+<li>What output kernel is used.</li>
+</ol>
+<div id="asymmetric-stochastic-neighbor-embedding" class="section level3">
+<h3>Asymmetric Stochastic Neighbor Embedding</h3>
+<p>The original <a href="https://papers.nips.cc/paper/2276-stochastic-neighbor-embedding">SNE</a>, re-dubbed ASNE in the t-SNE paper. This uses the gaussian kernel for the output distances, but unlike the input kernel, no calibration of bandwidths is carried out: the bandwidth is 1 for all points. Normalization is carried out point-wise, i.e. the normalized output weight associated with point <span class="math inline">\(q_{ij}\)</span> is generated from the output weight <span class="math inline">\(w_{ij}\)</span> by <span class="math inline">\(q_{ij} = w_{ij} / \sum_k^N w_{ik}\)</span>. This creates <span class="math inline">\(N\)</span> separate probability distributions and the input probability matrix <span class="math inline">\(P\)</span> is not symmetric. In fact it’s better thought of <span class="math inline">\(N\)</span> probability distribution arranged row-wise so that each row sums to 1.</p>
+</div>
+<div id="symmetric-stochastic-neighbor-embedding" class="section level3">
+<h3>Symmetric Stochastic Neighbor Embedding</h3>
+<p><a href="https://www.cs.toronto.edu/~amnih/papers/sne_am.pdf">SSNE (PDF)</a> differs from ASNE only in its normalization scheme. Now, the normalization is pair-wise: <span class="math inline">\(q_{ij}\)</span> is generated from the output weight <span class="math inline">\(w_{ij}\)</span> by summing over <em>all</em> pairs of distances: <span class="math inline">\(q_{ij} = w_{ij} / \sum_{kl}^N w_{kl}\)</span>. The output probability matrix <span class="math inline">\(Q\)</span> is therefore symmetric by construction. For the input probability matrix <span class="math inline">\(P\)</span>, symmetry is enforced by averaging <span class="math inline">\(p_{ij}\)</span> and <span class="math inline">\(p_{ji}\)</span>.</p>
+</div>
+<div id="t-distributed-stochastic-neighbor-embedding" class="section level3">
+<h3>t-Distributed Stochastic Neighbor Embedding</h3>
+<p><a href="http://www.jmlr.org/papers/v9/vandermaaten08a.html">t-SNE</a> modifies SSNE by changing the output kernel from Gaussian to the t-distribution with one degree of freedom.</p>
+</div>
+<div id="weighted-t-distributed-stochastic-neighbor-embedding" class="section level3">
+<h3>Weighted t-Distributed Stochastic Neighbor Embedding</h3>
+<p><a href="http://jmlr.org/proceedings/papers/v32/yange14.html">wt-SNE</a> is a variant on t-SNE that weights the output affinities <span class="math inline">\(w_{ij}\)</span> by an “importance” measure <span class="math inline">\(m_{ij}\)</span>. In this paper <span class="math inline">\(m_{ij}\)</span> is defined as the product of the degree centrality of points <span class="math inline">\(i\)</span> and <span class="math inline">\(j\)</span> in the input space. The degree centrality is the sum of the weights of the edges incident to a node in a graph. This is effectively the sum of the columns of <span class="math inline">\(P\)</span>, although other interpretations are possible. My interpretation is, I believe, perfectly in keeping with what’s written in the paper, but keep in mind that this may not be quite the same as what the authors intended or what leads to the results presented in their paper.</p>
+<p>This isn’t a terribly well-known method, and even the original authors don’t seem to have re-used this method in subsequent papers concerning themselves with t-SNE and its variants. However, I was curious about it, and otherwise there would only be three results per dataset, so we may as well look at it here.</p>
+</div>
+</div>
 <div id="datasets" class="section level2">
 <h2>Datasets</h2>
 <p>See the <a href="https://jlmelville.github.io/smallvis/datasets.html">Datasets</a> page.</p>
@@ -237,7 +271,7 @@ div.tocify {
 </div>
 <div id="settings" class="section level2">
 <h2>Settings</h2>
-<p>Here’s an example of generating the results using the <code>fashion</code> dataset. For ASNE and SSNE, values of <code>eta</code> were chosen that showed decent behavior on the <code>fashion</code> dataset: convergence within 1000 iterations without a hint of divergence, e.g. the error increasing during an “epoch”. These settings were applied to the other datasets without any further fiddling, so to be on the safe side, I allowed for double the number of iterations (<code>max_iter = 2000</code>) than for t-SNE.</p>
+<p>Here’s an example of generating the results using the <code>iris</code> dataset. For ASNE and SSNE, values of <code>eta</code> were chosen that showed decent behavior on the <code>iris</code> dataset: convergence within 1000 iterations without a hint of divergence, e.g. the error increasing during an “epoch”. These settings were applied to the other datasets without any further fiddling, so to be on the safe side, I allowed for double the number of iterations (<code>max_iter = 2000</code>) than for t-SNE.</p>
 <pre><code>fashion_wtsne &lt;- smallvis(fashion, scale = FALSE, perplexity = 40, Y_init = &quot;spca&quot;, 
 method = &quot;wtsne&quot;, ret_extra = c(&quot;dx&quot;, &quot;dy&quot;))
 fashion_asne &lt;- smallvis(fashion, scale = FALSE, perplexity = 40, Y_init = &quot;spca&quot;, method = &quot;asne&quot;, ret_extra = c(&quot;dx&quot;, &quot;dy&quot;), eta = 0.1, max_iter = 2000)
@@ -245,7 +279,7 @@ fashion_ssne &lt;- smallvis(fashion, scale = FALSE, perplexity = 40, Y_init = &q
 </div>
 <div id="results" class="section level2">
 <h2>Results</h2>
-<p>The DBD results are on the left, the Adam results are on the right.</p>
+<p>For each dataset, the first row shows t-SNE on the left and weighted t-SNE on the right. The lower row shows ASNE on the left and SSNE on the right. The bottom row methods therefore all use the Gaussian output kernel rather than the t-distribution, so we should expect to see more points concentrated in the middle of those plots.</p>
 <div id="iris" class="section level3">
 <h3>iris</h3>
 <table>
@@ -354,7 +388,9 @@ fashion_ssne &lt;- smallvis(fashion, scale = FALSE, perplexity = 40, Y_init = &q
 </div>
 <div id="conclusions" class="section level2">
 <h2>Conclusions</h2>
-<p>ASNE and SSNE results converged quicker than t-SNE.</p>
+<p>I feel like I must have misunderstood how wt-SNE works, because I just can’t see any meaningful difference between it and normal t-SNE. Oh well.</p>
+<p>ASNE and SSNE give pretty similar results visually. You can see some differences if you stare hard enough, e.g. the center of the <code>s1k</code> and <code>oli</code> plots seem a bit less crushed. But looking at the <code>fashion</code> and <code>mnist</code> results, it’s hard to argue that there’s a meaningful difference.</p>
+<p>Both ASNE and SSNE results converged quicker than t-SNE. Despite the amount of time spent describing the difficulty of optimizing ASNE, the delta-bar-delta method used in the t-SNE paper worked on SSNE and ASNE just fine.</p>
 </div>
 
 
