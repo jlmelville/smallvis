@@ -1026,7 +1026,7 @@ smallvis_perpstep <- function(step_iter = 250, ...) {
     max_iter_step <- max(1, floor(step_iter / nperps))
     max_iter_target <- max(1, max_iter - step_iter)
 
-    # Save/Modify some options between step iteratons and final optimization
+    # Save/Modify some options between step iterations and final optimization
     ret_extra <- varargs$ret_extra
     varargs$ret_extra <- FALSE
     varargs$max_iter <- max_iter_step
