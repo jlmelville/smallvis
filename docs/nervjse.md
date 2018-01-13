@@ -64,6 +64,59 @@ these opposing forces, and provide an extra "push" to some points that could
 work equivalently to replacing the Gaussian output kernel in ASNE and SSNE with
 the t-distributed kernel in t-SNE.
 
+## Gradients
+
+The JSE and NeRV gradients can be written as:
+
+$$
+\frac{\partial C}{\partial \mathbf{y_i}} = 
+  2 \sum_{j} \left(
+  k_{ij}
+  +
+  k_{ji}
+  \right)
+\left(\mathbf{y_i} - \mathbf{y_j}\right)
+$$
+
+where $\mathbf{y_i}$ is the output coordinate of point $i$, and $k_{ij}$ is the
+force constant between points $i$ and $j$, with different methods producing
+different force constants. Because of the point-wise nature of the normalization
+used in both methods, the force constant matrix $K$ is not symmetric, so 
+$k_{ij} \neq k_{ji}$.
+
+For NeRV, the force constant is:
+
+$$
+k_{ij} =
+\lambda
+\left(
+  {p_{ij}} - {q_{ij}}
+\right)
++
+\left(1 - \lambda\right) q_{ij}
+\left[
+\log
+\left( \frac{p_{ij}}{q_{ij}} \right)
++
+D_{KL}(Q||P)
+\right]
+$$
+
+where $D_{KL}(Q||P)$ is the "reverse" Kullback-Leibler divergence.
+
+For JSE, the force constant is:
+
+$$
+k_{ij} = 
+\frac{q_{ij}}{\kappa}
+\left[
+\log
+\left( \frac{z_{ij}}{q_{ij}} \right)
++
+D_{KL}(Q||Z)
+\right]
+$$
+
 ## Datasets
 
 See the [Datasets](https://jlmelville.github.io/smallvis/datasets.html) page.

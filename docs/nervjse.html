@@ -245,6 +245,48 @@ Z = \kappa P + \left(1- \kappa \right)Q
 <p>Both methods use the same normalization and output kernel as ASNE, and by setting the weighting parameter in the cost function appropriately, ASNE results can be generated. For NeRV this means setting <span class="math inline">\(\lambda = 1\)</span> and for JSE, it’s when <span class="math inline">\(\kappa = 0\)</span>. This does unfortunately mean you have to remember that the two Greek symbols, while doing basically the same job in NeRV and JSE, have the opposite effect on each other when changing the weighting parameter from 0 to 1 in the cost functions.</p>
 <p>The NeRV paper presents an information retrieval interpretation of the cost function, where <span class="math inline">\(\lambda\)</span> controls the relative weight of false positive to false negative penalization. This makes sense when you consider that the normal Kullback-Leibler divergence penalizes small output probabilities that have large input probabilities, i.e. pairs of points that should have close distances but are too far apart. These can be considered false negatives in the information retrieval interpretation. Conversely, large output probabilities with small input probabilities suffer a much smaller penalty. This corresponds to points that ought to be placed far away but end up close together. These are false positives. So the standard KL divergence used in SNE can be considered to do its best to preserve local neighborhoods, at the cost of allowing points that aren’t neighbors to end up close together. By using a KL divergence where the role of <span class="math inline">\(P\)</span> and <span class="math inline">\(Q\)</span> is reversed, we get a cost function that places a larger importance on penalizing false positives, i.e. a layout where neighborhoods aren’t fully reproduced, but if two points <em>are</em> close together, we can be reasonably confident they really should be.</p>
 <p>By blending the two divergences, we may get a cost function that can balance these opposing forces, and provide an extra “push” to some points that could work equivalently to replacing the Gaussian output kernel in ASNE and SSNE with the t-distributed kernel in t-SNE.</p>
+<div id="gradients" class="section level2">
+<h2>Gradients</h2>
+<p>The JSE and NeRV gradients can be written as:</p>
+<p><span class="math display">\[
+\frac{\partial C}{\partial \mathbf{y_i}} = 
+  2 \sum_{j} \left(
+  k_{ij}
+  +
+  k_{ji}
+  \right)
+\left(\mathbf{y_i} - \mathbf{y_j}\right)
+\]</span></p>
+<p>where <span class="math inline">\(\mathbf{y_i}\)</span> is the output coordinate of point <span class="math inline">\(i\)</span>, and <span class="math inline">\(k_{ij}\)</span> is the force constant between points <span class="math inline">\(i\)</span> and <span class="math inline">\(j\)</span>, with different methods producing different force constants. Because of the point-wise nature of the normalization used in both methods, the force constant matrix <span class="math inline">\(K\)</span> is not symmetric, so <span class="math inline">\(k_{ij} \neq k_{ji}\)</span>.</p>
+<p>For NeRV, the force constant is:</p>
+<p><span class="math display">\[
+k_{ij} =
+\lambda
+\left(
+  {p_{ij}} - {q_{ij}}
+\right)
++
+\left(1 - \lambda\right) q_{ij}
+\left[
+\log
+\left( \frac{p_{ij}}{q_{ij}} \right)
++
+D_{KL}(Q||P)
+\right]
+\]</span></p>
+<p>where <span class="math inline">\(D_{KL}(Q||P)\)</span> is the “reverse” Kullback-Leibler divergence.</p>
+<p>For JSE, the force constant is:</p>
+<p><span class="math display">\[
+k_{ij} = 
+\frac{q_{ij}}{\kappa}
+\left[
+\log
+\left( \frac{z_{ij}}{q_{ij}} \right)
++
+D_{KL}(Q||Z)
+\right]
+\]</span></p>
+</div>
 <div id="datasets" class="section level2">
 <h2>Datasets</h2>
 <p>See the <a href="https://jlmelville.github.io/smallvis/datasets.html">Datasets</a> page.</p>
