@@ -42,6 +42,10 @@ test_that("EE", {
   test_grad("ee", lambda = 1, perplexity = perp)
   test_grad("ee", lambda = 100, perplexity = perp)
   test_grad("ee", lambda = 1000, perplexity = perp)
+
+  test_grad("ee", lambda = 1, neg_weights = FALSE, perplexity = perp)
+  test_grad("ee", lambda = 100, neg_weights = FALSE, perplexity = perp)
+  test_grad("ee", lambda = 1000, neg_weights = FALSE, perplexity = perp)
 })
 
 test_that("LargeVis", {

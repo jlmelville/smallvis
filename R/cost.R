@@ -302,21 +302,32 @@ gmmds <- function(k) {
   )
 }
 
+# Elastic Embedding -------------------------------------------------------
+
 # Carreira-Perpinán, M. A. (2010, June).
 # The Elastic Embedding Algorithm for Dimensionality Reduction.
 # In \emph{Proceedings of the 27th International Conference on Machine Learning (ICML-10)} (pp. 167-174).
 # http://faculty.ucmerced.edu/mcarreira-perpinan/papers/icml10.pdf (PDF)
-ee <- function(perplexity, lambda = 100) {
+# lambda control the strength of repulsive vs attractive forces
+# if neg_weights is true, the repulsive contribution is weighted based on the
+# squared input distances. Otherwise, no weighting is applied.
+ee <- function(perplexity, lambda = 100, neg_weights = TRUE) {
   list(
     init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
                     ret_extra = c()) {
-      if (methods::is(X, "dist")) {
-        R <- X
+
+      if (neg_weights) {
+        if (methods::is(X, "dist")) {
+          R <- X
+        }
+        else {
+          R <- sqrt(safe_dist2(X))
+        }
+        cost$Vn <- R / sum(R)
       }
       else {
-        R <- sqrt(safe_dist2(X))
+        cost$Vn <- 1
       }
-      cost$Vn <- R / sum(R)
       cost <- sne_init(cost, X, perplexity = perplexity,
                        symmetrize = "symmetric", normalize = TRUE,
                        verbose = verbose, ret_extra = ret_extra)
