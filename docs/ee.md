@@ -140,6 +140,13 @@ For `lambda = 1000`, the learning rate had to be reduced to `eta = 10` for
 `iris` and `oli`. This didn't have much effect on the results for the other
 datasets.
 
+If not using negative weights, then the value of `lambda` has to be rescaled
+accordingly. Typical settings are:
+
+```
+iris_eeu <- smallvis(iris, perplexity = 40, scale = FALSE, Y_init = "spca", method = list("ee", lambda = 1e-4, neg_weights = FALSE), ret_extra = c("dx", "dy"), eta = 10)
+```
+
 For the Swiss Roll, it's not possible to get exactly the same results
 as with the EE paper, because that uses a k-nearest neighbor Gaussian kernel
 with $k = 12$ and a fixed bandwidth $\sigma = 15$. For our experiments, we
@@ -219,18 +226,52 @@ It would be nice to get results as good as t-SNE, but as far as I can tell,
 no-one has reported any results with a t-distributed version of EE. The advent
 of methods like LargeVis and UMAP may have filled that niche now.
 
-The Swiss Roll results look a bit disappointing. Probably allowing for a (much)
-longer optimization would help unroll it a bit more. SSNE on the Swiss Roll also 
-shows a similar slow unrolling. I suspect there is an effect due to the 
+### Negative Weights
+
+The above experiments were repeated without including negative weights. Apart
+from having to rescale `lambda`, there wasn't a large difference in the results.
+It did seem a bit harder to find a satisfactory value of `lambda` that worked
+for all datasets. With `neg_weights = FALSE`, a suitable range for `lambda` 
+seems to be between `1e-3` to `1e-5`.
+
+Given that the Swiss Roll results in the EE paper *do* show full unrolling, The
+Swiss Roll results look a bit disappointing, given that the EE paper results
+*do* show full unrolling. Allowing for a (much) longer optimization helps unroll
+it a bit more but still not completely (see below). SSNE on the Swiss Roll also
+shows a similar slow unrolling. I suspect there is an effect due to the
 calibrated bandwidths not being used in the output kernel.
 
-The results in the EE paper *do* show full unrolling, but do so by not including
-negative input weights in the repulsion and by using a fixed bandwidth for all
-positive weights (*and* by setting the weights to zero outside of the 12 nearest
-neighbors). I suspect the largest effect is by dropping the negative weights,
-but this will also have an effect on a good value of `lambda` and initial 
-learning rate. In my initial experiments, I was unable to find a satisfactory
-combination of settings.
+The EE results with the Swiss roll don't use SNE calibration, instead using
+a fixed bandwidth (presumably chosen by trial and error) for the Gaussian 
+kernel. Additionally, the weights were forced to zero outside the 12 nearest
+neighbors. This might account for the different behavior, but it would be a 
+pity if the results were so dependent on such a specific weight selection.
 
-This document will be updated if either the "polytope method" or the removal
-of negative weights are implemented.
+It seems more likely that the polytope method helps here, because 
+using a low value of lambda approximates the Laplacian Eigenmap result which
+does unfold the manifold, but doesn't do a good job with the distances 
+perpendicular to the main axis of the roll. Below are the two results for the
+Swiss Roll: on the left, setting `lambda = 100` and `max_iter = 70000`; and on 
+the right, a version approximating the polytope method, where `lambda = 1e-4`
+initially with `max_iter = 10000` and then the embedding is repeated with
+`lambda` increasing from `1e-3` to `100` in powers of 10, using the result from
+the previous embedding as initialization. Overall, both methods are allowed
+up to 70000 iterations, but the `tol` settings allow for early stopping so not
+all of those 70000 iterations are necessarily used.
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![Swiss EE (long)](../img/ee/sr2k_long.png)|![Swiss EE (polytope)](../img/ee/sr2k_polytope.png)
+
+While not perfect, using the polytope method certainly seems to improve the
+unrolling. The results shown here took up about 19000 iterations. Starting from
+`lambda = 100` directly also does an ok job, but the results above are from
+the 70000th iteration. To be fair, it's hard to detect any movement after
+30000-40000 iterations, but at the 19000th iteration, the polytope result is
+definitely preferred. Note also the "pinched" parts of the roll. This is where
+the roll has been twisted due to local optimization of the roll at the expense
+of regions around the pinch. This is much less prevalent with the the polytope
+method.
+
+
+This document will be updated if the "polytope method" is implemented.
