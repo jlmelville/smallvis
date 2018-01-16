@@ -172,6 +172,7 @@ Those that I have cobbled together into something that demonstrates the use of
 * [Heavy-Tailed SSNE (HSSNE)](https://jlmelville.github.io/smallvis/hssne.html).
 * Testing some different [initialization methods](https://jlmelville.github.io/smallvis/init.html)
 for t-SNE.
+* [Elastic Embedding](https://jlmelville.github.io/smallvis/ee.html).
 * [Optimizaton: L-BFGS](https://jlmelville.github.io/smallvis/opt.html).
 * [Optimizaton: Spectral Direction](https://jlmelville.github.io/smallvis/specd.html).
 * [Optimizaton: Conjugate Gradient](https://jlmelville.github.io/smallvis/cg.html).
