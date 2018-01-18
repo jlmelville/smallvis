@@ -158,6 +158,12 @@ disconnections, so the equivalent perplexity should be in the right ballpark.
 sr2k_ee_100 <- smallvis(sr2k, perplexity = 12, scale = FALSE, Y_init = "spca", method = list("ee", lambda = 100), ret_extra = c("dx", "dy"), eta = 100)
 ```
 
+## Results
+
+For each dataset, reading from left to right and top to bottom, `lambda`
+increases in powers of 10 from `1` to `1000` as indicated by the value in 
+parentheses in the plot title.
+
 ### iris
 
 |                             |                           |

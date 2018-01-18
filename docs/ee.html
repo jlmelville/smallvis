@@ -292,6 +292,10 @@ C =
 <pre><code>iris_eeu &lt;- smallvis(iris, perplexity = 40, scale = FALSE, Y_init = &quot;spca&quot;, method = list(&quot;ee&quot;, lambda = 1e-4, neg_weights = FALSE), ret_extra = c(&quot;dx&quot;, &quot;dy&quot;), eta = 10)</code></pre>
 <p>For the Swiss Roll, it’s not possible to get exactly the same results as with the EE paper, because that uses a k-nearest neighbor Gaussian kernel with <span class="math inline">\(k = 12\)</span> and a fixed bandwidth <span class="math inline">\(\sigma = 15\)</span>. For our experiments, we calibrate the affinities to give a perplexity of <code>12</code>, which necessitates varying bandwidths. The use of <span class="math inline">\(k = 12\)</span> with GMMDS unrolls this dataset without disconnections, so the equivalent perplexity should be in the right ballpark.</p>
 <pre><code>sr2k_ee_100 &lt;- smallvis(sr2k, perplexity = 12, scale = FALSE, Y_init = &quot;spca&quot;, method = list(&quot;ee&quot;, lambda = 100), ret_extra = c(&quot;dx&quot;, &quot;dy&quot;), eta = 100)</code></pre>
+</div>
+<div id="results" class="section level2">
+<h2>Results</h2>
+<p>For each dataset, reading from left to right and top to bottom, <code>lambda</code> increases in powers of 10 from <code>1</code> to <code>1000</code> as indicated by the value in parentheses in the plot title.</p>
 <div id="iris" class="section level3">
 <h3>iris</h3>
 <table>
