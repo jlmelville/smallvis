@@ -204,6 +204,97 @@ wssne <- function(perplexity) {
   )
 }
 
+
+# Normalization Experiments -----------------------------------------------
+
+# ASNE but with the t-distributed kernel
+tasne <- function(perplexity) {
+  lreplace(asne(perplexity = perplexity),
+  gr = function(cost, Y) {
+    P <- cost$P
+    W <- dist2(Y)
+    W <- 1 / (1 + W)
+    diag(W) <- 0
+    invZ <- 1 / rowSums(W)
+    cost$invZ <- invZ
+    cost$W <- W
+    cost$G <- k2g(Y, 2 * W * (P - W * invZ), symmetrize = TRUE)
+    cost$invZ <- invZ
+    cost$W <- W
+    cost
+  }
+  )
+}
+
+# t-RM-SNE
+# t-SNE without symmetrization of P (but still pair-normalizing)
+# row-normalize, then matrix normalize
+trmsne <- function(perplexity, inp_kernel = "gaussian") {
+  lreplace(tsne(perplexity = perplexity, inp_kernel = inp_kernel),
+           init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
+                           ret_extra = c()) {
+             cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
+                              symmetrize = "none", normalize = TRUE,
+                              verbose = verbose, ret_extra = ret_extra)
+             P <- cost$P
+             cost$plogp <- colSums(P * log((P + eps)))
+
+             cost$eps <- eps
+             cost
+           },
+           gr = function(cost, Y) {
+             P <- cost$P
+             W <- dist2(Y)
+             W <- 1 / (1 + W)
+             diag(W) <- 0
+             invZ <- 1 / sum(W)
+             cost$invZ <- invZ
+             cost$W <- W
+             cost$G <- k2g(Y, 2 * W * (P - W * invZ), symmetrize = TRUE)
+             cost
+           }
+  )
+}
+
+# t-M-SNE
+# t-SNE but without row-normalizing or symmetrizing, just matrix normalization
+# Not recommended
+tmsne <- function(perplexity, inp_kernel = "gaussian") {
+  lreplace(trmsne(perplexity = perplexity, inp_kernel = inp_kernel),
+           init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
+                           ret_extra = c()) {
+             cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
+                              symmetrize = "none", row_normalize = FALSE,
+                              normalize = TRUE,
+                              verbose = verbose, ret_extra = ret_extra)
+             P <- cost$P
+             cost$plogp <- colSums(P * log((P + eps)))
+
+             cost$eps <- eps
+             cost
+           }
+  )
+}
+
+# RSR row-normalize, symmetrize, then row-normalize again
+# Might work a tiny bit better than t-ASNE?
+trsrsne <- function(perplexity) {
+  lreplace(tasne(perplexity),
+           init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
+                           ret_extra = c()) {
+             cost <- sne_init(cost, X, perplexity = perplexity,
+                              symmetrize = "symmetric", normalize = FALSE,
+                              verbose = verbose, ret_extra = ret_extra)
+             P <- cost$P
+             P <- P / rowSums(P)
+             cost$P <- P
+
+             cost$eps <- eps
+             cost
+           }
+  )
+}
+
 # Perplexity Calibration --------------------------------------------------
 
 # symmetrize: type of symmetrization:
@@ -234,6 +325,10 @@ sne_init <- function(cost, X, perplexity, kernel = "gaussian",
 
   # row normalization before anything else
   if (row_normalize) {
+    if (symmetrize == "rowsymm") {
+      P <- 0.5 * (P + t(P))
+      symmetrize <- "none"
+    }
     P <- P / rowSums(P)
   }
 
@@ -244,12 +339,10 @@ sne_init <- function(cost, X, perplexity, kernel = "gaussian",
               mutual = sqrt(P * t(P)),
               umap = P + t(P) - P * t(P),
               stop("unknown symmetrization: ", symmetrize))
-
   # Normalize
   if (normalize) {
     P <- P / sum(P)
   }
-
   cost$P <- P
 
   for (r in unique(tolower(ret_extra))) {

@@ -11,6 +11,13 @@ test_that("SNE", {
   test_grad("wssne", perplexity = perp)
 })
 
+test_that("Norm SNE", {
+  test_grad("tasne", perplexity = perp)
+  test_grad("tmsne", perplexity = perp)
+  test_grad("trmsne", perplexity = perp)
+  test_grad("trsrsne", perplexity = perp)
+})
+
 test_that("HSSNE", {
   # fd starts losing accuracy for alpha = 0
   test_grad("hssne", perplexity = perp, alpha = 1e-6)
