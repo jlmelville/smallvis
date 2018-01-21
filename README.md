@@ -179,6 +179,7 @@ for t-SNE.
 * [Optimizaton: SGD methods](https://jlmelville.github.io/smallvis/sgd.html).
 * Some initial results using [UMAP](https://jlmelville.github.io/smallvis/umap.html)
 and related methods.
+* [t-SNE normalization](https://jlmelville.github.io/smallvis/norm.html).
 
 ## See Also
 
