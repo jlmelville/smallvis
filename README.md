@@ -203,5 +203,5 @@ of Justin Donaldson's R package for [t-SNE](https://cran.r-project.org/package=t
 [GPLv2 or later](https://www.gnu.org/licenses/gpl-2.0.txt). Any 
 LargeVis-specific code (e.g. cost and gradient calculation) can also be 
 considered [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0).
-Similary, UMAP-related code is also licensed as 
+Similarly, UMAP-related code is also licensed as 
 [BSD 3-clause](https://opensource.org/licenses/BSD-3-Clause).
