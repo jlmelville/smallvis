@@ -16,6 +16,7 @@ test_that("Norm SNE", {
   test_grad("tmsne", perplexity = perp)
   test_grad("trmsne", perplexity = perp)
   test_grad("trsrsne", perplexity = perp)
+  test_grad("arsrsne", perplexity = perp)
 })
 
 test_that("HSSNE", {

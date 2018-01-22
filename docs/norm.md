@@ -358,6 +358,15 @@ well do it in the matrix-normalized case too.
 Fourth, none of the variations on normalization improved on the existing
 methods, except that the RSR normalization might have potential.
 
+I also implemented a version of the RSR normalization for ASNE and
+compared to the [ASNE and SSNE](https://jlmelville.github.io/smallvis/sne.html) 
+results on the same datasets. Results are not shown because there was no
+interesting differences from the ASNE and SSNE results. Like the the results
+here with the t-distributed kernel, the RSR-ASNE results are similar to the
+ASNE results. As there wasn't much of a difference between ASNE and SSNE, and
+no outlier issues, there's no particularly pressing reason to adopt such
+a normalization in that case.
+
 Finally, some questions I should get around to answering. These may end up being
 added to this document or being written about elsewhere. For now, let us ponder
 them together:
@@ -368,10 +377,10 @@ rescales the input weights usefully?
 1. What exactly does symmetrization do to that helps when row-normalizing, that
 doesn't matter when matrix-normalizing?
 
-1. Given that JSE and NeRV carry out row-normalization, and they can be both
-trickier to optimize than t-SNE and produce less pleasing visualizations, 
-would the RSR normalization help them in the way t-ASNE was improved? Is there
-much effect on ASNE with the RSR normalization?
+1. Although ASNE doesn't seem to benefit from RSR normalization, given that JSE
+and NeRV carry out row-normalization, and they can be both trickier to optimize
+than t-SNE and produce less pleasing visualizations, would the RSR normalization
+help them in the way t-ASNE was improved?
 
 1. For un-normalized methods (Elastic Embedding, LargeVis, UMAP), how
 important is symmetrization?

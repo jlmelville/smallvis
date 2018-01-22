@@ -295,6 +295,24 @@ trsrsne <- function(perplexity) {
   )
 }
 
+
+arsrsne <- function(perplexity) {
+  lreplace(asne(perplexity),
+           init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
+                           ret_extra = c()) {
+             cost <- sne_init(cost, X, perplexity = perplexity,
+                              symmetrize = "symmetric", normalize = FALSE,
+                              verbose = verbose, ret_extra = ret_extra)
+             P <- cost$P
+             P <- P / rowSums(P)
+             cost$P <- P
+
+             cost$eps <- eps
+             cost
+           }
+  )
+}
+
 # Perplexity Calibration --------------------------------------------------
 
 # symmetrize: type of symmetrization:
