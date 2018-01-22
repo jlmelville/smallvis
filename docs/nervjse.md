@@ -140,7 +140,7 @@ iris_nerv0_1 <- smallvis(iris, scale = FALSE, perplexity = 40, Y_init = "spca", 
 ret_extra = c("dx", "dy"), eta = 0.1, max_iter = 2000)
 
 # default JSE kappa = 0.5
-iris_jse <- smallvis(fashion6k, scale = FALSE, perplexity = 40, Y_init = "spca", method = "jse", ret_extra = c("dx", "dy"), eta = 0.1, max_iter = 2000, tol = 0, epoch = 100, final_momentum = 0.25)
+iris_jse <- smallvis(iris, scale = FALSE, perplexity = 40, Y_init = "spca", method = "jse", ret_extra = c("dx", "dy"), eta = 0.1, max_iter = 2000, tol = 0, epoch = 100, final_momentum = 0.25)
 ```
 
 The default `lambda` is based on some applications of NeRV by

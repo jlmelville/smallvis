@@ -306,7 +306,7 @@ iris_nerv0_1 &lt;- smallvis(iris, scale = FALSE, perplexity = 40, Y_init = &quot
 ret_extra = c(&quot;dx&quot;, &quot;dy&quot;), eta = 0.1, max_iter = 2000)
 
 # default JSE kappa = 0.5
-iris_jse &lt;- smallvis(fashion6k, scale = FALSE, perplexity = 40, Y_init = &quot;spca&quot;, method = &quot;jse&quot;, ret_extra = c(&quot;dx&quot;, &quot;dy&quot;), eta = 0.1, max_iter = 2000, tol = 0, epoch = 100, final_momentum = 0.25)</code></pre>
+iris_jse &lt;- smallvis(iris, scale = FALSE, perplexity = 40, Y_init = &quot;spca&quot;, method = &quot;jse&quot;, ret_extra = c(&quot;dx&quot;, &quot;dy&quot;), eta = 0.1, max_iter = 2000, tol = 0, epoch = 100, final_momentum = 0.25)</code></pre>
 <p>The default <code>lambda</code> is based on some applications of NeRV by <a href="http://proceedings.mlr.press/v38/yang15a.html">Yang, Peltonen and Kaski</a>. JSE’s default <code>kappa</code> was set to 0.5 in accord with the settings used for JSE in the <a href="https://dx.doi.org/10.1016/j.neucom.2014.12.095">multiscale JSE paper</a>.</p>
 <p>On the <code>fashion6k</code> dataset, JSE with <code>kappa = 0.9</code> optimizes stably and seems to be converging before suddenly blowing up. The onset of this seems to be a single point being moved a large distance. It appears to be related to the <code>final_momentum</code> parameter, rather than minimum step size (controlled by <code>min_gain</code>).</p>
 <p>Apart from this slight wrinkle, the DBD method does seem to do an ok job at optimizing. Futher improvements to the final error can be realized by starting a new optimization with the final DBD coordinates using L-BFGS, but there’s no large change to the output coordinates.</p>
