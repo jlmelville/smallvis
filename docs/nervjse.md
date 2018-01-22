@@ -133,14 +133,14 @@ Example commands for using NeRV and JSE are given below for the `iris` dataset.
 
 ```
 # default NeRV lambda = 0.9
-iris_nerv <- smallvis(iris, scale = FALSE, perplexity = 40, Y_init = "spca", method = "nerv", ret_extra = c("dx", "dy"), eta = 0.1, max_iter = 2000)
+iris_nerv <- smallvis(iris, scale = FALSE, perplexity = 40, Y_init = "spca", method = "nerv", ret_extra = c("dx", "dy"), eta = 0.1, max_iter = 2000, tol = 1e-8)
 
 # non-default NeRV lambda = 0.1
 iris_nerv0_1 <- smallvis(iris, scale = FALSE, perplexity = 40, Y_init = "spca", method = list("nerv", lambda = 0.1), 
-ret_extra = c("dx", "dy"), eta = 0.1, max_iter = 2000)
+ret_extra = c("dx", "dy"), eta = 0.1, max_iter = 2000, tol = 1e-8)
 
 # default JSE kappa = 0.5
-iris_jse <- smallvis(iris, scale = FALSE, perplexity = 40, Y_init = "spca", method = "jse", ret_extra = c("dx", "dy"), eta = 0.1, max_iter = 2000, tol = 0, epoch = 100, final_momentum = 0.25)
+iris_jse <- smallvis(iris, scale = FALSE, perplexity = 40, Y_init = "spca", method = "jse", ret_extra = c("dx", "dy"), eta = 0.1, max_iter = 2000, epoch = 100, final_momentum = 0.25, tol = 1e-8)
 ```
 
 The default `lambda` is based on some applications of NeRV by
