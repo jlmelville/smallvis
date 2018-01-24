@@ -505,3 +505,36 @@ jse <- function(perplexity, kappa = 0.5) {
 }
 
 
+rsrnerv <- function(perplexity, lambda = 0.9) {
+  lreplace(nerv(perplexity = perplexity, lambda = lambda),
+           init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
+                           ret_extra = c()) {
+             cost <- sne_init(cost, X, perplexity = perplexity,
+                              symmetrize = "symmetric", normalize = FALSE,
+                              verbose = verbose, ret_extra = ret_extra)
+             P <- cost$P
+             P <- P / rowSums(P)
+             cost$P <- P
+
+             cost$eps <- eps
+             cost
+           }
+  )
+}
+
+rsrjse <- function(perplexity, kappa = 0.5) {
+  lreplace(jse(perplexity = perplexity, kappa = kappa),
+           init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
+                           ret_extra = c()) {
+             cost <- sne_init(cost, X, perplexity = perplexity,
+                              symmetrize = "symmetric", normalize = FALSE,
+                              verbose = verbose, ret_extra = ret_extra)
+             P <- cost$P
+             P <- P / rowSums(P)
+             cost$P <- P
+
+             cost$eps <- eps
+             cost
+           }
+  )
+}

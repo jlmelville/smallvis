@@ -364,3 +364,73 @@ more gentle an optimization is needed, so turn down the `momentum` and
 as a way to refine (if necessary) a short DBD run i.e. 200-500 iterations of 
 DBD, then initialize the L-BFGS optimization with the DBD coordinates.
 
+## Addendum: Normalization Comparison
+
+Update (January 23 2018): Results based on fiddling with different 
+[normalization](https://jlmelville.github.io/smallvis/norm.html) options in SNE
+suggested that there might be some value in symmetrizing and then re-applying
+the row-normalization used in ASNE. As JSE and NeRV use the same normalization,
+it's worth seeing if this has much effect.
+
+What would be great would be if the optimization problems we see when emphasising
+the reverse KL divergence in the cost function was ameliorated with this 
+normalization. Alas, this isn't the case: that `fashion` result still results 
+in divergence. So below are some results under more mild conditions, using
+`kappa = 0.5` for JSE and `lambda = 0.5` for NeRV. The left-hand images are
+repeated from the results above. The right-hand images use the new normalization
+technique (marked as "RSR" in the title of each plot):
+
+### iris
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![iris JSE (kappa = 0.5)](../img/nerv-jse/iris_jse0_5.png)|![iris rsr-JSE (kappa = 0.5)](../img/nerv-jse/iris_rsr_jse0_5.png)
+![iris NeRV (kappa = 0.5)](../img/nerv-jse/iris_nerv0_5.png)|![iris rsr-NeRV (kappa = 0.5)](../img/nerv-jse/iris_rsr_nerv0_5.png)
+
+### s1k
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![s1k JSE (kappa = 0.5)](../img/nerv-jse/s1k_jse0_5.png)|![s1k rsr-JSE (kappa = 0.5)](../img/nerv-jse/s1k_rsr_jse0_5.png)
+![s1k NeRV (kappa = 0.5)](../img/nerv-jse/s1k_nerv0_5.png)|![s1k rsr-NeRV (kappa = 0.5)](../img/nerv-jse/s1k_rsr_nerv0_5.png)
+
+### oli
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![oli JSE (kappa = 0.5)](../img/nerv-jse/oli_jse0_5.png)|![oli rsr-JSE (kappa = 0.5)](../img/nerv-jse/oli_rsr_jse0_5.png)
+![oli NeRV (kappa = 0.5)](../img/nerv-jse/oli_nerv0_5.png)|![oli rsr-NeRV (kappa = 0.5)](../img/nerv-jse/oli_rsr_nerv0_5.png)
+
+### frey
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![frey JSE (kappa = 0.5)](../img/nerv-jse/frey_jse0_5.png)|![frey rsr-JSE (kappa = 0.5)](../img/nerv-jse/frey_rsr_jse0_5.png)
+![frey NeRV (kappa = 0.5)](../img/nerv-jse/frey_nerv0_5.png)|![frey rsr-NeRV (kappa = 0.5)](../img/nerv-jse/frey_rsr_nerv0_5.png)
+
+
+### coil20
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![coil20 JSE (kappa = 0.5)](../img/nerv-jse/coil20_jse0_5.png)|![coil20 rsr-JSE (kappa = 0.5)](../img/nerv-jse/coil20_rsr_jse0_5.png)
+![coil20 NeRV (kappa = 0.5)](../img/nerv-jse/coil20_nerv0_5.png)|![coil20 rsr-NeRV (kappa = 0.5)](../img/nerv-jse/coil20_rsr_nerv0_5.png)
+
+
+### mnist
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![mnist JSE (kappa = 0.5)](../img/nerv-jse/mnist_jse0_5.png)|![mnist rsr-JSE (kappa = 0.5)](../img/nerv-jse/mnist_rsr_jse0_5.png)
+![mnist NeRV (kappa = 0.5)](../img/nerv-jse/mnist_nerv0_5.png)|![mnist rsr-NeRV (kappa = 0.5)](../img/nerv-jse/mnist_rsr_nerv0_5.png)
+
+### fashion
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![fashion JSE (kappa = 0.5)](../img/nerv-jse/fashion_jse0_5.png)|![fashion rsr-JSE (kappa = 0.5)](../img/nerv-jse/fashion_rsr_jse0_5.png)
+![fashion NeRV (kappa = 0.5)](../img/nerv-jse/fashion_nerv0_5.png)|![fashion rsr-NeRV (kappa = 0.5)](../img/nerv-jse/fashion_rsr_nerv0_5.png)
+
+I'd say that these results aren't that different visually, and don't offer a
+significant difference in terms of neighborhood retrieval either. It was worth
+a shot.

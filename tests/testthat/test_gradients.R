@@ -31,12 +31,20 @@ test_that("JSE", {
   # fd starts losing accuracy for kappa = 0
   test_grad("jse", kappa = 1e-5, perplexity = perp)
   test_grad("jse", kappa = 1, perplexity = perp)
+
+  test_grad("rsrjse", kappa = 0.5, perplexity = perp)
+  test_grad("rsrjse", kappa = 1e-5, perplexity = perp)
+  test_grad("rsrjse", kappa = 1, perplexity = perp)
 })
 
 test_that("NeRV", {
   test_grad("nerv", lambda = 0.5, perplexity = perp)
   test_grad("nerv", lambda = 0, perplexity = perp)
   test_grad("nerv", lambda = 1, perplexity = perp)
+
+  test_grad("rsrnerv", lambda = 0.5, perplexity = perp)
+  test_grad("rsrnerv", lambda = 1e-5, perplexity = perp)
+  test_grad("rsrnerv", lambda = 1, perplexity = perp)
 })
 
 test_that("MDS", {
