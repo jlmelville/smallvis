@@ -915,7 +915,7 @@ smallvis_rep <- function(nrep = 10, ...) {
   # Keep requested return type for final result
   ret_extra <- varargs$ret_extra
   # Inside loop, always return extra, so we can find the cost
-  if (!methods::is(ret_extra, "character") && !ret_extra) {
+  if (is.null(ret_extra) || (!methods::is(ret_extra, "character") && !ret_extra)) {
     varargs$ret_extra <- TRUE
   }
 
