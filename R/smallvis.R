@@ -1028,7 +1028,7 @@ smallvis_perpstep <- function(step_iter = 250, ...) {
   else {
     n <- nrow(X)
   }
-  perps <- scale_perps(target_perp = target_perplexity, n = n)
+  perps <- scale_perps(n = n, target_perp = target_perplexity)
 
   nperps <- length(perps)
   if (nperps > 0) {
