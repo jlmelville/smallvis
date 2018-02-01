@@ -935,7 +935,7 @@ smallvis_rep <- function(nrep = 10, ...) {
     all_costs <- c(all_costs, final_cost)
   }
 
-  if (!methods::is(ret_extra, "character") && !ret_extra) {
+  if (is.null(ret_extra) || (!methods::is(ret_extra, "character") && !ret_extra)) {
     best_res <- best_res$Y
   }
   else {
