@@ -275,7 +275,7 @@ div.tocify {
 <div id="laplacian-eigenmaps" class="section level2">
 <h2>Laplacian Eigenmaps</h2>
 <p>Solve the generalized eigenvalue problem:</p>
-<p><span class="math display">\[Lv = \lambda_{L} v\]</span></p>
+<p><span class="math display">\[Lv = \lambda_{L} D v\]</span></p>
 <p>The Laplacian Eigenmap uses the smallest eigenvectors. But not the very smallest eigenvector, which is constant. So if you want to reduce to two dimensions, use the second-smallest and third-smallest eigenvectors.</p>
 <p>It turns out that the following standard eigenvalue problem will produce the same eigenvectors:</p>
 <p><span class="math display">\[Pv = \lambda_{P} v\]</span></p>

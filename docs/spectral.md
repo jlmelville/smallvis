@@ -93,7 +93,7 @@ issues).
 
 Solve the generalized eigenvalue problem:
 
-$$Lv = \lambda_{L} v$$
+$$Lv = \lambda_{L} D v$$
 
 The Laplacian Eigenmap uses the smallest eigenvectors. But not the very smallest
 eigenvector, which is constant. So if you want to reduce to two dimensions, use
