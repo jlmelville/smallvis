@@ -180,6 +180,10 @@ for t-SNE.
 * Some initial results using [UMAP](https://jlmelville.github.io/smallvis/umap.html)
 and related methods.
 * [t-SNE normalization](https://jlmelville.github.io/smallvis/norm.html).
+* [Perplexity and three clusters](https://jlmelville.github.io/smallvis/three-clusters.html)
+  from from [How to Use t-SNE Effectively](https://distill.pub/2016/misread-tsne).
+* How hard is it to unroll the [Swiss Roll with SNE](https://jlmelville.github.io/smallvis/swisssne.html)?
+* Using input bandwidths in [SNE output functions](https://jlmelville.github.io/smallvis/bandwidths.html).
 
 ## See Also
 
