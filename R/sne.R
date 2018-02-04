@@ -79,11 +79,11 @@ ssne <- function(perplexity, inp_kernel = "gaussian") {
 # Hinton, G. E., & Roweis, S. T. (2002).
 # Stochastic neighbor embedding.
 # In \emph{Advances in neural information processing systems} (pp. 833-840).
-asne <- function(perplexity) {
+asne <- function(perplexity, inp_kernel = "gaussian") {
   lreplace(tsne(perplexity),
     init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
                     ret_extra = c()) {
-      cost <- sne_init(cost, X, perplexity = perplexity,
+      cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
                        symmetrize = "none", normalize = FALSE,
                        verbose = verbose, ret_extra = ret_extra)
       cost$eps <- eps
@@ -105,8 +105,7 @@ asne <- function(perplexity) {
       W <- exp(-W)
       diag(W) <- 0
       invZ <- 1 / colSums(W)
-      K <- (P - W * invZ)
-      cost$G <- k2g(Y, 2 * K, symmetrize = TRUE)
+      cost$G <- k2g(Y, 2 * (P - W * invZ), symmetrize = TRUE)
       cost$invZ <- invZ
       cost$W <- W
 
