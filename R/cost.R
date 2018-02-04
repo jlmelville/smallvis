@@ -538,3 +538,50 @@ rsrjse <- function(perplexity, kappa = 0.5) {
            }
   )
 }
+
+# NeRV with input bandwidths transferred to the output kernel, as in the
+# original paper.
+bnerv <- function(perplexity, lambda = 0.9) {
+  lreplace(
+    nerv(perplexity = perplexity, lambda = lambda),
+    init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
+                    ret_extra = c()) {
+      ret_extra <- unique(c(ret_extra, 'beta'))
+
+      cost <- sne_init(cost, X, perplexity = perplexity,
+                       symmetrize = "none", normalize = FALSE,
+                       verbose = verbose, ret_extra = ret_extra)
+      cost$eps <- eps
+      cost
+    },
+    gr = function(cost, Y) {
+      eps <- cost$eps
+      beta <- cost$beta
+      P <- cost$P
+      W <- dist2(Y)
+      W <- exp(-W * beta)
+      W[W < eps] <- eps
+      diag(W) <- 0
+      invZ <- 1 / rowSums(W)
+      Q <- W * invZ
+
+      # Forward KL gradient
+      K <- lambda * (P - Q)
+
+      # Reverse KL gradient
+      lPQ <- log((P + eps) / (Q + eps))
+      # for KLrev we want Q * log(Q/P), so take -ve of log(P/Q)
+      kl_rev <- rowSums(Q * -lPQ)
+
+      # Total K
+      K <- K + (1 - lambda) * (Q * (lPQ + kl_rev))
+
+      cost$G <- k2g(Y, 2 * beta * K, symmetrize = TRUE)
+      cost$invZ <- invZ
+      cost$W <- W
+      cost$kl_rev <- kl_rev
+      cost$lPQ <- lPQ
+
+      cost
+    })
+}

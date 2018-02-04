@@ -204,6 +204,106 @@ wssne <- function(perplexity) {
 }
 
 
+# Bandwidth Experiments --------------------------------------------------
+
+# t-SNE with input kernel bandwidths transferred to output
+btsne <- function(perplexity, inp_kernel = "gaussian") {
+  lreplace(tsne(perplexity = perplexity, inp_kernel = inp_kernel),
+    init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
+                    ret_extra = c()) {
+      ret_extra <- unique(c(ret_extra, 'beta'))
+      cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
+                       symmetrize = "symmetric", normalize = TRUE,
+                       verbose = verbose, ret_extra = ret_extra)
+      P <- cost$P
+      cost$plogp <- colSums(P * log((P + eps)))
+
+      cost$eps <- eps
+      cost
+    },
+    gr = function(cost, Y) {
+      P <- cost$P
+      beta <- cost$beta
+      W <- dist2(Y)
+      W <- 1 / (1 + (beta * W))
+      diag(W) <- 0
+      invZ <- 1 / sum(W)
+      cost$invZ <- invZ
+      cost$W <- W
+      cost$G <- k2g(Y, 2 * beta * W * (P - W * invZ), symmetrize = TRUE)
+      cost
+    }
+  )
+}
+
+# SSNE with input kernel bandwidths transferred to output
+bssne <- function(perplexity, inp_kernel = "gaussian") {
+  lreplace(btsne(perplexity = perplexity, inp_kernel = inp_kernel),
+           gr = function(cost, Y) {
+             P <- cost$P
+             beta <- cost$beta
+             W <- dist2(Y)
+             W <- exp(-beta * W)
+             diag(W) <- 0
+             invZ <- 1 / sum(W)
+             cost$invZ <- invZ
+             cost$W <- W
+             cost$G <- k2g(Y, 2 * beta * (P - W * invZ), symmetrize = TRUE)
+             cost
+           }
+  )
+}
+
+# ASNE with input kernel bandwidths transferred to output
+basne <- function(perplexity) {
+  lreplace(asne(perplexity = perplexity),
+           init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
+                           ret_extra = c()) {
+             ret_extra <- unique(c(ret_extra, 'beta'))
+
+             cost <- sne_init(cost, X, perplexity = perplexity,
+                              symmetrize = "none", normalize = FALSE,
+                              verbose = verbose, ret_extra = ret_extra)
+             cost$eps <- eps
+             cost
+           },
+           gr = function(cost, Y) {
+             P <- cost$P
+             beta <- cost$beta
+             W <- dist2(Y)
+             W <- exp(-W * beta)
+             diag(W) <- 0
+             # NB Can't use colSums now that W is not symmetric!
+             invZ <- 1 / rowSums(W)
+             cost$G <- k2g(Y, 2 * beta * (P - W * invZ), symmetrize = TRUE)
+
+             cost$invZ <- invZ
+             cost$W <- W
+             cost
+           }
+  )
+}
+
+# t-ASNE with input kernel bandwidths transferred to output
+btasne <- function(perplexity) {
+  lreplace(basne(perplexity = perplexity),
+           gr = function(cost, Y) {
+             beta <- cost$beta
+             P <- cost$P
+             W <- dist2(Y)
+             W <- 1 / (1 + beta * W)
+             diag(W) <- 0
+             invZ <- 1 / rowSums(W)
+             cost$invZ <- invZ
+             cost$W <- W
+             cost$G <- k2g(Y, 2 * beta * W * (P - W * invZ), symmetrize = TRUE)
+             cost$invZ <- invZ
+             cost$W <- W
+             cost
+           }
+  )
+}
+
 # Normalization Experiments -----------------------------------------------
 
 # ASNE but with the t-distributed kernel

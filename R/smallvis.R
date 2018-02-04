@@ -37,10 +37,11 @@
 #'   \item \code{"ee"} The Elastic Embedding method of Carreira-Perpinan (2010).
 #'   \item \code{"nerv"} The Neighbor Retrieval Visualizer method of Venna
 #'   and co-workers (2010). This version differs from the presentation in Venna
-#'   (2010), in that it does not use the precision values determined from the
-#'   perplexity calibration in the output kernel functon, which seems in line
-#'   with the discussion in later publications, see e.g. Yang and co-workers
-#'   (2014).
+#'   and co-workers (2010), in that it does not use the precision values
+#'   determined from the perplexity calibration in the output kernel functon,
+#'   which seems to reflect its presentation in later publications, see e.g.
+#'   Yang and co-workers (2014). If you really want the version from Venna and
+#'   co-workers, use method \code{"bnerv"}.
 #'   \item \code{"jse"} The Jensen-Shannon Embedding method of Lee and
 #'   co-workers (2013).
 #' }
@@ -610,7 +611,8 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
                     "asne", "ssne", "wtsne", "wssne",
                     "hssne", "ee", "nerv", "jse", "smmds", "sammon",
                     "tasne", "trmsne", "trsrsne", "tmsne", "arsrsne",
-                    "rsrjse", "rsrnerv")
+                    "rsrjse", "rsrnerv",
+                    "btsne", "bssne", "basne", "btasne", "bnerv")
   if (is.character(method)) {
     method <- match.arg(tolower(method), method_names)
     cost_fn <- switch(method,
@@ -638,6 +640,11 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
          arsrsne = arsrsne(perplexity = perplexity),
          rsrjse = rsrjse(perplexity = perplexity),
          rsrnerv = rsrnerv(perplexity = perplexity),
+         btsne = btsne(perplexity = perplexity),
+         bssne = bssne(perplexity = perplexity),
+         basne = basne(perplexity = perplexity),
+         btasne = btasne(perplexity = perplexity),
+         bnerv = bnerv(perplexity = perplexity),
          stop("BUG: someone forgot to implement option: '", method, "'")
     )
   }

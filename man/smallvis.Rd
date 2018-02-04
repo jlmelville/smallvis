@@ -209,10 +209,11 @@ to the \code{method} parameter are:
   \item \code{"ee"} The Elastic Embedding method of Carreira-Perpinan (2010).
   \item \code{"nerv"} The Neighbor Retrieval Visualizer method of Venna
   and co-workers (2010). This version differs from the presentation in Venna
-  (2010), in that it does not use the precision values determined from the
-  perplexity calibration in the output kernel functon, which seems in line
-  with the discussion in later publications, see e.g. Yang and co-workers
-  (2014).
+  and co-workers (2010), in that it does not use the precision values
+  determined from the perplexity calibration in the output kernel functon,
+  which seems to reflect its presentation in later publications, see e.g.
+  Yang and co-workers (2014). If you really want the version from Venna and
+  co-workers, use method \code{"bnerv"}.
   \item \code{"jse"} The Jensen-Shannon Embedding method of Lee and
   co-workers (2013).
 }
