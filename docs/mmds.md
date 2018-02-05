@@ -155,13 +155,55 @@ iris_sammon <- smallvis(iris, scale = FALSE, Y_init = "spca", method = "sammon",
 iris_gmmds <- smallvis(iris, scale = FALSE, perplexity = 10, Y_init = "spca", method = "gmmds", ret_extra = c("dx", "dy"), eta = 1e-5, max_iter = 2000, tol = 1e-8)
 ```
 
+### Ball-MMDS and knn-MMDS
+
+A limiting factor for the use of Isomap-like algorithms like GMMDS is that they
+require the geodesic distances to be calculated, which normally involves
+Floyd's algorithm, which is O(N^3) in time complexity. Inspired by 
+[Stochastic Proximity Embedding](http://dx.doi.org/10.1073/pnas.242424399),
+we could try another strategy to deal with long distances: ignore them unless
+they are too short. In terms of geodesics versus Euclidean distances, the
+Euclidean distance is always equal to or less than the geodesic distance, so 
+it can be treated like a lower bound. In isometric SPE, distances outside the
+neighborhood of each point are only corrected if they become smaller than the
+input distance. From the perspective of MMDS, this is like only having pairs
+of points contribute to the cost function or the force constant matrix if they
+are neighborhood points or the output distance is smaller than the input 
+distance.
+
+Isometric SPE uses a fixed distance cutoff to define the neighborhood for each
+point: the 10% smallest distance of a random sample of distances from the entire
+dataset, i.e. a "ball" of fixed radius is assumed for each point. I refer to 
+this method of defining the neighborhoods as Ball-MMDS. The obvious alternative
+is to use a symmetrized k-nearest-neighbor graph, which I refer to as knn-MMDS.
+
+The advantage of either knn-MMDS or Ball-MMDS is that you don't need as 
+expensive an algorithm to prepare the input distances, but we do throw away 
+long-distance information most of the time. This is not necessarily a bad thing,
+but relying on local data only to unfold a manifold may be harder work than
+using a full set of geodesic distances.
+
+knn-MMDS and Ball-MMDS are intended as an approximation to GMMDS, so we won't
+bother testing them out on anything other than the Swiss Roll (spoiler alert:
+it's just not worth the effort given the performance of GMMDS).
+
+I don't have any particular literature references for knn-MMDS or Ball-MMDS, 
+they are simply obvious (to me) implementations of SPE with the stochastic
+gradient descent optimization replaced by a typical batch optimization. No
+doubt there are literature precedents with better naming for both.
+
 ## Results
 
 For each dataset, PCA results are on the top left, GMMDS results are
 on the top right. On the bottom row are MMDS (left) and Sammon map (right).
 They're arranged this way so that it's easy to look directly down from the PCA
 results to the MMDS result to see the effect of that, and to demonstrate that
-the Sammon map and MMDS are very similar.
+the Sammon map and MMDS are very similar. For the Swiss Roll we'll also look
+at Ball-MMDS and knn-MMDS, which will hopefully look like the GMMDS result.
+For Ball-MMDS, the fraction of all pair-wise distances (after sorting in
+increasing order) used to calculate the distance cutoff for each neighborhood is
+given as "f = 0.1", i.e. using the 10% shortest distances. Setting "f = 1" would
+use all distances, and hence reproduce MMDS.
 
 ### swiss
 
@@ -169,6 +211,13 @@ the Sammon map and MMDS are very similar.
 :----------------------------:|:--------------------------:
 ![swiss PCA](../img/mmds/swiss_pca.png)|![swiss GMMDS](../img/mmds/swiss_gmmds.png)
 ![swiss MMDS](../img/mmds/swiss_mmds.png)|![swiss Sammon](../img/mmds/swiss_sammon.png)
+![swiss knn-MMDS](../img/mmds/swiss_knnmmds.png)|![swiss Ball-MMDS](../img/mmds/swiss_ballmmds.png)
+
+Ball-MMDS does a pretty good job of reproducing the GMMDS results. The knn-MMDS
+results are no-where near as good. The issue may be that choosing a fixed value
+of $k$ but then symmetrizing the graph means that some points get more neighbors
+and hence more contribution in the gradient than others, which could cause these
+distortions. Other methods are discussed in the Conclusions.
 
 ### iris
 
@@ -230,6 +279,19 @@ correctly unfolded by GMMDS, as we'd expect. We don't really see such a drastic
 difference for the other datasets, which suggests that, if there are low 
 dimensional manifolds lurking inside them, they aren't so low-dimensional that
 trying to reproduce the geodesic distances is worthwhile.
+
+In terms of the approximations to GMMDS I tried with `swiss`, Ball-MMDS is much
+more successful than knn-MMDS. As GMMDS isn't that useful in general, I haven't
+bothered looking into exactly why knn-MMDS doesn't do as well. The 10%
+cutoff used in Ball-MMDS was also used successfully in the Stochastic Proximity
+Embedding paper (which also successfully unrolls the Swiss Roll), which is why
+I also used it here. But no motivation for that choice is given in the SPE
+paper, and there doesn't seem to be any good advice out there for principled
+choice of a cut-off. At least the knn version, could appeal to something like 
+perplexity as used in SNE. Unfortunately, it doesn't do as well with a choice
+of $k$ that works perfectly well for GMMDS. Fortunately, as we shall discuss
+more below, GMMDS doesn't work so great that spending more time thinking about
+and trouble-shooting cheaper ways to approximate GMMDS is worth doing.
 
 `s1k` does show some indication that GMMDS was having some effect. There's a 
 hint of the ten overlapping clusters in the MMDS and Sammon map plots, but it's

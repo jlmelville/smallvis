@@ -24,9 +24,8 @@ cost_point <- function(cost, Y) {
 }
 
 
-# Cost Functions ----------------------------------------------------------
+# LargeVis ----------------------------------------------------------------
 
-# LargeVis
 # NB This version doesn't normalize the input P, despite what the paper
 # indicates (source code of the current implementation doesn't seem to either)
 largevis <- function(perplexity, gamma = 7, gr_eps = 0.1) {
@@ -48,7 +47,6 @@ largevis <- function(perplexity, gamma = 7, gr_eps = 0.1) {
      gr = function(cost, Y) {
        P <- cost$P
        W <- dist2(Y)
-
        W <- 1 / (1 + W)
        diag(W) <- 0
        cost$G <- k2g(Y, 4 * W * (P - ((gamma * W) / ((1 - W) + gr_eps))))
@@ -58,7 +56,8 @@ largevis <- function(perplexity, gamma = 7, gr_eps = 0.1) {
   )
 }
 
-# UMAP
+# UMAP --------------------------------------------------------------------
+
 umap <- function(perplexity, spread = 1, min_dist = 0.001, gr_eps = 0.1) {
   lreplace(tsne(perplexity),
     init = function(cost, X, eps = 1e-9, verbose = FALSE, ret_extra = c()) {
@@ -166,6 +165,9 @@ ntumap <- function(perplexity, gr_eps = 0.1) {
     }
   )
 }
+
+
+# Distance Preserving Methods ---------------------------------------------
 
 mmds_init <- function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
                       ret_extra = c()) {
@@ -285,6 +287,116 @@ gmmds <- function(k) {
       cost$R <- geodesic(X, k, verbose = verbose)
 
       cost$eps <- eps
+      cost
+    },
+    export = function(cost, val) {
+      res <- NULL
+      switch(val,
+             geo = {
+               res <- cost$R
+             },
+             dy = {
+               res <- cost$D
+             }
+      )
+      res
+    }
+  )
+}
+
+# Define neighborhoods using a radius based on a fraction (f) of all input
+# distances (sorted by increasing length), don't correct non-neighborhood
+# distances unless they smaller than the input distance
+ballmmds <- function(f = 0.1) {
+  lreplace(
+    mmds(),
+    init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
+                    ret_extra = c()) {
+      cost <- mmds_init(cost = cost, X = X, eps = eps, verbose = verbose,
+                        ret_extra = ret_extra)
+
+      rs <- cost$R[upper.tri(cost$R)]
+      rmax <- Rfast::nth(rs, max(1, round(f * length(rs))))
+      if (verbose) {
+        tsmessage("f = ", formatC(f), " rmax = ", formatC(rmax))
+      }
+      cost$rmax <- rmax
+
+      cost
+    },
+    pfn = function(cost, Y) {
+      R <- cost$R
+      D <- cost$D
+      rmax <- cost$rmax
+      Ddiff <- R - D
+      Ddiff[R > rmax & D > R] <- 0
+      cost$pcost <- colSums(Ddiff * Ddiff)
+      cost
+    },
+    gr = function(cost, Y) {
+      eps <- cost$eps
+      R <- cost$R
+      D <- sqrt(safe_dist2(Y))
+
+      K <- -4 * (R - D) / (D + eps)
+
+      rmax <- cost$rmax
+      K[R > rmax & D > R] <- 0
+
+      cost$G <- k2g(Y, K)
+      cost$D <- D
+      cost
+    },
+    export = function(cost, val) {
+      res <- NULL
+      switch(val,
+             geo = {
+               res <- cost$R
+             },
+             dy = {
+               res <- cost$D
+             }
+      )
+      res
+    }
+  )
+}
+
+# Create the symmetrized knn graph, don't correct non-neighborhood distances
+# unless they smaller than the input distance
+knnmmds <- function(k) {
+  lreplace(
+    mmds(),
+    init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
+                    ret_extra = c()) {
+      cost <- mmds_init(cost = cost, X = X, eps = eps, verbose = verbose,
+                        ret_extra = ret_extra)
+      knn <- knn_graph(X = X, k = k)
+      # symmetrize
+      cost$knn <- pmax(knn, t(knn))
+      cost
+    },
+    pfn = function(cost, Y) {
+      R <- cost$R
+      D <- cost$D
+      knn <- cost$knn
+      Ddiff <- R - D
+      Ddiff[knn == 0 & D > R] <- 0
+      cost$pcost <- colSums(Ddiff * Ddiff)
+      cost
+    },
+    gr = function(cost, Y) {
+      eps <- cost$eps
+      R <- cost$R
+      D <- sqrt(safe_dist2(Y))
+
+      K <- -4 * (R - D) / (D + eps)
+
+      knn <- cost$knn
+      K[knn == 0 & D > R] <- 0
+
+      cost$G <- k2g(Y, K)
+      cost$D <- D
       cost
     },
     export = function(cost, val) {

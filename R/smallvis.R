@@ -612,7 +612,8 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
                     "hssne", "ee", "nerv", "jse", "smmds", "sammon",
                     "tasne", "trmsne", "trsrsne", "tmsne", "arsrsne",
                     "rsrjse", "rsrnerv",
-                    "btsne", "bssne", "basne", "btasne", "bnerv")
+                    "btsne", "bssne", "basne", "btasne", "bnerv",
+                    "ballmmds", "knnmmds")
   if (is.character(method)) {
     method <- match.arg(tolower(method), method_names)
     cost_fn <- switch(method,
@@ -645,6 +646,8 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
          basne = basne(perplexity = perplexity),
          btasne = btasne(perplexity = perplexity),
          bnerv = bnerv(perplexity = perplexity),
+         ballmmds = ballmmds(),
+         knnmmds = knnmmds(k = perplexity),
          stop("BUG: someone forgot to implement option: '", method, "'")
     )
   }

@@ -60,6 +60,8 @@ test_that("MDS", {
   test_grad("smmds")
   test_grad("sammon")
   test_grad("gmmds", k = perp)
+  test_grad("ballmmds")
+  test_grad("knnmmds", k = perp)
 })
 
 test_that("EE", {
