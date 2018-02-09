@@ -613,7 +613,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
                     "tasne", "trmsne", "trsrsne", "tmsne", "arsrsne",
                     "rsrjse", "rsrnerv",
                     "btsne", "bssne", "basne", "btasne", "bnerv",
-                    "ballmmds", "knnmmds")
+                    "ballmmds", "knnmmds", "dhssne")
   if (is.character(method)) {
     method <- match.arg(tolower(method), method_names)
     cost_fn <- switch(method,
@@ -648,6 +648,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
          bnerv = bnerv(perplexity = perplexity),
          ballmmds = ballmmds(),
          knnmmds = knnmmds(k = perplexity),
+         dhssne = dhssne(perplexity = perplexity),
          stop("BUG: someone forgot to implement option: '", method, "'")
     )
   }
@@ -878,6 +879,10 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
       if (nnat(opt$is_terminated)) {
         break
       }
+
+      epoch_res <- do_epoch(opt, cost_fn, iter, Y)
+      opt <- epoch_res$opt
+      cost_fn <- epoch_res$cost
     }
   }
 
@@ -1257,6 +1262,23 @@ laplacian_eigenmap <- function(A, ndim = 2) {
 
 # Epoch Functions ---------------------------------------------------------
 
+do_epoch <- function(opt, cost, iter, Y) {
+  if (!is.null(cost$epoch)) {
+    res <- cost$epoch(opt, cost, iter, Y)
+    if (!is.null(res$opt)) {
+      opt <- res$opt
+    }
+    if (!is.null(res$cost)) {
+      cost <- res$cost
+    }
+  }
+
+  list(
+    opt = opt,
+    cost = cost
+  )
+}
+
 # Helper function for epoch callback, allowing user to supply callbacks with
 # multiple arities.
 do_callback <- function(cb, Y, iter, cost = NULL) {
@@ -1355,7 +1377,7 @@ ret_value <- function(Y, ret_extra, method, X, scale, Y_init, iter, start_time =
     optionals <- tolower(unique(optionals))
     for (o in optionals) {
       if (o %in% c("p", "q", "w", "dx", "dy", "v", "beta", "dint", "adegc",
-                   "adegin", "adegout", "pdeg")) {
+                   "adegin", "adegout", "pdeg", "alpha")) {
         exported <- NULL
         if (!is.null(cost_fn)) {
           # Could be NULL if max_iter was 0

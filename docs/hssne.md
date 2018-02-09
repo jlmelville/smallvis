@@ -143,10 +143,13 @@ $\alpha$ power in the gradient slows down the gradient calculation compared to
 t-SNE.
 
 Of course, if there was a way to optimize $\alpha$, that might be more 
-interesting. There's certainly a way to do this: I write more about his 
-[here](http://jlmelville.github.io/sneer/dynamic-hssne.html). As of this
-writing, I am unconvinced that I want to introduce the complexity this would
-require into `smallvis`.
+interesting. There's certainly a way to do this: a similar 
+strategy was used by van der Maaten for 
+[parametric t-SNE](http://proceedings.mlr.press/v5/maaten09a). 
+*Update February 8 2018:* `smallvis` now offers
+offers a simple version, which I have dubbed dynamic HSSNE (DHSSNE). You can
+read more about its performance 
+[here](https://jlmelville.github.io/smallvis/dhssne.html).
 
 Extending this idea would be to use a per-point $\alpha$ value, rather than one
 global value, which would allow different cluster densities to expand at

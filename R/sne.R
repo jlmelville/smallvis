@@ -141,6 +141,52 @@ hssne <- function(perplexity, alpha = 0.5) {
   )
 }
 
+# A version of HSSNE where alpha is allowed to vary at every epoch
+dhssne <- function(perplexity, alpha = 0.5) {
+  alpha_min <- 1e-8
+  alpha <- max(alpha, alpha_min)
+  lreplace(
+    tsne(perplexity = perplexity),
+    gr = function(cost, Y) {
+      alpha <- cost$alpha
+      P <- cost$P
+      W <- dist2(Y)
+      W <- (alpha * W + 1) ^ (-1 / alpha)
+      diag(W) <- 0
+
+      invZ <- 1 / sum(W)
+      cost$invZ <- invZ
+      cost$W <- W
+
+      cost$G <- k2g(Y, 4 * (P - W * invZ) * (W ^ alpha))
+      cost
+    },
+    epoch = function(opt, cost, iter, Y) {
+      errs <- c()
+
+      old_cost <- cost
+
+      alpha_curr <- cost$alpha
+
+      alpha_down <- max(alpha_curr - 0.1, alpha_min)
+      alpha_up <- alpha_curr + 0.1
+      alphas <- unique(c(alpha_down, alpha_curr, alpha_up))
+
+      for (alpha in alphas) {
+        cost$alpha <- alpha
+        cost <- cost$gr(cost, Y)
+        cost <- cost_point(cost, Y)
+        err <- sum(cost$pcost)
+        errs <- c(errs, err)
+      }
+
+      old_cost$alpha <- alphas[which.min(errs)]
+      list(cost = old_cost)
+    },
+    alpha = alpha
+  )
+}
+
 # Yang, Z., Peltonen, J., & Kaski, S. (2014).
 # Optimization equivalence of divergences improves neighbor embedding.
 # In \emph{Proceedings of the 31st International Conference on Machine Learning (ICML-14)}
