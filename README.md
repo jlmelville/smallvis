@@ -170,6 +170,7 @@ Those that I have cobbled together into something that demonstrates the use of
 * A comparison of various flavours of [Stochastic Neighbor Embedding](https://jlmelville.github.io/smallvis/sne.html) (t-distributed and otherwise).
 * A comparison of [NeRV and JSE](https://jlmelville.github.io/smallvis/nervjse.html).
 * [Heavy-Tailed SSNE (HSSNE)](https://jlmelville.github.io/smallvis/hssne.html).
+* [Optimizing the Heavy-Tail parameter in HSSNE](https://jlmelville.github.io/smallvis/dhssne.html).
 * Testing some different [initialization methods](https://jlmelville.github.io/smallvis/init.html)
 for t-SNE.
 * [Elastic Embedding](https://jlmelville.github.io/smallvis/ee.html).
