@@ -599,6 +599,7 @@ opt_step_internal <- function(opt, cost_fn, Y, iter) {
   cost_fn <- cost_grad(cost_fn, Y)
 
   opt <- opt$upd(opt, cost_fn$G, iter)
+  cost_fn <- cost_clear(cost_fn)
   list(
     Y = Y + opt$uY,
     cost_fn = cost_fn,

@@ -23,6 +23,15 @@ cost_point <- function(cost, Y) {
   cost$pfn(cost, Y)
 }
 
+# Clear values dependent on Y (or other parameters)
+# This is the mechanism by which Gradient and Function evaluations will
+# detect that they need recalculate distances, weights, probabilities etc.
+cost_clear <- function(cost) {
+  if (!is.null(cost$clear)) {
+    cost <- cost$clear(cost)
+  }
+  cost
+}
 
 # LargeVis ----------------------------------------------------------------
 

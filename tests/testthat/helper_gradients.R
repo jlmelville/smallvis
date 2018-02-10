@@ -1,5 +1,6 @@
 gradient_fd <- function(Y, cost_fn, diff = .Machine$double.eps ^ (1 / 3)) {
   cost <- function(Y) {
+    cost_fn <- cost_clear(cost_fn)
     cost_fn <- cost_fn$gr(cost_fn, Y)
     cost_fn <- cost_fn$pfn(cost_fn, Y)
     sum(cost_fn$pcost)
@@ -37,6 +38,7 @@ expect_grad <- function(cost_fn,
                         tolerance = 1e-6,
                         scale = 1) {
 
+  cost_fn <- cost_clear(cost_fn)
   cost_fn <- cost_grad(cost_fn, Y)
   gan <- cost_fn$G
   gfd <- gradient_fd(Y, cost_fn)
@@ -73,3 +75,4 @@ final_cost <- function(res) {
 # Covert a vector into a 2D matrix for generating Y output
 c2y <- function(...) {
   matrix(unlist(list(...)), ncol = 2)
+}
