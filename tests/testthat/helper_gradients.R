@@ -64,3 +64,12 @@ l2s <- function(l) {
   }
   paste0(mapply(FUN = paste0, names(l), ":", l), collapse = " ")
 }
+
+# extract the last evaluated error
+final_cost <- function(res) {
+  as.numeric(res$itercosts[length(res$itercosts)])
+}
+
+# Covert a vector into a 2D matrix for generating Y output
+c2y <- function(...) {
+  matrix(unlist(list(...)), ncol = 2)
