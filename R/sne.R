@@ -47,9 +47,9 @@ tsne <- function(perplexity, inp_kernel = "gaussian") {
       }
       else {
         switch(val,
-             q = {
-               res <- cost$W * cost$invZ
-             })
+               q = {
+                 res <- cost$W * cost$invZ
+               })
       }
       res
     }
@@ -515,12 +515,12 @@ sne_init <- function(cost, X, perplexity, kernel = "gaussian",
            },
            dint = {
              if (!is.null(x2ares$dint)) {
-              cost$dint <- x2ares$dint
+               cost$dint <- x2ares$dint
              }
            },
            beta = {
              if (!is.null(x2ares$beta)) {
-              cost$beta <- x2ares$beta
+               cost$beta <- x2ares$beta
              }
            },
            adegc = {
