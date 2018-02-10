@@ -7,7 +7,7 @@ expected_Y <- matrix(c(
 ), ncol = 2)
 
 test_that("basic return value", {
-i10_tsne <- smallvis(iris10, Y_init = iris10_Y, perplexity = 5,
+  i10_tsne <- smallvis(iris10, Y_init = iris10_Y, perplexity = 5,
                      epoch_callback = NULL, verbose = FALSE)
   expect_equal(i10_tsne, expected_Y, tolerance = 0.1)
 })
@@ -164,5 +164,15 @@ test_that("largevis", {
                         12.38, 1.944, 1.879, 4.428, -1.165, -1.434, -2.13, -1.525, -5.295,
                         1.379, -0.3885, 4.251), tolerance = 1e-4)
   expect_equal(final_cost(res), 46.99, tolerance = 1e-4)
+})
+
+test_that("tsne with L-BFGS", {
+  res <- smallvis(iris10, Y_init = iris10_Y, perplexity = 5,
+                       epoch_callback = NULL, verbose = FALSE,
+                       opt = list("L-BFGS"), ret_extra = TRUE, max_iter = 25)
+  expect_equal(res$Y, c2y(-3.534, 2.266, 1.774, 3.28, -3.286, -5.684, 1.287, -2.035,
+                           5.02, 0.9119, 0.7444, 1.769, -0.6249, -0.4774, -0.7323, -0.2723,
+                           -2.118, 0.4957, -0.3813, 1.598), tolerance = 1e-3)
+  expect_equal(final_cost(res), 0.02590, tolerance = 1e-4)
 })
 
