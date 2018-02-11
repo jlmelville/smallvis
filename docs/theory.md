@@ -28,7 +28,7 @@ and $p_{ij}$ as "just" a normalized affinity, I won't blame you.
 * $w_{ij}$ are the output configuration weights, aka un-normalized affinities 
 or similarities.
 * $q_{ij}$ are the output probabilities, where $q_{ij} = w_{ij} / Z$ and $Z$ is
-the sum of all the weights: $Z = \sum_{ij} w_{ij}$.
+the sum of all the weights: $Z = \sum_{kl} w_{kl}$.
 * $w_{ij}$ in both t-SNE and LargeVis is defined as the Student's t-distribution 
 with one degree of freedom (or the Cauchy distribution, if you prefer), 
 $w_{ij} = 1 / \left(1 + d_{ij}^2 \right)$. $d_{ij}$ is the Euclidean distance
@@ -249,11 +249,15 @@ and differences with LargeVis and UMAP:
 $$
 \frac{\partial C_{tSNE}}{\partial \mathbf{y_i}} = 
 4
-\sum_j^N \left( v_{ij} -\frac{\sum_j v_{ij}}{\sum_j w_{ij}} w_{ij} \right) 
-\frac{w_{ij}}{\sum_j v_{ij}}
+\sum_j^N \left( v_{ij} -\frac{\sum_{kl} v_{kl}}{\sum_{kl} w_{kl}} w_{ij} \right) 
+\frac{w_{ij}}{\sum_{kl} v_{kl}}
 \left(\mathbf{y_i - y_j}\right)
 $$
-If you want a bit more detail in how this is derived, see [here](http://jlmelville.github.io/sneer/experimental-gradients.html).
+If you want a bit more detail in how this is derived, see [here](http://jlmelville.github.io/sneer/experimental-gradients.html). Note that
+the sum $\sum_{kl}$ means to sum over all weights and the input weights 
+$v_{ij}$ are not matrix-normalized but otherwise have had the other processing 
+carried out on them as is usually done in perplexity-based calibration, i.e. 
+row-normalization and symmetrization.
 
 For LargeVis, the gradient can be written as:
 
