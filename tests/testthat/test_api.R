@@ -26,9 +26,9 @@ test_that("extra return values", {
   expect_equal(i10_tsne$stop_lying_iter, 100)
   expect_equal(i10_tsne$exaggeration_factor, 1)
 
-  expected_itercosts <- c(0.3096, 0.05035, 0.04133, 0.04129, 0.04129)
+  expected_itercosts <- c(0.3087, 0.04999, 0.04132, 0.04129, 0.04129)
   names(expected_itercosts) <- c(100, 200, 300, 400, 500)
-  expect_equal(i10_tsne$itercosts, expected_itercosts, tolerance = 1e-5)
+  expect_equal(i10_tsne$itercosts, expected_itercosts, tolerance = 1e-4)
 
   expect_equal(i10_tsne$costs, c(0.005045, 0.0005255, -0.005447, 0.003863,
                                  0.0005298,  0.006410,  0.01191, 0.007799,
@@ -55,6 +55,15 @@ test_that("sammon", {
   expect_equal(final_cost(res), 0.003427, tolerance = 1e-5)
 })
 
+test_that("smmds", {
+  res <- smallvis(iris10, Y_init = iris10_Y, method = "smmds", eta = 0.001,
+                  epoch_callback = NULL, verbose = FALSE, ret_extra = TRUE)
+  expect_equal(res$Y, c2y(-0.4952, 0.3507, 0.3716, 0.5528, -0.502, -1.449, 0.1852, -0.2768,
+                            1.042, 0.2206, 0.1035, 0.4062, -0.1173, -0.07106, -0.1869, -0.02864,
+                            -0.459, 0.09674, -0.1043, 0.3608), tolerance = 1e-3)
+  expect_equal(final_cost(res), 0.3038, tolerance = 1e-4)
+})
+
 test_that("gmmds", {
   res <- smallvis(iris10, Y_init = iris10_Y, method = "gmmds", eta = 0.1,
                   perplexity = 3,
@@ -63,6 +72,25 @@ test_that("gmmds", {
                             0.07552, -0.0509, 0.3138, 0.6367, -0.4354, -0.5816, -0.6774,
                             0.6217, 1.604, -0.1778, 0.386, -1.201, -0.1749), tolerance = 1e-4)
   expect_equal(final_cost(res), 0.4881, tolerance = 1e-4)
+})
+
+test_that("ballmmds", {
+  res <- smallvis(iris10, Y_init = iris10_Y, method = list("ballmmds", f = 0.5), eta = 0.1,
+                  epoch_callback = NULL, verbose = FALSE, ret_extra = TRUE, max_iter = 50)
+  expect_equal(res$Y, c2y(0.0849, 1.09, 0.9095, 1.208, 0.05264, -6.899, 0.7066, 0.3632,
+                          1.624, 0.8593, -0.1728, -0.381, 0.1399, 0.1256, 0.05778, -0.1192,
+                          0.4718, -0.1738, 0.3942, -0.3424), tolerance = 1e-4)
+  expect_equal(final_cost(res), 0.08589, tolerance = 1e-4)
+})
+
+
+test_that("knnmmds", {
+  res <- smallvis(iris10, Y_init = iris10_Y, method = "knnmmds", eta = 0.1, perplexity = 5,
+                  epoch_callback = NULL, verbose = FALSE, ret_extra = TRUE, max_iter = 50)
+  expect_equal(res$Y, c2y(-0.1916, -0.2973, 0.1988, 0.228, 0.03356, -0.419, 0.4968, -0.201,
+                        0.4247, -0.2729, -0.4865, 0.5189, 0.285, 0.5853, -0.5463, -1.44,
+                        0.03945, -0.2379, 0.9893, 0.2931), tolerance = 1e-3)
+  expect_equal(final_cost(res), 0.1155, tolerance = 1e-4)
 })
 
 test_that("asne", {
@@ -156,6 +184,26 @@ test_that("umap", {
   expect_equal(final_cost(res), 6.144, tolerance = 1e-4)
 })
 
+test_that("tumap", {
+  res <- smallvis(iris10, Y_init = iris10_Y, method = "tumap", eta = 0.1,
+                  perplexity = 5, max_iter = 100,
+                  epoch_callback = NULL, verbose = FALSE, ret_extra = TRUE)
+  expect_equal(res$Y, c2y(-1.548, 0.6899, 1.018, 1.383, -1.62, -1.981, 0.83, -1.094,
+                          1.827, 0.4956, 0.04525, 0.5803, -0.3647, -0.1572, 0.004016, -0.005096,
+                          -0.7239, 0.09424, -0.03201, 0.5591), tolerance = 1e-3)
+  expect_equal(final_cost(res), 4.71, tolerance = 1e-4)
+})
+
+test_that("ntumap", {
+  res <- smallvis(iris10, Y_init = iris10_Y, method = "ntumap", eta = 10,
+                  perplexity = 5,
+                  epoch_callback = NULL, verbose = FALSE, ret_extra = TRUE)
+  expect_equal(res$Y, c2y(-2.767, 1.704, 1.432, 2.459, -2.561, -3.828, 0.9237, -1.53,
+                          3.564, 0.6009, 0.5384, 1.304, -0.4953, -0.3918, -0.5756, -0.1866,
+                          -1.521, 0.3658, -0.1039, 1.067), tolerance = 1e-3)
+  expect_equal(final_cost(res), 0.04159, tolerance = 1e-4)
+})
+
 test_that("largevis", {
   res <- smallvis(iris10, Y_init = iris10_Y, method = "largevis", eta = 0.1,
                   perplexity = 5,
@@ -167,7 +215,7 @@ test_that("largevis", {
 })
 
 test_that("tsne with L-BFGS", {
-  res <- smallvis(iris10, Y_init = iris10_Y, perplexity = 5,
+  res <- smallvis::smallvis(iris10, Y_init = iris10_Y, perplexity = 5,
                        epoch_callback = NULL, verbose = FALSE,
                        opt = list("L-BFGS"), ret_extra = TRUE, max_iter = 25)
   expect_equal(res$Y, c2y(-3.534, 2.266, 1.774, 3.28, -3.286, -5.684, 1.287, -2.035,
@@ -176,3 +224,94 @@ test_that("tsne with L-BFGS", {
   expect_equal(final_cost(res), 0.02590, tolerance = 1e-4)
 })
 
+test_that("Miscellany", {
+  res <- smallvis(iris10, Y_init = iris10_Y, method = "bnerv", eta = 0.1,
+                  perplexity = 5,
+                  epoch_callback = NULL, verbose = FALSE, ret_extra = TRUE)
+  expect_equal(res$Y, c2y(-0.4777, 0.3406, 0.3258, 0.574, -0.4849, -1.468, 0.2147, -0.2627,
+                          1.012, 0.2258, 0.02774, 0.3532, -0.1, -0.05147, -0.1651, 0.06006,
+                          -0.4242, 0.07663, -0.09239, 0.3156), tolerance = 1e-3)
+  expect_equal(final_cost(res), 0.0574, tolerance = 1e-4)
+
+
+  testthat::expect_true(!is.null(res))
+  res <- smallvis(iris10, Y_init = iris10_Y, method = "rsrnerv", eta = 0.1,
+                  perplexity = 5,
+                  epoch_callback = NULL, verbose = FALSE, ret_extra = TRUE)
+  expect_equal(res$Y, c2y(-0.9464, 0.4992, 0.4742, 0.8761, -0.9257, -1.231, 0.2172, -0.6745,
+                          1.411, 0.2996, 0.1939, 0.662, -0.2914, -0.177, 0.02104, -0.5248,
+                          -0.7185, 0.2888, -0.09876, 0.6447), tolerance = 1e-3)
+  expect_equal(final_cost(res), 0.1731, tolerance = 1e-4)
+
+  res <- smallvis(iris10, Y_init = iris10_Y, method = "rsrjse", eta = 0.1,
+                  perplexity = 5,
+                  epoch_callback = NULL, verbose = FALSE, ret_extra = TRUE)
+  expect_equal(res$Y, c2y(-0.9463, 0.5184, 0.4731, 0.884, -0.9286, -1.281, 0.2148, -0.6778,
+                          1.429, 0.3148, 0.1945, 0.6732, -0.2905, -0.1792, 0.02602, -0.5414,
+                          -0.7223, 0.2907, -0.1077, 0.6568), tolerance = 1e-3)
+  expect_equal(final_cost(res), 0.1627, tolerance = 1e-4)
+
+  res <- smallvis(iris10, Y_init = iris10_Y, method = "btsne", eta = 0.1,
+                  perplexity = 5,
+                  epoch_callback = NULL, verbose = FALSE, ret_extra = TRUE)
+  expect_equal(res$Y, c2y(-1.437, 0.949, 0.8898, 1.374, -1.401, -2.975, 0.7103, -0.813,
+                          2.22, 0.4825, 0.3022, 0.7113, -0.2084, -0.1298, -0.3676, -0.06477,
+                          -0.7179, 0.1204, -0.2042, 0.5588), tolerance = 1e-3)
+  expect_equal(final_cost(res), 0.07386, tolerance = 1e-4)
+
+  res <- smallvis(iris10, Y_init = iris10_Y, method = "bssne", eta = 0.1,
+                  perplexity = 5,
+                  epoch_callback = NULL, verbose = FALSE, ret_extra = TRUE)
+  expect_equal(res$Y, c2y(-0.4612, 0.2633, 0.2751, 0.4448, -0.4517, -0.9009, 0.1995,
+                          -0.2956, 0.7688, 0.1578, -0.07989, 0.3133, -0.08017, -0.03674,
+                          -0.1972, 0.1591, -0.3072, 0.01725, -0.06213, 0.2736), tolerance = 1e-3)
+  expect_equal(final_cost(res), 0.1089, tolerance = 1e-4)
+
+  res <- smallvis(iris10, Y_init = iris10_Y, method = "basne", eta = 0.1,
+                  perplexity = 5,
+                  epoch_callback = NULL, verbose = FALSE, ret_extra = TRUE)
+  expect_equal(res$Y, c2y(-0.4776, 0.3416, 0.3254, 0.5736, -0.4853, -1.467, 0.2133, -0.2623,
+                          1.012, 0.2268, 0.02933, 0.352, -0.1008, -0.05319, -0.1635, 0.06401,
+                          -0.4247, 0.07757, -0.09564, 0.3148), tolerance = 1e-3)
+  expect_equal(final_cost(res), 2.123, tolerance = 1e-4)
+
+  res <- smallvis(iris10, Y_init = iris10_Y, method = "btasne", eta = 0.1,
+                  perplexity = 5,
+                  epoch_callback = NULL, verbose = FALSE, ret_extra = TRUE)
+  expect_equal(res$Y, c2y(-6.105, 4.355, 3.715, 6.291, -5.661, -15.21, 3.147, -2.944,
+                          10.5, 1.911, 1.465, 3.026, -0.7081, -0.4368, -1.832, -0.6734,
+                          -3.566, 0.6635, -0.4344, 2.497), tolerance = 1e-3)
+  expect_equal(final_cost(res), 104.7, tolerance = 1e-4)
+
+  res <- smallvis(iris10, Y_init = iris10_Y, method = "trmsne", eta = 0.1,
+                  perplexity = 5,
+                  epoch_callback = NULL, verbose = FALSE, ret_extra = TRUE)
+  expect_equal(res$Y, c2y(-3.487, 2.223, 1.753, 3.228, -3.229, -5.592, 1.276, -2.013,
+                           4.941, 0.8986, 0.7316, 1.745, -0.6139, -0.4619, -0.7119, -0.3068,
+                           -2.083, 0.504, -0.3769, 1.574), tolerance = 1e-3)
+  expect_equal(final_cost(res), 0.1207, tolerance = 1e-4)
+
+  res <- smallvis(iris10, Y_init = iris10_Y, method = "tmsne", eta = 0.1,
+                  perplexity = 5,
+                  epoch_callback = NULL, verbose = FALSE, ret_extra = TRUE)
+  expect_equal(res$Y, c2y(-2.699, 1.629, 1.619, 3.104, -2.543, -5.294, 0.8766, -1.73,
+                          4.422, 0.6155, 0.4124, 1.596, -0.6119, 0.1443, -0.4072, -0.2042,
+                          -2.248, 0.5002, -0.6253, 1.444), tolerance = 1e-3)
+  expect_equal(final_cost(res), 0.1226, tolerance = 1e-4)
+
+  res <- smallvis(iris10, Y_init = iris10_Y, method = "trsrsne", eta = 0.1,
+                  perplexity = 5,
+                  epoch_callback = NULL, verbose = FALSE, ret_extra = TRUE)
+  expect_equal(res$Y, c2y(-3.524, 2.286, 1.786, 3.237, -3.254, -5.546, 1.27, -2.062,
+                          4.891, 0.9163, 0.6728, 1.785, -0.5903, -0.4569, -0.7359, -0.3572,
+                          -2.115, 0.4887, -0.3448, 1.654), tolerance = 1e-3)
+  expect_equal(final_cost(res), 0.2683, tolerance = 1e-4)
+
+  res <- smallvis(iris10, Y_init = iris10_Y, method = "arsrsne", eta = 0.1,
+                  perplexity = 5,
+                  epoch_callback = NULL, verbose = FALSE, ret_extra = TRUE)
+  expect_equal(res$Y, c2y(-0.9463, 0.4984, 0.4736, 0.8745, -0.925, -1.225, 0.2149, -0.6731,
+                          1.408, 0.2993, 0.1963, 0.659, -0.2926, -0.1789, 0.02274, -0.5197,
+                          -0.7179, 0.2904, -0.1017, 0.6423), tolerance = 1e-3)
+  expect_equal(final_cost(res), 0.1741, tolerance = 1e-4)
+})

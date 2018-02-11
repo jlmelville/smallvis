@@ -792,6 +792,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
   if (verbose) {
     tsmessage("Optimizing coordinates")
   }
+
   for (iter in 1:max_iter) {
     opt_res <- opt_step(opt, cost_fn, Y, iter)
     opt <- opt_res$opt
@@ -880,7 +881,8 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
         break
       }
 
-      epoch_res <- do_epoch(opt, cost_fn, iter, Y)
+      # Any special custom epoch stuff
+      epoch_res <- do_epoch(opt, cost_fn, iter, Y, cost)
       opt <- epoch_res$opt
       cost_fn <- epoch_res$cost
     }
@@ -1262,9 +1264,9 @@ laplacian_eigenmap <- function(A, ndim = 2) {
 
 # Epoch Functions ---------------------------------------------------------
 
-do_epoch <- function(opt, cost, iter, Y) {
+do_epoch <- function(opt, cost, iter, Y, fn_val) {
   if (!is.null(cost$epoch)) {
-    res <- cost$epoch(opt, cost, iter, Y)
+    res <- cost$epoch(opt, cost, iter, Y, fn_val)
     if (!is.null(res$opt)) {
       opt <- res$opt
     }

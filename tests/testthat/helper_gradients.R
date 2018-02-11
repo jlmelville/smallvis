@@ -68,8 +68,8 @@ l2s <- function(l) {
 }
 
 # extract the last evaluated error
-final_cost <- function(res) {
-  as.numeric(res$itercosts[length(res$itercosts)])
+final_cost <- function(res, digits = 4) {
+  signif(as.numeric(res$itercosts[length(res$itercosts)]), digits = digits)
 }
 
 # Covert a vector into a 2D matrix for generating Y output

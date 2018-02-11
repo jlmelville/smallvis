@@ -27,10 +27,41 @@ cost_point <- function(cost, Y) {
 # This is the mechanism by which Gradient and Function evaluations will
 # detect that they need recalculate distances, weights, probabilities etc.
 cost_clear <- function(cost) {
-  if (!is.null(cost$clear)) {
+  if (!is.null(cost$sentinel)) {
+    cost[[cost$sentinel]] <- NULL
+  }
+  else if (is.null(cost$clear)) {
     cost <- cost$clear(cost)
   }
   cost
+}
+
+# Update matrices dependent on Y
+# Check for a NULL value of the sentinel to avoid unnecessary recalculation
+cost_update <- function(cost, Y) {
+  if (!is.null(cost$sentinel)) {
+    if (is.null(cost[[cost$sentinel]])) {
+      cost <- cost$update(cost, Y)
+    }
+  }
+  else {
+    cost <- cost$update(cost, Y)
+  }
+  cost
+}
+
+# Default export of values associated with a method
+# If the value is associated with the cost list, e.g. cost$P, then asking
+# for val = "P" or val = "p" will return it. Otherwise, returns NULL
+cost_export <- function(cost, val) {
+  res <- NULL
+  if (!is.null(cost[[val]])) {
+    res <- cost[[val]]
+  }
+  else if (!is.null(cost[[toupper(val)]])) {
+    res <- cost[[toupper(val)]]
+  }
+  res
 }
 
 # LargeVis ----------------------------------------------------------------
@@ -47,21 +78,31 @@ largevis <- function(perplexity, gamma = 7, gr_eps = 0.1) {
        cost
      },
      pfn = function(cost, Y) {
+       cost <- cost_update(cost, Y)
+
        P <- cost$P
        eps <- cost$eps
        W <- cost$W
+
        cost$pcost <- colSums(-P * log(W + eps) - gamma * log1p(-W + eps))
        cost
      },
      gr = function(cost, Y) {
-       P <- cost$P
+       cost <- cost_update(cost, Y)
+
+       W <- cost$W
+       cost$G <- k2g(Y, 4 * W * (cost$P - ((gamma * W) / ((1 - W) + gr_eps))))
+       cost
+     },
+     update = function(cost, Y) {
        W <- dist2(Y)
        W <- 1 / (1 + W)
        diag(W) <- 0
-       cost$G <- k2g(Y, 4 * W * (P - ((gamma * W) / ((1 - W) + gr_eps))))
+
        cost$W <- W
        cost
-     }
+     },
+     export = cost_export
   )
 }
 
@@ -90,6 +131,8 @@ umap <- function(perplexity, spread = 1, min_dist = 0.001, gr_eps = 0.1) {
       cost
     },
     pfn = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+
       P <- cost$P
       eps <- cost$eps
       W <- cost$W
@@ -97,21 +140,23 @@ umap <- function(perplexity, spread = 1, min_dist = 0.001, gr_eps = 0.1) {
       cost
     },
     gr = function(cost, Y) {
-      P <- cost$P
-      a <- cost$a
-      b <- cost$b
-      eps <- cost$eps
+      cost <- cost_update(cost, Y)
 
+      cost$G <- k2g(Y, 4 * (cost$b / (cost$D2 + cost$eps + gr_eps)) * (cost$P - cost$W))
+      cost
+    },
+    update = function(cost, Y) {
       D2 <- dist2(Y)
       D2[D2 < 0] <- 0
 
-      W <- 1 / (1 + a * D2 ^ b)
+      W <- 1 / (1 + cost$a * D2 ^ cost$b)
       diag(W) <- 0
 
-      cost$G <- k2g(Y, 4 * (b / (D2 + eps + gr_eps)) * (P - W))
       cost$W <- W
+      cost$D2 <- D2
       cost
-    }
+    },
+    export = cost_export
   )
 }
 
@@ -131,12 +176,15 @@ tumap <- function(perplexity, gr_eps = 0.1) {
       cost
     },
     gr = function(cost, Y) {
-      eps <- cost$eps
-      P <- cost$P
+      cost <- cost_update(cost, Y)
+
+      cost$G <- k2g(Y, 4 * (cost$W / ((1 - cost$W) + cost$eps + gr_eps)) * (cost$P - cost$W))
+      cost
+    },
+    update = function(cost, Y) {
       W <- dist2(Y)
       W <- 1 / (1 + W)
       diag(W) <- 0
-      cost$G <- k2g(Y, 4 * (W / ((1 - W) + eps + gr_eps)) * (P - W))
 
       cost$W <- W
       cost
@@ -147,16 +195,36 @@ tumap <- function(perplexity, gr_eps = 0.1) {
 # t-UMAP where output and input affinities are normalized
 ntumap <- function(perplexity, gr_eps = 0.1) {
   lreplace(tumap(perplexity),
+    init = function(cost, X, eps = 1e-9, verbose = FALSE, ret_extra = c()) {
+      cost$eps <- eps
+
+      P <- smooth_knn_distances(X, k = perplexity, tol = 1e-5,
+                                 verbose = verbose)$P
+      # Fuzzy set union
+      P <- P + t(P) - P * t(P)
+
+      P <- P / sum(P)
+      cost$P <- P
+      cost$Cp <- colSums(P * log(P + eps) + (1 - P) * log1p(-P + eps))
+
+      cost
+    },
     pfn = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+
       P <- cost$P
       eps <- cost$eps
-      W <- cost$W
-      Q <- W * cost$invZ
+      Q <- cost$Q
 
       cost$pcost <- colSums(-P * log(Q + eps) - (1 - P) * log1p(-Q + eps)) + cost$Cp
       cost
     },
     gr = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+      cost$G <- k2g(Y,  4 * cost$W * (cost$C - cost$sumC * cost$Q))
+      cost
+    },
+    update = function(cost, Y) {
       P <- cost$P
       W <- dist2(Y)
       W <- 1 / (1 + W)
@@ -167,11 +235,14 @@ ntumap <- function(perplexity, gr_eps = 0.1) {
       C <- (P - Q) / (1 - Q)
       sumC <- sum(C)
 
-      cost$G <- k2g(Y,  4 * W * (C - sumC * Q))
       cost$W <- W
-      cost$invZ <- invZ
+      cost$Q <- Q
+      cost$C <- C
+      cost$sumC <- sumC
+
       cost
-    }
+    },
+    export = cost_export
   )
 }
 
@@ -195,19 +266,20 @@ mmds <- function() {
   list(
     init = mmds_init,
     pfn = function(cost, Y) {
-      R <- cost$R
-      D <- cost$D
-      cost$pcost <- colSums((R - D) ^ 2)
+      cost <- cost_update(cost, Y)
+      cost$pcost <- colSums((cost$R - cost$D) ^ 2)
       cost
     },
     gr = function(cost, Y) {
-      eps <- cost$eps
-      R <- cost$R
-      D <- sqrt(safe_dist2(Y))
-      cost$G <- k2g(Y, -4 * (R - D) / (D + eps))
-      cost$D <- D
+      cost <- cost_update(cost, Y)
+      cost$G <- k2g(Y, -4 * (cost$R - cost$D) / (cost$D + cost$eps))
       cost
     },
+    update = function(cost, Y) {
+      cost$D <- sqrt(safe_dist2(Y))
+      cost
+    },
+    sentinel = "D",
     export = function(cost, val) {
       res <- NULL
       switch(val,
@@ -234,13 +306,13 @@ smmds <- function() {
       cost
     },
     pfn = function(cost, Y) {
+      cost <- cost_update(cost, Y)
       cost$pcost <- colSums((cost$R2 - cost$D2) ^ 2)
       cost
     },
     gr = function(cost, Y) {
-      D2 <- dist2(Y)
-      cost$G <- k2g(Y,  -8 * (cost$R2 - D2))
-      cost$D2 <- D2
+      cost <- cost_update(cost, Y)
+      cost$G <- k2g(Y, -8 * (cost$R2 - cost$D2))
       cost
     },
     export = function(cost, val) {
@@ -258,7 +330,13 @@ smmds <- function() {
              }
       )
       res
-    })
+    },
+    update = function(cost, Y) {
+      cost$D2 <- dist2(Y)
+      cost
+    },
+    sentinel = "D2"
+  )
 }
 
 sammon <- function() {
@@ -270,18 +348,13 @@ sammon <- function() {
       cost
     },
     pfn = function(cost, Y) {
-      eps <- cost$eps
-      R <- cost$R
-      D <- cost$D
-      cost$pcost <- colSums((R - D) ^ 2 / (R + eps)) * cost$rsum_inv
+      cost <- cost_update(cost, Y)
+      cost$pcost <- colSums((cost$R - cost$D) ^ 2 / (cost$R + cost$eps)) * cost$rsum_inv
       cost
     },
     gr = function(cost, Y) {
-      eps <- cost$eps
-      R <- cost$R
-      D <- sqrt(safe_dist2(Y))
-      cost$G <- k2g(Y,  -4 * cost$rsum_inv * (R - D) / (R * D + eps))
-      cost$D <- D
+      cost <- cost_update(cost, Y)
+      cost$G <- k2g(Y, -4 * cost$rsum_inv * (cost$R - cost$D) / (cost$R * cost$D + cost$eps))
       cost
     }
   )
@@ -334,6 +407,8 @@ ballmmds <- function(f = 0.1) {
       cost
     },
     pfn = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+
       R <- cost$R
       D <- cost$D
       rmax <- cost$rmax
@@ -343,9 +418,10 @@ ballmmds <- function(f = 0.1) {
       cost
     },
     gr = function(cost, Y) {
+      cost <- cost_update(cost, Y)
       eps <- cost$eps
       R <- cost$R
-      D <- sqrt(safe_dist2(Y))
+      D <- cost$D
 
       K <- -4 * (R - D) / (D + eps)
 
@@ -353,7 +429,6 @@ ballmmds <- function(f = 0.1) {
       K[R > rmax & D > R] <- 0
 
       cost$G <- k2g(Y, K)
-      cost$D <- D
       cost
     },
     export = function(cost, val) {
@@ -367,6 +442,10 @@ ballmmds <- function(f = 0.1) {
              }
       )
       res
+    },
+    update = function(cost, Y) {
+      cost$D <- sqrt(safe_dist2(Y))
+      cost
     }
   )
 }
@@ -386,6 +465,8 @@ knnmmds <- function(k) {
       cost
     },
     pfn = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+
       R <- cost$R
       D <- cost$D
       knn <- cost$knn
@@ -395,9 +476,11 @@ knnmmds <- function(k) {
       cost
     },
     gr = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+
       eps <- cost$eps
       R <- cost$R
-      D <- sqrt(safe_dist2(Y))
+      D <- cost$D
 
       K <- -4 * (R - D) / (D + eps)
 
@@ -419,6 +502,10 @@ knnmmds <- function(k) {
              }
       )
       res
+    },
+    update = function(cost, Y) {
+      cost$D <- sqrt(safe_dist2(Y))
+      cost
     }
   )
 }
@@ -456,6 +543,8 @@ ee <- function(perplexity, lambda = 100, neg_weights = TRUE) {
       cost
     },
     pfn = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+
       Vp <- cost$P
       Vn <- cost$Vn
       W <- cost$W
@@ -464,14 +553,11 @@ ee <- function(perplexity, lambda = 100, neg_weights = TRUE) {
       cost
     },
     gr = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+
       Vp <- cost$P
       Vn <- cost$Vn
-
-      W <- dist2(Y)
-      W <- exp(-W)
-      diag(W) <- 0
-      cost$W <- W
-      cost$G <- k2g(Y,  4 * (Vp - lambda * Vn * W))
+      cost$G <- k2g(Y,  4 * (Vp - lambda * Vn * cost$W))
       cost
     },
     export = function(cost, val) {
@@ -483,7 +569,15 @@ ee <- function(perplexity, lambda = 100, neg_weights = TRUE) {
         res <- cost[[toupper(val)]]
       }
       res
-    }
+    },
+    update = function(cost, Y) {
+      W <- dist2(Y)
+      W <- exp(-W)
+      diag(W) <- 0
+      cost$W <- W
+      cost
+    },
+    sentinel = "W"
   )
 }
 
@@ -511,6 +605,8 @@ nerv <- function(perplexity, lambda = 0.9) {
       cost
     },
     pfn = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+
       P <- cost$P
 
       kl_fwd <- rowSums(P * cost$lPQ)
@@ -519,36 +615,56 @@ nerv <- function(perplexity, lambda = 0.9) {
       cost
     },
     gr = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+
       eps <- cost$eps
       P <- cost$P
+      Q <- cost$Q
+
+      # Forward KL gradient
+      K <- lambda * (P - Q)
+      # Total K
+      K <- K + (1 - lambda) * (Q * (cost$lPQ + cost$kl_rev))
+
+      cost$G <- k2g(Y, 2 * K, symmetrize = TRUE)
+      cost
+    },
+    update = function(cost, Y) {
+      eps <- cost$eps
+
       W <- dist2(Y)
       W <- exp(-W)
-
       # Particularly for low lambda, need to make sure W is never all zero
       W[W < eps] <- eps
       diag(W) <- 0
       invZ <- 1 / colSums(W)
       Q <- W * invZ
 
-      # Forward KL gradient
-      K <- lambda * (P - Q)
-
       # Reverse KL gradient
-      lPQ <- log((P + eps) / (Q + eps))
+      lPQ <- log((cost$P + eps) / (Q + eps))
       # for KLrev we want Q * log(Q/P), so take -ve of log(P/Q)
       kl_rev <- rowSums(Q * -lPQ)
 
-      # Total K
-      K <- K + (1 - lambda) * (Q * (lPQ + kl_rev))
-
-      cost$G <- k2g(Y, 2 * K, symmetrize = TRUE)
       cost$invZ <- invZ
-      cost$W <- W
+      cost$Q <- Q
       cost$kl_rev <- kl_rev
       cost$lPQ <- lPQ
 
       cost
-    })
+    },
+    sentinel = "Q",
+    export = function(cost, val) {
+      res <- cost_export(cost, val)
+
+      if (is.null(res)) {
+        switch(val,
+               w = {
+                 res <- cost$Q / cost$invZ
+               })
+      }
+      res
+    }
+    )
 }
 
 # Lee, J. A., Renard, E., Bernard, G., Dupont, P., & Verleysen, M. (2013).
@@ -576,6 +692,8 @@ jse <- function(perplexity, kappa = 0.5) {
       cost
     },
     pfn = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+
       eps <- cost$eps
       P <- cost$P
       Z <- cost$Z
@@ -592,6 +710,13 @@ jse <- function(perplexity, kappa = 0.5) {
       cost
     },
     gr = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+
+      K <- kappa_inv * (cost$Q * (cost$lZQ + cost$kl_rev))
+      cost$G <- k2g(Y, 2 * K, symmetrize = TRUE)
+      cost
+    },
+    update = function(cost, Y) {
       eps <- cost$eps
       P <- cost$P
       W <- dist2(Y)
@@ -613,16 +738,16 @@ jse <- function(perplexity, kappa = 0.5) {
 
       lZQ <- log((Z + eps) / (Q + eps))
       kl_rev <- rowSums(Q * -lZQ)
-      K <- kappa_inv * (Q * (lZQ + kl_rev))
 
-      cost$G <- k2g(Y, 2 * K, symmetrize = TRUE)
-      cost$invZ <- invS
-      cost$W <- W
-      cost$kl_rev <- kl_rev
+      cost$Q <- Q
       cost$Z <- Z
+      cost$lZQ <- lZQ
+      cost$kl_rev <- kl_rev
 
       cost
-    })
+    },
+    export = cost_export
+  )
 }
 
 
@@ -676,30 +801,36 @@ bnerv <- function(perplexity, lambda = 0.9) {
       cost
     },
     gr = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+
       eps <- cost$eps
-      beta <- cost$beta
-      P <- cost$P
+      Q <- cost$Q
+
+      # Forward KL gradient
+      K <- lambda * (cost$P - Q)
+      # Total K
+      K <- K + (1 - lambda) * (Q * (cost$lPQ + cost$kl_rev))
+
+      cost$G <- k2g(Y, 2 * cost$beta * K, symmetrize = TRUE)
+      cost
+    },
+    update = function(cost, Y) {
+      eps <- cost$eps
+
       W <- dist2(Y)
-      W <- exp(-W * beta)
+      W <- exp(-W * cost$beta)
+
       W[W < eps] <- eps
       diag(W) <- 0
       invZ <- 1 / rowSums(W)
       Q <- W * invZ
 
-      # Forward KL gradient
-      K <- lambda * (P - Q)
-
       # Reverse KL gradient
-      lPQ <- log((P + eps) / (Q + eps))
-      # for KLrev we want Q * log(Q/P), so take -ve of log(P/Q)
+      lPQ <- log((cost$P + eps) / (Q + eps))
       kl_rev <- rowSums(Q * -lPQ)
 
-      # Total K
-      K <- K + (1 - lambda) * (Q * (lPQ + kl_rev))
-
-      cost$G <- k2g(Y, 2 * beta * K, symmetrize = TRUE)
       cost$invZ <- invZ
-      cost$W <- W
+      cost$Q <- Q
       cost$kl_rev <- kl_rev
       cost$lPQ <- lPQ
 
