@@ -9,6 +9,12 @@ output:
       collapsed: false
 ---
 
+*Update February 12, 2018*: The nt-UMAP results were incorrect because the input
+probabilities weren't normalized (although it still worked surprisingly well).
+The images for nt-UMAP have been updated and generated using the Delta-Bar-Delta
+optimization. t-SNE results have also been updated to use DBD results for 
+comparison.
+
 [UMAP](https://github.com/lmcinnes/umap) 
 (Uniform Manifold Approximation and Projection) is a dimensionality reduction
 method based on reducing the cross-entropy between two fuzzy sets. There's no
@@ -108,17 +114,31 @@ See the [Datasets](https://jlmelville.github.io/smallvis/datasets.html) page.
 
 ## Settings
 
-An example invocation is given below for generating the t-UMAP results for 
-`iris`:
-
-```
-iris_tumap <- smallvis_perpstep(step_iter = 500, X = iris, method = "tumap", scale = FALSE, verbose = TRUE, Y_init = "spca", ret_extra = c("DX", "DY"), perplexity = 40, max_iter = 2000, opt = list("l-bfgs", step_tol = 1e-6))
-```
-
 The `gr_eps` parameter was set to `0.1`, the value used in LargeVis, which gives
 slightly better results than the UMAP default of `0.001`. When used with UMAP, 
 the `perplexity` setting is interpreted as the value of `k` to use in the
 smooth k-nearest-neighbor calibration.
+
+L-BFGS optimization with perplexity-stepping provides the best settings I've
+found to get converged and decent looking results for arbitrary dimensionality
+reduction cost functions, but it's not as straight forward or fast as using
+the delta-bar-delta optimizer used in t-SNE. I tried applying it to t-UMAP, but
+got typical results of requiring a per-dataset (and much reduced) learning rate
+to avoid the optimizer diverging and slow convergence.
+
+However, DBD works well for the normalized t-UMAP. So for the nt-UMAP results,
+DBD was used. The t-SNE results were generated with the same parameters
+
+Some examples invocations for `iris`:
+
+```
+iris_tumap <- smallvis_perpstep(step_iter = 500, X = iris, method = "tumap", scale = FALSE, verbose = TRUE, Y_init = "spca", ret_extra = c("DX", "DY"), perplexity = 40, max_iter = 2000, opt = list("l-bfgs", step_tol = 1e-6))
+
+iris_ntumap <- smallvis(iris, scale = FALSE, perplexity = 40, Y_init = "spca", method = "ntumap",  max_iter = 2000, epoch = 100)
+iris_tsne <- smallvis(iris, scale = FALSE, perplexity = 40, Y_init = "spca", method = "tsne",  max_iter = 2000, epoch = 100)
+```
+
+
 
 ## Evaluation
 
@@ -142,14 +162,14 @@ and t-SNE results.
 | |
 :-------|:-------------------:|
 |![iris UMAP](../img/umap/iris_umap.png)|![iris t-UMAP](../img/umap/iris_tumap.png)
-|![iris nt-UMAP](../img/umap/iris_ntumap.png)|![iris t-SNE](../img/opt/pscale/iris_lbfgs.png)
+|![iris nt-UMAP](../img/umap/iris_ntumap.png)|![iris t-SNE](../img/umap/iris_tsne.png)
 
 ### s1k
 
 | |
 :-------|:-------------------:|
 |![s1k UMAP](../img/umap/s1k_umap.png)|![s1k t-UMAP](../img/umap/s1k_tumap.png)
-|![s1k nt-UMAP](../img/umap/s1k_ntumap.png)|![s1k t-SNE](../img/opt/pscale/s1k_lbfgs.png)
+|![s1k nt-UMAP](../img/umap/s1k_ntumap.png)|![s1k t-SNE](../img/umap/s1k_tsne.png)
 
 
 ### Olivetti Faces
@@ -157,7 +177,7 @@ and t-SNE results.
 | |
 :-------|:-------------------:|
 |![oli UMAP](../img/umap/oli_umap.png)|![oli t-UMAP](../img/umap/oli_tumap.png)
-|![oli nt-UMAP](../img/umap/oli_ntumap.png)|![oli t-SNE](../img/opt/pscale/oli_lbfgs.png)
+|![oli nt-UMAP](../img/umap/oli_ntumap.png)|![oli t-SNE](../img/umap/oli_tsne.png)
 
 
 ### Frey Faces
@@ -165,45 +185,29 @@ and t-SNE results.
 | |
 :-------|:-------------------:|
 |![frey UMAP](../img/umap/frey_umap.png)|![frey t-UMAP](../img/umap/frey_tumap.png)
-|![frey nt-UMAP](../img/umap/frey_ntumap.png)|![frey t-SNE](../img/opt/pscale/frey_lbfgs.png)
+|![frey nt-UMAP](../img/umap/frey_ntumap.png)|![frey t-SNE](../img/umap/frey_tsne.png)
 
 ### COIL-20
 
 | |
 :-------|:-------------------:|
 |![coil20 UMAP](../img/umap/coil20_umap.png)|![coil20 t-UMAP](../img/umap/coil20_tumap.png)
-|![coil20 nt-UMAP](../img/umap/coil20_ntumap.png)|![coil20 t-SNE](../img/opt/pscale/coil20_lbfgs.png)
+|![coil20 nt-UMAP](../img/umap/coil20_ntumap.png)|![coil20 t-SNE](../img/umap/coil20_tsne.png)
 
 ### MNIST (6,000)
 
 | |
 :-------|:-------------------:|
 |![mnist UMAP](../img/umap/mnist_umap.png)|![mnist t-UMAP](../img/umap/mnist_tumap.png)
-|![mnist nt-UMAP](../img/umap/mnist_ntumap.png)|![mnist t-SNE](../img/opt/pscale/mnist_lbfgs.png)
+|![mnist nt-UMAP](../img/umap/mnist_ntumap.png)|![mnist t-SNE](../img/umap/mnist_tsne.png)
 
 ### Fashion (6,000)
 
 | |
 :-------|:-------------------:|
 |![fashion UMAP](../img/umap/fashion_umap.png)|![fashion t-UMAP](../img/umap/fashion_tumap.png)
-|![fashion nt-UMAP](../img/umap/fashion_ntumap.png)|![fashion t-SNE](../img/opt/pscale/fashion_lbfgs.png)
+|![fashion nt-UMAP](../img/umap/fashion_ntumap.png)|![fashion t-SNE](../img/umap/fashion_tsne.png)
 
-## Aside: Can nt-UMAP be optimized by DBD?
-
-L-BFGS optimization with perplexity-stepping provides the best settings I've
-found to get converged and decent looking results for arbitrary dimensionality
-reduction cost functions, but it's not as straight forward or fast as using
-the delta-bar-delta optimizer used in t-SNE. I tried applying it to t-UMAP, but
-got typical results of requiring a per-dataset (and much reduced) learning rate
-to avoid the optimizer diverging and slow convergence.
-
-However, DBD with nt-UMAP works great. Results are not shown because they are
-very similar to those given above, but they are achieved more quickly and if
-anything look a tiny bit better. It may be that there is something about the
-normalization that causes DBD to start working well. Or there may be a scheme to
-balance the positive and negative parts of the gradient that makes DBD start
-working with un-normalized (and hence separable) cost functions. This might be
-worth looking into.
 
 ## Conclusions
 
@@ -216,4 +220,9 @@ but the t-UMAP results are closer to the t-SNE results. It also has the advantag
 (in the context of `smallvis`) of being faster to optimize because the gradient
 is simpler.
 
-Finally, the normalized version of nt-UMAP is even closer to the t-SNE results.
+The normalized version, nt-UMAP, is even closer to the t-SNE results and can be
+optimized easily via the DBD method. It may be that there is something about the
+normalization that causes DBD to start working well. Or there may be a scheme to
+balance the positive and negative parts of the gradient that makes DBD start
+working with un-normalized (and hence separable) cost functions. This might be
+worth looking into.
