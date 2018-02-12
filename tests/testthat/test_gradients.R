@@ -13,6 +13,7 @@ test_that("SNE", {
   test_grad("bssne", perplexity = perp)
   test_grad("btsne", perplexity = perp)
   test_grad("btasne", perplexity = perp)
+  test_grad("tsneu", perplexity = perp)
 })
 
 test_that("Norm SNE", {

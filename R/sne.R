@@ -287,6 +287,85 @@ wssne <- function(perplexity) {
   )
 }
 
+# t-SNE but with the gradient defined in terms of un-normalized weights
+# Exists entirely as an academic exercise
+tsneu <- function(perplexity, inp_kernel = "gaussian") {
+  lreplace(
+    tsne(perplexity = perplexity, inp_kernel = inp_kernel),
+    init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
+                    ret_extra = c()) {
+      ret_extra = unique(c(ret_extra, "V"))
+      cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
+                       symmetrize = "symmetric", normalize = TRUE,
+                       verbose = verbose, ret_extra = ret_extra)
+      P <- cost$P
+      cost$plogp <- colSums(P * log((P + eps)))
+      cost$eps <- eps
+
+      cost$V <- cost$V / rowSums(cost$V)
+      cost$V <- 0.5 * (cost$V + t(cost$V))
+      cost$Vsum <- sum(cost$V)
+      cost$invVsum <- 1 / (cost$Vsum)
+
+      cost
+    },
+    gr = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+
+      cost$G <- k2g(Y, 4 * cost$W * cost$invVsum * (cost$V - cost$W * cost$invZ * cost$Vsum))
+      cost
+    }
+  )
+}
+
+# A pseudo-separable approximation of t-SNE, where the output weight sum is only
+# recalculated during the epoch
+pstsne <- function(perplexity, inp_kernel = "gaussian") {
+  lreplace(
+    tsne(perplexity = perplexity, inp_kernel = inp_kernel),
+    init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
+                    ret_extra = c()) {
+      ret_extra = unique(c(ret_extra, "V"))
+      cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
+                       symmetrize = "symmetric", normalize = TRUE,
+                       verbose = verbose, ret_extra = ret_extra)
+      P <- cost$P
+      cost$plogp <- colSums(P * log((P + eps)))
+      cost$eps <- eps
+
+      # need to row-normalize and symmetrize affinities
+      cost$V <- cost$V / rowSums(cost$V)
+      cost$V <- 0.5 * (cost$V + t(cost$V))
+      cost$Vsum <- sum(cost$V)
+      cost$invVsum <- 1 / (cost$Vsum)
+
+      cost$invZ <- 1 / (nrow(cost$P) * nrow(cost$P))
+
+      cost
+    },
+    gr = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+
+      cost$G <- k2g(Y, 4 * cost$W * cost$invVsum * (cost$V - cost$W * cost$invZ * cost$Vsum))
+      cost
+    },
+    update = function(cost, Y) {
+      W <- dist2(Y)
+      W <- 1 / (1 + W)
+      diag(W) <- 0
+
+      cost$W <- W
+
+      cost
+    },
+    epoch = function(opt, cost, iter, Y, fn_val) {
+      cost <- cost_update(cost, Y)
+
+      cost$invZ <- 1 / sum(cost$W)
+      list(cost = cost)
+    }
+  )
+}
 
 # Bandwidth Experiments --------------------------------------------------
 
