@@ -908,22 +908,35 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
 #' \code{Y_init = "rand"}.
 #'
 #' @param nrep Number of repeats.
+#' @param keep_all If \code{TRUE}, then the return value is a list of lists,
+#' indexed from 1 .. \code{nrep}, with each entry the result from each
+#' \code{\link{smallvis}} run. Otherwise just the result with the lowest error
+#' is returned.
 #' @param ... Arguments to apply to each \code{\link{smallvis}} run.
-#' @return The \code{\link{smallvis}} result with the lowest final cost.
+#' @return The \code{\link{smallvis}} result with the lowest final cost, or
+#' if \code{keep_all} is \code{TRUE} all results as a list, indexed as 1 ..
+#' \code{nrep}
 #' If \code{ret_extra} is not \code{FALSE}, then the final costs for all
 #' \code{nrep} runs are also included in the return value list as a vector
 #' called \code{all_costs}.
 #' @examples
 #' \dontrun{
 #' # Return best result out of five random initializations
-#' tsne_iris_best <- smallvis_rep(nrep = 5, iris, perplexity = 50, method = "tsne", ret_extra = TRUE)
+#' tsne_iris_best <- smallvis_rep(nrep = 5, X = iris, perplexity = 50, method = "tsne",
+#'                                ret_extra = TRUE)
 #' # How much do the costs vary between runs?
 #' range(tsne_iris_best$all_costs)
 #' # Display best embedding found
 #' plot(tsne_iris_best$Y)
+#'
+#' # Keep all results
+#' # First result is in tsne_iris_rep[[1]], second in tsne_iris_rep[[2]] etc.
+#' tsne_iris_rep <- smallvis_rep(nrep = 5, X = iris, perplexity = 50, method = "tsne",
+#'                               ret_extra = TRUE, keep_all = TRUE)
+#'
 #' }
 #' @export
-smallvis_rep <- function(nrep = 10, ...) {
+smallvis_rep <- function(nrep = 10, keep_all = FALSE, ...) {
   if (nrep < 1) {
     stop("nrep must be 1 or greater")
   }
@@ -939,28 +952,38 @@ smallvis_rep <- function(nrep = 10, ...) {
   }
 
   varargs$Y_init <- "rand"
+  ret <- list()
+
   for (i in 1:nrep) {
     if (!is.null(varargs$verbose) && varargs$verbose) {
       tsmessage("Starting embedding # ", i, " of ", nrep)
     }
     res <- do.call(smallvis, varargs)
-    final_cost <- res$itercosts[length(res$itercosts)]
 
-    if (final_cost < best_cost) {
-      best_cost <- final_cost
-      best_res <- res
+    if (keep_all) {
+      ret[[i]] <- res
     }
-    names(final_cost) <- NULL
-    all_costs <- c(all_costs, final_cost)
+    else {
+      final_cost <- res$itercosts[length(res$itercosts)]
+      if (final_cost < best_cost) {
+        best_cost <- final_cost
+        best_res <- res
+      }
+      names(final_cost) <- NULL
+      all_costs <- c(all_costs, final_cost)
+    }
   }
 
-  if (is.null(ret_extra) || (!methods::is(ret_extra, "character") && !ret_extra)) {
-    best_res <- best_res$Y
+  if (!keep_all) {
+    if (is.null(ret_extra) || (!methods::is(ret_extra, "character") && !ret_extra)) {
+      ret <- best_res$Y
+    }
+    else {
+      best_res$all_costs <- all_costs
+      ret <- best_res
+    }
   }
-  else {
-    best_res$all_costs <- all_costs
-  }
-  best_res
+  ret
 }
 
 #' Dimensionality Reduction With Perplexity Stepping
