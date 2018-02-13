@@ -2,13 +2,11 @@ kl_cost <- function(cost, Y) {
   P <- cost$P
   eps <- cost$eps
 
-
-  cost <- cost$update(cost, Y)
-
-  # cost <- cost_update(cost, Y)
+  cost <- cost_update(cost, Y)
 
   invZ <- cost$invZ
   W <- cost$W
+
   # P log(P / Q) = P log P - P log Q
   cost$pcost <- cost$plogp - colSums(P * log(((W * invZ) + eps)))
   cost
