@@ -17,12 +17,13 @@ comparison.
 
 [UMAP](https://github.com/lmcinnes/umap) 
 (Uniform Manifold Approximation and Projection) is a dimensionality reduction
-method based on reducing the cross-entropy between two fuzzy sets. There's no
-official publication on it yet, but from the point of view of the nuts and bolts
-of the computation, you can work out a fair amount from the source code. To take
-a broad view, it's definitely in the t-SNE family of dimensionality reduction,
-but with a different theoretical underpinning, and the implementation itself
-is similar to LargeVis in how it scales to large datasets.
+method based on reducing the cross-entropy between two fuzzy sets. 
+*Update February 13, 2018*: The [UMAP paper](https://arxiv.org/abs/1802.03426) 
+is out, but I haven't fully read and digested it yet. From the point of view of 
+the nuts and bolts of the computation, you can work out a fair amount from the
+source code. To take a broad view, it's definitely in the t-SNE family of
+dimensionality reduction, but with a different theoretical underpinning, and the
+implementation itself is similar to LargeVis in how it scales to large datasets.
 
 More details on the cost function and resulting gradient can be read on the
 [theory](https://jlmelville.github.io/smallvis/theory.html) page. What makes
@@ -137,8 +138,6 @@ iris_tumap <- smallvis_perpstep(step_iter = 500, X = iris, method = "tumap", sca
 iris_ntumap <- smallvis(iris, scale = FALSE, perplexity = 40, Y_init = "spca", method = "ntumap",  max_iter = 2000, epoch = 100)
 iris_tsne <- smallvis(iris, scale = FALSE, perplexity = 40, Y_init = "spca", method = "tsne",  max_iter = 2000, epoch = 100)
 ```
-
-
 
 ## Evaluation
 

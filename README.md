@@ -4,7 +4,7 @@ An R package for small-scale dimensionality reduction using
 neighborhood-preservation
 dimensionality reduction methods, including [t-Distributed Stochastic Neighbor Embedding](https://lvdmaaten.github.io/tsne/), 
 [LargeVis](https://arxiv.org/abs/1602.00370) and 
-[UMAP](https://github.com/lmcinnes/umap). 
+[UMAP](https://arxiv.org/abs/1802.03426). 
 
 LargeVis and UMAP are of particular interest because they seem to give 
 visualizations which are very competitive with t-SNE, while being more amenable
@@ -124,11 +124,13 @@ umap_iris_lbfgs <- smallvis(iris, scale = FALSE, opt = list("l-bfgs", c1 = 1e-4,
 * [Weighted SNE using degree centrality](http://www.jmlr.org/proceedings/papers/v32/yange14.html) (wt-SSNE).
 * [Elastic Embedding (PDF)](http://faculty.ucmerced.edu/mcarreira-perpinan/papers/icml10.pdf).
 * [LargeVis](https://arxiv.org/abs/1602.00370) (the cost function, not the stochastic gradient descent part).
-* [UMAP](https://github.com/lmcinnes/umap) (the cost function and calibration method).
+* [UMAP](https://arxiv.org/abs/1802.03426) (the cost function and calibration method).
 
 ## Things To Be Aware Of
 
-* There isn't a UMAP publication yet, so the implementation in `smallvis` relies
+* Feb 13 2018: the [UMAP paper](https://arxiv.org/abs/1802.03426) is out, but I 
+have yet to read and understand it fully, so the implementation in `smallvis` 
+currently relies
 on my examination of the UMAP source code, with some much-appreciated clarification from UMAP creator
 [Leland McInnes](https://github.com/lmcinnes). Expect some bugs, and any horrifically
 bogus results should be double-checked with the output of the 

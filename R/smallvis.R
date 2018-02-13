@@ -533,9 +533,10 @@
 #' \emph{arXiv preprint} \emph{arXiv}:1706.02582.
 #' \url{https://arxiv.org/abs/1706.02582}
 #'
-#' McInnes, L (2017).
-#' UMAP: Universal Manifold Approximation and Mapping.
-#' \url{https://github.com/lmcinnes/umap}
+#' McInnes, L., & Healey, J. (2018).
+#' UMAP: Uniform Manifold Approximation and Projection for Dimension Reduction
+#' \emph{arXiv preprint} \emph{arXiv}:1802.03426.
+#' \url{https://arxiv.org/abs/1802.03426}
 #'
 #' Tang, J., Liu, J., Zhang, M., & Mei, Q. (2016, April).
 #' Visualizing large-scale and high-dimensional data.
