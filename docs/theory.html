@@ -346,6 +346,14 @@ C_{V} -
 \frac{w_{ij}}{\sum_{kl} v_{kl}}
 \left(\mathbf{y_i - y_j}\right)
 \]</span> If you want a bit more detail in how this is derived, see <a href="http://jlmelville.github.io/sneer/experimental-gradients.html">here</a>. Note that the sum <span class="math inline">\(\sum_{kl}\)</span> means to sum over all weights and the input weights <span class="math inline">\(v_{ij}\)</span> are not matrix-normalized but otherwise have had the other processing carried out on them as is usually done in perplexity-based calibration, i.e. row-normalization and symmetrization.</p>
+<p>Brief aside which will hopefully find a more suitable place to live one day. The input weight processing in the usual t-SNE treatment means that <span class="math inline">\(\sum_{kl} v_{kl} = N\)</span>. An alternative form for the t-SNE gradient is therefore:</p>
+<p><span class="math display">\[
+\frac{\partial C_{tSNE}}{\partial \mathbf{y_i}} = 
+\frac{4}{N}
+\sum_j^N \left( v_{ij} -\frac{N}{Z} w_{ij} \right)
+w_{ij}
+\left(\mathbf{y_i - y_j}\right)
+\]</span> In practice, because the usual t-SNE initialization starts with short distances, the output weights are all 1 to begin with, so the <span class="math inline">\(N/Z\)</span> term is approximately <span class="math inline">\(1/N\)</span> initially. Over the course of the optimization the value of <span class="math inline">\(Z\)</span> begins to drop and hence <span class="math inline">\(N/Z\)</span> increases, although it’s always less than 1. End of digression.</p>
 <p>For LargeVis, the gradient can be written as:</p>
 <p><span class="math display">\[
 \frac{\partial C_{LV}}{\partial \mathbf{y_i}} = 

@@ -259,6 +259,23 @@ $v_{ij}$ are not matrix-normalized but otherwise have had the other processing
 carried out on them as is usually done in perplexity-based calibration, i.e. 
 row-normalization and symmetrization.
 
+Brief aside which will hopefully find a more suitable place to live one day. The
+input weight processing in the usual t-SNE treatment means that 
+$\sum_{kl} v_{kl} = N$. An alternative form for the t-SNE gradient is therefore:
+
+$$
+\frac{\partial C_{tSNE}}{\partial \mathbf{y_i}} = 
+\frac{4}{N}
+\sum_j^N \left( v_{ij} -\frac{N}{Z} w_{ij} \right)
+w_{ij}
+\left(\mathbf{y_i - y_j}\right)
+$$
+In practice, because the usual t-SNE initialization starts with short distances,
+the output weights are all 1 to begin with, so the $N/Z$ term is approximately
+$1/N$ initially. Over the course of the optimization the value of $Z$ begins
+to drop and hence $N/Z$ increases, although it's always less than 1. End of
+digression.
+
 For LargeVis, the gradient can be written as:
 
 $$
