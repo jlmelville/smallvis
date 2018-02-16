@@ -252,7 +252,7 @@ ntumap <- function(perplexity, gr_eps = 0.1) {
 mmds_init <- function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
                       ret_extra = c()) {
   if (methods::is(X, "dist")) {
-    cost$R <- X
+    cost$R <- as.matrix(X)
   }
   else {
     cost$R <- sqrt(safe_dist2(X))

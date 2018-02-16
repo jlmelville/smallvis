@@ -1349,6 +1349,7 @@ ret_value <- function(Y, ret_extra, method, X, scale, Y_init, iter, start_time =
                       itercosts = NULL,
                       stop_lying_iter = NULL, opt = NULL,
                       exaggeration_factor = NULL, optionals = c()) {
+  attr(Y, "dimnames") <- NULL
   if (ret_extra) {
     end_time <- Sys.time()
 

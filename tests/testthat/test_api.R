@@ -46,6 +46,27 @@ test_that("mmds", {
   expect_equal(final_cost(res), 0.1715, tolerance = 1e-5)
 })
 
+test_that("mmds without scaling", {
+  res <- smallvis(iris10, Y_init = iris10_Y, method = "mmds", scale = FALSE,
+                  eta = 0.1,
+                  epoch_callback = NULL, verbose = FALSE, ret_extra = TRUE)
+  expect_equal(res$Y, c2y(-0.2962, 0.2143, 0.1991, 0.3477, -0.2932, -0.8634, 0.1157,
+                          -0.1599, 0.6217, 0.1143, 0.02476, 0.2456, -0.07381, -0.01909,
+                          -0.1169, 0.0005308, -0.2766, 0.0578, -0.05174, 0.2095), tolerance = 1e-4)
+  expect_equal(final_cost(res), 0.0597, tolerance = 1e-5)
+})
+
+test_that("mmds with distance matrix", {
+  iris10d <- dist(iris10)
+  res <- smallvis(iris10d, Y_init = iris10_Y, method = "mmds", scale = FALSE,
+                  eta = 0.1,
+                  epoch_callback = NULL, verbose = FALSE, ret_extra = TRUE)
+  expect_equal(res$Y, c2y(-0.2962, 0.2143, 0.1991, 0.3477, -0.2932, -0.8634, 0.1157,
+                          -0.1599, 0.6217, 0.1143, 0.02476, 0.2456, -0.07381, -0.01909,
+                          -0.1169, 0.0005308, -0.2766, 0.0578, -0.05174, 0.2095), tolerance = 1e-4)
+  expect_equal(final_cost(res), 0.0597, tolerance = 1e-5)
+})
+
 test_that("sammon", {
   res <- smallvis(iris10, Y_init = iris10_Y, method = "sammon", eta = 0.1,
                   epoch_callback = NULL, verbose = FALSE, ret_extra = TRUE)
