@@ -758,7 +758,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
                           c("rand", "pca", "spca", "laplacian"))
 
       if (Y_init != "laplacian") {
-        Y <- init_out(Y_init, X, k, pca_preprocessed = pca,
+        Y <- init_out(Y_init, X, n, k, pca_preprocessed = pca,
                       verbose = verbose)
       }
       else {
@@ -1226,8 +1226,7 @@ pca_preprocess <- function(X, pca, whiten, initial_dims, verbose = FALSE) {
 # Output Initialization ---------------------------------------------------
 
 # Initialization of the output coordinates
-init_out <- function(Y_init, X, ndim, pca_preprocessed, verbose = FALSE) {
-  n <- nrow(X)
+init_out <- function(Y_init, X, n, ndim, pca_preprocessed, verbose = FALSE) {
   switch(Y_init,
          pca = {
            if (verbose) {
