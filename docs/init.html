@@ -435,6 +435,7 @@ tsne_iris_sx &lt;- smallvis(iris, method = &quot;tsne&quot;, perplexity = 40, et
 <p>Visually, I’m not sure there’s a lot to choose between the different initialization methods. The same clusters shows up in the plots, although their relative locations change. There’s definitely not one method that outperforms the others.</p>
 <p>Quantitatively, if you have the time to run the embedding multiple times, the preservations from choosing the best of 10 random initializations works the best, in terms of neighborhood preservations. But there’s not much of a difference there, either. Admittedly, these are all comparatively small datasets. Early exaggeration gives a very slight improvement for the SPCA results most of the time, but doesn’t seem that critical either.</p>
 <p>From these results, it seems that either the <code>Y_init = &quot;laplacian&quot;</code> or <code>Y_init = &quot;spca&quot;</code> can be recommended for initialization.</p>
+<p><em>Update February 16, 2018</em>: For (a failed) attempt to use more information from the results of the random initializations, see <a href="https://jlmelville.github.io/smallvis/averaging.html">Averaging Multiple Results</a>.</p>
 </div>
 
 

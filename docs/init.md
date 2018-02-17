@@ -219,3 +219,6 @@ time, but doesn't seem that critical either.
 From these results, it seems that either the `Y_init = "laplacian"` or `Y_init =
 "spca"` can be recommended for initialization.
 
+*Update February 16, 2018*: For (a failed) attempt to use more information from
+the results of the random initializations, see 
+[Averaging Multiple Results](https://jlmelville.github.io/smallvis/averaging.html).
