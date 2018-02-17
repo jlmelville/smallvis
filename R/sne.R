@@ -365,6 +365,127 @@ pstsne <- function(perplexity, inp_kernel = "gaussian") {
   )
 }
 
+
+# UMAP/t-SNE Hybrids ------------------------------------------------------
+
+# Calculate P via normalized smooth knn-distances
+skdtsne <- function(perplexity) {
+  lreplace(
+    tsne(perplexity = perplexity),
+    init = function(cost, X, eps = 1e-9, verbose = FALSE, ret_extra = c()) {
+      cost$eps <- eps
+
+      P <- smooth_knn_distances(X, k = perplexity, tol = 1e-5,
+                                verbose = verbose)$P
+      # Fuzzy set union
+      P <- P + t(P) - P * t(P)
+
+      # Normalize
+      P <- P / sum(P)
+      cost$P <- P
+      cost$plogp <- colSums(P * log((P + eps)))
+
+      cost
+    }
+  )
+}
+
+# Use the UMAP curve family in output kernel
+usne <- function(perplexity, inp_kernel = "gaussian", spread = 1,
+                  min_dist = 0.001, gr_eps = 0.1) {
+  lreplace(
+    tsne(perplexity = perplexity),
+    init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
+                    ret_extra = c()) {
+      cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
+                       symmetrize = "symmetric", normalize = TRUE,
+                       verbose = verbose, ret_extra = ret_extra)
+      P <- cost$P
+      cost$plogp <- colSums(P * log((P + eps)))
+      cost$eps <- eps
+
+      ab_params <- find_ab_params(spread = spread, min_dist = min_dist)
+      a <- ab_params[1]
+      b <- ab_params[2]
+      if (verbose) {
+        message("Umap curve parameters = ", formatC(a), ", ", formatC(b))
+      }
+      cost$a <- a
+      cost$b <- b
+
+      cost
+    },
+    update = function(cost, Y) {
+      D2 <- dist2(Y)
+      D2[D2 < 0] <- 0
+
+      W <- 1 / (1 + cost$a * D2 ^ cost$b)
+      diag(W) <- 0
+
+      cost$invZ <- 1 / sum(W)
+      cost$W <- W
+      cost$D2 <- D2
+      cost
+    },
+    gr = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+      cost$G <- k2g(Y, 4 * (cost$b * (1 - cost$W) / (cost$D2 + gr_eps)) * (cost$P - cost$W * cost$invZ))
+      cost
+    }
+  )
+}
+
+# UMAP cross entropy cost instead of KL divergence
+cetsne <- function(perplexity, inp_kernel = "gaussian") {
+  lreplace(tsne(perplexity),
+           init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
+                           ret_extra = c()) {
+             cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
+                              symmetrize = "symmetric", normalize = TRUE,
+                              verbose = verbose, ret_extra = ret_extra)
+             P <- cost$P
+             cost$Cp <- colSums(P * log(P + eps) + (1 - P) * log1p(-P + eps))
+             cost$eps <- eps
+             cost
+           },
+           pfn = function(cost, Y) {
+             cost <- cost_update(cost, Y)
+
+             P <- cost$P
+             eps <- cost$eps
+             Q <- cost$Q
+
+             cost$pcost <- colSums(-P * log(Q + eps) - (1 - P) * log1p(-Q + eps)) + cost$Cp
+             cost
+           },
+           gr = function(cost, Y) {
+             cost <- cost_update(cost, Y)
+             cost$G <- k2g(Y,  4 * cost$W * (cost$C - cost$sumC * cost$Q))
+             cost
+           },
+           update = function(cost, Y) {
+             P <- cost$P
+             W <- dist2(Y)
+             W <- 1 / (1 + W)
+             diag(W) <- 0
+
+             invZ <- 1 / sum(W)
+             Q <- W * invZ
+             C <- (P - Q) / (1 - Q)
+             sumC <- sum(C)
+
+             cost$W <- W
+             cost$Q <- Q
+             cost$C <- C
+             cost$sumC <- sumC
+
+             cost
+           },
+           export = cost_export
+  )
+}
+
+
 # Bandwidth Experiments --------------------------------------------------
 
 # t-SNE with input kernel bandwidths transferred to output
