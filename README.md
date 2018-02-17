@@ -174,7 +174,9 @@ Those that I have cobbled together into something that demonstrates the use of
 * [Heavy-Tailed SSNE (HSSNE)](https://jlmelville.github.io/smallvis/hssne.html).
 * [Optimizing the Heavy-Tail parameter in HSSNE](https://jlmelville.github.io/smallvis/dhssne.html).
 * Testing some different [initialization methods](https://jlmelville.github.io/smallvis/init.html)
-for t-SNE.
+for t-SNE. Related: does using an [average distance matrix](https://jlmelville.github.io/smallvis/averaging.html) 
+based on the result of multiple random initializations do better than just picking the result with the lowest error? 
+(It doesn't.)
 * [Elastic Embedding](https://jlmelville.github.io/smallvis/ee.html).
 * [Optimizaton: L-BFGS](https://jlmelville.github.io/smallvis/opt.html).
 * [Optimizaton: Spectral Direction](https://jlmelville.github.io/smallvis/specd.html).
