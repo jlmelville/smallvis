@@ -23,7 +23,10 @@ data, and t-SNE does a substantially better job.
 The famous `iris` dataset, as given in R's `datasets` package. 150 observations
 and 4 features. Observations are colored by species. This a very low dimensional
 dataset that certainly doesn't need t-SNE applied to it. Very convenient for
-sanity checking, though.
+sanity checking, though. It's worth noting that the version of this dataset
+from the [UCI repository](https://archive.ics.uci.edu/ml/datasets/iris) contains
+a few errors, and these are also (as of February 2018) shared by 
+[scikit-learn](https://github.com/scikit-learn/scikit-learn/issues/10550).
 
 ```
 iris_tsne <- smallvis(iris, scale = FALSE, perplexity = 40, Y_init = "spca", eta = 100, exaggeration_factor = 4)

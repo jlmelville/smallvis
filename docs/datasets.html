@@ -231,7 +231,7 @@ div.tocify {
 <p>Most of the docs illustrating the use of <code>smallvis</code> use some relatively small datasets which have been used elsewhere or are otherwise convenient to chuck a dimensionality reduction algorithm at. Two plots are shown for each dataset: the PCA results, using the first two principal components, and the results of running t-SNE with some standard parameters taken from the <a href="http://www.jmlr.org/papers/v9/vandermaaten08a.html">t-SNE paper</a>. This should demonstrate that, in most cases, PCA does a fairly bad job of visualizing the data, and t-SNE does a substantially better job.</p>
 <div id="iris" class="section level2">
 <h2>Iris</h2>
-<p>The famous <code>iris</code> dataset, as given in R’s <code>datasets</code> package. 150 observations and 4 features. Observations are colored by species. This a very low dimensional dataset that certainly doesn’t need t-SNE applied to it. Very convenient for sanity checking, though.</p>
+<p>The famous <code>iris</code> dataset, as given in R’s <code>datasets</code> package. 150 observations and 4 features. Observations are colored by species. This a very low dimensional dataset that certainly doesn’t need t-SNE applied to it. Very convenient for sanity checking, though. It’s worth noting that the version of this dataset from the <a href="https://archive.ics.uci.edu/ml/datasets/iris">UCI repository</a> contains a few errors, and these are also (as of February 2018) shared by <a href="https://github.com/scikit-learn/scikit-learn/issues/10550">scikit-learn</a>.</p>
 <pre><code>iris_tsne &lt;- smallvis(iris, scale = FALSE, perplexity = 40, Y_init = &quot;spca&quot;, eta = 100, exaggeration_factor = 4)</code></pre>
 <table>
 <tbody>
