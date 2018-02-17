@@ -183,7 +183,8 @@ based on the result of multiple random initializations do better than just picki
 * [Optimizaton: Conjugate Gradient](https://jlmelville.github.io/smallvis/cg.html).
 * [Optimizaton: SGD methods](https://jlmelville.github.io/smallvis/sgd.html).
 * Some initial results using [UMAP](https://jlmelville.github.io/smallvis/umap.html)
-and related methods.
+and related methods. Also, looking at the effect of borrowing some features from UMAP
+to see [the effect on t-SNE](https://jlmelville.github.io/smallvis/umaptsne.html) (sadly, not much).
 * [t-SNE normalization](https://jlmelville.github.io/smallvis/norm.html).
 * [Perplexity and three clusters](https://jlmelville.github.io/smallvis/three-clusters.html)
   from from [How to Use t-SNE Effectively](https://distill.pub/2016/misread-tsne).

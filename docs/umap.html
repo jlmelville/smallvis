@@ -413,6 +413,7 @@ iris_tsne &lt;- smallvis(iris, scale = FALSE, perplexity = 40, Y_init = &quot;sp
 <h2>Conclusions</h2>
 <p>The UMAP results are remarkable in that they thoroughly resemble the t-SNE results in their broad shapes. This, despite the fact that no normalization of the similarities are carried out (which in turn makes it amenable to scaling up to much larger dataset sizes via stochastic gradient descent). The default output similarity kernel tends to produce smaller, more well separated clusters, but the t-UMAP results are closer to the t-SNE results. It also has the advantage (in the context of <code>smallvis</code>) of being faster to optimize because the gradient is simpler.</p>
 <p>The normalized version, nt-UMAP, is even closer to the t-SNE results and can be optimized easily via the DBD method. It may be that there is something about the normalization that causes DBD to start working well. Or there may be a scheme to balance the positive and negative parts of the gradient that makes DBD start working with un-normalized (and hence separable) cost functions. This might be worth looking into.</p>
+<p><em>February 17, 2018</em>: some more UMAP-related work, looking at <a href="https://jlmelville.github.io/smallvis/umaptsne.html">importing some of UMAP’s ideas into t-SNE</a>.</p>
 </div>
 
 

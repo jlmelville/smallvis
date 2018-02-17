@@ -225,3 +225,6 @@ normalization that causes DBD to start working well. Or there may be a scheme to
 balance the positive and negative parts of the gradient that makes DBD start
 working with un-normalized (and hence separable) cost functions. This might be
 worth looking into.
+
+*February 17, 2018*: some more UMAP-related work, looking at 
+[importing some of UMAP's ideas into t-SNE](https://jlmelville.github.io/smallvis/umaptsne.html).
