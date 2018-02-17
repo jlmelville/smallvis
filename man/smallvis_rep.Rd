@@ -19,10 +19,12 @@ is returned.}
 \value{
 The \code{\link{smallvis}} result with the lowest final cost, or
 if \code{keep_all} is \code{TRUE} all results as a list, indexed as 1 ..
-\code{nrep}
-If \code{ret_extra} is not \code{FALSE}, then the final costs for all
+\code{nrep}. If \code{ret_extra} is not \code{FALSE}, then the final costs for all
 \code{nrep} runs are also included in the return value list as a vector
-called \code{all_costs}.
+called \code{all_costs}. In this case, if \code{keep_all} is \code{TRUE}, then
+\code{all_costs} appears as an extra item on all results. Additionally,
+each result will have an extra entry \code{best_i}, giving the index of the
+result with the lowest cost.
 }
 \description{
 Run t-SNE multiple times from a random initialization, and return the
@@ -46,6 +48,8 @@ plot(tsne_iris_best$Y)
 # First result is in tsne_iris_rep[[1]], second in tsne_iris_rep[[2]] etc.
 tsne_iris_rep <- smallvis_rep(nrep = 5, X = iris, perplexity = 50, method = "tsne",
                               ret_extra = TRUE, keep_all = TRUE)
+# Index of result with smallest error is in special list item 'best_i'
+best_iris <- tsne_iris_rep[[tsne_iris_rep[[1]]$best_i]]
 
 }
 }

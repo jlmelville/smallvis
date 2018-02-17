@@ -916,10 +916,12 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
 #' @param ... Arguments to apply to each \code{\link{smallvis}} run.
 #' @return The \code{\link{smallvis}} result with the lowest final cost, or
 #' if \code{keep_all} is \code{TRUE} all results as a list, indexed as 1 ..
-#' \code{nrep}
-#' If \code{ret_extra} is not \code{FALSE}, then the final costs for all
+#' \code{nrep}. If \code{ret_extra} is not \code{FALSE}, then the final costs for all
 #' \code{nrep} runs are also included in the return value list as a vector
-#' called \code{all_costs}.
+#' called \code{all_costs}. In this case, if \code{keep_all} is \code{TRUE}, then
+#' \code{all_costs} appears as an extra item on all results. Additionally,
+#' each result will have an extra entry \code{best_i}, giving the index of the
+#' result with the lowest cost.
 #' @examples
 #' \dontrun{
 #' # Return best result out of five random initializations
@@ -934,6 +936,8 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
 #' # First result is in tsne_iris_rep[[1]], second in tsne_iris_rep[[2]] etc.
 #' tsne_iris_rep <- smallvis_rep(nrep = 5, X = iris, perplexity = 50, method = "tsne",
 #'                               ret_extra = TRUE, keep_all = TRUE)
+#' # Index of result with smallest error is in special list item 'best_i'
+#' best_iris <- tsne_iris_rep[[tsne_iris_rep[[1]]$best_i]]
 #'
 #' }
 #' @export
@@ -947,8 +951,9 @@ smallvis_rep <- function(nrep = 10, keep_all = FALSE, ...) {
   all_costs <- c()
   # Keep requested return type for final result
   ret_extra <- varargs$ret_extra
-  # Inside loop, always return extra, so we can find the cost
-  if (is.null(ret_extra) || (!methods::is(ret_extra, "character") && !ret_extra)) {
+
+  # always return extra so we can find the cost
+  if (!should_ret_extra(ret_extra)) {
     varargs$ret_extra <- TRUE
   }
 
@@ -956,7 +961,8 @@ smallvis_rep <- function(nrep = 10, keep_all = FALSE, ...) {
   ret <- list()
 
   for (i in 1:nrep) {
-    if (!is.null(varargs$verbose) && varargs$verbose) {
+    # If verbose is not explicitly set to FALSE, it's TRUE by default
+    if (nnat(varargs$verbose) || is.null(varargs$verbose)) {
       tsmessage("Starting embedding # ", i, " of ", nrep)
     }
     res <- do.call(smallvis, varargs)
@@ -964,27 +970,57 @@ smallvis_rep <- function(nrep = 10, keep_all = FALSE, ...) {
     if (keep_all) {
       ret[[i]] <- res
     }
-    else {
+
+    # if (should_ret_extra(ret_extra)) {
       final_cost <- res$itercosts[length(res$itercosts)]
-      if (final_cost < best_cost) {
-        best_cost <- final_cost
-        best_res <- res
-      }
       names(final_cost) <- NULL
       all_costs <- c(all_costs, final_cost)
-    }
+
+      if (!keep_all) {
+        if (final_cost < best_cost) {
+          best_cost <- final_cost
+          best_res <- res
+        }
+      }
+    # }
   }
 
-  if (!keep_all) {
-    if (is.null(ret_extra) || (!methods::is(ret_extra, "character") && !ret_extra)) {
-      ret <- best_res$Y
+  if (keep_all) {
+    # if keep_all is TRUE and we asked for extra return info
+    # also add the final costs and the index of the best result to each result
+    if (should_ret_extra(ret_extra)) {
+      best_i <- which.min(all_costs)
+      for (i in 1:nrep) {
+        ret[[i]]$all_costs <- all_costs
+        ret[[i]]$best_i <- best_i
+      }
     }
+    # otherwise just store the Y-coordinates of each result
     else {
+      for (i in 1:nrep) {
+        ret[[i]] <- ret[[i]]$Y
+      }
+    }
+  }
+  else {
+    # Only keeping one result
+    if (should_ret_extra(ret_extra)) {
+      # store info about other results on best result list
       best_res$all_costs <- all_costs
       ret <- best_res
     }
+    else {
+      ret <- best_res$Y
+    }
   }
   ret
+}
+
+# If ret_extra is NULL or FALSE, we aren't returning extra info
+# If ret_extra is TRUE or a vector, we are returning extra info
+should_ret_extra <- function(ret_extra) {
+  !is.null(ret_extra) && ((methods::is(ret_extra, "logical") && ret_extra) ||
+    methods::is(ret_extra, "character"))
 }
 
 #' Dimensionality Reduction With Perplexity Stepping
