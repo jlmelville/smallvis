@@ -210,7 +210,7 @@ relative locations change. There's definitely not one method that outperforms
 the others.
 
 Quantitatively, if you have the time to run the embedding multiple times, the 
-preservations from choosing the best of 10 random initializations works the best. 
+preservations from choosing the best of 10 random initializations works the best,
 in terms of neighborhood preservations. But there's not much of a difference
 there, either. Admittedly, these are all comparatively small datasets. Early 
 exaggeration gives a very slight improvement for the SPCA results most of the 
