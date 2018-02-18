@@ -824,7 +824,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
       max_iter <- iter
     }
 
-    if (iter %% epoch == 0 || iter == max_iter) {
+    if ((epoch > 0 && iter %% epoch == 0) || iter == max_iter) {
       # Recenter Y during epoch only
       Y <- sweep(Y, 2, colMeans(Y))
 
