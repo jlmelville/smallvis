@@ -1552,7 +1552,7 @@ pca_whiten <- function(X, ncol = min(dim(X)), eps = 1e-5, verbose = FALSE) {
 # This differs from the procedure in the t-SNE paper by exponentially weighting
 # the distances, rather than the squared distances.
 x2aff <- function(X, perplexity = 15, tol = 1e-5, kernel = "gauss",
-                  verbose = FALSE) {
+                  verbose = FALSE, guesses = NULL) {
   x_is_dist <- methods::is(X, "dist")
   if (x_is_dist) {
     D <- X
@@ -1568,9 +1568,18 @@ x2aff <- function(X, perplexity = 15, tol = 1e-5, kernel = "gauss",
     n <- nrow(X)
   }
 
+  if (!is.null(guesses) && length(guesses) != n) {
+    stop("Initial guess vector must match number of observations in X")
+  }
+
   W <- matrix(0, n, n)
   intd <- rep(0, n)
-  beta <- rep(1, n)
+  if (!is.null(guesses)) {
+    beta <- guesses
+  }
+  else {
+    beta <- rep(1, n)
+  }
   logU <- log(perplexity)
 
   for (i in 1:n) {
@@ -1587,12 +1596,14 @@ x2aff <- function(X, perplexity = 15, tol = 1e-5, kernel = "gauss",
         Di <- sqrt(Di)
       }
     }
-    # Initialization used for all points in ELKI according to Schubert & Gertz
-    # in "Intrinsic t-Stochastic Neighbor Embedding for Visualization and
-    # Outlier Detection: A Remedy Against the Curse of Dimensionality?"
-    # Using the last optimized beta seems to be better most of the time based
-    # on my testing though, so we'll only use it for the first point.
-    if (i == 1) {
+
+    # If we haven't been provided with guesses, then try the initialization used
+    # for all points in ELKI according to Schubert & Gertz in "Intrinsic
+    # t-Stochastic Neighbor Embedding for Visualization and Outlier Detection: A
+    # Remedy Against the Curse of Dimensionality?" Using the last optimized beta
+    # seems to be better most of the time based on my testing though, so we'll
+    # only use it for the first point.
+    if (is.null(guesses) && i == 1) {
       beta[1] <- 0.5 * perplexity / mean(Di)
     }
 
@@ -1629,9 +1640,10 @@ x2aff <- function(X, perplexity = 15, tol = 1e-5, kernel = "gauss",
       Hdiff <- H - logU
       tries <- tries + 1
     }
-    # initialize guess for next point with optimized beta for this point
-    # doesn't save many iterations, but why not?
-    if (i < n) {
+    # if we didn't supply estimates for beta manually, then initialize guess for
+    # next point with optimized beta for this point doesn't save many
+    # iterations, but why not?
+    if (is.null(guesses) && i < n) {
       beta[i + 1] <- beta[i]
     }
     W[i, -i] <- Wi
