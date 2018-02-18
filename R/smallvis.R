@@ -925,7 +925,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
 #' \code{nrep} runs are also included in the return value list as a vector
 #' called \code{all_costs}. In this case, if \code{keep_all} is \code{TRUE}, then
 #' \code{all_costs} appears as an extra item on all results. Additionally,
-#' each result will have an extra entry \code{best_i}, giving the index of the
+#' each result will have an extra entry \code{best_rep}, giving the index of the
 #' result with the lowest cost.
 #' @examples
 #' \dontrun{
