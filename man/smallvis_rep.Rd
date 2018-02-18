@@ -23,7 +23,7 @@ if \code{keep_all} is \code{TRUE} all results as a list, indexed as 1 ..
 \code{nrep} runs are also included in the return value list as a vector
 called \code{all_costs}. In this case, if \code{keep_all} is \code{TRUE}, then
 \code{all_costs} appears as an extra item on all results. Additionally,
-each result will have an extra entry \code{best_i}, giving the index of the
+each result will have an extra entry \code{best_rep}, giving the index of the
 result with the lowest cost.
 }
 \description{
@@ -48,8 +48,8 @@ plot(tsne_iris_best$Y)
 # First result is in tsne_iris_rep[[1]], second in tsne_iris_rep[[2]] etc.
 tsne_iris_rep <- smallvis_rep(nrep = 5, X = iris, perplexity = 50, method = "tsne",
                               ret_extra = TRUE, keep_all = TRUE)
-# Index of result with smallest error is in special list item 'best_i'
-best_iris <- tsne_iris_rep[[tsne_iris_rep[[1]]$best_i]]
+# Index of result with smallest error is in special list item 'best_rep'
+best_iris <- tsne_iris_rep[[tsne_iris_rep[[1]]$best_rep]]
 
 }
 }

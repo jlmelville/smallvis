@@ -940,8 +940,8 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
 #' # First result is in tsne_iris_rep[[1]], second in tsne_iris_rep[[2]] etc.
 #' tsne_iris_rep <- smallvis_rep(nrep = 5, X = iris, perplexity = 50, method = "tsne",
 #'                               ret_extra = TRUE, keep_all = TRUE)
-#' # Index of result with smallest error is in special list item 'best_i'
-#' best_iris <- tsne_iris_rep[[tsne_iris_rep[[1]]$best_i]]
+#' # Index of result with smallest error is in special list item 'best_rep'
+#' best_iris <- tsne_iris_rep[[tsne_iris_rep[[1]]$best_rep]]
 #'
 #' }
 #' @export
@@ -993,10 +993,10 @@ smallvis_rep <- function(nrep = 10, keep_all = FALSE, ...) {
     # if keep_all is TRUE and we asked for extra return info
     # also add the final costs and the index of the best result to each result
     if (should_ret_extra(ret_extra)) {
-      best_i <- which.min(all_costs)
+      best_rep <- which.min(all_costs)
       for (i in 1:nrep) {
         ret[[i]]$all_costs <- all_costs
-        ret[[i]]$best_i <- best_i
+        ret[[i]]$best_rep <- best_rep
       }
     }
     # otherwise just store the Y-coordinates of each result
