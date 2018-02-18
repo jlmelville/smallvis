@@ -336,3 +336,36 @@ test_that("Miscellany", {
                           -0.7179, 0.2904, -0.1017, 0.6423), tolerance = 1e-3)
   expect_equal(final_cost(res), 0.1741, tolerance = 1e-4)
 })
+
+test_that("repeated runs", {
+  # Random intialization so don't care about numerical results
+  # Test that combinations of keep_all and ret_extra return correct types
+
+  res_keep_ret <- smallvis_rep(
+    n = 3, keep_all = TRUE, X = iris10, scale = FALSE, perplexity = 5,
+    ret_extra = TRUE, max_iter = 5, epoch_callback = NULL, verbose = FALSE)
+  expect_length(res_keep_ret, 3)
+  expect_is(res_keep_ret[[1]], "list")
+  expect_length(res_keep_ret[[1]]$all_costs, 3)
+  expect_equal(res_keep_ret[[1]]$best_rep, which.min(res_keep_ret[[1]]$all_costs))
+
+  res_nokeep_ret <- smallvis_rep(
+    n = 3, keep_all = FALSE, X = iris10, scale = FALSE, perplexity = 5,
+    ret_extra = TRUE, max_iter = 5, epoch_callback = NULL, verbose = FALSE)
+  expect_is(res_nokeep_ret, "list")
+  expect_length(res_nokeep_ret$all_costs, 3)
+  expect_equivalent(res_nokeep_ret$itercosts[length(res_nokeep_ret$itercosts)],
+               res_nokeep_ret$all_costs[which.min(res_nokeep_ret$all_costs)])
+
+  res_keep_noret <- smallvis_rep(
+    n = 3, keep_all = TRUE, X = iris10, scale = FALSE, perplexity = 5,
+    ret_extra = FALSE, max_iter = 5, epoch_callback = NULL, verbose = FALSE)
+  expect_is(res_keep_noret, "list")
+  expect_length(res_keep_noret, 3)
+  expect_is(res_keep_noret[[1]], "matrix")
+
+  res_nokeep_noret <- smallvis_rep(
+    n = 3, keep_all = FALSE, X = iris10, scale = FALSE, perplexity = 5,
+    ret_extra = FALSE, max_iter = 5, epoch_callback = NULL, verbose = FALSE)
+  expect_is(res_nokeep_noret, "matrix")
+})
