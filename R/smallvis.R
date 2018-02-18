@@ -1445,36 +1445,34 @@ ret_value <- function(Y, ret_extra, method, X, scale, Y_init, iter, start_time =
 
     optionals <- tolower(unique(optionals))
     for (o in optionals) {
-      if (o %in% c("p", "q", "w", "dx", "dy", "v", "beta", "dint", "adegc",
-                   "adegin", "adegout", "pdeg", "alpha")) {
-        exported <- NULL
-        if (!is.null(cost_fn)) {
-          # Could be NULL if max_iter was 0
-          exported <- cost_fn$export(cost_fn, o)
-        }
+      exported <- NULL
+      if (!is.null(cost_fn)) {
+        # Could be NULL if max_iter was 0
+        exported <- cost_fn$export(cost_fn, o)
+      }
 
-        if (!is.null(exported)) {
-          if (nchar(o) < 3) {
-            res[[toupper(o)]] <- exported
-          }
-          else {
-            res[[o]] <- exported
-          }
+      if (!is.null(exported)) {
+        if (nchar(o) < 3) {
+          res[[toupper(o)]] <- exported
         }
-        # For DX and DY, we can calculate if not done so already
-        else if (o == "dx") {
-          if (methods::is(X, "dist")) {
-            res$DX <- X
-          }
-          else {
-            res$DX <- sqrt(safe_dist2(X))
-          }
-        }
-        else if (o == "dy") {
-          res$DY <- sqrt(safe_dist2(Y))
+        else {
+          res[[o]] <- exported
         }
       }
-      else if (o == "x") {
+      # For DX and DY, we can calculate if not done so already
+      else if (o == "dx") {
+        if (methods::is(X, "dist")) {
+          res$DX <- X
+        }
+        else {
+          res$DX <- sqrt(safe_dist2(X))
+        }
+      }
+      else if (o == "dy") {
+        res$DY <- sqrt(safe_dist2(Y))
+      }
+
+      if (o == "x") {
         res$X <- X
       }
     }
