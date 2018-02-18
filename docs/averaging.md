@@ -138,14 +138,14 @@ The learning rate `eta` for the MMDS step was found by trial and error.
 For the alternative approach where we'll just refine the "best" result, first
 we'll need to extract the best result from the output of `smallvis_rep`. When
 setting `keep_all = TRUE` and `ret_extra = TRUE`, every result has an extra
-entry called `best_i`, which indicates which of the results had the lowest
+entry called `best_rep`, which indicates which of the results had the lowest
 error. You could do this yourself by looping over each result and comparing the 
 last entry in the `itercosts` arrays, but it's such an obvious yet fiddly task 
 that `smallvis_rep` does it for you. The resulting syntax for extracting the
 best result is admittedly ugly:
 
 ```
-iris_best <- iris_repn[[iris_repn[[1]]$best_i]]
+iris_best <- iris_repn[[iris_repn[[1]]$best_rep]]
 ```
 
 With that in hand, we can carry out one more t-SNE run with the best result
