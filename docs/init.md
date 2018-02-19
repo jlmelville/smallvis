@@ -36,15 +36,19 @@ and premature convergence. Do we need to use early exaggeration with a PCA-based
 initialization? Hard to say, so we should try it both ways.
 
 Another possibility is to use a spectral embedding of some kind. `smallvis` uses
-the [Laplacian Eigenmap](https://doi.org/10.1162/089976603321780317) technique. 
+the [Laplacian Eigenmap](https://doi.org/10.1162/089976603321780317) technique.
 [Linderman and Steinerberger](https://arxiv.org/abs/1706.02582) have shown that
 the early exaggeration method, by up-weighting the attractive part of the t-SNE
 gradient, approaches a spectral embedding. This is also the initialization used
-in [UMAP](https://github.com/lmcinnes/umap), although a different form of the 
-normalized graph Laplacian is used. It probably doesn't matter all that much.
-If the theory about the equivalence of spectral embedding and early exaggeration
-is correct, we don't need to use early exaggeration with a spectral 
-initialization.
+in [UMAP](https://github.com/lmcinnes/umap), although a different form of the
+graph Laplacian is used. If the theory about the equivalence of spectral
+embedding and early exaggeration is correct, we don't need to use early
+exaggeration with a spectral initialization.
+
+*Update February 19 2018*: A `normlaplacian` initialization is now available in
+`smallvis`, based off how UMAP does it. These give almost identical results to
+using the Laplacian Eigenmaps experiments so we don't consider them in the main
+text but you can see for yourself in a new section at the end.
 
 ## The experiment
 
@@ -222,3 +226,38 @@ From these results, it seems that either the `Y_init = "laplacian"` or `Y_init =
 *Update February 16, 2018*: For (a failed) attempt to use more information from
 the results of the random initializations, see 
 [Averaging Multiple Results](https://jlmelville.github.io/smallvis/averaging.html).
+
+## Normalized Laplacian Results
+
+*Update February 19, 2018*: Normalized Laplacian initialization in the style of
+UMAP is now implemented in `smallvis`, but as noted above, results are almost
+identical to Laplacian Eigenmap initialization. Below is pictorial evidence.
+
+These comparisons use the same settings as those in the 
+[Averaging Multiple Results](https://jlmelville.github.io/smallvis/averaging.html)
+page, so for comparison I have borrowed the Laplacian Eigenmap results from
+there. Therefore the LE results below aren't quite the same as those in the main
+text of this article, but they are very similar.
+
+```
+iris_nl <- smallvis(iris, scale = FALSE, perplexity = 40, Y_init = "normlap", method = "tsne", eta = 100, exaggeration_factor = 4, stop_lying_iter = 50)
+```
+
+Images in the left column are for the normalized Laplacian initialization
+(marked as "NL"). On the right hand side are the results from using a Laplacian
+Eigenmap initialization. I flipped the resulting coordinates from  normalized
+Laplacian initialization in the X or Y axis where appropriate to get them in the
+same orientation as the Laplacian Eigenmaps result.
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![iris NL](../img/init/iris_nl.png)|![iris LE](../img/average/iris_lap.png)
+![s1k NL](../img/init/s1k_nl.png)|![s1k LE](../img/average/s1k_lap.png)
+![oli NL](../img/init/oli_nl.png)|![oli LE](../img/average/oli_lap.png)
+![frey NL](../img/init/frey_nl.png)|![oli LE](../img/average/frey_lap.png)
+![coil20 NL](../img/init/coil20_nl.png)|![oli LE](../img/average/coil20_lap.png)
+![mnist NL](../img/init/mnist_nl.png)|![mnist LE](../img/average/mnist_lap.png)
+![fashion NL](../img/init/fashion_nl.png)|![fashion LE](../img/average/fashion_lap.png)
+
+Only the `iris` result shows even a slight difference (well, one of the loops
+in the `coil20` result is slightly rotated).

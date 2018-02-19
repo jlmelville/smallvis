@@ -39,6 +39,11 @@ is `1e-10`.
 * CE t-SNE: The fuzzy set cross-entropy is used instead of the KL divergence. 
 In the way it's defined by UMAP, this adds an extra non-constant term to the 
 cost function.
+* UMAP also uses a normalized Laplacian for initialization, but as discussed
+under [t-SNE initialization](https://jlmelville.github.io/smallvis/init.html),
+this gives very similar results to using Laplacian Eigenmaps, which in turn
+doesn't give very different results on most datasets to just using the scaled
+PCA result, so we won't pursue that further here.
 
 ## Datasets
 
@@ -129,3 +134,10 @@ using the UMAP output kernel, but the overall shape of the embedding is
 unaffected with the default kernel settings. It also noticeably increases the
 computational time due to the more complex gradient, so unless you really like
 the more compressed clusters, t-SNE still wins out here.
+
+However, it should be noted that the current default value for the number of
+nearest neighbors in UMAP is 15, which is much smaller than the default 
+perplexity of 30 as used in the Rtsne package, or the value of 40 that I used
+in these experiments, to be consistent with the original t-SNE paper, although
+it is in the range of a perplexity of 5-50 that is usually suggested. I should
+probably repeat this analysis at a lower perplexity.
