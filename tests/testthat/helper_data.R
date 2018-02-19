@@ -5,5 +5,10 @@ x2m <- function(X) {
   m
 }
 
+# convert dataframe to distance matrix
+x2d <- function(X) {
+  sqrt(safe_dist2(x2m(X)))
+}
+
 iris10 <- x2m(iris[1:10, ])
 iris10_Y <- pca_scores(iris10, ncol = 2)

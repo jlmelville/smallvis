@@ -150,16 +150,31 @@
 #'   standard deviation of 1e-4.
 #'   \item{\code{"laplacian"}}: initialize from Laplacian Eigenmap (Belkin and
 #'   Niyogi, 2002). The affinity matrix used as input is the result of the
-#'   perplexity or smoothed k-nearest neighbor distance calibration after
-#'   symmetrization but before any normalization.
+#'   perplexity or smoothed k-nearest neighbor distance calibration. Either
+#'   normalized or un-normalized input data will be used, with un-normalized
+#'   values used if both are available (although this shouldn't make a
+#'   difference). This initialization method cannot be used if the chosen
+#'   embedding \code{method} does not calculate a suitable input matrix. If the
+#'   input matrix is present but isn't symmetric (e.g. \code{method} choices
+#'   such as \code{"jse"}, \code{"nerv"} and \code{"asne"}) then the
+#'   initialization will proceed, but the results may not be reliable. If the
+#'   \href{https://cran.r-project.org/package=RSpectra}{RSpectra} package is
+#'   available, this will be used, otherwise the \code{\link[base]{eigen}}
+#'   function is used, which is much slower. Using RSpectra is highly
+#'   recommended.
+#'   \item{\code{"normlaplacian"}}: initialize from the eigenvectors of the
+#'   normalized Laplacian. This is a similar procedure to using Laplacian
+#'   Eigenmaps, but with a slightly different Laplacian and is the same
+#'   initialization procedure as carried out by UMAP (as of version 0.2.1). The
+#'   same limitations apply as for \code{Y_init = "laplacian"}, including the
+#'   recommendation to install the RSpectra package.
 #' }
 #'
-#' As a spectral method, using \code{"laplacian"} is effectively the same as
-#' turning off the repulsive interactions in the cost function (see Linderman
-#' and Steinerberger, 2017): it is therefore unnecessary to use the
-#' \code{exaggeration_factor} setting. However, it can be quite slow for larger
-#' datasets. It should also behave similarly to the initialization method used
-#' in UMAP.
+#' As spectral methods, using \code{"laplacian"} or \code{"normlaplacian"} is
+#' similar to turning off the repulsive interactions in many cost functions
+#' related to t-SNE (see Carreira-Perpinan, 2010, and Linderman and
+#' Steinerberger, 2017): it may therefore unnecessary to use the
+#' \code{exaggeration_factor} setting.
 #'
 #' @section Visualization callback:
 #'
@@ -760,20 +775,40 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
     }
     else {
       Y_init <- match.arg(tolower(Y_init),
-                          c("rand", "pca", "spca", "laplacian"))
+                          c("rand", "pca", "spca", "laplacian", "normlaplacian"))
 
-      if (Y_init != "laplacian") {
+      if (!is_spectral_init(Y_init)) {
         Y <- init_out(Y_init, X, n, k, pca_preprocessed = pca,
                       verbose = verbose)
       }
       else {
-        if (is.null(cost_fn$P)) {
-          stop("No suitable input for initialization from Laplacian Eigenmap")
+        # Use normalized or unnormalized input weight for spectral initialization
+        # Pretty sure it doesn't matter, given the current options
+        A <- cost_fn$V
+        if (is.null(A)) {
+          if (verbose) {
+            tsmessage("Using P for spectral initialization")
+          }
+          A <- cost_fn$P
         }
-        if (verbose) {
-          tsmessage("Initializing from Laplacian Eigenmap")
+        else if (verbose) {
+          tsmessage("Using V for spectral initialization")
         }
-        Y <- laplacian_eigenmap(cost_fn$P, ndim = k)
+        if (is.null(A)) {
+          stop("No suitable input for spectral initialization")
+        }
+        if (Y_init == "laplacian") {
+          if (verbose) {
+            tsmessage("Initializing from Laplacian Eigenmap")
+          }
+          Y <- laplacian_eigenmap(A, ndim = k)
+        }
+        else {
+          if (verbose) {
+            tsmessage("Initializing from normalized Laplacian")
+          }
+          Y <- normalized_spectral_init(A, ndim = k)
+        }
       }
     }
   }
@@ -1315,17 +1350,51 @@ init_out <- function(Y_init, X, n, ndim, pca_preprocessed, verbose = FALSE) {
 # top eigenvectors to be extracted. Otherwise, use the slower eigen routine.
 # A must be symmetric and positive semi definite, but not necessarily
 # normalized in any specific way.
-laplacian_eigenmap <- function(A, ndim = 2) {
+laplacian_eigenmap <- function(A, ndim = 2, use_RSpectra = TRUE) {
   # Equivalent to: D <- diag(colSums(A)); M <- solve(D) %*% A
   # This effectively row-normalizes A: colSums is normally faster than rowSums
   # and because A is symmetric, they're equivalent
   M <- A / colSums(A)
-  if (requireNamespace("RSpectra", quietly = TRUE, warn.conflicts = FALSE)) {
+  if (use_RSpectra && requireNamespace("RSpectra", quietly = TRUE,
+                                       warn.conflicts = FALSE)) {
     Re(RSpectra::eigs(M, k = ndim + 1)$vectors[, 2:(ndim + 1)])
   }
   else {
     eigen(M, symmetric = FALSE)$vectors[, 2:(ndim + 1)]
   }
+}
+
+# Use a normalized Laplacian. The UMAP approach, taken from version 0.2.1.
+normalized_spectral_init <- function(A, ndim = 2, use_RSpectra = TRUE) {
+  # Normalized Laplacian
+  n <- nrow(A)
+  I <- diag(1, nrow = n, ncol = n)
+  D <- diag(1 / sqrt(colSums(A)))
+  L <- I - D %*% A %*% D
+
+  if (use_RSpectra && requireNamespace("RSpectra", quietly = TRUE,
+                                       warn.conflicts = FALSE)) {
+    k <- ndim + 1
+    ncv <- max(2 * k + 1, floor(sqrt(n)))
+    opt <- list(
+      ncv = ncv,
+      maxitr = 5 * n,
+      tol = 1e-4
+    )
+    res <- RSpectra::eigs(L, k = k, which = "SM", opt = opt)
+    vec_indices <- rev(order(res$values, decreasing = TRUE)[1:ndim])
+    res <- Re(res$vectors[, vec_indices])
+  }
+  else {
+    res <- eigen(L, symmetric = FALSE)
+    vec_indices <- order(res$values, decreasing = FALSE)[2:(ndim + 1)]
+    res <- Re(res$vectors[, vec_indices])
+  }
+  res
+}
+
+is_spectral_init <- function(init) {
+  tolower(init) %in% c("laplacian", "normlaplacian")
 }
 
 # Epoch Functions ---------------------------------------------------------
@@ -1450,7 +1519,6 @@ ret_value <- function(Y, ret_extra, method, X, scale, Y_init, iter, start_time =
         # Could be NULL if max_iter was 0
         exported <- cost_fn$export(cost_fn, o)
       }
-
       if (!is.null(exported)) {
         if (nchar(o) < 3) {
           res[[toupper(o)]] <- exported

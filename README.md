@@ -32,16 +32,16 @@ install this as a dependency from github. Similarly, it uses a development
 version of the [mize](https://github.com/jlmelville/mize) package (which is
 on CRAN but not in a sufficiently advanced state currently).
 
-There is also an optional dependency on the 
+There is also an optional dependency on the
 [RSpectra](https://cran.r-project.org/package=RSpectra) package, which is used
-only if you want to initialize from a spectral method 
-(set `Y_init = "laplacian"` to do this and see the paper by 
+only if you want to initialize from a spectral method (set `Y_init =
+"laplacian"` or `Y_init = "normlaplacian"` to do this and see the paper by
 [Linderman and Steinerberger](https://arxiv.org/abs/1706.02582) for details on
-why you might want to). If not present, then the standard R function `eigen`
-is used, but this is much slower (because we only need the first few eigenvectors,
-and `eigen` calculates all of them). On my Sandy Bridge-era laptop running
-R 3.4.2 on Windows 10, using `Rspectra::eigs` to fetch the top 3 eigenvectors 
-from a 6,000 x 6,000 affinity matrix takes about 6 seconds; using `eigen` takes 
+why you might want to). If not present, then the standard R function `eigen` is
+used, but this is much slower (because we only need the first few eigenvectors,
+and `eigen` calculates all of them). On my Sandy Bridge-era laptop running R
+3.4.2 on Windows 10, using `Rspectra::eigs` to fetch the top 3 eigenvectors from
+a 6,000 x 6,000 affinity matrix takes about 6 seconds; using `eigen` takes
 around 25 minutes.
 
 ## Installing
@@ -91,6 +91,9 @@ tsne_iris_spca <- smallvis(iris, perplexity = 25, epoch_callback = iris_plot, Y_
 
 # or initialize from Laplacian Eigenmap (similar to UMAP initialization)
 tsne_iris_lap <- smallvis(iris, perplexity = 25, epoch_callback = iris_plot, Y_init = "lap")
+
+# or initialize from normalized Laplacian eigenvectors (even closer to UMAP initialization)
+tsne_iris_nlap <- smallvis(iris, perplexity = 25, epoch_callback = iris_plot, Y_init = "normlap")
 
 # return extra information in a list, like with Rtsne
 tsne_iris_extra <- smallvis(iris, perplexity = 25, epoch_callback = iris_plot, ret_extra = TRUE)

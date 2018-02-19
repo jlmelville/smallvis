@@ -325,16 +325,31 @@ to one of the following:
   standard deviation of 1e-4.
   \item{\code{"laplacian"}}: initialize from Laplacian Eigenmap (Belkin and
   Niyogi, 2002). The affinity matrix used as input is the result of the
-  perplexity or smoothed k-nearest neighbor distance calibration after
-  symmetrization but before any normalization.
+  perplexity or smoothed k-nearest neighbor distance calibration. Either
+  normalized or un-normalized input data will be used, with un-normalized
+  values used if both are available (although this shouldn't make a
+  difference). This initialization method cannot be used if the chosen
+  embedding \code{method} does not calculate a suitable input matrix. If the
+  input matrix is present but isn't symmetric (e.g. \code{method} choices
+  such as \code{"jse"}, \code{"nerv"} and \code{"asne"}) then the
+  initialization will proceed, but the results may not be reliable. If the
+  \href{https://cran.r-project.org/package=RSpectra}{RSpectra} package is
+  available, this will be used, otherwise the \code{\link[base]{eigen}}
+  function is used, which is much slower. Using RSpectra is highly
+  recommended.
+  \item{\code{"normlaplacian"}}: initialize from the eigenvectors of the
+  normalized Laplacian. This is a similar procedure to using Laplacian
+  Eigenmaps, but with a slightly different Laplacian and is the same
+  initialization procedure as carried out by UMAP (as of version 0.2.1). The
+  same limitations apply as for \code{Y_init = "laplacian"}, including the
+  recommendation to install the RSpectra package.
 }
 
-As a spectral method, using \code{"laplacian"} is effectively the same as
-turning off the repulsive interactions in the cost function (see Linderman
-and Steinerberger, 2017): it is therefore unnecessary to use the
-\code{exaggeration_factor} setting. However, it can be quite slow for larger
-datasets. It should also behave similarly to the initialization method used
-in UMAP.
+As spectral methods, using \code{"laplacian"} or \code{"normlaplacian"} is
+similar to turning off the repulsive interactions in many cost functions
+related to t-SNE (see Carreira-Perpinan, 2010, and Linderman and
+Steinerberger, 2017): it may therefore unnecessary to use the
+\code{exaggeration_factor} setting.
 }
 
 \section{Visualization callback}{
