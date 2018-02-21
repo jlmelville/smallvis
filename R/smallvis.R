@@ -1339,11 +1339,17 @@ init_out <- function(Y_init, X, n, ndim, pca_preprocessed, verbose = FALSE) {
 
 # Laplacian Eigenmap (Belkin & Niyogi, 2002)
 # Original formulation solves the generalized eigenvalue problem of the
-# unnormalized graph Laplacian and uses the bottom eigenvectors that result
+# unnormalized graph Laplacian: L v = lambda D v, where L = D - A
+# and uses the bottom eigenvectors v that result
 # (ignoring the constant eigenvector associated with the smallest eigenvalue).
+#
 # This is equivalent to using the top eigenvectors from the usual
-# eigendecomposition of a row-normalized Laplacian D^-1 A, so we don't need to
-# depend on an external package for generalized eigenvalues.
+# eigendecomposition of a row-normalized Laplacian P = D^-1 A: P v = lambda' v
+# so we don't need to depend on an external package for generalized eigenvalues.
+# Note that while the eigenvectors are the same, the eigenvalues are
+# different: lambda' = 1 - lambda, but we don't use them with Laplacian
+# Eigenmaps anyway.
+#
 # As we only need to calculate the top ndim + 1 eigenvectors (i.e. normally 3)
 # it's incredibly wasteful to calculate all of them. Therefore, if the
 # RSpectra library is available, we use that instead, which allows for only the
@@ -1366,11 +1372,16 @@ laplacian_eigenmap <- function(A, ndim = 2, use_RSpectra = TRUE) {
 
 # Use a normalized Laplacian. The UMAP approach, taken from version 0.2.1.
 normalized_spectral_init <- function(A, ndim = 2, use_RSpectra = TRUE) {
-  # Normalized Laplacian
   n <- nrow(A)
-  I <- diag(1, nrow = n, ncol = n)
-  D <- diag(1 / sqrt(colSums(A)))
-  L <- I - D %*% A %*% D
+  # Normalized Laplacian: clear and close to UMAP code, but very slow in R
+  # I <- diag(1, nrow = n, ncol = n)
+  # D <- diag(1 / sqrt(colSums(A)))
+  # L <- I - D %*% A %*% D
+
+  # A lot faster (order of magnitude when n = 1000)
+  Dsq <- sqrt(colSums(A))
+  L <- -t(A / Dsq) / Dsq
+  diag(L) <- 1 + diag(L)
 
   if (use_RSpectra && requireNamespace("RSpectra", quietly = TRUE,
                                        warn.conflicts = FALSE)) {
