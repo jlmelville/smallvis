@@ -15,6 +15,11 @@ The images for nt-UMAP have been updated and generated using the Delta-Bar-Delta
 optimization. t-SNE results have also been updated to use DBD results for 
 comparison.
 
+*Update February 20, 2018*: The UMAP and t-UMAP results have been regenerated 
+using DBD instead of L-BFGS and progressively reduced perplexity, to be more
+consistent with t-SNE and nt-UMAP. Fortunately, the final preservation values
+and plots are quite similar, so no conclusions have changed.
+
 [UMAP](https://github.com/lmcinnes/umap) 
 (Uniform Manifold Approximation and Projection) is a dimensionality reduction
 method based on reducing the cross-entropy between two fuzzy sets. 
@@ -37,15 +42,6 @@ this
 [perspective by Lee and Verleysen](http://dx.doi.org/10.1109/CIDM.2014.7008663)).
 If UMAP can do well without normalization, this suggests that normalization 
 isn't quite as important as might be thought.
-
-Initial experiments suggested that UMAP was noticeably more difficult to 
-optimize with the delta-bar-delta optimization method that with t-SNE. However,
-L-BFGS with perplexity stepping seems like a robust alternative, based on
-[a comparison with DBD for t-SNE optimization](https://jlmelville.github.io/smallvis/opt.html).
-
-As there is much less information around on optimizing UMAP compared to t-SNE,
-To make sure UMAP results shown are definitely converged, we're going to double
-the number of iterations compared to the t-SNE example.
 
 ## Variations on UMAP
 
@@ -116,27 +112,61 @@ See the [Datasets](https://jlmelville.github.io/smallvis/datasets.html) page.
 ## Settings
 
 The `gr_eps` parameter was set to `0.1`, the value used in LargeVis, which gives
-slightly better results than the UMAP default of `0.001`. When used with UMAP, 
-the `perplexity` setting is interpreted as the value of `k` to use in the
-smooth k-nearest-neighbor calibration.
+slightly better results than the Python UMAP reference implementation value of
+`0.001`. In `smallvis`, both the LargeVis and UMAP methods use `gr_eps = 0.1` as
+defaults, but I'm setting it explicitly below in the example code below to avoid
+ambiguity.
 
-L-BFGS optimization with perplexity-stepping provides the best settings I've
-found to get converged and decent looking results for arbitrary dimensionality
-reduction cost functions, but it's not as straight forward or fast as using
-the delta-bar-delta optimizer used in t-SNE. I tried applying it to t-UMAP, but
-got typical results of requiring a per-dataset (and much reduced) learning rate
-to avoid the optimizer diverging and slow convergence.
+Smaller values of `gr_eps`, while preferable for making the gradient more
+accurate, cause rather erratic behavior in optimization, with lots of tight,
+small clusters forming, which take a large number of iterations to coalesce, and
+the results are rarely different from using `gr_eps = 0.1`. As a brief test, 
+I took the `iris` and `s1k` datasets and ran with `gr_eps = 0.1` to convergence.
+Then I starting a second UMAP run with `gr_eps = 0.001`, `gr_eps = 1e-10` or 
+`gr_eps = .Machine$double.eps`, initialized with the final coordinates of the 
+`gr_eps = 0.1` run. In all cases, I saw barely perceptible changes to the 
+coordinates and only a small change to the gradient norm and cost. While this
+is hardly conclusive proof, it's reasonable to proceed with `gr_eps = 0.1`.
 
-However, DBD works well for the normalized t-UMAP. So for the nt-UMAP results,
-DBD was used. The t-SNE results were generated with the same parameters
+*Update February 20, 2018*: Initial experiments suggested that UMAP was
+noticeably more difficult to optimize with the delta-bar-delta optimization
+method than with t-SNE. DBD settings *can* be used for UMAP, but require a much
+smaller learning rate and much larger number of iterations.  For the larger
+datasets, `mnist6k` and `fashion6k`, a larger learning rate of `eta = 0.1` could
+be used, compared to `eta = 0.01` for the other datasets. Momentum settings were
+left at their default values. Results for UMAP and t-UMAP now use these 
+settings.
+
+Originally, the UMAP and t-UMAP results used L-BFGS with step-wise scaled
+perplexity, which is the best general purpose approach embedding 
+[optimization method](https://jlmelville.github.io/smallvis/opt.html) I have
+come up with. Results are quite similar using either DBD or L-BFGS, but
+for consistency's sake, I report the DBD results for all the methods shown here.
+
+By contrast to UMAP and t-UMAP, default DBD works well for the normalized
+t-UMAP. So for the nt-UMAP results, DBD was used. The t-SNE results were
+generated with the same parameters.
+
+When used with UMAP, the `perplexity` setting is interpreted as the value of `k` 
+to use in the smooth k-nearest-neighbor calibration.
 
 Some examples invocations for `iris`:
 
 ```
-iris_tumap <- smallvis_perpstep(step_iter = 500, X = iris, method = "tumap", scale = FALSE, verbose = TRUE, Y_init = "spca", ret_extra = c("DX", "DY"), perplexity = 40, max_iter = 2000, opt = list("l-bfgs", step_tol = 1e-6))
-
 iris_ntumap <- smallvis(iris, scale = FALSE, perplexity = 40, Y_init = "spca", method = "ntumap",  max_iter = 2000, epoch = 100)
 iris_tsne <- smallvis(iris, scale = FALSE, perplexity = 40, Y_init = "spca", method = "tsne",  max_iter = 2000, epoch = 100)
+
+# UMAP parameters with DBD
+iris_umap <- smallvis(iris, scale = FALSE, perplexity = 40, Y_init = "spca", method = "umap", eta = 0.01, max_iter = 10000, epoch = 100)
+# MNIST and Fashion could use a learning rate of 0.1
+mnist_umap <- smallvis(mnist6k, scale = FALSE, perplexity = 40, Y_init = "spca", method = "umap", eta = 0.1, max_iter = 10000, epoch = 100)
+
+# Same pattern for t-UMAP
+iris_tumap <- smallvis(iris, scale = FALSE, perplexity = 40, Y_init = "spca", method = "umap", eta = 0.01, max_iter = 10000, epoch = 100)
+mnist_tumap <- smallvis(mnist6k, scale = FALSE, perplexity = 40, Y_init = "spca", method = "tumap", eta = 0.1, max_iter = 10000, epoch = 100)
+
+# L-BFGS needs to be used with perplexity steps (results not shown)
+iris_tumap <- smallvis_perpstep(step_iter = 500, X = iris, method = "tumap", scale = FALSE, verbose = TRUE, Y_init = "spca", ret_extra = c("DX", "DY"), perplexity = 40, max_iter = 2000, opt = list("l-bfgs", step_tol = 1e-6))
 ```
 
 ## Evaluation
@@ -207,7 +237,6 @@ and t-SNE results.
 |![fashion UMAP](../img/umap/fashion_umap.png)|![fashion t-UMAP](../img/umap/fashion_tumap.png)
 |![fashion nt-UMAP](../img/umap/fashion_ntumap.png)|![fashion t-SNE](../img/umap/fashion_tsne.png)
 
-
 ## Conclusions
 
 The UMAP results are remarkable in that they thoroughly resemble the t-SNE
@@ -220,7 +249,14 @@ but the t-UMAP results are closer to the t-SNE results. It also has the advantag
 is simpler.
 
 The normalized version, nt-UMAP, is even closer to the t-SNE results and can be
-optimized easily via the DBD method. It may be that there is something about the
+optimized easily via the DBD method. DBD optimization of the UMAP and t-UMAP
+cost functions were certainly a *lot* slower than the equivalent t-SNE result, but
+this is an observation of limited practical significance. In real-world use of
+UMAP (i.e. using the real Python UMAP, not its implementation in `smallvis`),
+stochastic gradient descent is used, seems very fast and scales much better than
+t-SNE.
+
+However, in a more general sense, it may be that there is something about the
 normalization that causes DBD to start working well. Or there may be a scheme to
 balance the positive and negative parts of the gradient that makes DBD start
 working with un-normalized (and hence separable) cost functions. This might be
