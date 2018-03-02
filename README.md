@@ -171,7 +171,8 @@ Those that I have cobbled together into something that demonstrates the use of
 `smallvis` appear below.
 
 * The [datasets](https://jlmelville.github.io/smallvis/datasets.html) used in my ruminations.
-* Looking at the effect of the [scaling](https://jlmelville.github.io/smallvis/scale.html) options on t-SNE.
+* A look at the effect of the [scaling](https://jlmelville.github.io/smallvis/scale.html) and 
+[PCA and whitening](https://jlmelville.github.io/smallvis/pcaw.html) preprocessing options on t-SNE.
 * How [perplexity](https://jlmelville.github.io/smallvis/perplexity.html) affects t-SNE.
 * [Distance-preserving methods](https://jlmelville.github.io/smallvis/mmds.html) (geodesic as well as Euclidean).
 * A comparison of various flavours of [Stochastic Neighbor Embedding](https://jlmelville.github.io/smallvis/sne.html) (t-distributed and otherwise).
