@@ -371,6 +371,7 @@ res_scale_none &lt;- svbench(scale = FALSE, perplexity = 40, Y_init = &quot;spca
 </tbody>
 </table>
 <p>My apologies to Brendan Frey. Nonetheless, <code>scale = TRUE</code> is a good idea for some datasets, specifically those where each column is a different measurement using very different scales. <code>iris</code> is a candidate for this, although as it turns out, the different columns all have very similar scales, because they are all length or width measurements of the flower features, and in this case scaling makes the separation of classes slightly worse.</p>
+<p>You may also want to consider the <a href="https://jlmelville.github.io/smallvis/pcaw.html">PCA and whitening</a> preprocessing options.</p>
 </div>
 
 

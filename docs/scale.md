@@ -134,3 +134,5 @@ turns out, the different columns all have very similar scales, because they are
 all length or width measurements of the flower features, and in this case
 scaling makes the separation of classes slightly worse.
 
+You may also want to consider the [PCA and whitening](https://jlmelville.github.io/smallvis/pcaw.html) 
+preprocessing options.
