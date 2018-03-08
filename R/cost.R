@@ -122,8 +122,7 @@ umap <- function(perplexity, spread = 1, min_dist = 0.001, gr_eps = 0.1) {
 
       P <- smooth_knn_distances(X, k = perplexity, tol = 1e-5,
                                 verbose = verbose)$P
-      # Fuzzy set union
-      P <- P + t(P) - P * t(P)
+      P <- fuzzy_set_union(P)
       cost$P <- P
       cost$Cp <- colSums(P * log(P + eps) + (1 - P) * log1p(-P + eps))
       cost$eps <- eps
@@ -168,8 +167,7 @@ tumap <- function(perplexity, gr_eps = 0.1) {
 
       P <- smooth_knn_distances(X, k = perplexity, tol = 1e-5,
                                 verbose = verbose)$P
-      # Fuzzy set union
-      P <- P + t(P) - P * t(P)
+      P <- fuzzy_set_union(P)
       cost$P <- P
       cost$Cp <- colSums(P * log(P + eps) + (1 - P) * log1p(-P + eps))
 
@@ -200,8 +198,7 @@ ntumap <- function(perplexity, gr_eps = 0.1) {
 
       P <- smooth_knn_distances(X, k = perplexity, tol = 1e-5,
                                  verbose = verbose)$P
-      # Fuzzy set union
-      P <- P + t(P) - P * t(P)
+      P <- fuzzy_set_union(P)
 
       P <- P / sum(P)
       cost$P <- P

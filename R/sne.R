@@ -377,8 +377,7 @@ skdtsne <- function(perplexity) {
 
       P <- smooth_knn_distances(X, k = perplexity, tol = 1e-5,
                                 verbose = verbose)$P
-      # Fuzzy set union
-      P <- P + t(P) - P * t(P)
+      P <- fuzzy_set_union(P)
 
       # Normalize
       P <- P / sum(P)

@@ -2064,3 +2064,10 @@ smooth_knn_distances <- function(X, k = 15, tol = 1e-5,
   }
   list(P = P, sigma = sigma)
 }
+
+# set_op_mix_ratio = between 0 and 1 mixes in fuzzy set intersection
+# set to 0 for intersection only
+fuzzy_set_union <- function(X, set_op_mix_ratio = 1) {
+  XX <- X * t(X)
+  set_op_mix_ratio * (X + t(X) - XX) + (1 - set_op_mix_ratio) * XX
+}
