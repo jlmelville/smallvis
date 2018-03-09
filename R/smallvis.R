@@ -1958,110 +1958,136 @@ find_ab_params <- function(spread = 1, min_dist = 0.001) {
 # 1. The target value is the log2 of k, not the Shannon entropy associated
 # with the desired perplexity.
 # 2. Input weights are exponential, rather than Gaussian, with respect to the
-# distances. The distances are also centered with respect to the distance to
-# the nearest neighbor.
+# distances. The distances are also centered with respect to the smoothed
+# distance to the nearest (non-zero distance) neighbor. A non-integral
+# 'local_connectivity' value can result in this shortest distance between an
+# interpolated value between two distances.
 # 3. The weights are not normalized. Their raw sum is compared to the target
 # value.
-smooth_knn_distances <- function(X, k = 15, tol = 1e-5,
-                                 min_k_dist_scale = 1e-3, verbose = FALSE) {
-  if (verbose) {
-    tsmessage("Commencing smooth kNN distance calibration for k = ", formatC(k))
-  }
-  x_is_dist <- methods::is(X, "dist")
-  if (x_is_dist) {
-    D <- X
-    n <- attr(D, "Size")
+# 4. Distances beyond the k-nearest neighbors are not used in the calibration.
+# The equivalent weights are set to 0.
+# 5. Weights associated with distances shorter than the smoothed nearest
+# neighbor distance are clamped to 1.
+# This code has been converted from the original Python and may not be very
+# idiomatic (or vectorizable).
+# tol is SMOOTH_K_TOLERANCE in the Python code.
+smooth_knn_distances <-
+  function(X,
+           k,
+           n_iter = 64,
+           local_connectivity = 1.0,
+           bandwidth = 1.0,
+           tol = 1e-5,
+           min_k_dist_scale = 1e-3,
+           verbose = FALSE) {
 
-    D <- as.matrix(D)
-  }
-  else {
-    XX <- rowSums(X * X)
-    n <- nrow(X)
-  }
+    if (verbose) {
+      tsmessage("Commencing smooth kNN distance calibration for k = ", formatC(k))
+    }
 
-  P <- matrix(0, n, n)
-  sigma <- rep(1, n)
-  logU <- log2(k)
-  # Will contain index of any point where all neighbors have zero distance
-  # Hopefully not too many of these
-  badi <- c()
-  # Running total of distances, to be converted to a mean if badi is non-empty
-  sumD <- 0
-
-  for (i in 1:n) {
-    sigma_min <- 0
-    sigma_max <- Inf
-
-    if (x_is_dist) {
-      Di <- D[i, -i]
+    if (methods::is(X, "dist")) {
+      X <- as.matrix(X)
+      nn_idx <- t(apply(X, 2, order))[, 1:k]
+      nn_dist <- matrix(0, nrow = nrow(X), ncol = k)
+      for (i in 1:nrow(nn_idx)) {
+        nn_dist[i, ] <- X[i, nn_idx[i, ]]
+      }
     }
     else {
-      Di <- (XX[i] + XX - 2 * colSums(tcrossprod(X[i, ], X)))[-i]
-      Di[Di < 0] <- 0
-      Di <- sqrt(Di)
+      fnn <- FNN::get.knn(X, k = k - 1)
+      nn_idx <- matrix(nrow = nrow(X), ncol = k)
+      nn_idx[, 1] <- 1:nrow(nn_idx)
+      nn_idx[, 2:ncol(nn_idx)] <- fnn$nn.index
+      nn_dist <- matrix(0, nrow = nrow(X), ncol = k)
+      nn_dist[, 2:ncol(nn_dist)] <- fnn$nn.dist
     }
-    sumD <- sumD + sum(Di)
-    rho <- min(Di[Di > 0])
-    Di[Di < rho] <- rho
-    thisP <- exp(-(Di - rho) / sigma[i])
-    H <- sum(thisP)
 
-    Hdiff <- H - logU
-    tries <- 0
+    n <- nrow(nn_dist)
+    target <- log2(k) * bandwidth
+    rho <- rep(0, n)
+    sigma <- rep(0, n)
+    P <- matrix(0, nrow = n, ncol = n)
+    mean_distances <- NULL
 
-    while (abs(Hdiff) > tol && tries < 50) {
-      if (Hdiff > 0) {
-        sigma_max <- sigma[i]
-        sigma[i] <- 0.5 * (sigma[i] + sigma_min)
+    for (i in 1:n) {
+      lo <- 0.0
+      hi <- Inf
+      mid <- 1.0
+
+      ith_distances <- nn_dist[i, ]
+      non_zero_dists <- ith_distances[ith_distances > 0.0]
+      if (length(non_zero_dists) >= local_connectivity) {
+        index <- floor(local_connectivity)
+        interpolation <- local_connectivity - index
+        if (index > 0) {
+          if (interpolation <= tol) {
+            rho[i] <- non_zero_dists[index]
+          }
+          else {
+            rho[i] <- non_zero_dists[index] + interpolation *
+              (non_zero_dists[index + 1] - non_zero_dists[index])
+          }
+        }
+        else {
+          rho[i] <- interpolation * non_zero_dists[1]
+        }
+      } else if (length(non_zero_dists) > 0) {
+        rho[i] <- max(non_zero_dists)
       }
       else {
-        sigma_min <- sigma[i]
-        if (is.infinite(sigma_max)) {
-          sigma[i] <- 2 * sigma[i]
-        } else {
-          sigma[i] <- 0.5 * (sigma[i] + sigma_max)
+        rho[i] <- 0.0
+      }
+
+      for (iter in 1:n_iter) {
+        psum <- 0.0
+        for (j in 2:ncol(nn_dist)) {
+          dist <- max(0, (nn_dist[i, j] - rho[i]))
+          psum <- psum + exp(-(dist / mid))
+        }
+        val <- psum
+
+        if (abs(val - target) < tol) {
+          break
+        }
+
+        if (val > target) {
+          hi <- mid
+          mid <- (lo + hi) / 2.0
+        }
+        else {
+          lo <- mid
+          if (is.infinite(hi)) {
+            mid <- mid * 2
+          }
+          else {
+            mid <- (lo + hi) / 2.0
+          }
         }
       }
+      sigma[i] <- mid
 
-      thisP <- exp(-(Di - rho) / sigma[i])
-      H <- sum(thisP)
-      Hdiff <- H - logU
-      tries <- tries + 1
-    }
-
-    if (rho > 0.0) {
-      meanDi <- mean(Di)
-      if (sigma[i] < min_k_dist_scale * meanDi) {
-        sigma[i] <- min_k_dist_scale * meanDi
-        thisP <- exp(-(Di - rho) / sigma[i])
+      if (rho[i] > 0.0) {
+        sigma[i] <- max(sigma[i], min_k_dist_scale * mean(ith_distances))
       }
-    }
-    else {
-      badi <- c(badi, i)
-    }
+      else {
+        if (is.null(mean_distances)) {
+          mean_distances <- mean(nn_dist)
+        }
+        sigma[i] <- max(sigma[i], min_k_dist_scale * mean_distances)
+      }
 
-    P[i, -i] <- thisP
+      prow <- exp(-(nn_dist[i, ] - rho[i]) / (sigma[i] * bandwidth))
+      prow[nn_dist[i, ] - rho[i] <= 0] <- 1
+      P[i, nn_idx[i, ]] <- prow
+    }
+    diag(P) <- 0
+
+    if (verbose) {
+      summarize(sigma, "sigma summary")
+    }
+    list(sigma = sigma, rho = rho, P = P)
   }
 
-  # Deal with completely pathological cases:
-  # NB this should be impossible if considering all other points in the dataset
-  # because it implies that all distances are zero. Might become relevant if
-  # we only consider distances of the k-neighborhood
-  if (length(badi) > 0) {
-    meanD <- sumD / (n * n)
-    bad_sigma <- min_k_dist_scale * meanD
-    bad_P <- exp(-1 / bad_sigma)
-    for (i in 1:length(badi)) {
-      sigma[badi[i]] <- bad_sigma
-      P[badi[i], -badi[i]] <- bad_P
-    }
-  }
-
-  if (verbose) {
-    summarize(sigma, "sigma summary")
-  }
-  list(P = P, sigma = sigma)
-}
 
 # set_op_mix_ratio = between 0 and 1 mixes in fuzzy set intersection
 # set to 0 for intersection only

@@ -199,30 +199,30 @@ test_that("umap", {
   res <- smallvis(iris10, Y_init = iris10_Y, method = "umap", eta = 0.1,
                   perplexity = 5,
                   epoch_callback = NULL, verbose = FALSE, ret_extra = TRUE)
-  expect_equal(res$Y, c2y(-1.297, 0.5526, 0.8944, 1.112, -1.337, -1.578, 0.824, -1.001,
-                        1.41, 0.4207, -0.006171, 0.3732, -0.2137, -0.05575, -0.02374,
-                        -0.03407, -0.4788, 0.02117, 0.05909, 0.3587), tolerance = 1e-3)
-  expect_equal(final_cost(res), 6.144, tolerance = 1e-4)
+  expect_equal(res$Y, c2y(-1.359, 0.7321, 0.8316, 1.071, -1.346, -1.606, 0.7614, -1.036,
+                          1.407, 0.543, -0.0262, 0.5369, -0.1322, -0.1236, -0.07116, -0.08141,
+                          -0.4839, 0.01953, -0.1767, 0.5387), tolerance = 1e-3)
+  expect_equal(final_cost(res), 13.15, tolerance = 1e-4)
 })
 
 test_that("tumap", {
   res <- smallvis(iris10, Y_init = iris10_Y, method = "tumap", eta = 0.1,
                   perplexity = 5, max_iter = 100,
                   epoch_callback = NULL, verbose = FALSE, ret_extra = TRUE)
-  expect_equal(res$Y, c2y(-1.548, 0.6899, 1.018, 1.383, -1.62, -1.981, 0.83, -1.094,
-                          1.827, 0.4956, 0.04525, 0.5803, -0.3647, -0.1572, 0.004016, -0.005096,
-                          -0.7239, 0.09424, -0.03201, 0.5591), tolerance = 1e-3)
-  expect_equal(final_cost(res), 4.71, tolerance = 1e-4)
+  expect_equal(res$Y, c2y(-1.609, 0.8876, 0.9294, 1.305, -1.586, -1.982, 0.7682, -1.107,
+                          1.792, 0.6012, -0.002293, 0.7693, -0.2082, -0.2003, -0.0997,
+                          -0.1114, -0.701, 0.0876, -0.2937, 0.7598), tolerance = 1e-3)
+  expect_equal(final_cost(res), 11.28, tolerance = 1e-4)
 })
 
 test_that("ntumap", {
   res <- smallvis(iris10, Y_init = iris10_Y, method = "ntumap", eta = 10,
                   perplexity = 5,
                   epoch_callback = NULL, verbose = FALSE, ret_extra = TRUE)
-  expect_equal(res$Y, c2y(-2.767, 1.704, 1.432, 2.459, -2.561, -3.828, 0.9237, -1.53,
-                          3.564, 0.6009, 0.5384, 1.304, -0.4953, -0.3918, -0.5756, -0.1866,
-                          -1.521, 0.3658, -0.1039, 1.067), tolerance = 1e-3)
-  expect_equal(final_cost(res), 0.04159, tolerance = 1e-4)
+  expect_equal(res$Y, c2y(-14.05, 10.35, 5.266, 11.03, -11.35, -18.74, 3.344, -6.781,
+                          17.74, 3.193, 3.335, 6.7, -0.7754, -3.755, -3.275, -2.134, -7.851,
+                          2.971, -2.838, 7.622), tolerance = 1e-3)
+  expect_equal(final_cost(res), 0.1622, tolerance = 1e-4)
 })
 
 test_that("largevis", {
