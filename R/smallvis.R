@@ -1011,18 +1011,16 @@ smallvis_rep <- function(nrep = 10, keep_all = FALSE, ...) {
       ret[[i]] <- res
     }
 
-    # if (should_ret_extra(ret_extra)) {
-      final_cost <- res$itercosts[length(res$itercosts)]
-      names(final_cost) <- NULL
-      all_costs <- c(all_costs, final_cost)
+    final_cost <- res$itercosts[length(res$itercosts)]
+    names(final_cost) <- NULL
+    all_costs <- c(all_costs, final_cost)
 
-      if (!keep_all) {
-        if (final_cost < best_cost) {
-          best_cost <- final_cost
-          best_res <- res
-        }
+    if (!keep_all) {
+      if (final_cost < best_cost) {
+        best_cost <- final_cost
+        best_res <- res
       }
-    # }
+    }
   }
 
   if (keep_all) {
