@@ -49,20 +49,17 @@ PCA result, so we won't pursue that further here.
 
 See the [Datasets](https://jlmelville.github.io/smallvis/datasets.html) page.
 
-## Evaluation
-
-Apart from visualizing the results, the mean neighbor preservation of the
-40 closest neighbors is used to provide a rough quantification of the quality
-of the result, labelled as `mnp@40` in the plots.
-
 ## Settings
 
-For settings, we'll use the ones given in the 
+For settings, we'll use two sets. First, the ones given in the 
 [original t-SNE paper](http://www.jmlr.org/papers/v9/vandermaaten08a.html), 
 except instead of random initialization, we'll use the scaled PCA approach. Also,
 I've doubled the number of iterations allowed from 1000 to 2000 to avoid any
 problems with convergence with these new methods. We'll also generate t-SNE 
 results to compare with these variations.
+
+For the second set of results, I'll set the perplexity to 15, which is closer
+to the UMAP defaults.
 
 ```
 iris_usne <- smallvis(iris, scale = FALSE, perplexity = 40, Y_init = "spca", method = list("usne", gr_eps = 1e-10), eta = 100, exaggeration_factor = 4, stop_lying_iter = 50, max_iter = 2000, epoch = 50, tol = 1e-5)
@@ -74,8 +71,15 @@ iris_cetsne <- smallvis(iris, scale = FALSE, perplexity = 40, Y_init = "spca", m
 iris_tsne <- smallvis(iris, scale = FALSE, perplexity = 40, Y_init = "spca", method = "tsne", eta = 100, exaggeration_factor = 4, stop_lying_iter = 50, max_iter = 2000, epoch = 50, tol = 1e-5)
 ```
 
-## Results
+## Evaluation
 
+Apart from visualizing the results, the mean neighbor preservation of the k
+closest neighbors is used to provide a rough quantification of the quality of
+the result. For the first set of results, with perplexity = 40, k = 40 and is 
+labelled as `mnp@40`. The second set of results with perplexity = 15, k = 15
+and is labelled as `mnp@15`.
+
+## Results: Perplexity 40
 
 ### iris
 
@@ -127,6 +131,58 @@ iris_tsne <- smallvis(iris, scale = FALSE, perplexity = 40, Y_init = "spca", met
 ![fashion USNE](../img/umaptsne/fashion_usne.png)|![fashion SKD t-SNE](../img/umaptsne/fashion_skdtsne.png)
 ![fashion CE t-SNE DY](../img/umaptsne/fashion_cetsne.png)|![fashion t-SNE](../img/umaptsne/fashion_tsne.png)
 
+## Results: Perplexity 15
+
+### iris
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![iris USNE](../img/umaptsne/iris_usne15.png)|![iris SKD t-SNE](../img/umaptsne/iris_skdtsne15.png)
+![iris CE t-SNE DY](../img/umaptsne/iris_cetsne15.png)|![iris t-SNE](../img/umaptsne/iris_tsne15.png)
+
+### s1k
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![s1k USNE](../img/umaptsne/s1k_usne15.png)|![s1k SKD t-SNE](../img/umaptsne/s1k_skdtsne15.png)
+![s1k CE t-SNE DY](../img/umaptsne/s1k_cetsne15.png)|![s1k t-SNE](../img/umaptsne/s1k_tsne15.png)
+
+### oli
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![oli USNE](../img/umaptsne/oli_usne15.png)|![oli SKD t-SNE](../img/umaptsne/oli_skdtsne15.png)
+![oli CE t-SNE DY](../img/umaptsne/oli_cetsne15.png)|![oli t-SNE](../img/umaptsne/oli_tsne15.png)
+
+
+### frey
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![frey USNE](../img/umaptsne/frey_usne15.png)|![frey SKD t-SNE](../img/umaptsne/frey_skdtsne15.png)
+![frey CE t-SNE DY](../img/umaptsne/frey_cetsne15.png)|![frey t-SNE](../img/umaptsne/frey_tsne15.png)
+
+### coil20
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![coil20 USNE](../img/umaptsne/coil20_usne15.png)|![coil20 SKD t-SNE](../img/umaptsne/coil20_skdtsne15.png)
+![coil20 CE t-SNE DY](../img/umaptsne/coil20_cetsne15.png)|![coil20 t-SNE](../img/umaptsne/coil20_tsne15.png)
+
+### mnist
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![mnist USNE](../img/umaptsne/mnist_usne15.png)|![mnist SKD t-SNE](../img/umaptsne/mnist_skdtsne15.png)
+![mnist CE t-SNE DY](../img/umaptsne/mnist_cetsne15.png)|![mnist t-SNE](../img/umaptsne/mnist_tsne15.png)
+
+### fashion
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![fashion USNE](../img/umaptsne/fashion_usne15.png)|![fashion SKD t-SNE](../img/umaptsne/fashion_skdtsne15.png)
+![fashion CE t-SNE DY](../img/umaptsne/fashion_cetsne15.png)|![fashion t-SNE](../img/umaptsne/fashion_tsne15.png)
+
 ## Conclusions
 
 None of these changes have very much effect on t-SNE. The biggest effect is by
@@ -135,9 +191,9 @@ unaffected with the default kernel settings. It also noticeably increases the
 computational time due to the more complex gradient, so unless you really like
 the more compressed clusters, t-SNE still wins out here.
 
-However, it should be noted that the current default value for the number of
-nearest neighbors in UMAP is 15, which is much smaller than the default 
-perplexity of 30 as used in the Rtsne package, or the value of 40 that I used
-in these experiments, to be consistent with the original t-SNE paper, although
-it is in the range of a perplexity of 5-50 that is usually suggested. I should
-probably repeat this analysis at a lower perplexity.
+The smoothed k-nearest neighbor distances is also quite interesting as an 
+alternative to the gaussian kernel, producing slightly smaller, more 
+well-separated clusters (compare the `fashion` and `mnist` dataset with "t-SNE"
+and "SKD t-SNE"). This might be due to the fact that the input weights are set to
+zero outside the k-nearest neighbors.
+
