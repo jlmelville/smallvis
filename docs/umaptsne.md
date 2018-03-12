@@ -195,5 +195,20 @@ The smoothed k-nearest neighbor distances is also quite interesting as an
 alternative to the gaussian kernel, producing slightly smaller, more 
 well-separated clusters (compare the `fashion` and `mnist` dataset with "t-SNE"
 and "SKD t-SNE"). This might be due to the fact that the input weights are set to
-zero outside the k-nearest neighbors.
+zero outside the k-nearest neighbors. To check this, I ran the t-SNE results
+again using the k-nearest neighbors kernel, via 
+`method = list("tsne", inp_kernel = "knn")` (with everything else the same). 
+Below are the t-SNE results with the knn kernel on the left, and on the right 
+are the SKD t-SNE results repeated:
 
+|                             |                           |
+:----------------------------:|:--------------------------:
+![iris knn t-SNE](../img/umaptsne/iris_knntsne15.png)|![iris SKD t-SNE](../img/umaptsne/iris_skdtsne15.png)
+![s1k knn t-SNE](../img/umaptsne/s1k_knntsne15.png)|![s1k SKD t-SNE](../img/umaptsne/s1k_skdtsne15.png)
+![oli knn t-SNE](../img/umaptsne/oli_knntsne15.png)|![oli SKD t-SNE](../img/umaptsne/oli_skdtsne15.png)
+![frey knn t-SNE](../img/umaptsne/frey_knntsne15.png)|![frey SKD t-SNE](../img/umaptsne/frey_skdtsne15.png)
+![coil20 knn t-SNE](../img/umaptsne/coil20_knntsne15.png)|![coil20 SKD t-SNE](../img/umaptsne/coil20_skdtsne15.png)
+![mnist knn t-SNE](../img/umaptsne/mnist_knntsne15.png)|![mnist SKD t-SNE](../img/umaptsne/mnist_skdtsne15.png)
+![fashion knn t-SNE](../img/umaptsne/fashion_knntsne15.png)|![fashion SKD t-SNE](../img/umaptsne/fashion_skdtsne15.png)
+
+Now the t-SNE results resemble the SKD results much more.
