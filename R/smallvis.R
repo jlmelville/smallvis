@@ -1361,9 +1361,11 @@ laplacian_eigenmap <- function(A, ndim = 2, use_RSpectra = TRUE) {
   M <- A / colSums(A)
   if (use_RSpectra && requireNamespace("RSpectra", quietly = TRUE,
                                        warn.conflicts = FALSE)) {
+    tsmessage("Using RSpectra for eigenvectors")
     Re(RSpectra::eigs(M, k = ndim + 1)$vectors[, 2:(ndim + 1)])
   }
   else {
+    tsmessage("Using eigen for eigenvectors")
     eigen(M, symmetric = FALSE)$vectors[, 2:(ndim + 1)]
   }
 }
@@ -1383,6 +1385,7 @@ normalized_spectral_init <- function(A, ndim = 2, use_RSpectra = TRUE) {
 
   if (use_RSpectra && requireNamespace("RSpectra", quietly = TRUE,
                                        warn.conflicts = FALSE)) {
+    tsmessage("Using RSpectra for eigenvectors")
     k <- ndim + 1
     ncv <- max(2 * k + 1, floor(sqrt(n)))
     opt <- list(
@@ -1395,6 +1398,7 @@ normalized_spectral_init <- function(A, ndim = 2, use_RSpectra = TRUE) {
     res <- Re(res$vectors[, vec_indices])
   }
   else {
+    tsmessage("Using eigen for eigenvectors")
     res <- eigen(L, symmetric = FALSE)
     vec_indices <- order(res$values, decreasing = FALSE)[2:(ndim + 1)]
     res <- Re(res$vectors[, vec_indices])
