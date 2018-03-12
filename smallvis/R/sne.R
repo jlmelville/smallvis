@@ -53,6 +53,15 @@ tsne <- function(perplexity, inp_kernel = "gaussian") {
       diag(W) <- 0
       invZ <- 1 / sum(W)
 
+      ### FIXME
+      if (is.null(cost$izs)) {
+        cost$izs <- c(invZ)
+      }
+      else {
+        cost$izs <- c(cost$izs, invZ)
+      }
+      ###
+
       cost$invZ <- invZ
       cost$W <- W
       cost
