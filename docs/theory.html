@@ -338,6 +338,8 @@ C_{V} -
 <div id="gradients" class="section level2">
 <h2>Gradients</h2>
 <p>Let’s look at some gradients and see how t-SNE, LargeVis and UMAP compare.</p>
+<div id="t-sne-1" class="section level3">
+<h3>t-SNE</h3>
 <p>First, t-SNE written slightly differently to how its usually presented, in terms of the un-normalized weights. This will hopefully illuminate the similarities and differences with LargeVis and UMAP:</p>
 <p><span class="math display">\[
 \frac{\partial C_{tSNE}}{\partial \mathbf{y_i}} = 
@@ -346,6 +348,8 @@ C_{V} -
 \frac{w_{ij}}{\sum_{kl} v_{kl}}
 \left(\mathbf{y_i - y_j}\right)
 \]</span> If you want a bit more detail in how this is derived, see <a href="http://jlmelville.github.io/sneer/experimental-gradients.html">here</a>. Note that the sum <span class="math inline">\(\sum_{kl}\)</span> means to sum over all weights and the input weights <span class="math inline">\(v_{ij}\)</span> are not matrix-normalized but otherwise have had the other processing carried out on them as is usually done in perplexity-based calibration, i.e. row-normalization and symmetrization.</p>
+<div id="digression" class="section level4">
+<h4>Digression</h4>
 <p>Brief aside which will hopefully find a more suitable place to live one day. The input weight processing in the usual t-SNE treatment means that <span class="math inline">\(\sum_{kl} v_{kl} = N\)</span>. An alternative form for the t-SNE gradient is therefore:</p>
 <p><span class="math display">\[
 \frac{\partial C_{tSNE}}{\partial \mathbf{y_i}} = 
@@ -353,7 +357,11 @@ C_{V} -
 \sum_j^N \left( v_{ij} -\frac{N}{Z} w_{ij} \right)
 w_{ij}
 \left(\mathbf{y_i - y_j}\right)
-\]</span> In practice, because the usual t-SNE initialization starts with short distances, the output weights are all 1 to begin with, so the <span class="math inline">\(N/Z\)</span> term is approximately <span class="math inline">\(1/N\)</span> initially. Over the course of the optimization the value of <span class="math inline">\(Z\)</span> begins to drop and hence <span class="math inline">\(N/Z\)</span> increases, although it’s always less than 1. End of digression.</p>
+\]</span> In practice, because the usual t-SNE initialization starts with short distances, the output weights are all 1 to begin with, so the <span class="math inline">\(N/Z\)</span> term is approximately <span class="math inline">\(1/N\)</span> initially. Over the course of the optimization the value of <span class="math inline">\(Z\)</span> begins to drop and hence <span class="math inline">\(N/Z\)</span> increases. For the usual parameter settings in t-SNE, it’s usually less than 1, but for low perplexity values and quite converged results (e.g. allowing <code>max_iter = 50000</code> at least), <span class="math inline">\(N/Z\)</span> can get larger than 1 (e.g. around 4 for the <code>s1k</code> dataset at <code>perplexity = 5</code>). End of digression.</p>
+</div>
+</div>
+<div id="largevis-1" class="section level3">
+<h3>LargeVis</h3>
 <p>For LargeVis, the gradient can be written as:</p>
 <p><span class="math display">\[
 \frac{\partial C_{LV}}{\partial \mathbf{y_i}} = 
@@ -374,6 +382,9 @@ w_{ij}
    \left(\mathbf{y_i - y_j}\right)
 \]</span></p>
 <p>The <span class="math inline">\(\epsilon\)</span> term is needed computationally to avoid division by zero. Results can be quite sensitive to changing this value. In <code>smallvis</code> you can see the effect of it via the <code>lveps</code> parameter. It’s set to <code>0.1</code> in LargeVis.</p>
+</div>
+<div id="umap-1" class="section level3">
+<h3>UMAP</h3>
 <p>Likewise, here’s one way to express the UMAP gradient:</p>
 <p><span class="math display">\[
 \frac{\partial C_{UMAP}}{\partial \mathbf{y_i}} = 
@@ -405,6 +416,7 @@ w_{ij}
 \]</span></p>
 <p>Again we need a value for <span class="math inline">\(\epsilon\)</span>, which is <code>0.001</code> in the UMAP source.</p>
 <p>The t-SNE, LargeVis and UMAP gradients all have a similar form based around the difference between the input and output weights, <span class="math inline">\(v_{ij} - w_{ij}\)</span>, although LargeVis and t-SNE re-weight the repulsion compared to UMAP.</p>
+</div>
 </div>
 
 

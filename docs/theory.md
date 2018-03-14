@@ -242,6 +242,8 @@ $$
 
 Let's look at some gradients and see how t-SNE, LargeVis and UMAP compare.
 
+### t-SNE
+
 First, t-SNE written slightly differently to how its usually presented, in terms
 of the un-normalized weights. This will hopefully illuminate the similarities
 and differences with LargeVis and UMAP:
@@ -259,6 +261,8 @@ $v_{ij}$ are not matrix-normalized but otherwise have had the other processing
 carried out on them as is usually done in perplexity-based calibration, i.e. 
 row-normalization and symmetrization.
 
+#### Digression
+
 Brief aside which will hopefully find a more suitable place to live one day. The
 input weight processing in the usual t-SNE treatment means that 
 $\sum_{kl} v_{kl} = N$. An alternative form for the t-SNE gradient is therefore:
@@ -273,8 +277,13 @@ $$
 In practice, because the usual t-SNE initialization starts with short distances,
 the output weights are all 1 to begin with, so the $N/Z$ term is approximately
 $1/N$ initially. Over the course of the optimization the value of $Z$ begins
-to drop and hence $N/Z$ increases, although it's always less than 1. End of
-digression.
+to drop and hence $N/Z$ increases. For the usual parameter settings in t-SNE, 
+it's usually less than 1, but for low perplexity values and quite converged
+results (e.g. allowing `max_iter = 50000` at least), $N/Z$ can get
+larger than 1 (e.g. around 4 for the `s1k` dataset at `perplexity = 5`).
+End of digression.
+
+### LargeVis
 
 For LargeVis, the gradient can be written as:
 
@@ -304,6 +313,8 @@ $$
 The $\epsilon$ term is needed computationally to avoid division by zero. Results
 can be quite sensitive to changing this value. In `smallvis` you can see the
 effect of it via the `lveps` parameter. It's set to `0.1` in LargeVis.
+
+### UMAP
 
 Likewise, here's one way to express the UMAP gradient:
 
