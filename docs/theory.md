@@ -317,6 +317,15 @@ $$
 \right)
    \frac{b}{d_{ij}^2}
    \left(\mathbf{y_i - y_j}\right)
+= 
+  4\sum_j^N 
+\left(
+   v_{ij}
+-
+  w_{ij}
+\right)
+   b\left(\frac{aw_{ij}}{1 - w_{ij}}\right)^{\frac{1}{b}}
+   \left(\mathbf{y_i - y_j}\right)
 $$
 and more explicitly:
 
