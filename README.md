@@ -103,8 +103,8 @@ tsne_iris_extra_extra <- smallvis(iris, perplexity = 25, epoch_callback = iris_p
                               ret_extra = c("P", "Q", "DX", "DY", "X"))
 
 # Repeat embedding 10 times and keep the one with the best cost
-tsne_iris_best <- smallvis_rep(nrep = 10, iris, perplexity = 25, ret_extra = TRUE)
-plot(tsne_iris_best$Y)
+tsne_iris_best <- smallvis_rep(nrep = 10, X = iris, perplexity = 25, ret_extra = TRUE)
+iris_plot(tsne_iris_best$Y)
 
 # Classical momentum optimization instead of delta-bar-delta
 umap_iris_mom <- smallvis(iris, scale = FALSE, opt = list("mom", eta = 1e-2, mu = 0.8),
