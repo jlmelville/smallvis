@@ -9,22 +9,16 @@ output:
       collapsed: false
 ---
 
-*Update February 12, 2018*: The nt-UMAP results were incorrect because the input
-probabilities weren't normalized (although it still worked surprisingly well).
-The images for nt-UMAP have been updated and generated using the Delta-Bar-Delta
-optimization. t-SNE results have also been updated to use DBD results for 
-comparison.
-
-*Update February 20, 2018*: The UMAP and t-UMAP results have been regenerated 
-using DBD instead of L-BFGS and progressively reduced perplexity, to be more
-consistent with t-SNE and nt-UMAP. Fortunately, the final preservation values
-and plots are quite similar, so no conclusions have changed.
+*Update March 15 2018*: This document has been re-written with new results using
+settings closer to the defaults of UMAP rather than t-SNE and a smooth k-nearest
+neighbors distance treatment that more correctly matches the Python
+implementation.
 
 [UMAP](https://github.com/lmcinnes/umap) 
 (Uniform Manifold Approximation and Projection) is a dimensionality reduction
 method based on reducing the cross-entropy between two fuzzy sets. 
-*Update February 13, 2018*: The [UMAP paper](https://arxiv.org/abs/1802.03426) 
-is out, but I haven't fully read and digested it yet. From the point of view of 
+The [UMAP paper](https://arxiv.org/abs/1802.03426) goes into some detail on
+the theory, but not into algorithmic specifics. From the point of view of 
 the nuts and bolts of the computation, you can work out a fair amount from the
 source code. To take a broad view, it's definitely in the t-SNE family of
 dimensionality reduction, but with a different theoretical underpinning, and the
@@ -128,57 +122,55 @@ Then I starting a second UMAP run with `gr_eps = 0.001`, `gr_eps = 1e-10` or
 coordinates and only a small change to the gradient norm and cost. While this
 is hardly conclusive proof, it's reasonable to proceed with `gr_eps = 0.1`.
 
-*Update February 20, 2018*: Initial experiments suggested that UMAP was
-noticeably more difficult to optimize with the delta-bar-delta optimization
-method than with t-SNE. DBD settings *can* be used for UMAP, but require a much
-smaller learning rate and much larger number of iterations.  For the larger
-datasets, `mnist6k` and `fashion6k`, a larger learning rate of `eta = 0.1` could
-be used, compared to `eta = 0.01` for the other datasets. Momentum settings were
-left at their default values. Results for UMAP and t-UMAP now use these 
-settings.
+Like other non-normalized cost functions I've looked at (e.g. elastic 
+embedding), UMAP is much harder to optimize than t-SNE. The delta-bar-delta
+method requires a much smaller learning rate and consequently much larger number
+of iterations. For the larger datasets `mnist`, and `fashion` (and remember
+these are only 6,000-item subsets), optimization this way is truly painful,
+Optimizing `mnist` with UMAP took several days to get to 50,000 iterations. This
+is definitely overkill, but still something to bear in mind, particularly as
+the default settings for UMAP, use a small neighborhood size (compared to t-SNE),
+which (as seen with looking at 
+[perplexity in t-SNE](https://jlmelville.github.io/smallvis/perplexity.html))
+requires larger number of iterations.
 
-Originally, the UMAP and t-UMAP results used L-BFGS with step-wise scaled
+In practice, L-BFGS with step-wise scaled
 perplexity, which is the best general purpose approach embedding 
 [optimization method](https://jlmelville.github.io/smallvis/opt.html) I have
-come up with. Results are quite similar using either DBD or L-BFGS, but
-for consistency's sake, I report the DBD results for all the methods shown here.
+come up with, is a more cost-efficient alternative, and I would suggest using
+that instead of DBD. However, nt-UMAP *does* work with DBD as well as t-SNE,
+so to try to be as consistent as possible with the methods here and as a 
+comparison with t-SNE, all the results show here use DBD, but with different
+values of `max_iter`.
 
-By contrast to UMAP and t-UMAP, default DBD works well for the normalized
-t-UMAP. So for the nt-UMAP results, DBD was used. The t-SNE results were
-generated with the same parameters.
+Other settings are adjusted from the usual t-SNE defaults to match those of
+UMAP. The initialization method is `Y_init = "normlap"`, which uses the lowest
+eigenvectors of the normalized Laplacian based on the input weights.
 
 When used with UMAP, the `perplexity` setting is interpreted as the value of `k` 
-to use in the smooth k-nearest-neighbor calibration.
+to use in the smooth k-nearest-neighbor calibration. The UMAP default is `15`, 
+lower than usual values for t-SNE (where it's usually between `30` and `50`).
 
 Some examples invocations for `iris`:
 
 ```
-iris_ntumap <- smallvis(iris, scale = FALSE, perplexity = 40, Y_init = "spca", method = "ntumap",  max_iter = 2000, epoch = 100)
-iris_tsne <- smallvis(iris, scale = FALSE, perplexity = 40, Y_init = "spca", method = "tsne",  max_iter = 2000, epoch = 100)
-
-# UMAP parameters with DBD
-iris_umap <- smallvis(iris, scale = FALSE, perplexity = 40, Y_init = "spca", method = "umap", eta = 0.01, max_iter = 10000, epoch = 100)
-# MNIST and Fashion could use a learning rate of 0.1
-mnist_umap <- smallvis(mnist6k, scale = FALSE, perplexity = 40, Y_init = "spca", method = "umap", eta = 0.1, max_iter = 10000, epoch = 100)
-
-# Same pattern for t-UMAP
-iris_tumap <- smallvis(iris, scale = FALSE, perplexity = 40, Y_init = "spca", method = "umap", eta = 0.01, max_iter = 10000, epoch = 100)
-mnist_tumap <- smallvis(mnist6k, scale = FALSE, perplexity = 40, Y_init = "spca", method = "tumap", eta = 0.1, max_iter = 10000, epoch = 100)
-
-# L-BFGS needs to be used with perplexity steps (results not shown)
-iris_tumap <- smallvis_perpstep(step_iter = 500, X = iris, method = "tumap", scale = FALSE, verbose = TRUE, Y_init = "spca", ret_extra = c("DX", "DY"), perplexity = 40, max_iter = 2000, opt = list("l-bfgs", step_tol = 1e-6))
+iris_umap <- smallvis(iris, scale = FALSE, perplexity = 15, Y_init = "normlap", method = list("umap", gr_eps = 0.1), eta = 0.01, max_iter = 50000, epoch = 100)
+iris_tumap <- smallvis(iris, scale = FALSE, perplexity = 15, Y_init = "normlap", method = list("umap", gr_eps = 0.1), eta = 0.01, max_iter = 50000, epoch = 100)
+iris_ntumap <- smallvis(iris, scale = FALSE, perplexity = 15, Y_init = "normlap", method = "ntumap",  max_iter = 5000, epoch = 100)
+iris_tsne <- smallvis(iris, scale = FALSE, perplexity = 15, Y_init = "normlap", method = "tsne",  max_iter = 5000, epoch = 100)
 ```
 
 ## Evaluation
 
 For each initialization, the mean neighbor preservation of the
-40 nearest neighbors, calculated using the 
-[quadra](https://github.com/jlmelville/quadra) package: for each point the 40
+15 nearest neighbors, calculated using the 
+[quadra](https://github.com/jlmelville/quadra) package: for each point the 15
 nearest neighbors are calculated in the input and output space, and the fraction
 of neighbors in common is recorded (0 means no neighbors are in common, 1 means
 all the neighbors were preserved). The number reported is the mean average over
-all results and is labelled as `mnp@40` in the plots. 40 was chosen for these
-results to match the `perplexity`.
+all results and is labelled as `mnp@15` in the plots. 15 was chosen for these
+results to match the `perplexity`, which is treated as the value of `k` in the
+smoothed k-nearest neighbors calculation in UMAP.
 
 ## Results
 
@@ -186,56 +178,60 @@ For each dataset, four results are shown. The first row shows UMAP and t-UMAP
 on the left and right, repectively. On the second row is normalized t-UMAP
 and t-SNE results.
 
-### Iris
+### iris
 
 | |
 :-------|:-------------------:|
-|![iris UMAP](../img/umap/iris_umap.png)|![iris t-UMAP](../img/umap/iris_tumap.png)
-|![iris nt-UMAP](../img/umap/iris_ntumap.png)|![iris t-SNE](../img/umap/iris_tsne.png)
+|![iris UMAP](../img/umap/iris_umap15.png)|![iris t-UMAP](../img/umap/iris_tumap15.png)
+|![iris nt-UMAP](../img/umap/iris_ntumap15.png)|![iris t-SNE](../img/umap/iris_tsne15.png)
 
 ### s1k
 
 | |
 :-------|:-------------------:|
-|![s1k UMAP](../img/umap/s1k_umap.png)|![s1k t-UMAP](../img/umap/s1k_tumap.png)
-|![s1k nt-UMAP](../img/umap/s1k_ntumap.png)|![s1k t-SNE](../img/umap/s1k_tsne.png)
+|![s1k UMAP](../img/umap/s1k_umap15.png)|![s1k t-UMAP](../img/umap/s1k_tumap15.png)
+|![s1k nt-UMAP](../img/umap/s1k_ntumap15.png)|![s1k t-SNE](../img/umap/s1k_tsne15.png)
 
 
-### Olivetti Faces
-
-| |
-:-------|:-------------------:|
-|![oli UMAP](../img/umap/oli_umap.png)|![oli t-UMAP](../img/umap/oli_tumap.png)
-|![oli nt-UMAP](../img/umap/oli_ntumap.png)|![oli t-SNE](../img/umap/oli_tsne.png)
-
-
-### Frey Faces
+### oli
 
 | |
 :-------|:-------------------:|
-|![frey UMAP](../img/umap/frey_umap.png)|![frey t-UMAP](../img/umap/frey_tumap.png)
-|![frey nt-UMAP](../img/umap/frey_ntumap.png)|![frey t-SNE](../img/umap/frey_tsne.png)
+|![oli UMAP](../img/umap/oli_umap15.png)|![oli t-UMAP](../img/umap/oli_tumap15.png)
+|![oli nt-UMAP](../img/umap/oli_ntumap15.png)|![oli t-SNE](../img/umap/oli_tsne15.png)
 
-### COIL-20
 
-| |
-:-------|:-------------------:|
-|![coil20 UMAP](../img/umap/coil20_umap.png)|![coil20 t-UMAP](../img/umap/coil20_tumap.png)
-|![coil20 nt-UMAP](../img/umap/coil20_ntumap.png)|![coil20 t-SNE](../img/umap/coil20_tsne.png)
-
-### MNIST (6,000)
+### frey
 
 | |
 :-------|:-------------------:|
-|![mnist UMAP](../img/umap/mnist_umap.png)|![mnist t-UMAP](../img/umap/mnist_tumap.png)
-|![mnist nt-UMAP](../img/umap/mnist_ntumap.png)|![mnist t-SNE](../img/umap/mnist_tsne.png)
+|![frey UMAP](../img/umap/frey_umap15.png)|![frey t-UMAP](../img/umap/frey_tumap15.png)
+|![frey nt-UMAP](../img/umap/frey_ntumap15.png)|![frey t-SNE](../img/umap/frey_tsne15.png)
 
-### Fashion (6,000)
+### coil20
 
 | |
 :-------|:-------------------:|
-|![fashion UMAP](../img/umap/fashion_umap.png)|![fashion t-UMAP](../img/umap/fashion_tumap.png)
-|![fashion nt-UMAP](../img/umap/fashion_ntumap.png)|![fashion t-SNE](../img/umap/fashion_tsne.png)
+|![coil20 UMAP](../img/umap/coil20_umap15.png)|![coil20 t-UMAP](../img/umap/coil20_tumap15.png)
+|![coil20 nt-UMAP](../img/umap/coil20_ntumap15.png)|![coil20 t-SNE](../img/umap/coil20_tsne15.png)
+
+Note: for the UMAP and t-UMAP results, I reduced the point size so the structure
+of the loops could be more easily seen.
+
+### mnist
+
+| |
+:-------|:-------------------:|
+|![mnist UMAP](../img/umap/mnist_umap15.png)|![mnist t-UMAP](../img/umap/mnist_tumap15.png)
+|![mnist nt-UMAP](../img/umap/mnist_ntumap15.png)|![mnist t-SNE](../img/umap/mnist_tsne15.png)
+
+### fashion
+
+| |
+:-------|:-------------------:|
+|![fashion UMAP](../img/umap/fashion_umap15.png)|![fashion t-UMAP](../img/umap/fashion_tumap15.png)
+|![fashion nt-UMAP](../img/umap/fashion_ntumap15.png)|![fashion t-SNE](../img/umap/fashion_tsne15.png)
+
 
 ## Conclusions
 
@@ -246,7 +242,21 @@ up to much larger dataset sizes via stochastic gradient descent). The default
 output similarity kernel tends to produce smaller, more well separated clusters,
 but the t-UMAP results are closer to the t-SNE results. It also has the advantage
 (in the context of `smallvis`) of being faster to optimize because the gradient
-is simpler.
+is simpler. The UMAP and t-UMAP results for `mnist` and `fashion` might even be
+said to be superior to that of t-SNE, although some of that effect is due to
+the sparser nature of the input weights -- see the conclusions in the
+[follow-up]((https://jlmelville.github.io/smallvis/umaptsne.html) document.
+
+For `coil20`, the UMAP curve settings might be said to produce *too* separated
+clusters. However, the choice of `k = 15` seems like a better choice
+for preserving the loop topology for that dataset (and confirmed with the
+`perplexity = 15` results for t-SNE). The only UMAP embedding I don't like much 
+is for `oli`, and that can be fixed by using a larger value of k (a t-SNE-like
+`perplexity = 40`, for example):
+
+||
+|:-------|
+|![oli UMAP 40](../img/umap/oli_umap40.png)|
 
 The normalized version, nt-UMAP, is even closer to the t-SNE results and can be
 optimized easily via the DBD method. DBD optimization of the UMAP and t-UMAP
