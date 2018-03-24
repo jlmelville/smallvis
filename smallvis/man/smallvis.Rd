@@ -30,7 +30,8 @@ the 'Output initialization' section.}
 
 \item{perplexity}{The target perplexity for parameterizing the input
 probabilities. For method \code{"umap"}, controls the neighborhood size
-for parameterizing the smoothed k-nearest neighbor distances.}
+for parameterizing the smoothed k-nearest neighbor distances. See also the
+'Intrinsic dimensionality perplexity' section.}
 
 \item{max_iter}{Maximum number of iterations in the optimization.}
 
@@ -371,6 +372,27 @@ Explicitly set \code{epoch_callback} to \code{NULL} or \code{FALSE} to turn
 this off.
 }
 
+\section{Intrinsic dimensionality perplexity}{
+
+
+Instead of using a numeric value for the \code{perplexity} argument, you may
+also set this argument to \code{"idp"} (Intrinsic Dimensionality Perplexity),
+and the perplexity associated with the estimate of the intrinsic
+dimensionality of the dataset will be used. This method is only available for
+methods that use the Guassian input kernel. To find the IDP, candidate values
+of perplexities in increasing powers of 2 up to 128 are used by default. To
+use a custom set of perplexities, provide a list to the \code{perplexity}
+argument, with the first item being \code{"idp"} and the second item being a
+vector of perplexities, e.g. \code{perplexity = "idp"} for default behavior
+or \code{perplexity = list("idp", c(10, 20, 30))} to use the perplexity out
+of 10, 20, 30 that estimates the intrinsic dimensionality the best.
+Perplexities are evaluated in the order provided, and the search will
+terminate early if the estimate of intrinsic dimensionality is judged to be
+getting worse. It is recommended to provide the candidate perplexities in
+increasing order. For more details on IDP, see
+\url{https://jlmelville.github.io/smallvis/idp.html}.
+}
+
 \section{Alternative optimizers}{
 
 
@@ -561,6 +583,15 @@ iris_gmmds <- smallvis(dist(iris[, -5]),
 The above should give equivalent results to this non-distance matrix version
 iris_gmmds <- smallvis(iris, method = "gmmds", max_iter = 400, perplexity = 8, eta = 1e-4,
                        Y_init = "spca")
+
+# Let smallvis choose an appropriate perplexity for you using the
+# Intrinsic Dimensionality Perplexity
+tsne_iris_idp <- smallvis(iris, epoch_callback = ecb, perplexity = "idp", Y_init = "spca",
+                           exaggeration_factor = 4)
+
+# Use your own IDP candidate perplexities by supplying a vector
+tsne_iris_idp <- smallvis(iris, epoch_callback = ecb, perplexity = list("idp", 3:12),
+                          Y_init = "spca", exaggeration_factor = 4)
 }
 }
 \references{

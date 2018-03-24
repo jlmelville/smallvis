@@ -106,6 +106,10 @@ tsne_iris_extra_extra <- smallvis(iris, perplexity = 25, epoch_callback = iris_p
 tsne_iris_best <- smallvis_rep(nrep = 10, X = iris, perplexity = 25, ret_extra = TRUE)
 iris_plot(tsne_iris_best$Y)
 
+# Let smallvis pick a perplexity for you, using the Intrinsic Dimensionality Perplexity
+tsne_iris_idp <- smallvis(iris, epoch_callback = ecb, perplexity = "idp", Y_init = "spca",
+                          exaggeration_factor = 4)
+                          
 # Classical momentum optimization instead of delta-bar-delta
 umap_iris_mom <- smallvis(iris, scale = FALSE, opt = list("mom", eta = 1e-2, mu = 0.8),
                           method = "umap", Y_init = "spca")
@@ -174,6 +178,8 @@ Those that I have cobbled together into something that demonstrates the use of
 * A look at the effect of the [scaling](https://jlmelville.github.io/smallvis/scale.html) and 
 [PCA and whitening](https://jlmelville.github.io/smallvis/pcaw.html) preprocessing options on t-SNE.
 * How [perplexity](https://jlmelville.github.io/smallvis/perplexity.html) affects t-SNE.
+* Using [intrinsic dimensionality](https://jlmelville.github.io/smallvis/idp-theory.html)
+to [automatically select perplexity](https://jlmelville.github.io/smallvis/idp.html).
 * [Distance-preserving methods](https://jlmelville.github.io/smallvis/mmds.html) (geodesic as well as Euclidean).
 * A comparison of various flavours of [Stochastic Neighbor Embedding](https://jlmelville.github.io/smallvis/sne.html) (t-distributed and otherwise).
 * A comparison of [NeRV and JSE](https://jlmelville.github.io/smallvis/nervjse.html).

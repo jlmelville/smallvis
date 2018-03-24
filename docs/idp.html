@@ -727,6 +727,16 @@ eta = 100, exaggeration_factor = 4, stop_lying_iter = 50, max_iter = 1000, epoch
 </tbody>
 </table>
 <p>These are sufficiently close to the real results in all cases. Admittedly, this scheme <em>would</em> miss the first maximum in the Swiss Roll example, and therefore fail to unroll the 2D topology, but we just don’t see that sort of structure in any of these other datasets, so this is a sacrifice worth making in the name of simplicity.</p>
+<div id="idp-in-smallvis" class="section level3">
+<h3>IDP in <code>smallvis</code></h3>
+<p>To use this technique in <code>smallvis</code>, set <code>perplexity = &quot;idp&quot;</code>, e.g.:</p>
+<pre><code>iris_tsne_idp &lt;- smallvis(iris, scale = &quot;absmax&quot;, perplexity = &quot;idp&quot;, Y_init = &quot;spca&quot;, 
+eta = 100, exaggeration_factor = 4, stop_lying_iter = 50, max_iter = 1000, epoch = 100,
+ret_extra = TRUE) </code></pre>
+<p>By setting <code>ret_extra = TRUE</code>, then the selected perplexity is in <code>iris_tsne_idp$perplexity</code>. Otherwise, if <code>verbose = TRUE</code>, then the IDP (and associated intrinsic dimensionality) is logged to the console. If you don’t want to use the default powers of 2, you can provide a vector pf candidate perplexities as the second item of a list, e.g.</p>
+<p><code>perplexity = list(&quot;idp&quot;, 3:8)</code></p>
+<p>Perplexities are tried in the order they are provided and stop as soon as a maximum is encountered.</p>
+</div>
 </div>
 <div id="conclusions" class="section level2">
 <h2>Conclusions</h2>
@@ -734,8 +744,7 @@ eta = 100, exaggeration_factor = 4, stop_lying_iter = 50, max_iter = 1000, epoch
 <p>The previous investigation into <a href="https://jlmelville.github.io/smallvis/perplexity.html">perplexity</a> suggested that t-SNE results aren’t very sensitive to perplexity choice, as long as you have a decent starting point. But if you wanted a more principled way of choosing a perplexity, picking the perplexity which maximizes the average correlation dimension of the dataset seems like quite a solid choice, at the cost of spending more time doing multiple perplexity calibrations. However, at least in <code>smallvis</code>, the optimization takes up more time than the calibration, and by restricting the search to powers of 2 between 8 and 128 it might be worth doing.</p>
 <p>Across a series of synthetic data and real data sets, this method seemed to give a reasonable choice of perplexity. The selected perplexity seemed a little low for <code>iris</code>, which might be due to the small size of the dataset, and results for <code>coil20</code> might indicate the perplexity was too high in that case. That dataset probably bears further investigation.</p>
 <p>It’s possible that a different output weight function might improve matters for some datasets (it seems to for <code>iris</code>, which has a noticeably lower intrinsic dimensionality than the other “real” datasets), and the intrinsic dimensionality might an estimate for how to choose the <code>alpha</code> value in HSSNE, for example. On the other hand, the <code>coil20</code> intrinsic dimensionality is similar to the <code>frey</code>, <code>oli</code> and <code>fashion</code> results, and there doesn’t seem to be any indication that the t-SNE weight function is particularly inappropriate for them.</p>
-<p>Apart from the caveats to do with <code>iris</code> and <code>coil20</code> results, the main downside is that this is something that would have to be built into a t-SNE program directly, because the data needed (the un-normalized input weight matrix) isn’t usually something that is output.</p>
-<p>When <code>smallvis</code> has implemented the IDP perplexity selection method, this document will be updated.</p>
+<p>Apart from the caveats to do with <code>iris</code> and <code>coil20</code> results, the main downside is that this is something that would have to be built into a t-SNE program directly, because the data needed (the un-normalized input weight matrix) isn’t usually something that is output. It is however, available in <code>smallvis</code>, as described under the “IDP in <code>smallvis</code>” section. It is also mentioned in the man page for the <code>smallvis</code> function.</p>
 <p>Finally, the <code>coil20</code> results indicate that a single intrinsic dimensionality may not be able to represent all datasets well, which may also imply different perplexity values should be applied to different parts of a dataset. The current analysis can (and will) be extended to cover that case. Expect a link to that document here when it’s ready.</p>
 </div>
 

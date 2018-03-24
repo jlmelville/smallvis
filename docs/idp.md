@@ -649,6 +649,27 @@ fail to unroll the 2D topology, but we just don't see that sort of structure
 in any of these other datasets, so this is a sacrifice worth making in the name
 of simplicity.
 
+### IDP in `smallvis`
+
+To use this technique in `smallvis`, set `perplexity = "idp"`, e.g.:
+
+```
+iris_tsne_idp <- smallvis(iris, scale = "absmax", perplexity = "idp", Y_init = "spca", 
+eta = 100, exaggeration_factor = 4, stop_lying_iter = 50, max_iter = 1000, epoch = 100,
+ret_extra = TRUE) 
+```
+
+By setting `ret_extra = TRUE`, then the selected perplexity is in
+`iris_tsne_idp$perplexity`. Otherwise, if `verbose = TRUE`, then the IDP (and
+associated intrinsic dimensionality) is logged to the console. If you don't
+want to use the default powers of 2, you can provide a vector pf candidate 
+perplexities as the second item of a list, e.g.
+
+```perplexity = list("idp", 3:8)```
+
+Perplexities are tried in the order they are provided and stop as soon as a
+maximum is encountered.
+
 ## Conclusions
 
 I found quite close agreement between the finite difference results reported in
@@ -684,10 +705,9 @@ the t-SNE weight function is particularly inappropriate for them.
 Apart from the caveats to do with `iris` and `coil20` results, the main downside
 is that this is something that would have to be built into a t-SNE program
 directly, because the data needed (the un-normalized input weight matrix) isn't
-usually something that is output.
-
-When `smallvis` has implemented the IDP perplexity selection method, this
-document will be updated.
+usually something that is output. It is however, available in `smallvis`, as
+described under the "IDP in `smallvis`" section. It is also mentioned in the
+man page for the `smallvis` function.
 
 Finally, the `coil20` results indicate that a single intrinsic dimensionality 
 may not be able to represent all datasets well, which may also imply different
