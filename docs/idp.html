@@ -240,6 +240,24 @@ div.tocify {
 <h2>Intrinsic Dimensionality Perplexity (IDP)</h2>
 <p>What can we do with the intrinsic dimensionality estimate? In the multi-scale JSE paper, the estimate is used in the multi-scale method to modify the output weight function bandwidths to account for the difference in the output and input dimensions. But it’s not used to choose a perplexity: the whole point of the multi-scale methods is to obviate the need to choose a perplexity at all. In multi-scale methods, multiple perplexities are used and the different probability matrices that result are averaged.</p>
 <p>Our efforts will be more modest. We’re going to use just one perplexity, but try and use the intrinsic dimensionality estimate as a guide to choosing the perplexity: specifically, we’ll use the perplexity that is associated with the intrinsic dimensionality estimate. I’ll refer to that as the Intrinsic Dimensionality Perplexity (IDP).</p>
+<p>Without getting into any of the derivations we did previously, these are the steps we’ll take:</p>
+<p>First, for each point in the dataset, we calculate the un-normalized input weight matrix, <span class="math inline">\(\mathbf{V}\)</span>, which is associated with a perplexity, <span class="math inline">\(U\)</span>. From there the soft correlation dimension for point <span class="math inline">\(i\)</span> and perplexity <span class="math inline">\(U\)</span>, <span class="math inline">\(D_{i, U}\)</span> can be written as:</p>
+<p><span class="math display">\[
+D_{i, U} = \frac{2}{V_i}
+\left\{
+\sum_{j}^{N} v_{ij} \left[ \log \left( v_{ij} \right) \right] ^ 2
+-\frac{1}{V_i} \left[ \sum_{j}^{N} v_{ij} \log \left( v_{ij} \right) \right]^2
+\right\}
+\]</span></p>
+<p>where <span class="math inline">\(N\)</span> is the number of observations in the dataset, <span class="math inline">\(v_{ij}\)</span> is the element at <span class="math inline">\(\mathbf{V}\left[i, j\right]\)</span>, and <span class="math inline">\(V_{i}\)</span> is the sum of the <span class="math inline">\(i\)</span>th row of <span class="math inline">\(\mathbf{V}\)</span>.</p>
+<p>The correlation dimension associated with the entire dataset for the given perplexity is just the mean average of the individual estimates:</p>
+<p><span class="math display">\[D_{U} = \frac{1}{N} \sum_{i}^{N} D_{i,U}\]</span></p>
+<p>The estimate of the intrinsic dimensionality, <span class="math inline">\(D\)</span>, is the maximum value that the correlation dimension attains as the perplexity is varied.</p>
+<p><span class="math display">\[D = \max_{U} D_U\]</span> The IDP is then:</p>
+<p><span class="math display">\[
+\DeclareMathOperator*{\argmax}{arg\,max}
+IDP = \argmax_{U} D_U
+\]</span></p>
 <div id="multiple-idps" class="section level3">
 <h3>Multiple IDPs?</h3>
 <p>Some datasets have different dimensionalities depending on the length scale (corresponding to different perplexities), e.g. the Swiss Roll dataset, while three-dimensional, can be considered two-dimensional over short distances. Under circumstances where there is more than one maximum of the correlation dimension, we will favour the smallest IDP value, on the basis that viewing an unfolded Swiss Roll is more interesting than a folded one.</p>

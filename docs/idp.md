@@ -53,6 +53,43 @@ perplexity: specifically, we'll use the perplexity that is associated with
 the intrinsic dimensionality estimate. I'll refer to that as the Intrinsic
 Dimensionality Perplexity (IDP).
 
+Without getting into any of the derivations we did previously, these are the
+steps we'll take:
+
+First, for each point in the dataset, we calculate the un-normalized input
+weight matrix, $\mathbf{V}$, which is associated with a perplexity, $U$. From
+there the soft correlation dimension for point $i$ and perplexity $U$, 
+$D_{i, U}$ can be written as:
+
+$$
+D_{i, U} = \frac{2}{V_i}
+\left\{
+\sum_{j}^{N} v_{ij} \left[ \log \left( v_{ij} \right) \right] ^ 2
+-\frac{1}{V_i} \left[ \sum_{j}^{N} v_{ij} \log \left( v_{ij} \right) \right]^2
+\right\}
+$$
+
+where $N$ is the number of observations in the dataset, $v_{ij}$ is the element 
+at $\mathbf{V}\left[i, j\right]$, and $V_{i}$ is the sum of the $i$th row of 
+$\mathbf{V}$.
+
+The correlation dimension associated with the entire dataset for the given 
+perplexity is just the mean average of the individual estimates:
+
+$$D_{U} = \frac{1}{N} \sum_{i}^{N} D_{i,U}$$
+
+The estimate of the intrinsic dimensionality, $D$, is the maximum value that the
+correlation dimension attains as the perplexity is varied.
+
+$$D = \max_{U} D_U$$
+The IDP is then:
+
+$$
+\DeclareMathOperator*{\argmax}{arg\,max}
+IDP = \argmax_{U} D_U
+$$
+
+
 ### Multiple IDPs?
 
 Some datasets have different dimensionalities depending on the length scale 
