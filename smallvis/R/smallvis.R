@@ -1662,6 +1662,7 @@ x2aff <- function(X, perplexity = 15, tol = 1e-5, kernel = "gauss",
     beta <- rep(1, n)
   }
   logU <- log(perplexity)
+  bad_perp <- 0
 
   for (i in 1:n) {
     betamin <- -Inf
@@ -1721,16 +1722,34 @@ x2aff <- function(X, perplexity = 15, tol = 1e-5, kernel = "gauss",
       Hdiff <- H - logU
       tries <- tries + 1
     }
-    # if we didn't supply estimates for beta manually, then initialize guess for
-    # next point with optimized beta for this point doesn't save many
-    # iterations, but why not?
-    if (is.null(guesses) && i < n) {
-      beta[i + 1] <- beta[i]
+    if (abs(Hdiff) > tol) {
+      bad_perp <- bad_perp + 1
+      knn_idx <- order(Di, decreasing = FALSE)[1:max(floor(perplexity), 1)]
+      knn_idx[knn_idx >= i] <- knn_idx[knn_idx >= i]  + 1
+      Wi <- rep(0, length(Di))
+      Wi[knn_idx] <- 1
+
+      intd[i] <- 0
+    }
+    else {
+      # if we didn't supply estimates for beta manually, then initialize guess for
+      # next point with optimized beta for this point: doesn't save many
+      # iterations, but why not?
+      if (is.null(guesses) && i < n) {
+        beta[i + 1] <- beta[i]
+      }
+      intd[i] <- intd_x2aff(Di, beta[i], Wi, sumWi, H)
     }
     W[i, -i] <- Wi
-    intd[i] <- intd_x2aff(Di, beta[i], Wi, sumWi, H)
   }
   sigma <- sqrt(1 / beta)
+
+  if (bad_perp > 0) {
+    if (verbose) {
+      tsmessage("Warning: ", bad_perp, " perplexity calibrations failed!")
+    }
+    warning(bad_perp, " perplexity calibrations failed")
+  }
 
   if (verbose) {
     summarize(sigma, "sigma summary")
