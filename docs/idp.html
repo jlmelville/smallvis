@@ -241,9 +241,9 @@ div.tocify {
 <p>What can we do with the intrinsic dimensionality estimate? In the multi-scale JSE paper, the estimate is used in the multi-scale method to modify the output weight function bandwidths to account for the difference in the output and input dimensions. But it’s not used to choose a perplexity: the whole point of the multi-scale methods is to obviate the need to choose a perplexity at all. In multi-scale methods, multiple perplexities are used and the different probability matrices that result are averaged.</p>
 <p>Our efforts will be more modest. We’re going to use just one perplexity, but try and use the intrinsic dimensionality estimate as a guide to choosing the perplexity: specifically, we’ll use the perplexity that is associated with the intrinsic dimensionality estimate. I’ll refer to that as the Intrinsic Dimensionality Perplexity (IDP).</p>
 <p>Without getting into any of the derivations we did previously, these are the steps we’ll take:</p>
-<p>First, for each point in the dataset, we calculate the un-normalized input weight matrix, <span class="math inline">\(\mathbf{V}\)</span>, which is associated with a perplexity, <span class="math inline">\(U\)</span>. From there the soft correlation dimension for point <span class="math inline">\(i\)</span> and perplexity <span class="math inline">\(U\)</span>, <span class="math inline">\(D_{i, U}\)</span> can be written as:</p>
+<p>First, for each point in the dataset, we calculate the un-normalized input weight matrix, <span class="math inline">\(\mathbf{V}\)</span>, which is associated with a perplexity, <span class="math inline">\(U\)</span>. From there the soft correlation dimension for point <span class="math inline">\(i\)</span> and perplexity <span class="math inline">\(U\)</span>, <span class="math inline">\(\delta_{i, U}\)</span> can be written as:</p>
 <p><span class="math display">\[
-D_{i, U} = \frac{2}{V_i}
+\delta_{i, U} = \frac{2}{V_i}
 \left\{
 \sum_{j}^{N} v_{ij} \left[ \log \left( v_{ij} \right) \right] ^ 2
 -\frac{1}{V_i} \left[ \sum_{j}^{N} v_{ij} \log \left( v_{ij} \right) \right]^2
@@ -251,12 +251,12 @@ D_{i, U} = \frac{2}{V_i}
 \]</span></p>
 <p>where <span class="math inline">\(N\)</span> is the number of observations in the dataset, <span class="math inline">\(v_{ij}\)</span> is the element at <span class="math inline">\(\mathbf{V}\left[i, j\right]\)</span>, and <span class="math inline">\(V_{i}\)</span> is the sum of the <span class="math inline">\(i\)</span>th row of <span class="math inline">\(\mathbf{V}\)</span>.</p>
 <p>The correlation dimension associated with the entire dataset for the given perplexity is just the mean average of the individual estimates:</p>
-<p><span class="math display">\[D_{U} = \frac{1}{N} \sum_{i}^{N} D_{i,U}\]</span></p>
+<p><span class="math display">\[\hat{\delta}_{U} = \frac{1}{N} \sum_{i}^{N} \delta_{i,U}\]</span></p>
 <p>The estimate of the intrinsic dimensionality, <span class="math inline">\(D\)</span>, is the maximum value that the correlation dimension attains as the perplexity is varied.</p>
-<p><span class="math display">\[D = \max_{U} D_U\]</span> The IDP is then:</p>
+<p><span class="math display">\[D = \max_{U} \hat{\delta}_U\]</span> The IDP is then:</p>
 <p><span class="math display">\[
 \DeclareMathOperator*{\argmax}{arg\,max}
-IDP = \argmax_{U} D_U
+IDP = \argmax_{U} \hat{\delta}_{U}
 \]</span></p>
 <div id="multiple-idps" class="section level3">
 <h3>Multiple IDPs?</h3>
@@ -267,10 +267,10 @@ IDP = \argmax_{U} D_U
 <div id="method" class="section level2">
 <h2>Method</h2>
 <p>For an initial attempt at calculating the IDP, we we will carry out the usual t-SNE perplexity calibration multiple times at different perplexity values. We’ll start at a low value (e.g. 3-5) and look at every integer perplexity up to around 300, which should be a large enough value to capture any features of interest.</p>
-<p>Each observation in the dataset is associated with its own estimate of the correlation dimension. We won’t use these individual, per-point estimates directly in this discussion, but take the mean average of all of them to give a single correlation dimension for a given perplexity. Just bear in mind when we are talking about correlaton dimension we are talking about a mean average of individual estimates.</p>
+<p>As discussed above, each observation in the dataset, <span class="math inline">\(i\)</span>, is associated with its own estimate of the correlation dimension at a given perplexity, <span class="math inline">\(U\)</span>, <span class="math inline">\(\delta_{i,U}\)</span>. We won’t use these individual, per-point estimates directly in this discussion, but take the mean average of all of them, <span class="math inline">\(\hat{\delta}_U\)</span> to give a single correlation dimension for a given perplexity.</p>
 <div id="dimensionality-plots" class="section level3">
 <h3>Dimensionality Plots</h3>
-<p>Datasets discussed here will be characterized by their dimensionality plot, which is the mean “soft” correlation dimension estimate (which I will just refer to as the correlation dimension, and ‘Dcorr’ as an axis label) against perplexity.</p>
+<p>Datasets discussed here will be characterized by their dimensionality plot, which is the mean “soft” correlation dimension estimate, <span class="math inline">\(\hat{\delta}\)</span> (which I will just refer to as the correlation dimension, and ‘Dcorr’ as an axis label) against perplexity.</p>
 </div>
 <div id="time-considerations" class="section level3">
 <h3>Time Considerations</h3>

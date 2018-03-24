@@ -5,14 +5,19 @@ date: "March 20, 2017"
 output:
   html_document:
     theme: cosmo
+    toc: true
+    toc_float:
+      collapsed: false
 ---
 
-Much of the following discussion is lifted verbatim from the documentation to
+Much of the following discussion is lifted nearly verbatim from the documentation to
 the fore-runner to `smallvis`,
-[sneer](http://jlmelville.github.io/sneer/dimensionality.html). For a practical
-application of all of this, I've applied the 
-[Intrinsic Dimensionality Perplexity to t-SNE](https://jlmelville.github.io/smallvis/idp.html).
+[sneer](http://jlmelville.github.io/sneer/dimensionality.html), except I've tried
+to be a lot more rigorous and consistent with the nomenclature and symbols. For
+a practical application of all of this, see 
+[part 2](https://jlmelville.github.io/smallvis/idp.html).
 
+## Introduction
 
 Choosing the correct perplexity value for an embedding is an open research
 problem. The usual approach is to plump for a value around 30. The
@@ -29,94 +34,127 @@ attempts to get around this problem by considering multiple perplexities during
 optimization. Part of their discussion involves making use of the concept of 
 intrinsic dimensionality of the input data and relating that to perplexity.
 
-For estimating the intrinsic dimensionality of the input data, they suggest the
-following scheme:
+## Some Definitions
 
-* Calculate a "soft" correlation dimension at each point for a given perplexity.
-The term "soft" here refers to the fact that the calculation uses the Gaussian
-input weights as usually calculated in t-SNE and related methods, rather than
-the hard sphere usually used in correlation dimension calculations. The
-calculation itself is based on one-sided finite differences, which is convenient
-for multi-scaled neighbor embedding because you calculate the input
-probabilities for multiple perplexities.
-
-* The correlation dimension for the entire dataset is then calculated as the
-mean average of all the point-wise estimates.
-
-* The maximum value that the mean correlation dimension achieves is the estimate
-of the intrinsic dimensionality.
-
-Here I'm going to derive an analytical expression for the correlation dimension
-with the use of the exponential kernel (exponential with regard to the squared
-distances, or gaussian in the raw distances, if you prefer) that only requires
-one perplexity calculation.
-
-First, some definitions. This discussion of dimensionality involves the input
-probabilities, so we will assume the use of gaussian similarities, not anything
-exotic like the t-distribution or other heavy-tailed functions:
+This discussion of dimensionality involves the input probabilities, so we will 
+assume the use of gaussian similarities, $v_{ij}$, which represents
+the similarity between two observations in the dataset, $i$ and $j$.
 
 $$
-w_{ij} = \exp(-\beta_i d_{ij}^{2})
+v_{ij} = \exp(-\beta_{i} r_{ij}^{2})
 $$
-where $d_{ij}^{2}$ is the squared distance between point $i$ and $j$ in the 
+
+where $r_{ij}^{2}$ is the squared distance between point $i$ and $j$ in the 
 input space and $\beta_i$ is the precision (inverse of the bandwidth) 
-associated with point $i$. We use a point-wise normalization to define a 
-probability, $p_{j|i}$:
+associated with point $i$. $\beta_i$ is the parameter that is directly optimized
+to reproduce a specific perplexity during the t-SNE initialization.
+
+We use a point-wise normalization to define a probability, $p_{j|i}$:
 
 $$
-p_{j|i} = \frac{w_{ij}}{\sum_{k} w_{ik}}
+p_{j|i} = \frac{r_{ij}}{\sum_{k} v_{ik}}
 $$
-The Shannon Entropy, $H$, of the probability distribution is:
+
+The Shannon Entropy, $H_U$, of the probability distribution with perplexity $U$ 
+is:
+
 $$
-H = -\sum_{j} p_{j|i} \log p_{j|i}
+H_U = -\sum_{j} p_{j|i} \log p_{j|i}
 $$
+
 and the perplexity, $U$, in units of nats is:
 
 $$
-U = \exp(H)
+U = \exp(H_U)
 $$
 
 Lee and co-workers show that, assuming the data is uniformly distributed, the 
-relationship between the precision, perplexity and correlation dimension
-around point $i$, $D_i$, is:
+relationship between the precision, perplexity and the correlation dimension
+around point $i$, $\delta_{i, U}$, is:
 
 $$
-U \propto \beta_i^{-\left({D_i}/{2}\right)}
+U \propto \beta_i^{-\left(\delta_{i, U} / 2 \right)}
 $$
+
 This suggests that if you did a log-log plot of the perplexity against
 the precision for multiple perplexities, the graph should be linear and the
-gradient would be $-D_{i}/2$.
+gradient would be $-\delta_{i, U}/2$.
 
-With a multi-scaling approach, a finite difference expression using base 2 
-logarithms is given as:
-$$
-D_i = \frac{2}{\log_2\left(\beta_{U,i}\right)-\log_2\left(\beta_{V,i}\right)}
-$$
-
-where $\beta_{U,i}$ is the precision parameter for the gaussian function which
+where $\beta_{i, U}$ is the precision parameter for the gaussian function which
 generates the $i$th similarity/weight for some perplexity, $U$.
 
-### An Analytical Expression for Correlation Dimension
+## Estimating Intrinsic Dimensionality
 
-The following is something I just came up with myself. It's *not* in the paper 
-by Lee and co-workers, so take it for what it's worth (probably not much), but
-it does produce 
-[result quite close to the finite difference values](https://jlmelville.github.io/smallvis/idp.html).
+For estimating the intrinsic dimensionality of the input data, Lee and
+co-workers give the following scheme:
+
+* Calculate a "soft" correlation dimension, $\delta_{i,U}$ at each point $i$ for a 
+given perplexity, $U$. The term "soft" here refers to the fact that the
+calculation uses the Gaussian input weights as usually calculated in t-SNE and
+related methods, rather than the hard sphere usually used in correlation
+dimension calculations. The calculation itself is based on one-sided finite
+differences, which is convenient for multi-scaled neighbor embedding because you
+calculate the input probabilities for multiple perplexities:
+
+$$
+\delta_{i,U} = \frac{2}{\log_{2}\beta_{i,U} - \log_{2}\beta_{i,U^{+}}}
+$$
+
+$\beta_{i,U}$ is the Gaussian function precision for input function
+associated with point $i$ and perplexity $U$. The precision is the parameter
+that is directly calibrated when trying to create probabilities at the target
+perplexity during the t-SNE perplexity calibration procedure. $U^{+}$ just
+represents some other (larger) perplexity. In the multi-scaling procedure,
+a standard set of perplexities (increasing in powers of 2) is used, so $U^{+}$
+is whatever the next-highest perplexity in the list is.
+
+* The correlation dimension for the entire dataset and a specific perplexity,
+$\hat{\delta}_{U}$, is then calculated as the mean average of all the point-wise 
+estimates.
+
+$$
+\hat{\delta}_{U} = \frac{1}{N} \sum_{i}^{N} \delta_{i,U}
+$$
+
+* The maximum value that the mean correlation dimension achieves is the estimate
+of the intrinsic dimensionality, $D$:
+
+$$D = \max_{U} \hat{\delta}_{U}$$
+
+## An Analytical Expression for Correlation Dimension
+
+The purpose of the rest of this document is to derive an analytical expression
+for the per-point correlation dimension, $\delta_{i,U}$ rather than a finite
+difference, so you only need the current perplexity calibration to generate the
+correlation dimension. The calculation of the of $\hat{\delta}_{U}$ and $D$
+remains the same.
+
+I should say that the following is something I just came up with myself. It's
+*not* in the paper by Lee and co-workers, so take it for what it's worth
+(probably not much), but when we put this into practice in the 
+[next part](https://jlmelville.github.io/smallvis/idp.html) of this series,
+it does produce results quite close to the finite difference values from the
+multi-scaling JSE paper.
 
 The gradient of the log-log plot of the perplexity against the precision is:
 
 $$
 \frac{\partial \log U}{\partial \log \beta_i} = 
-\beta_i \frac{\partial H}{\partial \beta_i} = 
--\frac{D_{i}}{2} 
+\beta_i \frac{\partial H_U}{\partial \beta_i} = 
+-\frac{\delta_{i, U}}{2} 
 $$
+
 so
 
 $$
-D_i = -2 \beta_i \frac{\partial H}{\partial \beta_i} 
+\delta_{i, U} = -2 \beta_{i, U} \frac{\partial H_U}{\partial \beta_{i, U}} 
 $$
 
-We therefore need to find an expression for $\partial H / \partial \beta_{i}$.
+For the rest of this discussion, we're doing all these calculations at a fixed
+perplexity $U$, so for clarity I will drop the $U$ subscript on $\beta_{i, U}$
+and $H_U$.
+
+We need to find an expression for $\partial H / \partial \beta_{i}$.
 This calls for use of the chain rule. It's going to be tedious, but not that
 difficult.
 
@@ -126,21 +164,22 @@ $$
  \frac{\partial H}{\partial \beta_i} = 
  \sum_{jklm} 
  \frac{\partial H}{\partial p_{k|j}}
- \frac{\partial p_{k|j}}{\partial w_{lm}}
- \frac{\partial w_{lm}}{\partial \beta_{i}}
+ \frac{\partial p_{k|j}}{\partial v_{lm}}
+ \frac{\partial v_{lm}}{\partial \beta_{i}}
 $$
 
-$\partial w_{lm} / \partial \beta_{i} = 0$ unless $l = i$. Additionally, due to 
-the point-wise normalization, $\partial p_{k|j} / \partial w_{lm} = 0$ unless 
+$\partial v_{lm} / \partial \beta_{i} = 0$ unless $l = i$. Additionally, due to 
+the point-wise normalization, $\partial p_{k|j} / \partial v_{lm} = 0$ unless 
 $j = l$, allowing us to simplify the summation to:
 
 $$
  \frac{\partial H}{\partial \beta_i} = 
  \sum_{km} 
  \frac{\partial H}{\partial p_{k|i}}
- \frac{\partial p_{k|i}}{\partial w_{im}}
- \frac{\partial w_{im}}{\partial \beta_{i}}
+ \frac{\partial p_{k|i}}{\partial v_{im}}
+ \frac{\partial v_{im}}{\partial \beta_{i}}
 $$
+
 Now let us regroup that double summation into two single summations, and also
 rename $m$ to $j$:
 
@@ -150,33 +189,33 @@ $$
  \left[
    \sum_{k} 
    \frac{\partial H}{\partial p_{k|i}}
-   \frac{\partial p_{k|i}}{\partial w_{ij}}
+   \frac{\partial p_{k|i}}{\partial v_{ij}}
  \right]
- \frac{\partial w_{ij}}{\partial \beta_{i}}
+ \frac{\partial v_{ij}}{\partial \beta_{i}}
 $$
 
 The full details of how to derive the expression of the 
 [gradient of the weight normalization](http://jlmelville.github.io/sneer/gradients.html) 
 are available elsewhere, but we shall jump straight to inserting the result for 
-$\partial p_{k|i} / \partial w_{ij}$
+$\partial p_{k|i} / \partial v_{ij}$
 to get:
 
 $$
  \frac{\partial H}{\partial \beta_i} = 
  \sum_{j}
- \frac{1}{S_{i}}
+ \frac{1}{V_{i}}
  \left[
    \frac{\partial H}{\partial p_{j|i}}
    -\sum_{k} 
    \frac{\partial H}{\partial p_{k|i}}
    p_{k|i}
  \right]
- \frac{\partial w_{ij}}{\partial \beta_{i}}
+ \frac{\partial v_{ij}}{\partial \beta_{i}}
 $$
-where $S_{i}$ is:
+where $V_{i}$ is:
 
 $$
-S_{i} = \sum_{j} w_{ij}
+V_{i} = \sum_{j} v_{ij}
 $$
 
 The gradient of the Shannon Entropy with respect to the probability is:
@@ -202,7 +241,7 @@ $$
    - \log \left( p_{k|i} \right) - 1
    \right\} 
    p_{k|i}
- \right]
+ \right] \\
   = 
  \left[
    - \log \left( p_{j|i} \right) - 1
@@ -223,7 +262,7 @@ $$
  = 
  \left[
 - \log \left( p_{j|i} \right) - H
- \right]
+ \right] \\
  =
  -\left[
   \log \left( p_{j|i} \right) + H
@@ -234,8 +273,8 @@ At this point:
 $$
  \frac{\partial H}{\partial \beta_i} = 
  \sum_{j}
- -\frac{1}{S_{i}}
- \frac{\partial w_{ij}}{\partial \beta_{i}}
+ -\frac{1}{V_{i}}
+ \frac{\partial v_{ij}}{\partial \beta_{i}}
   \left[
   \log \left( p_{j|i} \right) + H
  \right]
@@ -244,9 +283,9 @@ $$
 which leads to:
 
 $$
-D_{i} = \frac{2 \beta_i}{S_i}
+\delta_{i, U} = \frac{2 \beta_i}{S_i}
  \sum_{j}
- \frac{\partial w_{ij}}{\partial \beta_{i}}
+ \frac{\partial v_{ij}}{\partial \beta_{i}}
   \left[
   \log \left( p_{j|i} \right) + H
  \right]
@@ -256,28 +295,28 @@ The gradient of the exponential weight with respect to the precision parameter, 
 is:
 
 $$
-\frac{\partial w_{ij}}{\partial \beta_{i}}
+\frac{\partial v_{ij}}{\partial \beta_{i}}
 =
--d_{ij}^2 w_{ij}
+-r_{ij}^2 v_{ij}
 $$
 
 Substituting these two sub expressions into the total gradient, we are left with:
 $$
  \frac{\partial H}{\partial \beta_i} = 
  \sum_{j}
- \frac{d_{ij}^2 w_{ij}}{S_{i}}
+ \frac{r_{ij}^2 v_{ij}}{V_{i}}
  \left[
  \log \left( p_{j|i} \right) + H
  \right]
 $$
 
-Additionally, $p_{j|i} = w_{ij} / S_{i}$, so the final expression for the 
+Additionally, $p_{j|i} = v_{ij} / V_{i}$, so the final expression for the 
 gradient is:
 
 $$
  \frac{\partial H}{\partial \beta_i} = 
  \sum_{j}
- d_{ij}^2 p_{j|i}
+ r_{ij}^2 p_{j|i}
  \left[
  \log \left( p_{j|i} \right) + H
  \right]
@@ -287,7 +326,7 @@ The only thing to left to do is to multiply this expression by $-2 \beta_{i}$
 to get this expression for the correlation dimension:
 
 $$
-D_i = -2 \beta_i \sum_j d^2_{ij} p_{j|i} \left[\log\left(p_{j|i}\right) + H\right]
+\delta_{i,U} = -2 \beta_i \sum_j r^2_{ij} p_{j|i} \left[\log\left(p_{j|i}\right) + H\right]
 $$
 
 which is useful if you've carried out the perplexity-based calibration
@@ -302,71 +341,73 @@ only, the usual expression for Shannon entropy can be rewritten in terms of
 weights as:
 
 $$
-H = \log S_{i} -\frac{1}{S_i} \left( \sum_j w_{ij} \log w_{ij} \right) 
+H = \log V_{i} -\frac{1}{V_i} \left( \sum_j v_{ij} \log v_{ij} \right) 
 $$
 
 and that can be combined with:
 
 $$
-\log \left( p_{j|i} \right) = \log \left( w_{ij} \right) + \log \left(S_i \right) 
+\log \left( p_{j|i} \right) = \log \left( v_{ij} \right) + \log \left(V_i \right) 
 $$
 
 to give:
 
 $$
-D_{i} = \frac{2 \beta_i}{S_i^2}
+\delta_{i,U} = \frac{2 \beta_i}{V_i^2}
  \sum_{j}
- \frac{\partial w_{ij}}{\partial \beta_{i}}
+ \frac{\partial v_{ij}}{\partial \beta_{i}}
   \left(
-   S_i \log w_{ij} - \sum_k w_{ik} \log w_{ik}
+   V_i \log v_{ij} - \sum_k v_{ik} \log v_{ik}
  \right)
 $$
 
 We can also express the relation between the weight and the squared distance as:
 
 $$
-\log \left( w_{ij} \right) = -\beta_i d_{ij}^2
+\log \left( v_{ij} \right) = -\beta_i r_{ij}^2
 $$
 and the gradient with respect to the precision as:
 
 $$
-\frac{\partial w_{ij}}{\partial \beta_{i}}
+\frac{\partial v_{ij}}{\partial \beta_{i}}
 =
--d_{ij}^2 w_{ij} = -\frac{w_{ij} \log w_{ij}}{\beta_i}
+-r_{ij}^2 v_{ij} = -\frac{v_{ij} \log v_{ij}}{\beta_i}
 $$
 
 and the Shannon entropy expression as:
 
 $$
-H = \log S_i + \frac{\beta_i}{S_i} \sum_j d_{ij}^2 w_{ij}
+H = \log V_i + \frac{\beta_i}{V_i} \sum_j r_{ij}^2 v_{ij}
 $$
 
-With all that, you can eventually get to two equivalent expressions for $D_i$:
+With all that, you can eventually get to two equivalent expressions for $\delta_{i, U}$:
 
 $$
-D_{i} = \frac{2}{S_i}
+\delta_{i,U} = \frac{2}{V_i}
 \left\{
-\sum_j w_{ij} \left[ \log \left( w_{ij} \right) \right] ^ 2
--\frac{1}{S_i} \left[ \sum_j w_{ij} \log \left( w_{ij} \right) \right]^2
+\sum_j v_{ij} \left[ \log \left( v_{ij} \right) \right] ^ 2
+-\frac{1}{V_i} \left[ \sum_j v_{ij} \log \left( v_{ij} \right) \right]^2
 \right\}
 $$
 $$
-D_{i} = \frac{2 \beta_i^2}{S_i}
+\delta_{i, U} = \frac{2 \beta_i^2}{V_i}
 \left[
-\sum_j d_{ij}^4 w_{ij}
--\frac{1}{S_i} \left( \sum_j d_{ij}^2 w_{ij} \right)^2
+\sum_j r_{ij}^4 v_{ij}
+-\frac{1}{V_i} \left( \sum_j r_{ij}^2 v_{ij} \right)^2
 \right]
 $$
-The first one only requires the $W$ matrix, although as you've been carrying out
-lots of exponential operations to generate the weights, it seems a pity to have
-to then carry out lots of expensive log calculations, in which case the second
-expression might be better, but which requires the squared distance matrix and
-$\beta_i$ also.
 
-With this expression for the correlation dimension for point $i$, the estimate
-for the entire dataset is the average over all $D_{i}$. The intrinsic
-dimensionality is then estimated as the maximum value that the mean
-correlation dimension reaches when calculated over a range of perplexities. In
-the multi-scale JSE paper, perplexities in increasing powers of 2 are used.
+The first one only requires the $\mathbf{V}$ matrix, although as you've been 
+carrying out lots of exponential operations to generate the weights, it seems a
+pity to have to then carry out lots of expensive log calculations, in which case
+the second expression might be better, but which requires the squared distance
+matrix and $\beta_i$ also.
 
-For a practical application, see [Intrinsic Dimensionality Perplexity with t-SNE](https://jlmelville.github.io/smallvis/idp.html).
+With this expression for the correlation dimension for point $i$, we proceed as
+before: the estimate for the entire dataset, $\hat{\delta}_U$ is the average
+over all $\delta_{i, U}$. The intrinsic dimensionality, $D$ is then estimated as
+the maximum value that $\hat{\delta}_U$ reaches when calculated over a range of
+perplexities. In the multi-scale JSE paper, perplexities in increasing powers of
+2 are used.
+
+For a practical application, see [part 2](https://jlmelville.github.io/smallvis/idp.html).

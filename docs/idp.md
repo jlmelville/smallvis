@@ -59,10 +59,10 @@ steps we'll take:
 First, for each point in the dataset, we calculate the un-normalized input
 weight matrix, $\mathbf{V}$, which is associated with a perplexity, $U$. From
 there the soft correlation dimension for point $i$ and perplexity $U$, 
-$D_{i, U}$ can be written as:
+$\delta_{i, U}$ can be written as:
 
 $$
-D_{i, U} = \frac{2}{V_i}
+\delta_{i, U} = \frac{2}{V_i}
 \left\{
 \sum_{j}^{N} v_{ij} \left[ \log \left( v_{ij} \right) \right] ^ 2
 -\frac{1}{V_i} \left[ \sum_{j}^{N} v_{ij} \log \left( v_{ij} \right) \right]^2
@@ -76,19 +76,18 @@ $\mathbf{V}$.
 The correlation dimension associated with the entire dataset for the given 
 perplexity is just the mean average of the individual estimates:
 
-$$D_{U} = \frac{1}{N} \sum_{i}^{N} D_{i,U}$$
+$$\hat{\delta}_{U} = \frac{1}{N} \sum_{i}^{N} \delta_{i,U}$$
 
 The estimate of the intrinsic dimensionality, $D$, is the maximum value that the
 correlation dimension attains as the perplexity is varied.
 
-$$D = \max_{U} D_U$$
+$$D = \max_{U} \hat{\delta}_U$$
 The IDP is then:
 
 $$
 \DeclareMathOperator*{\argmax}{arg\,max}
-IDP = \argmax_{U} D_U
+IDP = \argmax_{U} \hat{\delta}_{U}
 $$
-
 
 ### Multiple IDPs?
 
@@ -118,19 +117,18 @@ We'll start at a low value (e.g. 3-5) and look at every integer perplexity up to
 around 300, which should be a large enough value to capture any features of
 interest.
 
-Each observation in the dataset is associated with its own estimate of the
-correlation dimension. We won't use these individual, per-point estimates
-directly in this discussion, but take the mean average of all of them to give
-a single correlation dimension for a given perplexity. Just bear in mind when
-we are talking about correlaton dimension we are talking about a mean average
-of individual estimates.
+As discussed above, each observation in the dataset, $i$, is associated with its
+own estimate of the correlation dimension at a given perplexity, $U$,
+$\delta_{i,U}$. We won't use these individual, per-point estimates directly in
+this discussion, but take the mean average of all of them, $\hat{\delta}_U$ to
+give a single correlation dimension for a given perplexity.
 
 ### Dimensionality Plots
 
 Datasets discussed here will be characterized by their dimensionality plot, 
-which is the mean "soft" correlation dimension estimate (which I will just refer
-to as the correlation dimension, and 'Dcorr' as an axis label) against 
-perplexity.
+which is the mean "soft" correlation dimension estimate, $\hat{\delta}$ (which 
+I will just refer to as the correlation dimension, and 'Dcorr' as an axis label) 
+against perplexity.
 
 ### Time Considerations
 
