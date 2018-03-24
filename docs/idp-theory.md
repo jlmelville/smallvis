@@ -4,17 +4,14 @@ subtitle: "Theory"
 date: "March 20, 2017"
 output:
   html_document:
-  theme: cosmo
-toc: true
-toc_float:
-  collapsed: false
+    theme: cosmo
 ---
 
 Much of the following discussion is lifted verbatim from the documentation to
 the fore-runner to `smallvis`,
 [sneer](http://jlmelville.github.io/sneer/dimensionality.html). For a practical
-application of all of this see the 
-[Intrinsic Dimensionality Perplexity](https://jlmelville.github.io/smallvis/idp.html).
+application of all of this, I've applied the 
+[Intrinsic Dimensionality Perplexity to t-SNE](https://jlmelville.github.io/smallvis/idp.html).
 
 
 Choosing the correct perplexity value for an embedding is an open research
@@ -371,3 +368,5 @@ for the entire dataset is the average over all $D_{i}$. The intrinsic
 dimensionality is then estimated as the maximum value that the mean
 correlation dimension reaches when calculated over a range of perplexities. In
 the multi-scale JSE paper, perplexities in increasing powers of 2 are used.
+
+For a practical application, see [Intrinsic Dimensionality Perplexity with t-SNE](https://jlmelville.github.io/smallvis/idp.html).
