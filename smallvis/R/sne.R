@@ -713,6 +713,9 @@ sne_init <- function(cost, X, perplexity, kernel = "gaussian",
                      normalize = TRUE,
                      verbose = FALSE, ret_extra = c()) {
   if (tolower(kernel) == "knn") {
+    if (length(perplexity) > 1) {
+      stop("Can't use multiple perplexities with knn kernel")
+    }
     if (verbose) {
       tsmessage("Using knn kernel with k = ", formatC(perplexity))
     }
@@ -721,7 +724,8 @@ sne_init <- function(cost, X, perplexity, kernel = "gaussian",
   }
   else {
     if (verbose) {
-      tsmessage("Commencing calibration for perplexity = ", formatC(perplexity))
+      tsmessage("Commencing calibration for perplexity = ",
+                format_perps(perplexity))
     }
     x2ares <- x2aff(X, perplexity, tol = 1e-5, kernel = kernel,
                     verbose = verbose)

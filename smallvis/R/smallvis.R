@@ -1649,6 +1649,11 @@ x2aff <- function(X, perplexity = 15, tol = 1e-5, kernel = "gauss",
     n <- nrow(X)
   }
 
+  nperps <- length(perplexity)
+  if (nperps > 1 && nperps != n) {
+    stop("Must provide one perplexity per point")
+  }
+
   if (!is.null(guesses) && length(guesses) != n) {
     stop("Initial guess vector must match number of observations in X")
   }
@@ -1661,10 +1666,19 @@ x2aff <- function(X, perplexity = 15, tol = 1e-5, kernel = "gauss",
   else {
     beta <- rep(1, n)
   }
-  logU <- log(perplexity)
+  if (nperps == 1) {
+    logU <- log(perplexity)
+  }
+  else {
+    perps <- perplexity
+  }
   bad_perp <- 0
 
   for (i in 1:n) {
+    if (nperps > 1) {
+      perplexity <- perps[i]
+      logU <- log(perplexity)
+    }
     betamin <- -Inf
     betamax <- Inf
 
@@ -1696,7 +1710,6 @@ x2aff <- function(X, perplexity = 15, tol = 1e-5, kernel = "gauss",
 
     Hdiff <- H - logU
     tries <- 0
-
     while (abs(Hdiff) > tol && tries < 50) {
       if (Hdiff > 0) {
         betamin <- beta[i]
@@ -1821,8 +1834,9 @@ knndist <- function(X, k) {
   pmin(D, t(D))
 }
 
-# Create the knn graph: D[i, j] = 1 if j is one of i's k-nearest neighbors
-# No symmetrization is carried out
+# Create the knn graph: D[i, j] = 1 if j is one of i's k-nearest neighbors.
+# i is NOT considered a neighbor of itself.
+# No symmetrization is carried out.
 knn_graph <- function(X, k) {
   if (methods::is(X, "dist")) {
     D <- as.matrix(X)
@@ -1953,6 +1967,17 @@ summarize <- function(X, msg = "") {
                              collapse = ""))
 }
 
+# Format perplexity as a string. Could be a scalar or a vector. In the latter
+# case, just list the first two values and then ellipses
+format_perps <- function(perplexity) {
+  if (length(perplexity) > 1) {
+    paste0(formatC(perplexity[1]), ", ",
+           formatC(perplexity[2]), "...")
+  }
+  else {
+    formatC(perplexity)
+  }
+}
 
 # UMAP  -------------------------------------------------------------------
 

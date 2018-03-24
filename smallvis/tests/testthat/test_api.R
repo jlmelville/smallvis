@@ -369,3 +369,17 @@ test_that("repeated runs", {
     ret_extra = FALSE, max_iter = 5, epoch_callback = NULL, verbose = FALSE)
   expect_is(res_nokeep_noret, "matrix")
 })
+
+test_that("multiple equal perplexities same as one perplexity", {
+  i10_tsne <- smallvis(iris10, Y_init = iris10_Y, perplexity = rep(5, 10),
+                       epoch_callback = NULL, verbose = FALSE)
+  expect_equal(i10_tsne, expected_Y, tolerance = 0.1)
+})
+
+test_that("multiple perplexities", {
+  i10_tsne <- smallvis(iris10, Y_init = iris10_Y, perplexity = c(rep(5, 5), rep(6, 5)),
+                       epoch_callback = NULL, verbose = FALSE)
+  expect_equal(i10_tsne, c2y(-335.8, 169.9, 354.1, 250, -412, -629.5, 511.4, -193.4, 237.1,
+                           48.18, 271.5, 120.7, -35.23, -208.6, 87.18, 284, -171.8, 121.4,
+                           -436.3, -32.79), tolerance = 1e-3)
+})
