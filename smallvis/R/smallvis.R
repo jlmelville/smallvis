@@ -1523,6 +1523,11 @@ ret_value <- function(Y, ret_extra, method, X, scale, Y_init, iter, start_time =
         stop_lying_iter = stop_lying_iter,
         exaggeration_factor = exaggeration_factor
       ))
+
+      # If using the Intrinsic Dimensionality method, use the chosen perplexity
+      if (!is.null(cost_fn$idp)) {
+        res$perplexity <- cost_fn$idp
+      }
     }
 
     optionals <- tolower(unique(optionals))
@@ -1893,6 +1898,95 @@ geodesic <- function(X, k, fill = TRUE, verbose = FALSE) {
   G
 }
 
+# Use the Intrinsic Dimensionality Perplexity (IDP)
+# Scan through the provided perplexities and use the result which maximizes
+# the mean correlation dimension (which is an estimate for the intrinsic
+# dimensionality). Stops at the first maxmimum found.
+idp <- function(X, perplexities = NULL, tol = 1e-5,
+                verbose = FALSE, guesses = NULL) {
+  if (methods::is(X, "dist")) {
+    n <- attr(X, "Size")
+  }
+  else {
+    n <- nrow(X)
+  }
+
+  if (is.null(perplexities)) {
+    perplexities <- idp_perps(n)
+  }
+  if (verbose) {
+    tsmessage("Searching for intrinsic dimensionality with perplexities from ",
+              formatC(perplexities[1]), " to ", formatC(last(perplexities)))
+  }
+
+  corr_dim_max <- -Inf
+  idp <- 0
+  idp_res <- NULL
+  for (perplexity in perplexities) {
+    if (verbose) {
+      tsmessage("Commencing calibration for perplexity = ",
+                format_perps(perplexity))
+    }
+    x2a_res <- x2aff(X = X, perplexity = perplexity, tol = tol, kernel = "gauss",
+                     verbose = verbose, guesses = guesses)
+    corr_dim <- mean(x2a_res$dint)
+    if (corr_dim <= corr_dim_max) {
+      break
+    }
+    else {
+      corr_dim_max <- corr_dim
+      idp <- perplexity
+      idp_res <- x2a_res
+    }
+  }
+  if (idp <= 0) {
+    stop("Unable to find an IDP: all correlation dimensions were -ve")
+  }
+  if (verbose) {
+    tsmessage("Found IDP at perplexity = ", formatC(idp),
+              " intrinsic dimensionality = ", formatC(corr_dim_max))
+  }
+
+  idp_res$idp <- idp
+  idp_res
+}
+
+# Come up with a set of candidate perplexities for finding the Intrinsic
+# Dimensionality Perplexity. Use powers of 2 up to around half the data set
+# size, or a perplexity of 128, whichever is smaller. Tries to provide a balance
+# of coverage of useful perplexities vs time consumption.
+idp_perps <- function(n) {
+  max_u <- min(128, max(2, ceiling(n / 2)))
+  max_uexp <- floor(log2(max_u))
+  min_uexp <- min(2, max_uexp)
+  2 ^ (min_uexp:max_uexp)
+}
+
+# Is the perplexity argument a string or a list with the first element is a
+# string?
+perp_method <- function(perplexity) {
+  method <- ""
+  if (is.character(perplexity) || is.list(perplexity)) {
+    if (is.list(perplexity)) {
+      method <- perplexity[[1]]
+    }
+    else {
+      method <- perplexity
+    }
+  }
+  tolower(method)
+}
+
+# If the user provided a list like ("idp", c(10, 20, 30)), extract the list
+# of numbers as the candidate list of perplexities. Otherwise, return NULL
+user_idp_perps <- function(perplexity) {
+  perplexities <- NULL
+  if (is.list(perplexity) && length(perplexity) == 2) {
+    perplexities <- perplexity[[2]]
+  }
+  perplexities
+}
+
 # Utility Functions -------------------------------------------------------
 
 # Create matrix of squared Euclidean distances
@@ -1977,6 +2071,11 @@ format_perps <- function(perplexity) {
   else {
     formatC(perplexity)
   }
+}
+
+# last item of a vector
+last <- function(x) {
+  x[length(x)]
 }
 
 # UMAP  -------------------------------------------------------------------

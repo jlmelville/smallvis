@@ -713,6 +713,9 @@ sne_init <- function(cost, X, perplexity, kernel = "gaussian",
                      normalize = TRUE,
                      verbose = FALSE, ret_extra = c()) {
   if (tolower(kernel) == "knn") {
+    if (is.character(perplexity) || is.list(perplexity)) {
+      stop("Can't use intrinsic dimensionality with knn kernel")
+    }
     if (length(perplexity) > 1) {
       stop("Can't use multiple perplexities with knn kernel")
     }
@@ -722,13 +725,27 @@ sne_init <- function(cost, X, perplexity, kernel = "gaussian",
     P <- knn_graph(X, k = perplexity)
     x2ares <- list(W = P)
   }
+  if (perp_method(perplexity) == "idp") {
+    perplexities <- NULL
+    if (is.list(perplexity) && length(perplexity) == 2) {
+      perplexities <- perplexity[[2]]
+    }
+
+    x2ares <- idp(X, perplexities = perplexities, tol = 1e-5,
+                  verbose = verbose)
+    P <- x2ares$W
+    ret_extra <- unique(c(ret_extra, "idp"))
+  }
   else {
+    if (!is.numeric(perplexity)) {
+      stop("Unknown perplexity method, '", perplexity[[1]], "'")
+    }
     if (verbose) {
       tsmessage("Commencing calibration for perplexity = ",
                 format_perps(perplexity))
     }
     x2ares <- x2aff(X, perplexity, tol = 1e-5, kernel = kernel,
-                    verbose = verbose)
+                      verbose = verbose)
     P <- x2ares$W
   }
 
@@ -780,10 +797,14 @@ sne_init <- function(cost, X, perplexity, kernel = "gaussian",
            },
            pdeg = {
              cost$pdeg <- colSums(P)
+           },
+           idp = {
+             if (!is.null(x2ares$idp)) {
+              cost$idp <- x2ares$idp
+             }
            }
     )
   }
-
   cost
 }
 
