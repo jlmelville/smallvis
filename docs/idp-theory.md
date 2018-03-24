@@ -1,6 +1,6 @@
 ---
 title: "Perplexity and Intrinsic Dimensionality"
-subtitle: "Theory"
+subtitle: "1. Theory"
 date: "March 20, 2017"
 output:
   html_document:

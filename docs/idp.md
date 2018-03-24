@@ -1,6 +1,6 @@
 ---
 title: "Perplexity and Intrinsic Dimensionality"
-subtitle: "Application to t-SNE"
+subtitle: "2. Application to t-SNE"
 date: "March 20, 2017"
 output:
   html_document:
