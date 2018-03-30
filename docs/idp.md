@@ -315,6 +315,79 @@ The perplexity 11 result is definitely unfolded, and if it isn't that
 even-looking, that's just par for the course with SNE. The perplexity 193 
 result, on the other hand, definitely represents the fully folded structure.
 
+### Linked Rings
+
+[How to Use t-SNE Effectively](http://distill.pub/2016/misread-tsne/) has an
+interesting example involving two linked rings: one aligned along the XY
+plane, the other in the YZ plane. At low perplexity they are embedded as two
+separate circles, whereas the linkage is displayed at higher perplexities. This
+is also of interest because the COIL-20 dataset discussed below also shows a
+series of annular clusters.
+
+We can use the `snedata` package to reproduce this dataset:
+
+```
+link_100 <- snedata::link_data(n = 100)
+```
+
+Below to the left is the PCA on the data which shows the layout fairly well, and
+on the right is the dimensionality plot:
+
+| | |
+|-------|-------|
+![Link PCA](../img/dint/link_pca.png)|![Link Dimensionality](../img/dint/link.png)|
+
+Like the Swiss Roll there are two maxima. The first one suggests an intrinsic
+dimensionality of 1.13 at around perplexity = 4. This is probably very local
+structure where the curvature of the data is almost non-existent on the scale
+looked at, so every point's neighborhood is almost a straight line (and hence
+the dimensionality close to 1). The broader maximum is at perplexity 45 with an
+intrinsic dimensionality of 2.36. Below are the t-SNE results with perplexity 4
+on the left, and 45 on the right:
+
+| | |
+|-------|------|
+![Link t-SNE perp 4](../img/dint/link_tsne_perp4.png)|![Link t-SNE perp 45](../img/dint/link_tsne_perp45.png)|
+
+For the perplexity 4 results, I used the typical t-SNE random initialization,
+rather than the PCA and spectral-based initializations I usually favor, as
+well as using early exaggeration (which 
+[I haven't found to have a huge effect](https://jlmelville.github.io/smallvis/init.html),
+on most datasets). The PCA and spectral initialization reproduce the linked form
+which the optimization process is unable to break and the resulting error is
+higher than the unlinked result shown here.
+
+Pleasingly, the two perplexities that the dimensionality plot suggests reproduce
+the two classes of layout found in "How to Use t-SNE Effectively". Is the
+distortion in the shapes of the rings, especially at perplexity 45, something to
+worry about? These are present in the "How to Use t-SNE Effectively" results
+also, but they are not a product of a bad choice of perplexity. It's because,
+just as with the Swiss Roll, the output weight function in t-SNE isn't
+appropriate for these 2D objects. To prove it, here are the ASNE results:
+
+| | |
+|-------|------|
+![Link ASNE perp 4](../img/dint/link_asne_perp4.png)|![Link ASNE perp 45](../img/dint/link_asne_perp45.png)|
+
+I should note here that I initialized the perplexity 4 result from the final 
+coordinates of the perplexity 4 t-SNE result, and this lead to the lowest error
+of all the ways I tried. Random initialization was never able to initialize
+the results in a way that ASNE could disentangle them. At any rate, we can see 
+that the distortion is no longer present with the ASNE results.
+
+To finish off here, it's worth noting that the two-maxima structure shown in
+the linked rings dimensionality plot is also present in a single ring, and in
+a "fuzzy ring" (i.e. a 2D Gaussian with points in the center removed):
+
+| | |
+|-------|------|
+![Ring](../img/dint/ring.png)|![Gaussian Ring](../img/dint/g2d_hole.png)|
+
+Note that this structure doesn't generalize to higher dimensions, i.e. we don't
+see any low-perplexity maximum for 5D or 10D Gaussians with holes in (which look
+like the versions without a hole, so I won't show them). Nor indeed
+did we see it with the sphere data.
+
 ### Three Clusters
 
 The three clusters in 
