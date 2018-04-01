@@ -484,7 +484,7 @@ Overall, using the IDP (at the lowest perplexity if there are multiple maxima)
 does a good job with the simple synthetic data used here. Time to move on to
 some more complicated real datasets.
 
-## Resultss: Real Datasets
+## Results: Real Datasets
 
 We'll now look at how perplexity and correlation dimension are related with
 the usual [datasets](https://jlmelville.github.io/smallvis/datasets.html).
