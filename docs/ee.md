@@ -49,7 +49,7 @@ un-normalized affinities rather than the probabilities $p_{ij}$.
 
 The original EE paper uses a global $\beta$ for all $i$ so the input 
 weights are symmetric. The later 
-[spectral embedding](https://arxiv.org/abs/1206.4646) paper uses
+[spectral direction](https://arxiv.org/abs/1206.4646) paper uses
 the SNE affinities by perplexity calibration and symmetrizes (but does not
 normalize) the resulting affinities. For the implementation in `smallvis` we use
 the perplexity calibration approach, so we will proceed with the assumption that
@@ -79,7 +79,7 @@ try that here too.
 
 A "homotopy method" is also described which means starting the optimization at a
 small (effectively 0) value of $\lambda$, and increasing it to the target value
-over the course of the optimization. In the spectral embedding paper, the
+over the course of the optimization. In the spectral direction paper, the
 initial value is `1e-4`, with fifty log-spaced increments. As up to 10,000
 iterations were allowed at each value of $\lambda$, this seems like a major
 time investment. This approach seems similar in spirit to the approach advocated
