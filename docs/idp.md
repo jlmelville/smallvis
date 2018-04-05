@@ -524,7 +524,7 @@ with the clusters in a straight line, with the relative distances correct. But
 do any of these perplexities give the desired result?
 
 ```
-three_clusters_tsne7 <- smallvis(three_clusters_50, scale = FALSE, Y_init = "spca", perplexity = 7)
+three_clusters_tsne7 <- smallvis(three_clusters_50, scale = FALSE, Y_init = "spca", perplexity = 7, eta = 10)
 ```
 
 | | | |
