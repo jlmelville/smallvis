@@ -1,7 +1,7 @@
 ---
 title: "Perplexity and Intrinsic Dimensionality"
 subtitle: "2. Application to t-SNE"
-date: "March 20, 2017"
+date: "March 20, 2018"
 output:
   html_document:
     theme: cosmo
