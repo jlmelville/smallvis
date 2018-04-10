@@ -901,14 +901,9 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
       # Recenter Y during epoch only
       Y <- sweep(Y, 2, colMeans(Y))
 
-      if (is.null(opt_res$f)) {
-        cost_fn <- cost_point(cost_fn, Y)
-        pcosts <- cost_fn$pcost
-        cost <- sum(pcosts)
-      }
-      else {
-        cost <- opt_res$f
-      }
+      cost_eval_res <- cost_eval(cost_fn, Y, opt_res)
+      cost_fn <- cost_eval_res$cost
+      cost <- cost_eval_res$value
 
       if (!is.null(old_cost)) {
         tolval <- reltol(cost, old_cost)

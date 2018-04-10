@@ -50,6 +50,23 @@ cost_update <- function(cost, Y) {
   cost
 }
 
+# Calculate the cost function value. If opt_res$f is non-NULL, use that
+cost_eval <- function(cost, Y, opt_res = NULL) {
+  if (is.null(opt_res) || is.null(opt_res$f)) {
+    cost <- cost_point(cost, Y)
+    pcosts <- cost$pcost
+    cost_val <- sum(pcosts)
+  }
+  else {
+    cost_val <- opt_res$f
+  }
+
+  list(
+    cost = cost,
+    value = cost_val
+  )
+}
+
 # Default export of values associated with a method
 # If the value is associated with the cost list, e.g. cost$P, then asking
 # for val = "P" or val = "p" will return it. Otherwise, returns NULL
