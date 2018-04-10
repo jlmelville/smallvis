@@ -705,25 +705,34 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
     )
   }
   else {
-    methodlist <- method
-    method_name <- methodlist[[1]]
-    methodlist[[1]] <- NULL
-
-    method <- match.arg(tolower(method_name), method_names)
-    if (exists(method_name)) {
-      fn <- get(method_name)
-      param_names <- names(formals(fn))
-      if ("perplexity" %in% param_names) {
-        methodlist$perplexity <- perplexity
+    if (is.list(method)) {
+      methodlist <- method
+      method_name <- methodlist[[1]]
+      methodlist[[1]] <- NULL
+      method <- match.arg(tolower(method_name), method_names)
+      if (exists(method_name)) {
+        fn <- get(method_name)
       }
-      if ("k" %in% param_names) {
-        methodlist$k <- perplexity
+      else {
+        stop("Unknown method: '", method_name, "'")
       }
-      cost_fn <- do.call(fn, methodlist)
+    }
+    else if (is.function(method)) {
+      fn <- method
+      methodlist <- list()
     }
     else {
-      stop("Unknown method: '", method_name, "'")
+      stop("Bad method parameter type")
     }
+
+    param_names <- names(formals(fn))
+    if ("perplexity" %in% param_names) {
+      methodlist$perplexity <- perplexity
+    }
+    if ("k" %in% param_names) {
+      methodlist$k <- perplexity
+    }
+    cost_fn <- do.call(fn, methodlist)
   }
 
   if (stop_lying_iter < 1) {
