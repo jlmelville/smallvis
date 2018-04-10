@@ -179,7 +179,8 @@ Those that I have cobbled together into something that demonstrates the use of
 [PCA and whitening](https://jlmelville.github.io/smallvis/pcaw.html) preprocessing options on t-SNE.
 * How [perplexity](https://jlmelville.github.io/smallvis/perplexity.html) affects t-SNE.
 * Using [intrinsic dimensionality](https://jlmelville.github.io/smallvis/idp-theory.html)
-to [automatically select perplexity](https://jlmelville.github.io/smallvis/idp.html).
+to [automatically select perplexity](https://jlmelville.github.io/smallvis/idp.html). Also, 
+[non-global perplexities](https://jlmelville.github.io/smallvis/idp-class.html).
 * [Distance-preserving methods](https://jlmelville.github.io/smallvis/mmds.html) (geodesic as well as Euclidean).
 * A comparison of various flavours of [Stochastic Neighbor Embedding](https://jlmelville.github.io/smallvis/sne.html) (t-distributed and otherwise).
 * A comparison of [NeRV and JSE](https://jlmelville.github.io/smallvis/nervjse.html).
