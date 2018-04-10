@@ -379,7 +379,7 @@ colored using the same colors as the curves in the dimensionality plot:
 
 | |
 |-------|
-![Two Gaussian CIDP](../img/dint-local/two_gaussians_sep.png)|
+![Two Gaussian CIDP](../img/dint-local/two_gaussians_cidp.png)|
 
 The overall trend is clear: as the separation between clusters decreases, the
 class IDP becomes inflated compared to the value that would be obtained if
