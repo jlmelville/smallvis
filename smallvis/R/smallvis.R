@@ -924,6 +924,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
                   appendLF = FALSE)
         }
         message()
+        flush.console()
       }
 
       if (!is.null(epoch_callback)) {
@@ -2050,6 +2051,7 @@ stime <- function() {
 # message with a time stamp
 tsmessage <- function(..., domain = NULL, appendLF = TRUE) {
   message(stime(), " ", ..., domain = domain, appendLF = appendLF)
+  flush.console()
 }
 
 # merge lists, where anything non-NULL in l is kept
