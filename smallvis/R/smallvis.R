@@ -369,6 +369,9 @@
 #'   set this to \code{1} (effectively turning off early exaggeration).
 #' @param stop_lying_iter Iteration at which early exaggeration is turned
 #'   off.
+#' @param iter0_cost If \code{TRUE}, calculate the cost for the initial
+#'   configuration. This while be logged to the console if \code{verbose = TRUE}
+#'   or returned in the \code{itercosts} vector if \code{ret_extra = TRUE}.
 #' @param ret_extra If \code{TRUE}, return value is a list containing additional
 #'   values associated with the embedding; otherwise just the output
 #'   coordinates. You may also provide a vector of names of potentially large or
@@ -636,6 +639,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
                  eta = 500, min_gain = 0.01,
                  opt = list("dbd"),
                  exaggeration_factor = 1, stop_lying_iter = 100,
+                 iter0_cost = FALSE,
                  ret_extra = FALSE,
                  verbose = TRUE) {
 
@@ -851,12 +855,29 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
     }
   }
 
+  itercosts <- c()
+  if (iter0_cost && (verbose || ret_extra)) {
+    cost_eval_res <- cost_eval(cost_fn, Y)
+    cost_fn <- cost_eval_res$cost
+    cost <- cost_eval_res$value
+
+    if (verbose) {
+      tsmessage("Iteration #0 error: ", formatC(cost))
+    }
+
+    if (ret_extra) {
+      names(cost) <- 0
+      itercosts <- c(itercosts, cost)
+    }
+  }
+
   # Display initialization
   if (!is.null(epoch_callback)) {
     do_callback(epoch_callback, Y, 0)
   }
   if (max_iter < 1) {
     return(ret_value(Y, ret_extra, method, X, scale, Y_init, iter = 0,
+                     cost_fn = cost_fn, itercosts = itercosts,
                      start_time = start_time, optionals = ret_optionals,
                      pca = ifelse(pca && !whiten, initial_dims, 0),
                      whiten = ifelse(pca && whiten, initial_dims, 0)))
@@ -867,7 +888,6 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
     cost_fn$P <- cost_fn$P * exaggeration_factor
   }
 
-  itercosts <- c()
   old_cost <- NULL
   tolval <- NULL
   if (verbose) {
@@ -924,7 +944,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
                   appendLF = FALSE)
         }
         message()
-        flush.console()
+        utils::flush.console()
       }
 
       if (!is.null(epoch_callback)) {
@@ -1540,29 +1560,28 @@ ret_value <- function(Y, ret_extra, method, X, scale, Y_init, iter, start_time =
       res$whiten_dims <- whiten
     }
 
-    if (iter > 0) {
-      if (is.null(cost_fn$pcost)) {
-        cost_fn <- cost_grad(cost_fn, Y)
-        cost_fn <- cost_point(cost_fn, Y)
-      }
-      res$costs <- cost_fn$pcost
-
-      if (!is.null(opt)) {
-        res$opt <- opt
-      }
-
-      res <- c(res, list(
-        perplexity = perplexity,
-        itercosts = itercosts,
-        stop_lying_iter = stop_lying_iter,
-        exaggeration_factor = exaggeration_factor
-      ))
-
-      # If using the Intrinsic Dimensionality method, use the chosen perplexity
-      if (!is.null(cost_fn$idp)) {
-        res$perplexity <- cost_fn$idp
-      }
+    if (is.null(cost_fn$pcost)) {
+      cost_fn <- cost_grad(cost_fn, Y)
+      cost_fn <- cost_point(cost_fn, Y)
     }
+    res$costs <- cost_fn$pcost
+
+    if (!is.null(opt)) {
+      res$opt <- opt
+    }
+
+    res <- c(res, list(
+      perplexity = perplexity,
+      itercosts = itercosts,
+      stop_lying_iter = stop_lying_iter,
+      exaggeration_factor = exaggeration_factor
+    ))
+
+    # If using the Intrinsic Dimensionality method, use the chosen perplexity
+    if (!is.null(cost_fn$idp)) {
+      res$perplexity <- cost_fn$idp
+    }
+
 
     optionals <- tolower(unique(optionals))
     for (o in optionals) {
@@ -2051,7 +2070,7 @@ stime <- function() {
 # message with a time stamp
 tsmessage <- function(..., domain = NULL, appendLF = TRUE) {
   message(stime(), " ", ..., domain = domain, appendLF = appendLF)
-  flush.console()
+  utils::flush.console()
 }
 
 # merge lists, where anything non-NULL in l is kept

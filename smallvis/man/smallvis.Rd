@@ -10,7 +10,8 @@ smallvis(X, k = 2, scale = "absmax", Y_init = "rand", perplexity = 30,
   min_cost = 0, tol = 1e-07 * epoch, momentum = 0.5,
   final_momentum = 0.8, mom_switch_iter = 250, eta = 500,
   min_gain = 0.01, opt = list("dbd"), exaggeration_factor = 1,
-  stop_lying_iter = 100, ret_extra = FALSE, verbose = TRUE)
+  stop_lying_iter = 100, iter0_cost = FALSE, ret_extra = FALSE,
+  verbose = TRUE)
 }
 \arguments{
 \item{X}{Input coordinates or distance matrix.}
@@ -87,6 +88,10 @@ set this to \code{1} (effectively turning off early exaggeration).}
 
 \item{stop_lying_iter}{Iteration at which early exaggeration is turned
 off.}
+
+\item{iter0_cost}{If \code{TRUE}, calculate the cost for the initial
+configuration. This while be logged to the console if \code{verbose = TRUE}
+or returned in the \code{itercosts} vector if \code{ret_extra = TRUE}.}
 
 \item{ret_extra}{If \code{TRUE}, return value is a list containing additional
 values associated with the embedding; otherwise just the output
