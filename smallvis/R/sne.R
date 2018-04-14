@@ -365,6 +365,55 @@ pstsne <- function(perplexity, inp_kernel = "gaussian") {
   )
 }
 
+# t-Distributed Elastic Embedding
+# EE-like cost function in terms of I-Divergence
+# Scaled to give a gradient similar in form to t-SNE
+tee <- function(perplexity, inp_kernel = "gaussian", lambda = 0.2) {
+  lreplace(
+    tsne(perplexity = perplexity, inp_kernel = inp_kernel),
+    init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
+                    ret_extra = c()) {
+      ret_extra = unique(c(ret_extra, "V", "dint"))
+      cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
+                       symmetrize = "symmetric", normalize = TRUE,
+                       verbose = verbose, ret_extra = ret_extra)
+      V <- cost$V
+      V <- V / rowSums(V)
+      V <- 0.5 * (V + t(V))
+
+      cost$eps <- eps
+      cost$V <- V
+      cost$invN <- 1 / sum(V)
+      cost$gradconst <- 4 * cost$invN
+      cost$lambda <- lambda
+      cost$constV <- cost$invN * (colSums(V * log(V + eps)) - lambda * colSums(V))
+
+      cost
+    },
+    gr = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+      cost$G <- k2g(Y, cost$gradconst * cost$W * (cost$V - cost$W * cost$lambda))
+      cost
+    },
+    update = function(cost, Y) {
+      W <- dist2(Y)
+      W <- 1 / (1 + W)
+      diag(W) <- 0
+      cost$W <- W
+      cost
+    },
+    pfn = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+
+      V <- cost$V
+      W <- cost$W
+      eps <- cost$eps
+
+      cost$pcost <- cost$constV + cost$invN * (cost$lambda * colSums(W) - colSums(V * log(W + eps)))
+      cost
+    }
+  )
+}
 
 # UMAP/t-SNE Hybrids ------------------------------------------------------
 
