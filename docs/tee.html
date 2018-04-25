@@ -294,15 +294,6 @@ C_{t-EE} = \frac{1}{N} \left[ \sum_{ij}^{N} v_{ij} \log \frac{v_{ij}}{w_{ij}} + 
 <h3>Swiss Roll</h3>
 <p>A synthetic dataset like the Swiss Roll let’s use look at the effect of dataset size in a controlled way. We’ll look at <span class="math inline">\(N = 1000\)</span> and <span class="math inline">\(N = 3000\)</span> and several perplexity values. Some relevant parameters used are:</p>
 <pre><code>scale = FALSE, Y_init = &quot;lap&quot;, eta = 100, max_iter = 5000, epoch = 100, tol = 0</code></pre>
-<pre><code>sr3k &lt;- snedata::swiss_roll(n = 3000, max_z = 30)
-sr2k &lt;- sr3k[1:2000, ]
-sr1k &lt;- sr3k[1:1000, ]
-
-res_sr1k &lt;- izs_perp(X = sr1k, scale = FALSE, Y_init = &quot;lap&quot;, eta = 100, max_iter = 5000, epoch = 100, tol = 0)
-res_sr2k &lt;- izs_perp(X = sr2k, scale = FALSE, Y_init = &quot;lap&quot;, eta = 100, max_iter = 5000, epoch = 100, tol = 0)
-res_sr3k &lt;- izs_perp(X = sr3k, scale = FALSE, Y_init = &quot;lap&quot;, eta = 100, max_iter = 5000, epoch = 100, tol = 0)
-
-save(res_sr1k, res_sr2k, res_sr3k, file = &quot;/dev/R/datasets/sr_inz.Rda&quot;)</code></pre>
 <p>First, here are some lots for <span class="math inline">\(N/Z\)</span> evolves with iteration and different values of perplexity for <code>sr1k</code> on the left and <code>sr3k</code> on the right. Black line is perplexity = 10, red is perplexity = 20, orange is perplexity = 30, blue is perplexity = 40 and purple is perplexity = 50.</p>
 <table>
 <tbody>

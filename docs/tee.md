@@ -176,19 +176,6 @@ perplexity values. Some relevant parameters used are:
 scale = FALSE, Y_init = "lap", eta = 100, max_iter = 5000, epoch = 100, tol = 0
 ```
 
-
-```
-sr3k <- snedata::swiss_roll(n = 3000, max_z = 30)
-sr2k <- sr3k[1:2000, ]
-sr1k <- sr3k[1:1000, ]
-
-res_sr1k <- izs_perp(X = sr1k, scale = FALSE, Y_init = "lap", eta = 100, max_iter = 5000, epoch = 100, tol = 0)
-res_sr2k <- izs_perp(X = sr2k, scale = FALSE, Y_init = "lap", eta = 100, max_iter = 5000, epoch = 100, tol = 0)
-res_sr3k <- izs_perp(X = sr3k, scale = FALSE, Y_init = "lap", eta = 100, max_iter = 5000, epoch = 100, tol = 0)
-
-save(res_sr1k, res_sr2k, res_sr3k, file = "/dev/R/datasets/sr_inz.Rda")
-```
-
 First, here are some lots for $N/Z$ evolves with iteration and different values of
 perplexity for `sr1k` on the left and `sr3k` on the right. Black line is 
 perplexity = 10, red is perplexity = 20, orange is perplexity = 30, blue is
