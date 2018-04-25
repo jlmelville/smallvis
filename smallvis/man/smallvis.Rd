@@ -213,6 +213,9 @@ to the \code{method} parameter are:
   (2014). The importance matrix used is the degree centrality (column sums)
   of the normalized input weight matrix.
   \item \code{"ee"} The Elastic Embedding method of Carreira-Perpinan (2010).
+  \item \code{"tee"} A t-distributed version of Elastic Embedding (see the
+  documentation at \url{https://jlmelville.github.io/smallvis/tee.html} for a
+  description).
   \item \code{"nerv"} The Neighbor Retrieval Visualizer method of Venna
   and co-workers (2010). This version differs from the presentation in Venna
   and co-workers (2010), in that it does not use the precision values
@@ -291,6 +294,11 @@ Method-specific parameters are as follows:
    \itemize{
    \item{\code{lambda}} Weighting term for the repulsive versus attractive
     forces. Default is \code{100}.
+   }
+   \item \code{"tEE"}
+   \itemize{
+   \item{\code{lambda}} Weighting term for the repulsive versus attractive
+    forces. Default is \code{0.01}.
    }
    \item \code{"NeRV"}
    \itemize{
