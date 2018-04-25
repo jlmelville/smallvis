@@ -368,7 +368,7 @@ pstsne <- function(perplexity, inp_kernel = "gaussian") {
 # t-Distributed Elastic Embedding
 # EE-like cost function in terms of I-Divergence
 # Scaled to give a gradient similar in form to t-SNE
-tee <- function(perplexity, inp_kernel = "gaussian", lambda = 0.2) {
+tee <- function(perplexity, inp_kernel = "gaussian", lambda = 0.01) {
   lreplace(
     tsne(perplexity = perplexity, inp_kernel = inp_kernel),
     init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
@@ -387,7 +387,6 @@ tee <- function(perplexity, inp_kernel = "gaussian", lambda = 0.2) {
       cost$gradconst <- 4 * cost$invN
       cost$lambda <- lambda
       cost$constV <- cost$invN * (colSums(V * log(V + eps)) - lambda * colSums(V))
-
       cost
     },
     gr = function(cost, Y) {
@@ -409,7 +408,8 @@ tee <- function(perplexity, inp_kernel = "gaussian", lambda = 0.2) {
       W <- cost$W
       eps <- cost$eps
 
-      cost$pcost <- cost$constV + cost$invN * (cost$lambda * colSums(W) - colSums(V * log(W + eps)))
+      cost$pcost <- cost$constV +
+        cost$invN * (cost$lambda * colSums(W) - colSums(V * log(W + eps)))
       cost
     }
   )
