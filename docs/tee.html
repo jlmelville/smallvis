@@ -416,6 +416,7 @@ C_{t-EE} = \frac{1}{N} \left[ \sum_{ij}^{N} v_{ij} \log \frac{v_{ij}}{w_{ij}} + 
 <p>Example command for embedding <code>iris</code> with perplexity = <code>5</code>:</p>
 <pre><code>iris_tee_p5 &lt;- smallvis(iris, scale = &quot;absmax&quot;, perplexity = 5, Y_init = &quot;spca&quot;, eta  = 100, method = list(&quot;tee&quot;, lambda = 0.05),
 min_cost = -Inf)</code></pre>
+<p>Note that because the cost is not bounded by zero, you must set the <code>min_cost</code> parameter. It’s most convenient to set it to <code>-Inf</code>.</p>
 <p>Values for <code>lambda</code> will be varied between <code>0.001</code> and <code>0.5</code>. On the plots below, both <code>lambda</code> and the t-EE error (I-divergence style) will be shown. t-SNE results (with the corresponding KL divergence) with the same perplexity and other settings are also shown for comparison.</p>
 </div>
 <div id="results-perplexity-5" class="section level2">

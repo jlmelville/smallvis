@@ -268,6 +268,9 @@ iris_tee_p5 <- smallvis(iris, scale = "absmax", perplexity = 5, Y_init = "spca",
 min_cost = -Inf)
 ```
 
+Note that because the cost is not bounded by zero, you must set the `min_cost`
+parameter. It's most convenient to set it to `-Inf`.
+
 Values for `lambda` will be varied between `0.001` and `0.5`. On the plots
 below, both `lambda` and the t-EE error (I-divergence style) will be shown. 
 t-SNE results (with the corresponding KL divergence) with the same perplexity
