@@ -190,7 +190,8 @@ to [automatically select perplexity](https://jlmelville.github.io/smallvis/idp.h
 for t-SNE. Related: does using an [average distance matrix](https://jlmelville.github.io/smallvis/averaging.html) 
 based on the result of multiple random initializations do better than just picking the result with the lowest error? 
 (It doesn't.)
-* [Elastic Embedding](https://jlmelville.github.io/smallvis/ee.html).
+* [Elastic Embedding](https://jlmelville.github.io/smallvis/ee.html) and a 
+[t-Distributed variant](https://jlmelville.github.io/smallvis/tee.html).
 * [Optimizaton: L-BFGS](https://jlmelville.github.io/smallvis/opt.html).
 * [Optimizaton: Spectral Direction](https://jlmelville.github.io/smallvis/specd.html).
 * [Optimizaton: Conjugate Gradient](https://jlmelville.github.io/smallvis/cg.html).
