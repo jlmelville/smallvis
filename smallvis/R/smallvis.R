@@ -818,7 +818,8 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
   opt <- opt_create(opt_list, verbose = verbose)
 
   # Initialize the cost function and create P
-  cost_fn <- cost_init(cost_fn, X, verbose = verbose, ret_extra = ret_optionals)
+  cost_fn <- cost_init(cost_fn, X, max_iter = max_iter, verbose = verbose,
+                       ret_extra = ret_optionals)
 
   # Output Initialization
   if (!is.null(Y_init)) {

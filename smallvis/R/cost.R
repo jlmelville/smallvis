@@ -8,9 +8,10 @@ k2g <- function(Y, K, symmetrize = FALSE) {
   Y * rowSums(K) - (K %*% Y)
 }
 
-cost_init <- function(cost, X, verbose = FALSE, ret_extra = c()) {
+cost_init <- function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
   if (!is.null(cost$init)) {
-    cost <- cost$init(cost, X, verbose = verbose, ret_extra = ret_extra)
+    cost <- cost$init(cost, X, verbose = verbose, ret_extra = ret_extra,
+                      max_iter = max_iter)
   }
   cost
 }
@@ -87,7 +88,7 @@ cost_export <- function(cost, val) {
 # indicates (source code of the current implementation doesn't seem to either)
 largevis <- function(perplexity, gamma = 7, gr_eps = 0.1) {
   lreplace(tsne(perplexity),
-     init = function(cost, X, eps = 1e-9, verbose = FALSE, ret_extra = c()) {
+     init = function(cost, X, max_iter, eps = 1e-9, verbose = FALSE, ret_extra = c()) {
        cost <- sne_init(cost, X = X, perplexity = perplexity, symmetrize = "symmetric",
                         normalize = FALSE, verbose = verbose,
                         ret_extra = ret_extra)
@@ -127,7 +128,7 @@ largevis <- function(perplexity, gamma = 7, gr_eps = 0.1) {
 
 umap <- function(perplexity, spread = 1, min_dist = 0.001, gr_eps = 0.1) {
   lreplace(tsne(perplexity),
-    init = function(cost, X, eps = 1e-9, verbose = FALSE, ret_extra = c()) {
+    init = function(cost, X, max_iter, eps = 1e-9, verbose = FALSE, ret_extra = c()) {
       ab_params <- find_ab_params(spread = spread, min_dist = min_dist)
       a <- ab_params[1]
       b <- ab_params[2]
@@ -179,7 +180,7 @@ umap <- function(perplexity, spread = 1, min_dist = 0.001, gr_eps = 0.1) {
 # UMAP with the output kernel fixed to the t-distribution
 tumap <- function(perplexity, gr_eps = 0.1) {
   lreplace(umap(perplexity),
-    init = function(cost, X, eps = 1e-9, verbose = FALSE, ret_extra = c()) {
+    init = function(cost, X, max_iter, eps = 1e-9, verbose = FALSE, ret_extra = c()) {
       cost$eps <- eps
 
       P <- smooth_knn_distances(X, k = perplexity, tol = 1e-5,
@@ -210,7 +211,7 @@ tumap <- function(perplexity, gr_eps = 0.1) {
 # t-UMAP where output and input affinities are normalized
 ntumap <- function(perplexity, gr_eps = 0.1) {
   lreplace(tumap(perplexity),
-    init = function(cost, X, eps = 1e-9, verbose = FALSE, ret_extra = c()) {
+    init = function(cost, X, max_iter, eps = 1e-9, verbose = FALSE, ret_extra = c()) {
       cost$eps <- eps
 
       P <- smooth_knn_distances(X, k = perplexity, tol = 1e-5,
@@ -263,7 +264,7 @@ ntumap <- function(perplexity, gr_eps = 0.1) {
 
 # Distance Preserving Methods ---------------------------------------------
 
-mmds_init <- function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
+mmds_init <- function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
                       ret_extra = c()) {
   if (methods::is(X, "dist")) {
     cost$R <- as.matrix(X)
@@ -312,9 +313,9 @@ mmds <- function() {
 smmds <- function() {
   lreplace(
     mmds(),
-    init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
+    init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
                     ret_extra = c()) {
-      cost <- mmds_init(cost, X, eps, verbose, ret_extra)
+      cost <- mmds_init(cost, X, max_iter, eps, verbose, ret_extra)
       cost$R2 <- cost$R * cost$R
       cost$R <- NULL
       cost
@@ -355,9 +356,9 @@ smmds <- function() {
 
 sammon <- function() {
   lreplace(mmds(),
-    init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
+    init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
                     ret_extra = c()) {
-      cost <- mmds_init(cost, X, eps, verbose, ret_extra)
+      cost <- mmds_init(cost, X, max_iter, eps, verbose, ret_extra)
       cost$rsum_inv <- 1 / sum(cost$R)
       cost
     },
@@ -378,7 +379,7 @@ sammon <- function() {
 gmmds <- function(k) {
   lreplace(
     mmds(),
-    init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
+    init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
                     ret_extra = c()) {
       cost$R <- geodesic(X, k, verbose = verbose)
 
@@ -406,9 +407,9 @@ gmmds <- function(k) {
 ballmmds <- function(f = 0.1) {
   lreplace(
     mmds(),
-    init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
+    init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
                     ret_extra = c()) {
-      cost <- mmds_init(cost = cost, X = X, eps = eps, verbose = verbose,
+      cost <- mmds_init(cost = cost, X = X, max_iter = max_iter, eps = eps, verbose = verbose,
                         ret_extra = ret_extra)
 
       rs <- cost$R[upper.tri(cost$R)]
@@ -469,9 +470,9 @@ ballmmds <- function(f = 0.1) {
 knnmmds <- function(k) {
   lreplace(
     mmds(),
-    init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
+    init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
                     ret_extra = c()) {
-      cost <- mmds_init(cost = cost, X = X, eps = eps, verbose = verbose,
+      cost <- mmds_init(cost = cost, X = X, max_iter = max_iter, eps = eps, verbose = verbose,
                         ret_extra = ret_extra)
       knn <- knn_graph(X = X, k = k)
       # symmetrize
@@ -535,7 +536,7 @@ knnmmds <- function(k) {
 # squared input distances. Otherwise, no weighting is applied.
 ee <- function(perplexity, lambda = 100, neg_weights = TRUE) {
   list(
-    init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
+    init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
                     ret_extra = c()) {
 
       if (neg_weights) {
@@ -610,7 +611,7 @@ ee <- function(perplexity, lambda = 100, neg_weights = TRUE) {
 nerv <- function(perplexity, lambda = 0.9) {
   lreplace(
     tsne(perplexity = perplexity),
-    init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
+    init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
                     ret_extra = c()) {
       cost <- sne_init(cost, X, perplexity = perplexity,
                        symmetrize = "none", normalize = FALSE,
@@ -697,7 +698,7 @@ jse <- function(perplexity, kappa = 0.5) {
 
   lreplace(
     tsne(perplexity = perplexity),
-    init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
+    init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
                     ret_extra = c()) {
       cost <- sne_init(cost, X, perplexity = perplexity,
                        symmetrize = "none", normalize = FALSE,
@@ -767,7 +768,7 @@ jse <- function(perplexity, kappa = 0.5) {
 
 rsrnerv <- function(perplexity, lambda = 0.9) {
   lreplace(nerv(perplexity = perplexity, lambda = lambda),
-           init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
+           init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
                            ret_extra = c()) {
              cost <- sne_init(cost, X, perplexity = perplexity,
                               symmetrize = "symmetric", normalize = FALSE,
@@ -784,7 +785,7 @@ rsrnerv <- function(perplexity, lambda = 0.9) {
 
 rsrjse <- function(perplexity, kappa = 0.5) {
   lreplace(jse(perplexity = perplexity, kappa = kappa),
-           init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
+           init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
                            ret_extra = c()) {
              cost <- sne_init(cost, X, perplexity = perplexity,
                               symmetrize = "symmetric", normalize = FALSE,
@@ -804,7 +805,7 @@ rsrjse <- function(perplexity, kappa = 0.5) {
 bnerv <- function(perplexity, lambda = 0.9) {
   lreplace(
     nerv(perplexity = perplexity, lambda = lambda),
-    init = function(cost, X, eps = .Machine$double.eps, verbose = FALSE,
+    init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
                     ret_extra = c()) {
       ret_extra <- unique(c(ret_extra, 'beta'))
 
