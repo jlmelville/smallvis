@@ -245,7 +245,7 @@ but the t-UMAP results are closer to the t-SNE results. It also has the advantag
 is simpler. The UMAP and t-UMAP results for `mnist` and `fashion` might even be
 said to be superior to that of t-SNE, although some of that effect is due to
 the sparser nature of the input weights -- see the conclusions in the
-[follow-up]((https://jlmelville.github.io/smallvis/umaptsne.html) document.
+[follow-up](https://jlmelville.github.io/smallvis/umaptsne.html) document.
 
 For `coil20`, the UMAP curve settings might be said to produce *too* separated
 clusters. However, the choice of `k = 15` seems like a better choice
