@@ -241,8 +241,9 @@ div.tocify {
 </tr>
 </tbody>
 </table>
-<div id="s1k" class="section level3">
-<h3>s1k</h3>
+</div>
+<div id="s1k" class="section level2">
+<h2>s1k</h2>
 <p>A synthetic dataset consisting of a fuzzy 9D simplex made of ten roughly-equally spaced isotropic clusters. Created for the <a href="https://github.com/jlmelville/sneer">sneer</a> package and designed to be too high-dimensional to produce a good result by reproducing distances. 1000 observations and 9 features. Observations are colored by the cluster they belong to. A good embedding would show ten round but fuzzy clusters.</p>
 <pre><code>devtools::install_github(&quot;jlmelville/sneer&quot;)
 library(sneer)
@@ -257,8 +258,8 @@ s1k_tsne &lt;- smallvis(s1k, scale = FALSE, perplexity = 40, Y_init = &quot;spca
 </tbody>
 </table>
 </div>
-<div id="olivetti-faces" class="section level3">
-<h3>Olivetti Faces</h3>
+<div id="olivetti-faces" class="section level2">
+<h2>Olivetti Faces</h2>
 <p>The <a href="http://www.cl.cam.ac.uk/research/dtg/attarchive/facedatabase.html">ORL Database of Faces</a>, consisting of forty different people’s faces, with ten images per person. Installed via the <a href="https://github.com/jlmelville/snedata">snedata</a> package, which defers to the <a href="https://cran.r-project.org/package=RnavGraphImageData">RnavGraphImageData</a> package for the heavy lifting. 400 observations and 4096 features. Observations are colored according to the face they represent.</p>
 <pre><code>install.packages(&quot;RnavGraphImageData&quot;)
 library(RnavGraphImageData)
@@ -275,8 +276,8 @@ oli_tsne &lt;- smallvis(oli, scale = FALSE, perplexity = 40, Y_init = &quot;spca
 </tbody>
 </table>
 </div>
-<div id="frey-faces" class="section level3">
-<h3>Frey Faces</h3>
+<div id="frey-faces" class="section level2">
+<h2>Frey Faces</h2>
 <p>2000 consecutive images of Brendan Frey’s face, taken from video footage. Seems to originate from <a href="https://cs.nyu.edu/~roweis/data.html">Saul Roweis’ page</a>. 2000 observations and 560 features. This is the one dataset without any categories for the points. Instead, the color of the point represents its position in the 2000 frames, colored by a rainbow scheme. Early frames are colored red, and then progress through green to blue and so on.</p>
 <p>Like the Olivetti Faces, installed using the <a href="https://github.com/jlmelville/snedata">snedata</a> package, via <a href="https://cran.r-project.org/package=RnavGraphImageData">RnavGraphImageData</a></p>
 <pre><code>install.packages(&quot;RnavGraphImageData&quot;)
@@ -295,8 +296,8 @@ frey_tsne &lt;- smallvis(frey, scale = FALSE, perplexity = 40, Y_init = &quot;sp
 </tbody>
 </table>
 </div>
-<div id="coil-20" class="section level3">
-<h3>COIL-20</h3>
+<div id="coil-20" class="section level2">
+<h2>COIL-20</h2>
 <p>The <a href="http://www.cs.columbia.edu/CAVE/software/softlib/coil-20.php">Columbia Object Image Library</a>: images of 20 objects, with 72 poses each. 1440 observations with 16384 features. Each observation is colored by the object it is an image of.</p>
 <p>Installed using the <a href="https://github.com/jlmelville/coil20">coil20</a> package.</p>
 <pre><code>devtools::install_github(&quot;jlmelville/coil20&quot;)
@@ -314,8 +315,8 @@ coil20_tsne &lt;- smallvis(coil20, scale = FALSE, perplexity = 40, Y_init = &quo
 </tbody>
 </table>
 </div>
-<div id="mnist-6000" class="section level3">
-<h3>MNIST (6,000)</h3>
+<div id="mnist-6000" class="section level2">
+<h2>MNIST (6,000)</h2>
 <p>A subset of the <a href="http://yann.lecun.com/exdb/mnist/">MNIST database of handwrittens digits</a>, images of handwritten digits from 0-9.</p>
 <p>Downloaded using the <a href="https://github.com/jlmelville/snedata">snedata</a> package and 6,000 examples were sampled randomly, with 600 examples per digit:</p>
 <pre><code>devtools::install_github(&quot;jlmelville/snedata&quot;)
@@ -337,8 +338,8 @@ mnist_tsne &lt;- smallvis(mnist6k, scale = FALSE, perplexity = 40, Y_init = &quo
 </tbody>
 </table>
 </div>
-<div id="fashion-6000" class="section level3">
-<h3>Fashion (6,000)</h3>
+<div id="fashion-6000" class="section level2">
+<h2>Fashion (6,000)</h2>
 <p>A subset of the <a href="https://github.com/zalandoresearch/fashion-mnist">Fashion MNIST</a> database, designed to be similar to the MNIST digits database, but using images of fashion items. Once again downloaded using the <a href="https://github.com/jlmelville/snedata">snedata</a> package the same procedure as for the MNIST dataset was used to sample 6,000 images, 600 per object class.</p>
 <p>6,000 observations and 784 features. Observations are colored by the fashion item they represent (one of T-shirt/top, trousers, pullover, dress, coat, sandal, shirt, sneaker, bag or ankle boot).</p>
 <p>Note that the Fashion MNIST is designed to be a lot tougher for machine learning methods to work well on compared to the MNIST digits. And I’ve not seen any method do a great job on this dataset (or a subset). The classes may not be easily separable in two dimensions.</p>
@@ -357,7 +358,6 @@ fashion_tsne &lt;- smallvis(fashion6k, scale = FALSE, perplexity = 40, Y_init = 
 </tr>
 </tbody>
 </table>
-</div>
 </div>
 
 

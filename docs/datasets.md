@@ -36,7 +36,7 @@ iris_tsne <- smallvis(iris, scale = FALSE, perplexity = 40, Y_init = "spca", eta
 :----------------------------:|:--------------------------:
 ![iris pca](../img/datasets/iris_pca.png)|![iris tsne](../img/datasets/iris_tsne.png)
 
-### s1k
+## s1k
 
 A synthetic dataset consisting of a fuzzy 9D simplex made of ten roughly-equally 
 spaced isotropic clusters. Created for the 
@@ -56,7 +56,7 @@ s1k_tsne <- smallvis(s1k, scale = FALSE, perplexity = 40, Y_init = "spca", eta =
 :----------------------------:|:--------------------------:
 ![s1k pca](../img/datasets/s1k_pca.png)|![s1k tsne](../img/datasets/s1k_tsne.png)
 
-### Olivetti Faces
+## Olivetti Faces
 
 The 
 [ORL Database of Faces](http://www.cl.cam.ac.uk/research/dtg/attarchive/facedatabase.html),
@@ -80,7 +80,7 @@ oli_tsne <- smallvis(oli, scale = FALSE, perplexity = 40, Y_init = "spca", eta =
 :----------------------------:|:--------------------------:
 ![oli pca](../img/datasets/oli_pca.png)|![oli tsne](../img/datasets/oli_tsne.png)
 
-### Frey Faces
+## Frey Faces
 
 2000 consecutive images of Brendan Frey's face, taken from video footage.
 Seems to originate from [Saul Roweis' page](https://cs.nyu.edu/~roweis/data.html).
@@ -106,7 +106,7 @@ frey_tsne <- smallvis(frey, scale = FALSE, perplexity = 40, Y_init = "spca", eta
 :----------------------------:|:--------------------------:
 ![frey pca](../img/datasets/frey_pca.png)|![frey tsne](../img/datasets/frey_tsne.png)
 
-### COIL-20
+## COIL-20
 
 The 
 [Columbia Object Image Library](http://www.cs.columbia.edu/CAVE/software/softlib/coil-20.php): 
@@ -128,7 +128,7 @@ coil20_tsne <- smallvis(coil20, scale = FALSE, perplexity = 40, Y_init = "spca",
 :----------------------------:|:--------------------------:
 ![coil20 pca](../img/datasets/coil20_pca.png)|![coil20 tsne](../img/datasets/coil20_tsne.png)
 
-### MNIST (6,000)
+## MNIST (6,000)
 
 A subset of the 
 [MNIST database of handwrittens digits](http://yann.lecun.com/exdb/mnist/), 
@@ -158,7 +158,7 @@ various machine learning tasks.
 :----------------------------:|:--------------------------:
 ![mnist pca](../img/datasets/mnist_pca.png)|![mnist tsne](../img/datasets/mnist_tsne.png)
 
-### Fashion (6,000)
+## Fashion (6,000)
 
 A subset of the [Fashion MNIST](https://github.com/zalandoresearch/fashion-mnist)
 database, designed to be similar to the MNIST digits database, but using images
