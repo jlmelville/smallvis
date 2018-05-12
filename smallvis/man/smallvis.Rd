@@ -10,8 +10,9 @@ smallvis(X, k = 2, scale = "absmax", Y_init = "rand", perplexity = 30,
   min_cost = 0, tol = 1e-07 * epoch, momentum = 0.5,
   final_momentum = 0.8, mom_switch_iter = 250, eta = 500,
   min_gain = 0.01, opt = list("dbd"), exaggeration_factor = 1,
-  stop_lying_iter = 100, iter0_cost = FALSE, ret_extra = FALSE,
-  verbose = TRUE)
+  stop_lying_iter = max(1, floor(max_iter/10)),
+  start_late_lying_iter = max_iter + 1, iter0_cost = FALSE,
+  ret_extra = FALSE, verbose = TRUE)
 }
 \arguments{
 \item{X}{Input coordinates or distance matrix.}
@@ -82,12 +83,15 @@ early exaggeration).}
 
 \item{exaggeration_factor}{Numerical value to multiply input probabilities
 by, during the early exaggeration phase. A value between
-4-12 is normal. If using \code{Y_init = "laplacian"}, or supplying a matrix
-of an existing configuration that you want refined, it is suggested not to
-set this to \code{1} (effectively turning off early exaggeration).}
+4-12 is normal. Usually un-necessary if not using \code{Y_init = "rand"}.}
 
 \item{stop_lying_iter}{Iteration at which early exaggeration is turned
 off.}
+
+\item{start_late_lying_iter}{Iteration at which to start late exaggeration
+(Linderman and co-workers, 2017). Applies \code{exaggeration_factor} after
+the specified iteration until the end of the optimization. For
+\code{max_iter = 1000}, \code{start_late_lying_iter = 750} is suggested.}
 
 \item{iter0_cost}{If \code{TRUE}, calculate the cost for the initial
 configuration. This while be logged to the console if \code{verbose = TRUE}
@@ -639,6 +643,11 @@ Linderman, G. C., & Steinerberger, S. (2017).
 Clustering with t-SNE, provably.
 \emph{arXiv preprint} \emph{arXiv}:1706.02582.
 \url{https://arxiv.org/abs/1706.02582}
+
+Linderman, G. C., Rachh, M., Hoskins, J. G., Steinerberger, S., & Kluger, Y. (2017).
+Efficient Algorithms for t-distributed Stochastic Neighborhood Embedding.
+\emph{arXiv preprint} \emph{arXiv}:1712.09005.
+\url{https://arxiv.org/abs/1712.09005}
 
 McInnes, L., & Healey, J. (2018).
 UMAP: Uniform Manifold Approximation and Projection for Dimension Reduction

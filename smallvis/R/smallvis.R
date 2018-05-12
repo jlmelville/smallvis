@@ -372,11 +372,13 @@
 #'   "Alternative optimizers" section.
 #' @param exaggeration_factor Numerical value to multiply input probabilities
 #'   by, during the early exaggeration phase. A value between
-#'   4-12 is normal. If using \code{Y_init = "laplacian"}, or supplying a matrix
-#'   of an existing configuration that you want refined, it is suggested not to
-#'   set this to \code{1} (effectively turning off early exaggeration).
+#'   4-12 is normal. Usually un-necessary if not using \code{Y_init = "rand"}.
 #' @param stop_lying_iter Iteration at which early exaggeration is turned
 #'   off.
+#' @param start_late_lying_iter Iteration at which to start late exaggeration
+#'   (Linderman and co-workers, 2017). Applies \code{exaggeration_factor} after
+#'   the specified iteration until the end of the optimization. For
+#'   \code{max_iter = 1000}, \code{start_late_lying_iter = 750} is suggested.
 #' @param iter0_cost If \code{TRUE}, calculate the cost for the initial
 #'   configuration. This while be logged to the console if \code{verbose = TRUE}
 #'   or returned in the \code{itercosts} vector if \code{ret_extra = TRUE}.
@@ -588,6 +590,11 @@
 #' \emph{arXiv preprint} \emph{arXiv}:1706.02582.
 #' \url{https://arxiv.org/abs/1706.02582}
 #'
+#' Linderman, G. C., Rachh, M., Hoskins, J. G., Steinerberger, S., & Kluger, Y. (2017).
+#' Efficient Algorithms for t-distributed Stochastic Neighborhood Embedding.
+#' \emph{arXiv preprint} \emph{arXiv}:1712.09005.
+#' \url{https://arxiv.org/abs/1712.09005}
+#'
 #' McInnes, L., & Healey, J. (2018).
 #' UMAP: Uniform Manifold Approximation and Projection for Dimension Reduction
 #' \emph{arXiv preprint} \emph{arXiv}:1802.03426.
@@ -646,7 +653,9 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
                  momentum = 0.5, final_momentum = 0.8, mom_switch_iter = 250,
                  eta = 500, min_gain = 0.01,
                  opt = list("dbd"),
-                 exaggeration_factor = 1, stop_lying_iter = 100,
+                 exaggeration_factor = 1,
+                 stop_lying_iter = max(1, floor(max_iter / 10)),
+                 start_late_lying_iter = max_iter + 1,
                  iter0_cost = FALSE,
                  ret_extra = FALSE,
                  verbose = TRUE) {
@@ -752,6 +761,13 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
 
   if (stop_lying_iter < 1) {
     stop("stop_lying_iter must be >= 1")
+  }
+
+  if (start_late_lying_iter < 1) {
+    stop("start_late_lying_iter must be >= 1")
+  }
+  if (start_late_lying_iter < stop_lying_iter) {
+    stop("start_late_lying_iter must be >= stop_lying_iter")
   }
 
   if (class(pca) == "character" && pca == "whiten") {
@@ -920,6 +936,14 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
       cost_fn$P <- cost_fn$P / exaggeration_factor
     }
 
+    if (!is.null(cost_fn$P) && iter == start_late_lying_iter &&
+        exaggeration_factor != 1) {
+      if (verbose) {
+        message("Starting late exaggeration at iter ", iter)
+      }
+      cost_fn$P <- cost_fn$P * exaggeration_factor
+    }
+
     if (nnat(opt$is_terminated)) {
       if (verbose) {
         tsmessage("Iteration #", iter,
@@ -1000,7 +1024,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
   ret_value(Y, ret_extra, method, X, scale, Y_init, iter, start_time,
             cost_fn = cost_fn, opt_res$G,
             perplexity, itercosts,
-            stop_lying_iter, opt_list,
+            stop_lying_iter, start_late_lying_iter, opt_list,
             exaggeration_factor, optionals = ret_optionals,
             pca = ifelse(pca && !whiten, initial_dims, 0),
             whiten = ifelse(pca && whiten, initial_dims, 0))
@@ -1535,7 +1559,8 @@ ret_value <- function(Y, ret_extra, method, X, scale, Y_init, iter, start_time =
                       G = NULL,
                       perplexity = NULL, pca = 0, whiten = 0,
                       itercosts = NULL,
-                      stop_lying_iter = NULL, opt = NULL,
+                      stop_lying_iter = NULL, start_late_lying_iter = NULL,
+                      opt = NULL,
                       exaggeration_factor = NULL, optionals = c()) {
   attr(Y, "dimnames") <- NULL
   if (ret_extra) {
@@ -1582,11 +1607,25 @@ ret_value <- function(Y, ret_extra, method, X, scale, Y_init, iter, start_time =
       res$opt <- opt
     }
 
+    # Don't report exaggeration settings if they didn't do anything
+    if (exaggeration_factor == 1) {
+      exaggeration_factor <- NULL
+      stop_lying_iter <- NULL
+      start_late_lying_iter <- NULL
+    }
+    else {
+      # Don't report start_late_lying_iter if we never got there
+      if (start_late_lying_iter > iter) {
+        start_late_lying_iter <- NULL
+      }
+    }
+
     res <- c(res, list(
       perplexity = perplexity,
       itercosts = itercosts,
+      exaggeration_factor = exaggeration_factor,
       stop_lying_iter = stop_lying_iter,
-      exaggeration_factor = exaggeration_factor
+      start_late_lying_iter = start_late_lying_iter
     ))
 
     # If using the Intrinsic Dimensionality method, use the chosen perplexity
@@ -1628,6 +1667,7 @@ ret_value <- function(Y, ret_extra, method, X, scale, Y_init, iter, start_time =
       }
     }
 
+    res <- remove_nulls(res)
     res
   }
   else {
@@ -2142,6 +2182,11 @@ format_perps <- function(perplexity) {
 # last item of a vector
 last <- function(x) {
   x[length(x)]
+}
+
+# remove NULL items from a list
+remove_nulls <- function(l) {
+  l[!vapply(l, is.null, logical(1))]
 }
 
 # UMAP  -------------------------------------------------------------------

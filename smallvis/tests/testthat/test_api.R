@@ -23,8 +23,6 @@ test_that("extra return values", {
   expect_equal(i10_tsne$Y_init, "matrix")
   expect_equal(i10_tsne$method, "tsne")
   expect_equal(i10_tsne$perplexity, 5)
-  expect_equal(i10_tsne$stop_lying_iter, 100)
-  expect_equal(i10_tsne$exaggeration_factor, 1)
 
   expected_itercosts <- c(0.3087, 0.04999, 0.04132, 0.04129, 0.04129)
   names(expected_itercosts) <- c(100, 200, 300, 400, 500)
@@ -47,8 +45,6 @@ test_that("extra return values and iter0 cost", {
   expect_equal(i10_tsne$Y_init, "matrix")
   expect_equal(i10_tsne$method, "tsne")
   expect_equal(i10_tsne$perplexity, 5)
-  expect_equal(i10_tsne$stop_lying_iter, 100)
-  expect_equal(i10_tsne$exaggeration_factor, 1)
 
   expected_itercosts <- c(0.3542, 0.3087, 0.04999, 0.04132, 0.04129, 0.04129)
   names(expected_itercosts) <- c(0, 100, 200, 300, 400, 500)
@@ -60,6 +56,41 @@ test_that("extra return values and iter0 cost", {
 
   expect_equal(i10_tsne$Y, expected_Y, tolerance = 0.1)
 })
+
+test_that("early and late exaggeration", {
+  # P should be a multiple when exaggeration is on
+  i10_tsne <- smallvis(iris10, Y_init = iris10_Y, perplexity = 5,
+                       epoch_callback = NULL, verbose = FALSE,
+                       ret_extra = c("P"), exaggeration_factor = 4,
+                       stop_lying_iter = 11, max_iter = 10)
+  expect_equal(sum(i10_tsne$P), 4)
+  expect_equal(i10_tsne$exaggeration_factor, 4)
+  expect_equal(i10_tsne$stop_lying_iter, 11)
+  # Don't report late exaggeration if not used
+  expect_null(i10_tsne$start_late_lying_iter)
+
+  # P should be back to normal when exaggeration is off
+  i10_tsne <- smallvis(iris10, Y_init = iris10_Y, perplexity = 5,
+                       epoch_callback = NULL, verbose = FALSE,
+                       ret_extra = c("P"), exaggeration_factor = 4,
+                       stop_lying_iter = 5, max_iter = 10)
+  expect_equal(sum(i10_tsne$P), 1)
+  expect_equal(i10_tsne$exaggeration_factor, 4)
+  expect_equal(i10_tsne$stop_lying_iter, 5)
+  expect_null(i10_tsne$start_late_lying_iter)
+
+  # P should be back to a multiple with late exaggeration
+  i10_tsne <- smallvis(iris10, Y_init = iris10_Y, perplexity = 5,
+                       epoch_callback = NULL, verbose = FALSE,
+                       ret_extra = c("P"), exaggeration_factor = 4,
+                       stop_lying_iter = 5,  start_late_lying_iter = 9,
+                       max_iter = 10)
+  expect_equal(sum(i10_tsne$P), 4)
+  expect_equal(i10_tsne$exaggeration_factor, 4)
+  expect_equal(i10_tsne$stop_lying_iter, 5)
+  expect_equal(i10_tsne$start_late_lying_iter, 9)
+})
+
 
 test_that("mmds", {
   res <- smallvis(iris10, Y_init = iris10_Y, method = "mmds", eta = 0.1,

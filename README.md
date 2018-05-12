@@ -117,6 +117,13 @@ umap_iris_mom <- smallvis(iris, scale = FALSE, opt = list("mom", eta = 1e-2, mu 
 # L-BFGS optimization via the mize package
 umap_iris_lbfgs <- smallvis(iris, scale = FALSE, opt = list("l-bfgs", c1 = 1e-4, c2 = 0.9),
                             method = "umap", Y_init = "spca", max_iter = 300)
+                            
+# Early Exaggeration
+tsne_iris_ex <- smallvis(iris, eta = 100, exaggeration_factor = 4, stop_lying_iter = 100)
+
+# and Late Exaggeration as suggested by Linderman and co-workers
+tsne_iris_lex <- smallvis(iris, eta = 100, exaggeration_factor = 4, stop_lying_iter = 100,
+                          start_late_lying_iter = 900) 
 ```
 
 ## Available Embedding Methods 
@@ -219,6 +226,9 @@ Also of relevance are:
 * [UMAP](https://github.com/lmcinnes/umap) (in Python)
 * [LargeVis](https://github.com/lferry007/LargeVis) (in C++)
 * [Spectra](http://spectralib.org/), the C++ library that RSpectra wraps.
+* [FIt-SNE](https://github.com/KlugerLab/FIt-SNE), an FFT-based t-SNE library. 
+I have implemented the "late exaggeration" method that it uses. See 
+[their paper](https://arxiv.org/abs/1712.09005) for more details.
 
 Much of the code here is based on my [fork](https://github.com/jlmelville/rtsne) 
 of Justin Donaldson's R package for [t-SNE](https://cran.r-project.org/package=tsne).
