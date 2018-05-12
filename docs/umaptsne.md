@@ -35,7 +35,8 @@ denominator of the resulting gradient to both avoid division by zero
 and to avoid rather odd-looking results (at least in the way `smallvis` 
 calculates the non-stochastic gradient). But when used with SNE (perhaps due
 to normalization?) I could get away with a much smaller value, which here
-is `1e-10`.
+is `1e-10`. The default UMAP weight function parameters $a = 1.929$ and 
+$b = 0.7915$ were used.
 * CE t-SNE: The fuzzy set cross-entropy is used instead of the KL divergence. 
 In the way it's defined by UMAP, this adds an extra non-constant term to the 
 cost function.
