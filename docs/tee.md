@@ -1,5 +1,6 @@
 ---
 title: "t-Distributed Elastic Embedding"
+date: "April 24, 2018"
 output:
   html_document:
     theme: cosmo
