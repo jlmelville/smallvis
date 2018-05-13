@@ -123,7 +123,7 @@ tsne_iris_ex <- smallvis(iris, eta = 100, exaggeration_factor = 4, stop_lying_it
 
 # and Late Exaggeration as suggested by Linderman and co-workers
 tsne_iris_lex <- smallvis(iris, eta = 100, exaggeration_factor = 4, stop_lying_iter = 100,
-                          start_late_lying_iter = 900) 
+                          late_exaggeration_factor = 1.5, start_late_lying_iter = 900) 
 ```
 
 ## Available Embedding Methods 

@@ -619,6 +619,13 @@ tsne_iris_idp <- smallvis(iris, epoch_callback = ecb, perplexity = "idp", Y_init
 # Use your own IDP candidate perplexities by supplying a vector
 tsne_iris_idp <- smallvis(iris, epoch_callback = ecb, perplexity = list("idp", 3:12),
                           Y_init = "spca", exaggeration_factor = 4)
+
+# Early Exaggeration
+tsne_early_ex <- smallvis(iris, exaggeraton_factor = 4, stop_lying_iter = 100)
+
+# Also late exaggeration to improve cluster separation
+tsne_late_ex <- smallvis(iris, exaggeraton_factor = 4, stop_lying_iter = 100,
+                         late_exaggeration_factor = 1.5, start_late_lying_iter = 900)
 }
 }
 \references{
