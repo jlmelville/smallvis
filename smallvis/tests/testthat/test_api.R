@@ -68,6 +68,7 @@ test_that("early and late exaggeration", {
   expect_equal(i10_tsne$stop_lying_iter, 11)
   # Don't report late exaggeration if not used
   expect_null(i10_tsne$start_late_lying_iter)
+  expect_null(i10_tsne$late_exaggeration_factor)
 
   # P should be back to normal when exaggeration is off
   i10_tsne <- smallvis(iris10, Y_init = iris10_Y, perplexity = 5,
@@ -78,15 +79,32 @@ test_that("early and late exaggeration", {
   expect_equal(i10_tsne$exaggeration_factor, 4)
   expect_equal(i10_tsne$stop_lying_iter, 5)
   expect_null(i10_tsne$start_late_lying_iter)
+  expect_null(i10_tsne$late_exaggeration_factor)
+
 
   # P should be back to a multiple with late exaggeration
   i10_tsne <- smallvis(iris10, Y_init = iris10_Y, perplexity = 5,
                        epoch_callback = NULL, verbose = FALSE,
-                       ret_extra = c("P"), exaggeration_factor = 4,
-                       stop_lying_iter = 5,  start_late_lying_iter = 9,
+                       ret_extra = c("P"),
+                       exaggeration_factor = 4, stop_lying_iter = 5,
+                       late_exaggeration_factor = 4, start_late_lying_iter = 9,
                        max_iter = 10)
   expect_equal(sum(i10_tsne$P), 4)
   expect_equal(i10_tsne$exaggeration_factor, 4)
+  expect_equal(i10_tsne$late_exaggeration_factor, 4)
+  expect_equal(i10_tsne$stop_lying_iter, 5)
+  expect_equal(i10_tsne$start_late_lying_iter, 9)
+
+  # different early and late exaggeration
+  i10_tsne <- smallvis(iris10, Y_init = iris10_Y, perplexity = 5,
+                       epoch_callback = NULL, verbose = FALSE,
+                       ret_extra = c("P"), exaggeration_factor = 4,
+                       late_exaggeration_factor = 2,
+                       stop_lying_iter = 5,  start_late_lying_iter = 9,
+                       max_iter = 10)
+  expect_equal(sum(i10_tsne$P), 2)
+  expect_equal(i10_tsne$exaggeration_factor, 4)
+  expect_equal(i10_tsne$late_exaggeration_factor, 2)
   expect_equal(i10_tsne$stop_lying_iter, 5)
   expect_equal(i10_tsne$start_late_lying_iter, 9)
 })

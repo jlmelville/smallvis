@@ -375,10 +375,14 @@
 #'   4-12 is normal. Usually un-necessary if not using \code{Y_init = "rand"}.
 #' @param stop_lying_iter Iteration at which early exaggeration is turned
 #'   off.
+#' @param late_exaggeration_factor Numerical value to multiply input
+#'   probabilities by, during the late exaggeration phase (Linderman and
+#'   co-workers, 2017). Smaller values than used with \code{exaggeration_factor}
+#'   seem better here (e.g. around 1.5-2).
 #' @param start_late_lying_iter Iteration at which to start late exaggeration
-#'   (Linderman and co-workers, 2017). Applies \code{exaggeration_factor} after
-#'   the specified iteration until the end of the optimization. For
-#'   \code{max_iter = 1000}, \code{start_late_lying_iter = 750} is suggested.
+#'   (Linderman and co-workers, 2017). Applies \code{late_exaggeration_factor}
+#'   after the specified iteration until the end of the optimization. For
+#'   \code{max_iter = 1000}, \code{start_late_lying_iter = 900} is suggested.
 #' @param iter0_cost If \code{TRUE}, calculate the cost for the initial
 #'   configuration. This while be logged to the console if \code{verbose = TRUE}
 #'   or returned in the \code{itercosts} vector if \code{ret_extra = TRUE}.
@@ -409,14 +413,18 @@
 #'   observation is associated with, so don't expect these to sum to the
 #'   reported KL cost.
 #' \item{\code{itercosts}} KL cost at each epoch.
-#' \item{\code{stop_lying_iter}} Iteration at which early exaggeration is
-#'   stopped, as specified by the \code{stop_lying_iter} parameter.
 #' \item{\code{opt}} List containing optimization parameters. For the default
 #'   delta-bar-delta method, \code{mom_switch_iter}, \code{momentum},
 #'   \code{final_momentum} and \code{eta}. Otherwise, the contents of the
 #'   \code{opt} parameter argument.
 #' \item{\code{exaggeration_factor}} Multiplier of the input probabilities
-#'   during the exaggeration phase.
+#'   during the early exaggeration phase.
+#' \item{\code{stop_lying_iter}} Iteration at which early exaggeration is
+#'   stopped, as specified by the \code{stop_lying_iter} parameter.
+#' \item{\code{late_exaggeration_factor}} Multiplier of the input probabilities
+#'   during the late exaggeration phase.
+#' \item{\code{stop_late_lying_iter}} Iteration at which late exaggeration is
+#'   stopped, as specified by the \code{stop_late_lying_iter} parameter.
 #' \item{\code{pca_dims}} If PCA was carried out to reduce the initial
 #'   dimensionality of the input, the number of components retained, as
 #'   specified by the \code{initial_dims} parameter.
@@ -655,7 +663,8 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
                  opt = list("dbd"),
                  exaggeration_factor = 1,
                  stop_lying_iter = max(1, floor(max_iter / 10)),
-                 start_late_lying_iter = max_iter + 1,
+                 late_exaggeration_factor = 1,
+                 start_late_lying_iter = max_iter - max(1, floor(max_iter / 10)),
                  iter0_cost = FALSE,
                  ret_extra = FALSE,
                  verbose = TRUE) {
@@ -759,15 +768,22 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
     cost_fn <- do.call(fn, methodlist)
   }
 
-  if (stop_lying_iter < 1) {
-    stop("stop_lying_iter must be >= 1")
+  if (exaggeration_factor != 1) {
+    if (stop_lying_iter < 1) {
+      stop("stop_lying_iter must be >= 1")
+    }
   }
 
-  if (start_late_lying_iter < 1) {
-    stop("start_late_lying_iter must be >= 1")
+  if (late_exaggeration_factor != 1) {
+    if (start_late_lying_iter < 1) {
+      stop("start_late_lying_iter must be >= 1")
+    }
   }
-  if (start_late_lying_iter < stop_lying_iter) {
-    stop("start_late_lying_iter must be >= stop_lying_iter")
+
+  if (exaggeration_factor != 1 && late_exaggeration_factor != 1) {
+    if (start_late_lying_iter < stop_lying_iter) {
+      stop("start_late_lying_iter must be >= stop_lying_iter")
+    }
   }
 
   if (class(pca) == "character" && pca == "whiten") {
@@ -937,11 +953,12 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
     }
 
     if (!is.null(cost_fn$P) && iter == start_late_lying_iter &&
-        exaggeration_factor != 1) {
+        late_exaggeration_factor != 1) {
       if (verbose) {
-        message("Starting late exaggeration at iter ", iter)
+        message("Starting late exaggeration = ",
+                formatC(late_exaggeration_factor), " at iter ", iter)
       }
-      cost_fn$P <- cost_fn$P * exaggeration_factor
+      cost_fn$P <- cost_fn$P * late_exaggeration_factor
     }
 
     if (nnat(opt$is_terminated)) {
@@ -1025,7 +1042,8 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
             cost_fn = cost_fn, opt_res$G,
             perplexity, itercosts,
             stop_lying_iter, start_late_lying_iter, opt_list,
-            exaggeration_factor, optionals = ret_optionals,
+            exaggeration_factor, late_exaggeration_factor,
+            optionals = ret_optionals,
             pca = ifelse(pca && !whiten, initial_dims, 0),
             whiten = ifelse(pca && whiten, initial_dims, 0))
 }
@@ -1561,7 +1579,8 @@ ret_value <- function(Y, ret_extra, method, X, scale, Y_init, iter, start_time =
                       itercosts = NULL,
                       stop_lying_iter = NULL, start_late_lying_iter = NULL,
                       opt = NULL,
-                      exaggeration_factor = NULL, optionals = c()) {
+                      exaggeration_factor = 1, late_exaggeration_factor = 1,
+                      optionals = c()) {
   attr(Y, "dimnames") <- NULL
   if (ret_extra) {
     end_time <- Sys.time()
@@ -1608,15 +1627,22 @@ ret_value <- function(Y, ret_extra, method, X, scale, Y_init, iter, start_time =
     }
 
     # Don't report exaggeration settings if they didn't do anything
-    if (exaggeration_factor == 1) {
-      exaggeration_factor <- NULL
-      stop_lying_iter <- NULL
-      start_late_lying_iter <- NULL
+    if (exaggeration_factor == 1 || late_exaggeration_factor == 1) {
+      if (exaggeration_factor == 1) {
+        exaggeration_factor <- NULL
+        stop_lying_iter <- NULL
+      }
+
+      if (late_exaggeration_factor == 1) {
+        late_exaggeration_factor <- NULL
+        start_late_lying_iter <- NULL
+      }
     }
     else {
       # Don't report start_late_lying_iter if we never got there
       if (start_late_lying_iter > iter) {
         start_late_lying_iter <- NULL
+        late_exaggeration_factor <- NULL
       }
     }
 
@@ -1625,6 +1651,7 @@ ret_value <- function(Y, ret_extra, method, X, scale, Y_init, iter, start_time =
       itercosts = itercosts,
       exaggeration_factor = exaggeration_factor,
       stop_lying_iter = stop_lying_iter,
+      late_exaggeration_factor = late_exaggeration_factor,
       start_late_lying_iter = start_late_lying_iter
     ))
 

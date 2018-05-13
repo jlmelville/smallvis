@@ -11,8 +11,9 @@ smallvis(X, k = 2, scale = "absmax", Y_init = "rand", perplexity = 30,
   final_momentum = 0.8, mom_switch_iter = 250, eta = 500,
   min_gain = 0.01, opt = list("dbd"), exaggeration_factor = 1,
   stop_lying_iter = max(1, floor(max_iter/10)),
-  start_late_lying_iter = max_iter + 1, iter0_cost = FALSE,
-  ret_extra = FALSE, verbose = TRUE)
+  late_exaggeration_factor = 1, start_late_lying_iter = max_iter - max(1,
+  floor(max_iter/10)), iter0_cost = FALSE, ret_extra = FALSE,
+  verbose = TRUE)
 }
 \arguments{
 \item{X}{Input coordinates or distance matrix.}
@@ -88,10 +89,15 @@ by, during the early exaggeration phase. A value between
 \item{stop_lying_iter}{Iteration at which early exaggeration is turned
 off.}
 
+\item{late_exaggeration_factor}{Numerical value to multiply input
+probabilities by, during the late exaggeration phase (Linderman and
+co-workers, 2017). Smaller values than used with \code{exaggeration_factor}
+seem better here (e.g. around 1.5-2).}
+
 \item{start_late_lying_iter}{Iteration at which to start late exaggeration
-(Linderman and co-workers, 2017). Applies \code{exaggeration_factor} after
-the specified iteration until the end of the optimization. For
-\code{max_iter = 1000}, \code{start_late_lying_iter = 750} is suggested.}
+(Linderman and co-workers, 2017). Applies \code{late_exaggeration_factor}
+after the specified iteration until the end of the optimization. For
+\code{max_iter = 1000}, \code{start_late_lying_iter = 900} is suggested.}
 
 \item{iter0_cost}{If \code{TRUE}, calculate the cost for the initial
 configuration. This while be logged to the console if \code{verbose = TRUE}
@@ -127,14 +133,18 @@ If \code{ret_extra} is \code{FALSE}, the embedded output coordinates
   observation is associated with, so don't expect these to sum to the
   reported KL cost.
 \item{\code{itercosts}} KL cost at each epoch.
-\item{\code{stop_lying_iter}} Iteration at which early exaggeration is
-  stopped, as specified by the \code{stop_lying_iter} parameter.
 \item{\code{opt}} List containing optimization parameters. For the default
   delta-bar-delta method, \code{mom_switch_iter}, \code{momentum},
   \code{final_momentum} and \code{eta}. Otherwise, the contents of the
   \code{opt} parameter argument.
 \item{\code{exaggeration_factor}} Multiplier of the input probabilities
-  during the exaggeration phase.
+  during the early exaggeration phase.
+\item{\code{stop_lying_iter}} Iteration at which early exaggeration is
+  stopped, as specified by the \code{stop_lying_iter} parameter.
+\item{\code{late_exaggeration_factor}} Multiplier of the input probabilities
+  during the late exaggeration phase.
+\item{\code{stop_late_lying_iter}} Iteration at which late exaggeration is
+  stopped, as specified by the \code{stop_late_lying_iter} parameter.
 \item{\code{pca_dims}} If PCA was carried out to reduce the initial
   dimensionality of the input, the number of components retained, as
   specified by the \code{initial_dims} parameter.
