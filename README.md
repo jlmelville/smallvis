@@ -211,6 +211,8 @@ to see [the effect on t-SNE](https://jlmelville.github.io/smallvis/umaptsne.html
   from from [How to Use t-SNE Effectively](https://distill.pub/2016/misread-tsne).
 * How hard is it to unroll the [Swiss Roll with SNE](https://jlmelville.github.io/smallvis/swisssne.html)?
 * Using input bandwidths in [SNE output functions](https://jlmelville.github.io/smallvis/bandwidths.html).
+* An evaluation of [late exaggeration](https://jlmelville.github.io/smallvis/lexagg.html) 
+in t-SNE, as suggested in the [FIt-SNE](https://arxiv.org/abs/1712.09005) paper.
 
 ## See Also
 
