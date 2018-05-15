@@ -3,9 +3,6 @@ title: "smallvis"
 output:
   html_document:
     theme: cosmo
-    toc: true
-    toc_float:
-      collapsed: false
 ---
 
 Documentation related to the [smallvis](https://github.com/jlmelville/smallvis) 
