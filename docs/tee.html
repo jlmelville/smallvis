@@ -228,6 +228,7 @@ div.tocify {
 </div>
 
 
+<p>Up: <a href="https://jlmelville.github.io/smallvis/">Documentation Home</a>.</p>
 <p><a href="http://faculty.ucmerced.edu/mcarreira-perpinan/papers/icml10.pdf">Elastic Embedding (PDF)</a> is a method like SNE, but doesn’t use normalization of weights into probabilities. I have <a href="https://jlmelville.github.io/smallvis/ee.html">looked at its behavior</a> elsewhere. In this discussion, I would like to consider an obvious extension: EE uses Gaussian output weights, like ASNE and SSNE, which we know don’t work as well in the normalized case compared to using the t-distribution with one degree of freedom, as used in t-SNE. Can EE also be improved by using the t-distribution as an output weight function? I was unable to find any example of anyone trying this, which was slightly surprising to me. If someone has tried this, it’s at least not a very popular or well-known technique.</p>
 <div id="theory" class="section level2">
 <h2>Theory</h2>
@@ -847,6 +848,7 @@ min_cost = -Inf)</code></pre>
 <p>Finally, the <span class="math inline">\(N/Z\)</span> t-SNE plots suggest that, if there was a way to estimate <span class="math inline">\(Z\)</span>, you could create a version of t-EE that behaved like t-SNE, but which would be amenable to stochastic gradient optimization. This would let it scale to larger data sets better than Barnes-Hut t-SNE, and more like UMAP or LargeVis.</p>
 <p>Unfortunately estimating <span class="math inline">\(Z\)</span> doesn’t seem straightforward. Alternatives like increasing <span class="math inline">\(\lambda\)</span> from <span class="math inline">\(1 / N\)</span> to some final value over the course of the optimization might work better in practice, but as the final value would be dataset and perplexity dependent, some efficient way of monitoring of the current state of the solution is needed. If there was a way to do this that could make use of the data already sampled by the approaches of UMAP and LargeVis, even an approximate version of t-SNE would be attractive.</p>
 <p>As it is, t-EE in its current state could be made much faster by applying the same sampling and optimization used by LargeVis and UMAP, but requires a choice of <span class="math inline">\(\lambda\)</span>, just like the functionally equivalent <span class="math inline">\(\gamma\)</span> in LargeVis. As UMAP doesn’t even have such a free parameter and seems to perform as well as LargeVis, there’s probably not a great need for a stochastic gradient version of t-EE, given that it is so similar to LargeVis and provides no advantages over it or UMAP, unless a solid heuristic for choosing <span class="math inline">\(\lambda\)</span> emerges.</p>
+<p>Up: <a href="https://jlmelville.github.io/smallvis/">Documentation Home</a>.</p>
 </div>
 
 

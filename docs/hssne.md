@@ -9,6 +9,8 @@ output:
       collapsed: false
 ---
 
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
+
 [HSSNE](https://papers.nips.cc/paper/3770-heavy-tailed-symmetric-stochastic-neighbor-embedding)
 is an embedding method that generalizes SSNE and t-SNE, by introducing an 
 `alpha` parameter into the output weight function. When it's set to `1`, it
@@ -156,3 +158,5 @@ global value, which would allow different cluster densities to expand at
 different rates. This *definitely* would require optimization. Such a technique
 was described by Kitazono and co-workers and named
 [inhomogeneous t-SNE](http://dx.doi.org/10.1007/978-3-319-46675-0_14).
+
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).

@@ -9,6 +9,8 @@ output:
       collapsed: false
 ---
 
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
+
 [NeRV](http://www.jmlr.org/papers/v11/venna10a.html) and 
 [JSE](https://dx.doi.org/10.1016/j.neucom.2012.12.036) are methods to related
 to SNE that both use a weighted sum of two different Kullback-Leibler 
@@ -434,3 +436,5 @@ technique (marked as "RSR" in the title of each plot):
 I'd say that these results aren't that different visually, and don't offer a
 significant difference in terms of neighborhood retrieval either. It was worth
 a shot.
+
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).

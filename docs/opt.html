@@ -228,6 +228,7 @@ div.tocify {
 </div>
 
 
+<p>Up: <a href="https://jlmelville.github.io/smallvis/">Documentation Home</a>.</p>
 <div id="optimization" class="section level2">
 <h2>Optimization</h2>
 <p>Many and varied are the approaches to SNE optimization. The <a href="https://papers.nips.cc/paper/2276-stochastic-neighbor-embedding">original SNE</a> paper spends a fair amount of time discussing the difficulties of optimization, as does the <a href="https://www.cs.toronto.edu/~amnih/papers/sne_am.pdf">SSNE paper (PDF)</a>, where the favored approach seems to be adding noise and using plain steepest descent. This inspired a paper suggesting a <a href="https://doi.org/10.1109/IJCNN.2004.1379883">trust region</a> approach, an alternative to the line search used in typical unconstrained optimization.</p>
@@ -487,6 +488,7 @@ iris_lbfgs_pstep &lt;- smallvis_perpstep(step_iter = 250, X = iris, scale = FALS
 <div id="conclusions" class="section level2">
 <h2>Conclusions</h2>
 <p>If you want to use L-BFGS to optimize the t-SNE cost function, you should probably use the perplexity stepping method to maximize your chances of getting a good result. Of course, you can just use the standard delta-bar-delta method when it comes to t-SNE. But hopefully these findings also apply to other cost functions where DBD doesn’t work as well.</p>
+<p>Up: <a href="https://jlmelville.github.io/smallvis/">Documentation Home</a>.</p>
 </div>
 
 

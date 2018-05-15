@@ -9,6 +9,8 @@ output:
       collapsed: false
 ---
 
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
+
 A brief run-through of t-SNE and its variants. Although t-SNE is the most 
 well-known, there were actually two less successful versions of SNE before it.
 
@@ -178,3 +180,4 @@ Both ASNE and SSNE results converged quicker than t-SNE. Despite the amount of
 time spent describing the difficulty of optimizing ASNE, the delta-bar-delta
 method used in the t-SNE paper worked on SSNE and ASNE just fine.
 
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).

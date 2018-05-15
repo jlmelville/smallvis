@@ -228,6 +228,7 @@ div.tocify {
 </div>
 
 
+<p>Up: <a href="https://jlmelville.github.io/smallvis/">Documentation Home</a>.</p>
 <p>Distance-preserving methods are one of the most straightforward way to think about embedding a dataset: just try and reproduce all the distances in 2D. The downside to this is that the distribution of distances in the input space is likely not a very good fit for two dimensions. Lee &amp; Verleysen provide plenty of details in their paper on <a href="https://doi.org/10.1016/j.procs.2011.04.056">distance concentration</a>.</p>
 <p>So let’s not get our hopes up too much. But it’s always worth trying one or more of these on a dataset, just to get a baseline if nothing else. They are also included in <code>smallvis</code> as a way to ensure that the code base was at least flexible enough to include methods that weren’t straight variations on t-SNE.</p>
 <p>At the very least, they are much easier to optimize than SNE. L-BFGS does very well. I’ve not ever noticed any of the <a href="https://jlmelville.github.io/smallvis/opt.html">problems</a> that occurred with L-BFGS when used with t-SNE in terms of hitting ugly looking higher-lying minima with larger datasets. Although that’s probably because nothing looks all that great with these methods once we try larger datasets. But I find that the delta-bar-delta method, that seems to do such a good job with SNE and related methods, requires some tedious adjustment of the learning rate on a per-dataset basis to get it working. So L-BFGS comes recommended by me for these methods.</p>
@@ -418,6 +419,7 @@ iris_gmmds &lt;- smallvis(iris, scale = FALSE, perplexity = 10, Y_init = &quot;s
 <p>Finally, for the larger datasets <code>mnist6k</code> and <code>fashion6k</code>, all results are pretty hopeless. Barely any more detail than PCA, just with the data expanded into a ball. GMMDS achieves nothing over MMDS. Compare with the ASNE and SSNE results, which do a better (although not brilliant) result.</p>
 <p>MMDS and Sammon behave very very similarly across all datasets, especially when it comes to MNIST and Sammon map. No surprises there, see for example, <a href="http://colah.github.io/posts/2014-10-Visualizing-MNIST/">Christopher Olah’s explanation</a>. Nice to have it reconfirmed with some extra datasets here, though.</p>
 <p>From this performance, distance-based embedding methods don’t seem all that useful for even moderate-sized datasets. In particular, the fascination that the Swiss Roll dataset exerts over researchers seems like a red herring: rather than a nice smooth low-dimensional manifold, most datasets seem more like MNIST: blobby and clustery, although MNIST admittedly seems to be unusually blobby and clustery. But I wouldn’t be surprised if geodesics <em>are</em> useful, even if not directly as in GMMDS. For example, see its use in this paper on <a href="dx.doi.org/10.1038/srep31377">intrinsic dimensionality</a> calculations.</p>
+<p>Up: <a href="https://jlmelville.github.io/smallvis/">Documentation Home</a>.</p>
 </div>
 
 

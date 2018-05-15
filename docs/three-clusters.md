@@ -8,6 +8,7 @@ output:
     toc_float:
       collapsed: false
 ---
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
 
 [How to Use t-SNE Effectively](https://distill.pub/2016/misread-tsne/) runs 
 through a lot of considerations in interpreting a t-SNE plot. Section 3 is 
@@ -304,3 +305,5 @@ done, it's not totally clear to me what problem you are solving here: is the
 problem that one perplexity doesn't suit all clusters in a dataset or is it
 fundamentally about the wrong output function and bandwidth selection? As usual
 I leave you with questions and no answers.
+
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).

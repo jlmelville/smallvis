@@ -9,6 +9,8 @@ output:
       collapsed: false
 ---
 
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
+
 This article is a sequel to the testing of the 
 [Heavy-Tailed SSNE](https://jlmelville.github.io/smallvis/hssne.html) method.
 In brief, [HSSNE](https://papers.nips.cc/paper/3770-heavy-tailed-symmetric-stochastic-neighbor-embedding) 
@@ -181,3 +183,5 @@ suspect the slower behavior of DHSSNE is due to some copy-on-write of the
 internal data structures used in `smallvis` when the value of $\alpha$ is
 updated, so that can be improved, but the simpler gradient of t-SNE compared to
 HSSNE will be fundamentally faster even without those issues.
+
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).

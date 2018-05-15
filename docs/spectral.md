@@ -7,14 +7,16 @@ output:
     toc_float:
       collapsed: false
 ---
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
 
 Spectral methods are only tangentially related to `smallvis`, in that a spectral
-method is available for initialization (`Y_init = "laplacian"`) and that the 
-attractive part of most of the cost functions approximates a spectral method.
-Various methods are related to each other, but the nomenclature is not always
-consistent between papers, and a lot of the more accessible material seems to
-be a bit unclear, so I need something brief to remind myself without having to
-work it all out over and over again every time. So it's going here.
+method is available for initialization (`Y_init = "laplacian"` or
+`Y_init = "normlaplacian"`) and that the attractive part of most of the cost
+functions approximates a spectral method. Various methods are related to each
+other, but the nomenclature is not always consistent between papers, and a lot
+of the more accessible material seems to be a bit unclear, so I need something
+brief to remind myself without having to work it all out over and over again
+every time. So it's going here.
 
 This page is just to remind me of the definitions of matrices and the 
 algorithmic procedures, not anything to do with theoretical properties. For
@@ -255,3 +257,5 @@ clustering.
 
 * The [Ng, Jordan and Weiss (PDF)](https://papers.nips.cc/paper/2092-on-spectral-clustering-analysis-and-an-algorithm.pdf) 
 spectral clustering paper.
+
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).

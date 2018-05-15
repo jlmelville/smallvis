@@ -9,6 +9,8 @@ output:
       collapsed: false
 ---
 
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
+
 The investigation of the 
 [three clusters](https://jlmelville.github.io/smallvis/three-clusters.html) 
 dataset found that using ASNE with the input bandwidths used in the output
@@ -120,3 +122,5 @@ kernel only for `iris`.
 Adding bandwidths directly from the input kernel to the output kernel has
 nothing to recommend it, so it's not surprising that the NeRV method stopped
 doing it.
+
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).

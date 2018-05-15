@@ -228,6 +228,7 @@ div.tocify {
 </div>
 
 
+<p>Up: <a href="https://jlmelville.github.io/smallvis/">Documentation Home</a>.</p>
 <p><a href="http://faculty.ucmerced.edu/mcarreira-perpinan/papers/icml10.pdf">Elastic Embedding (PDF)</a> is related to symmetric SNE, but isn’t normalized. Apart from the method itself, the paper is interesting for being the earliest one I’m aware of that makes the connection between the attractive part of the cost function of SNE with <a href="https://jlmelville.github.io/smallvis/spectral.html">spectral methods</a> (e.g. Laplacian eigenmaps). It also manages to produce some good results (on an admittedly small number of datasets) without using normalization of the affinities. This makes the cost function much more amenable to stochastic gradient descent techniques that would allow even better scaling to large datasets than the Barnes-Hut approach used with t-SNE. And indeed, LargeVis (and UMAP), which uses SGD for its scaling, had a very similar cost function to EE.</p>
 <p>The elastic embedding cost function is:</p>
 <p><span class="math display">\[
@@ -437,6 +438,7 @@ C =
 </table>
 <p>While not perfect, using the polytope method certainly seems to improve the unrolling. The results shown here took up about 19000 iterations. Starting from <code>lambda = 100</code> directly also does an ok job, but the results above are from the 70000th iteration. To be fair, it’s hard to detect any movement after 30000-40000 iterations, but at the 19000th iteration, the polytope result is definitely preferred. Note also the “pinched” parts of the roll. This is where the roll has been twisted due to local optimization of the roll at the expense of regions around the pinch. This is much less prevalent with the the polytope method.</p>
 <p>This document will be updated if the “polytope method” is implemented.</p>
+<p>Up: <a href="https://jlmelville.github.io/smallvis/">Documentation Home</a>.</p>
 </div>
 </div>
 

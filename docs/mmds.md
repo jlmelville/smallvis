@@ -10,6 +10,8 @@ output:
       collapsed: false
 ---
 
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
+
 Distance-preserving methods are one of the most straightforward way to think 
 about embedding a dataset: just try and reproduce all the distances in 2D. The
 downside to this is that the distribution of distances in the input space is 
@@ -327,3 +329,6 @@ blobby and clustery, although MNIST admittedly seems to be unusually blobby
 and clustery. But I wouldn't be surprised if geodesics *are* useful, even if not
 directly as in GMMDS. For example, see its use in this paper on 
 [intrinsic dimensionality](dx.doi.org/10.1038/srep31377) calculations.
+
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
+

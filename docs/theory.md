@@ -7,6 +7,7 @@ output:
     toc_float:
       collapsed: false
 ---
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
 
 Here are the t-SNE and LargeVis cost functions and gradients, making it a bit
 easier to see how they are related. 
@@ -355,3 +356,4 @@ The t-SNE, LargeVis and UMAP gradients all have a similar form based around the
 difference between the input and output weights, $v_{ij} - w_{ij}$, although
 LargeVis and t-SNE re-weight the repulsion compared to UMAP. 
 
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).

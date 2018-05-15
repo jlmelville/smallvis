@@ -10,6 +10,8 @@ output:
       collapsed: false
 ---
 
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
+
 See [part 1](https://jlmelville.github.io/smallvis/idp-theory.html) for some
 theory, and [part 2](https://jlmelville.github.io/smallvis/idp.html) 
 for the application of a global IDP in t-SNE.
@@ -762,3 +764,5 @@ skeptical of them helping with the three clusters dataset), but it would seem
 from all of the results we've looked at here, that an approach rooted in
 intrinsic dimensionality  will need some modifications to provide a consistent
 improvement.
+
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).

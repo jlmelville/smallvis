@@ -9,6 +9,8 @@ output:
       collapsed: false
 ---
 
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
+
 ## Optimization
 
 Many and varied are the approaches to SNE optimization. The 
@@ -292,3 +294,4 @@ a good result. Of course, you can just use the standard delta-bar-delta method
 when it comes to t-SNE. But hopefully these findings also apply to other cost
 functions where DBD doesn't work as well.
 
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).

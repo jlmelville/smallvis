@@ -227,6 +227,7 @@ div.tocify {
 </div>
 
 
+<p>Up: <a href="https://jlmelville.github.io/smallvis/">Documentation Home</a>.</p>
 <p>As the <a href="https://lvdmaaten.github.io/tsne/#faq">t-SNE FAQ</a> notes, “who cares about Swiss rolls when you can embed complex real-world data nicely”, a very reasonable position to take. But <a href="https://arxiv.org/abs/1706.02582">Linderman and Steinerberger</a> think that Swiss Roll embedding with t-SNE can be improved by modifiying the early exaggeration settings, and the <a href="http://dx.doi.org/10.1007/978-3-319-46675-0_14">it-SNE</a> paper also considers the Swiss Roll.</p>
 <p>Because it’s apparently has been asked asked frequently enough to appear on the t-SNE FAQ, here we shall document the behavior of various flavors of SNE on it, without expecting to be amazed by any of the results.</p>
 <div id="datasets" class="section level2">
@@ -375,6 +376,7 @@ sr3k_le &lt;- smallvis(sr3k_30, scale = &quot;abs&quot;, perplexity = 30, Y_init
 <h2>Conclusions</h2>
 <p>These results don’t show that you can use SNE-like methods to embed the Swiss Roll in 2D very easily. I’d say they indicate that if you really are hell-bent on doing it, it can be done, but you have to be quite particular about perplexity, initialization, using the bandwidths from the input data and choosing the appropriate amount of “stretching” in the output kernel, i.e. t-SNE is not the right tool for the job here.</p>
 <p>Also, the poor performance of the SPCA initialization is apparent here. Given that the other datasets I look at <a href="https://jlmelville.github.io/smallvis/init.html">do pretty well with SPCA initalization</a>, this is yet more evidence that you don’t want to spend time optimizing for Swiss Roll performance when it comes to real-world performance. But it is extra evidence that using the Laplacian Eigenmap initialization is a good choice.</p>
+<p>Up: <a href="https://jlmelville.github.io/smallvis/">Documentation Home</a>.</p>
 </div>
 
 

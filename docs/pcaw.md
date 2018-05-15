@@ -9,6 +9,8 @@ output:
       collapsed: false
 ---
 
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
+
 Some basic preprocessing options were covered in the discussion of 
 [scaling](https://jlmelville.github.io/smallvis/scale.html). In addition,
 `smallvis`, like various t-SNE packages, offers the option of reducing the
@@ -187,3 +189,5 @@ An obvious possibility is that I have messed up the whitening code, but I have
 compared the output of my PCA and whitening code with that of the
 [scikit-learn](http://scikit-learn.org/stable/modules/generated/sklearn.decomposition.PCA.html)
 implementation and they give quite similar results, so I don't think that's it.
+
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).

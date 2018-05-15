@@ -9,6 +9,8 @@ output:
       collapsed: false
 ---
 
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
+
 The [Spectral Direction](https://arxiv.org/abs/1206.4646) describes an
 approximation to the Hessian used in t-SNE and related methods, which can be
 used in a Newton-like optimization. For methods which use symmetrized affinity
@@ -189,3 +191,6 @@ calculation time. Or, as noted by
 [Yang and co-workers](http://www.jmlr.org/proceedings/papers/v38/yang15a.html) 
 in their experiments, the spectral direction method is unstable when used
 with early exaggeration.
+
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
+

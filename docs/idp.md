@@ -10,6 +10,8 @@ output:
       collapsed: false
 ---
 
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
+
 ## Introduction
 
 This is the second part of an investigation into the relationship between
@@ -927,5 +929,7 @@ man page for the `smallvis` function.
 Finally, the `coil20` results indicate that a single intrinsic dimensionality 
 may not be able to represent all datasets well, which may also imply different
 perplexity values should be applied to different parts of a dataset. The 
-current analysis can (and will) be extended to cover that case. Expect a link
-to that document here when it's ready.
+current analysis can (and will) be extended to cover that case. See
+[part 3](https://jlmelville.github.io/smallvis/idp-class.html) for more on that.
+
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).

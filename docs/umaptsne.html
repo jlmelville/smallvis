@@ -228,6 +228,7 @@ div.tocify {
 </div>
 
 
+<p>Up: <a href="https://jlmelville.github.io/smallvis/">Documentation Home</a>.</p>
 <p>This a companion to the experiments I did with <a href="https://jlmelville.github.io/smallvis/umap.html">UMAP</a>. Here I’m going to see if borrowing some of UMAP’s way of doing things affects t-SNE performance measurably. See the previous UMAP page and the <a href="https://jlmelville.github.io/smallvis/theory.html">theory</a> for details on UMAP. This work was inspired by the release of the <a href="https://arxiv.org/abs/1802.03426">UMAP paper</a>, which shows a very nice result for the COIL-20 data with UMAP. As of this writing, the settings used for that result were not available, so this is an attempt to see if there’s something specific to one of the differences of UMAP from t-SNE that causes that difference, e.g. the method of generating the input our output weights. If so, perhaps t-SNE could produce a result nearly as good, just by borrowing that feature.</p>
 <p>By borrowing individual changes from UMAP we can define some new versions of t-SNE:</p>
 <ul>
@@ -509,6 +510,7 @@ iris_tsne &lt;- smallvis(iris, scale = FALSE, perplexity = 40, Y_init = &quot;sp
 </tbody>
 </table>
 <p>Now the t-SNE results resemble the SKD results much more.</p>
+<p>Up: <a href="https://jlmelville.github.io/smallvis/">Documentation Home</a>.</p>
 </div>
 
 

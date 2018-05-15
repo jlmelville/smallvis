@@ -228,6 +228,7 @@ div.tocify {
 </div>
 
 
+<p>Up: <a href="https://jlmelville.github.io/smallvis/">Documentation Home</a>.</p>
 <p>Warning: this may be the most obscure and confusing document I have written yet and requires a fair degree of comfort with the exact workings of SNE to glean even the remotest of interest from it.</p>
 <p>Normalization in t-SNE can seem oddly specific, but makes sense when considered as part of the lineage of <a href="https://papers.nips.cc/paper/2276-stochastic-neighbor-embedding">Asymmetric SNE</a> and <a href="https://www.cs.toronto.edu/~amnih/papers/sne_am.pdf">Symmetric SNE (PDF)</a>. Here’s the perplexity-based procedure:</p>
 <p>For each point <span class="math inline">\(i\)</span>, calculate a bandwidth for the Gaussian kernel associated with the input Euclidean distances. Choose it so that perplexity of the resulting probability distribution, is a user-specified value. The probabilities are defined by normalizing all weights involving <span class="math inline">\(i\)</span>. Normally, I refer to this as point-wise normalization, but I’m going to call this row-normalization in this document, because, at least in the <code>smallvis</code> implementation, it leads to <span class="math inline">\(N\)</span> probability distributions in the resulting <span class="math inline">\(P\)</span> matrix where every row sums to <span class="math inline">\(1\)</span>. In ASNE, this is all that needs doing.</p>
@@ -469,6 +470,7 @@ iris_t_rm_sne &lt;- smallvis(iris, scale = FALSE, perplexity = 40, Y_init = &quo
 <li><p>For un-normalized methods (Elastic Embedding, LargeVis, UMAP), how important is symmetrization?</p></li>
 <li><p>What about alternative symmetrization methods to arithmetic averaging?</p></li>
 </ol>
+<p>Up: <a href="https://jlmelville.github.io/smallvis/">Documentation Home</a>.</p>
 </div>
 
 

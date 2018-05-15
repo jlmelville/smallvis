@@ -10,7 +10,7 @@
 
 
 
-<meta name="date" content="2018-01-23" />
+<meta name="date" content="2018-01-27" />
 
 <title>Three Clusters and Perplexity</title>
 
@@ -223,11 +223,12 @@ div.tocify {
 
 
 <h1 class="title toc-ignore">Three Clusters and Perplexity</h1>
-<h4 class="date"><em>January 23, 2018</em></h4>
+<h4 class="date"><em>January 27, 2018</em></h4>
 
 </div>
 
 
+<p>Up: <a href="https://jlmelville.github.io/smallvis/">Documentation Home</a>.</p>
 <p><a href="https://distill.pub/2016/misread-tsne/">How to Use t-SNE Effectively</a> runs through a lot of considerations in interpreting a t-SNE plot. Section 3 is particularly interesting to me because it presents a deceptively simple synthetic dataset of three homogeneous 2D Gaussian clusters of equal size (50 points each), arranged linearly, with the difference between cluster 2 and 3 being 5 times larger away than that of cluster 1 and 2.</p>
 <p>Despite this simplicity, results at larger perplexities (50 and 100), which reproducing the relative distances between clusters, show some distortions of the clusters themselves. When the size of the clusters are increased from 50 to 200, none of the trial perplexities can reproduce the global structure of the data.</p>
 <p>This dataset seems perfect for messing about with in <code>smallvis</code>. What follows attempts to replicate the results of the distill page and then tries some other methods.</p>
@@ -460,6 +461,7 @@ opt = list(&quot;L-BFGS&quot;, ls_max_alpha = 1), max_iter = 100000)</code></pre
 <h2>Conclusions</h2>
 <p>What did we learn here? We <em>can</em> get good results on the three clusters dataset with a variety of perplexities if we choose the correct output distance kernel and take into account the bandwidths from the input space, and this generalizes to both the small and large dataset and to 2D and 10D Gaussians. If either the bandwidths aren’t accounted for or the kernel function doesn’t stretch the output space appropriately, you will see distortions for larger perplexities. Unfortunately, these results aren’t very generalizable to other datasets. If the input data isn’t two-dimensional, the bandwidths we obtain from the calibration will need modifying in some way. It’s not obvious how to go about doing that.</p>
 <p>A different approach is to think about allowing the perplexity to change for different parts of the dataset, an idea that is also floated in the distill article, although without any suggestions as to how go about it. Even if that’s done, it’s not totally clear to me what problem you are solving here: is the problem that one perplexity doesn’t suit all clusters in a dataset or is it fundamentally about the wrong output function and bandwidth selection? As usual I leave you with questions and no answers.</p>
+<p>Up: <a href="https://jlmelville.github.io/smallvis/">Documentation Home</a>.</p>
 </div>
 
 

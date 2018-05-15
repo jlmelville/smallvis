@@ -9,6 +9,8 @@ output:
       collapsed: false
 ---
 
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
+
 Most of the docs illustrating the use of `smallvis` use some relatively small
 datasets which have been used elsewhere or are otherwise convenient to chuck
 a dimensionality reduction algorithm at. Two plots are shown for each dataset:
@@ -189,3 +191,4 @@ fashion_tsne <- smallvis(fashion6k, scale = FALSE, perplexity = 40, Y_init = "sp
 :----------------------------:|:--------------------------:
 ![fashion pca](../img/datasets/fashion_pca.png)|![fashion tsne](../img/datasets/fashion_tsne.png)
 
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).

@@ -9,6 +9,8 @@ output:
       collapsed: false
 ---
 
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
+
 The [FIt-SNE](https://arxiv.org/abs/1712.09005) paper recommends the technique
 of "late exaggeration". This is exactly the same as early exaggeration 
 (multiply the input probabilities by a fixed constant), but doing it at the end
@@ -174,3 +176,6 @@ to be aware of.
 Thank you to Dmitry Kobak, who drew my attention to the similarity between
 UMAP/LargeVis results and the output of late exaggeration, prompting me to
 implement it in `smallvis`.
+
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
+

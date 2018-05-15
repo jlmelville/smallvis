@@ -9,6 +9,8 @@ output:
       collapsed: false
 ---
 
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
+
 The [delta-bar-delta](https://dx.doi.org/10.1016/0893-6080%2888%2990003-2) method 
 used for optimizing t-SNE is an adaptive learning rate technique that
 was originally suggested for neural network training. It is mentioned in the same
@@ -191,3 +193,4 @@ alternative algorithms compared to DBD, probably because the learning rate might
 be on the conservative side. On the other hand, having to tune the parameters
 for each dataset and algorithm would remove much of its appeal anyway.
 
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).

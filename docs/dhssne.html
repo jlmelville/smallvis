@@ -227,6 +227,7 @@ div.tocify {
 </div>
 
 
+<p>Up: <a href="https://jlmelville.github.io/smallvis/">Documentation Home</a>.</p>
 <p>This article is a sequel to the testing of the <a href="https://jlmelville.github.io/smallvis/hssne.html">Heavy-Tailed SSNE</a> method. In brief, <a href="https://papers.nips.cc/paper/3770-heavy-tailed-symmetric-stochastic-neighbor-embedding">HSSNE</a> generalizes SSNE and t-SNE by means of a heavy-tail parameter, <span class="math inline">\(\alpha\)</span>. At <span class="math inline">\(\alpha = 0\)</span>, it behaves like SSNE, and at <span class="math inline">\(\alpha = 1\)</span>, it behaves like t-SNE.</p>
 <p>In the conclusion of that article, I mention that the <a href="http://proceedings.mlr.press/v5/maaten09a">parametric t-SNE</a> method suggests that we could optimize <span class="math inline">\(\alpha\)</span> along with the coordinates to get improved embeddings. Parametric t-SNE calculates the gradient of the cost with respect to <span class="math inline">\(\alpha\)</span> (the definition of <span class="math inline">\(\alpha\)</span> in that paper is different from that of HSSNE but they do basically the same thing) and then presumably optimizes <span class="math inline">\(\alpha\)</span> at each step of optimization.</p>
 <p>For more on the gradients involved in optimizing the heavy-tail parameter, see <a href="http://jlmelville.github.io/sneer/dynamic-hssne.html">here</a>. Doing this in <code>smallvis</code> complicates the code in a way I don’t want to commit to, so I suggest a simpler method:</p>
@@ -349,6 +350,9 @@ iris_tsne &lt;- smallvis(iris, method = &quot;tsne&quot;, Y_init = &quot;lap&quo
 </div>
 <div id="conclusions" class="section level2">
 <h2>Conclusions</h2>
+<p>The Swiss Roll is the big winner with DHSSNE, which looks <em>much</em> better than with t-SNE. Unfortunately, none of the other datasets benefit. Only <code>s1k</code> ends up at an <span class="math inline">\(\alpha \gt 1\)</span>, although all the datasets end up with <span class="math inline">\(\alpha \ge 0.5\)</span>. However, the neighborhood preservations are basically unchanged, with <code>coil20</code> and <code>iris</code> seeing the biggest change. Visually, <code>coil20</code> is probably the most affected, and I’d say the t-SNE result is to be preferred there. For the other datasets the overall structure of the embedding is not affected, but there is less spacing of any clusters, as expected from using a lower <span class="math inline">\(\alpha\)</span>. This might better reflect the underlying probability distribution that is being modelled, but as t-SNE is mostly a visualization tool, there is usually a bias to seeing more spacing between clusters, so t-SNE is still to be preferred here.</p>
+<p>Finally, DHSSNE is slower than HSSNE which in turn is slower than t-SNE. I suspect the slower behavior of DHSSNE is due to some copy-on-write of the internal data structures used in <code>smallvis</code> when the value of <span class="math inline">\(\alpha\)</span> is updated, so that can be improved, but the simpler gradient of t-SNE compared to HSSNE will be fundamentally faster even without those issues.</p>
+<p>Up: <a href="https://jlmelville.github.io/smallvis/">Documentation Home</a>.</p>
 </div>
 
 

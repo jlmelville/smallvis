@@ -9,6 +9,8 @@ output:
       collapsed: false
 ---
 
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
+
 Perplexity is the only free parameter in t-SNE that may need some tweaking. The
 best way to think of it is as controlling the size of the neighborhood around
 each point that the embedding attempts to preserve. The 
@@ -238,3 +240,5 @@ in the department. For one potential solution, take a look at
 [multiscale JSE](https://dx.doi.org/10.1016/j.neucom.2014.12.095), although I 
 am unlikely to implement it in `smallvis` any time soon. For now, I suggest
 starting with a perplexity around 30 and taking things from there.
+
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).

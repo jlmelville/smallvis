@@ -9,6 +9,8 @@ output:
       collapsed: false
 ---
 
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
+
 [Elastic Embedding (PDF)](http://faculty.ucmerced.edu/mcarreira-perpinan/papers/icml10.pdf)
 is related to symmetric SNE, but isn't normalized. Apart from the method itself,
 the paper is interesting for being the earliest one I'm aware of that makes
@@ -281,3 +283,5 @@ method.
 
 
 This document will be updated if the "polytope method" is implemented.
+
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).

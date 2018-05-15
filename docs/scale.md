@@ -9,6 +9,8 @@ output:
       collapsed: false
 ---
 
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
+
 The `scale` parameter provides some common scaling options which will be
 carried out on the input data before further processing (such as perplexity
 calibration). The options are:
@@ -136,3 +138,5 @@ scaling makes the separation of classes slightly worse.
 
 You may also want to consider the [PCA and whitening](https://jlmelville.github.io/smallvis/pcaw.html) 
 preprocessing options.
+
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).

@@ -9,6 +9,8 @@ output:
       collapsed: false
 ---
 
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
+
 Warning: this may be the most obscure and confusing document I have written yet
 and requires a fair degree of comfort with the exact workings of SNE to glean
 even the remotest of interest from it.
@@ -386,3 +388,5 @@ help them in the way t-ASNE was improved?
 important is symmetrization?
 
 1. What about alternative symmetrization methods to arithmetic averaging?
+
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).

@@ -8,6 +8,7 @@ output:
     toc_float:
       collapsed: false
 ---
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
 
 [Elastic Embedding (PDF)](http://faculty.ucmerced.edu/mcarreira-perpinan/papers/icml10.pdf)
 is a method like SNE, but doesn't use normalization of weights into
@@ -515,3 +516,5 @@ UMAP doesn't even have such a free parameter and seems to perform as well as
 LargeVis, there's probably not a great need for a stochastic gradient version of
 t-EE, given that it is so similar to LargeVis and provides no advantages over it
 or UMAP, unless a solid heuristic for choosing $\lambda$ emerges.
+
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).

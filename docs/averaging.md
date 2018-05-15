@@ -9,6 +9,8 @@ output:
       collapsed: false
 ---
 
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
+
 When looking at 
 [initialization](https://jlmelville.github.io/smallvis/init.html) in t-SNE, I 
 noted that using PCA or Laplacian Eigenmaps gave results that were hard
@@ -266,3 +268,5 @@ random initializatons that might do better than what I've presented here, but
 these results are terribly encouraging. And anything that requires a distance
 matrix seems like a sticking point in terms of scaling up the process to larger
 datasets.
+
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).

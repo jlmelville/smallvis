@@ -228,6 +228,7 @@ div.tocify {
 </div>
 
 
+<p>Up: <a href="https://jlmelville.github.io/smallvis/">Documentation Home</a>.</p>
 <p><a href="https://papers.nips.cc/paper/3770-heavy-tailed-symmetric-stochastic-neighbor-embedding">HSSNE</a> is an embedding method that generalizes SSNE and t-SNE, by introducing an <code>alpha</code> parameter into the output weight function. When it’s set to <code>1</code>, it gives the t-SNE results. As it approaches zero, it gives the SSNE results. Values between 0 and 1 therefore give a result where the amount of “stretching” is intermediate between SSNE and t-SNE. Values of <code>alpha</code> greater than one correspond a stretching of the output distances that is greater than that provided by t-SNE.</p>
 <p>On the face of it, there’s no reason to believe that all datasets are best served by a value of <code>alpha = 1</code>, which is what using t-SNE does implicitly. Some datasets need less stretching (this certainly seems to be the case with <code>iris</code>), and maybe some need more.</p>
 <p>The heavy-tailed output kernel is defined as:</p>
@@ -377,6 +378,7 @@ w_{ij} = \frac{1}{\left(\alpha d_{ij}^2 + 1\right)^{\frac{1}{\alpha}}}
 <p>The effect of increasing <span class="math inline">\(\alpha\)</span> is quite obvious: compressing the natural clusters that are present in the results. In some of the cases, an <span class="math inline">\(\alpha\)</span> value different from <code>0</code> (equivalent to SSNE) or <code>1</code> (t-SNE) does give a superior neighborhood retrieval value. But the difference isn’t huge and visually I’m not sure you’d be mislead by just using t-SNE in all cases. It may well be that better results could be found by a more fine-grained search of an <span class="math inline">\(\alpha\)</span> value for each data set, but it’s hard to argue for adding another parameter that needs fiddling with, especially given that the presence of the <span class="math inline">\(\alpha\)</span> power in the gradient slows down the gradient calculation compared to t-SNE.</p>
 <p>Of course, if there was a way to optimize <span class="math inline">\(\alpha\)</span>, that might be more interesting. There’s certainly a way to do this: a similar strategy was used by van der Maaten for <a href="http://proceedings.mlr.press/v5/maaten09a">parametric t-SNE</a>. <em>Update February 8 2018:</em> <code>smallvis</code> now offers offers a simple version, which I have dubbed dynamic HSSNE (DHSSNE). You can read more about its performance <a href="https://jlmelville.github.io/smallvis/dhssne.html">here</a>.</p>
 <p>Extending this idea would be to use a per-point <span class="math inline">\(\alpha\)</span> value, rather than one global value, which would allow different cluster densities to expand at different rates. This <em>definitely</em> would require optimization. Such a technique was described by Kitazono and co-workers and named <a href="http://dx.doi.org/10.1007/978-3-319-46675-0_14">inhomogeneous t-SNE</a>.</p>
+<p>Up: <a href="https://jlmelville.github.io/smallvis/">Documentation Home</a>.</p>
 </div>
 
 

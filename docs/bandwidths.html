@@ -228,6 +228,7 @@ div.tocify {
 </div>
 
 
+<p>Up: <a href="https://jlmelville.github.io/smallvis/">Documentation Home</a>.</p>
 <p>The investigation of the <a href="https://jlmelville.github.io/smallvis/three-clusters.html">three clusters</a> dataset found that using ASNE with the input bandwidths used in the output kernel solved all the problems with strange distortions occuring at higher perplexities. Unfortunately, there was reason to believe that this would not generalize to other datasets. Let’s see if that is the case.</p>
 <p>Also, the original description of <a href="http://www.jmlr.org/papers/v11/venna10a.html">NeRV</a> transferred bandwidths directly from the input kernel to the output kernel. So there is a literature precedent for this. However, later publications about NeRV don’t mention this step, so it may have turned out to be a bad idea. We shall see.</p>
 <div id="datasets" class="section level2">
@@ -386,6 +387,7 @@ mnist_bnerv &lt;- smallvis(s1k, scale = FALSE, perplexity = 40, Y_init = &quot;s
 <h2>Conclusions</h2>
 <p>In terms of neighborhood preservation, there are a few datasets (<code>iris</code>, <code>oli</code>, <code>frey</code> and <code>coil20</code>) where adding bandwidths to ASNE improves the results by a tiny amount. But it’s not a major improvement: t-ASNE always outperforms BASNE except on the consistently anomalous <code>iris</code> dataset. So it’s not hugely to discover that t-ASNE and NeRV are improved by adding bandwidths to the output kernel only for <code>iris</code>.</p>
 <p>Adding bandwidths directly from the input kernel to the output kernel has nothing to recommend it, so it’s not surprising that the NeRV method stopped doing it.</p>
+<p>Up: <a href="https://jlmelville.github.io/smallvis/">Documentation Home</a>.</p>
 </div>
 
 

@@ -228,6 +228,7 @@ div.tocify {
 </div>
 
 
+<p>Up: <a href="https://jlmelville.github.io/smallvis/">Documentation Home</a>.</p>
 <p>The <code>scale</code> parameter provides some common scaling options which will be carried out on the input data before further processing (such as perplexity calibration). The options are:</p>
 <ul>
 <li><code>&quot;none&quot;</code> (or <code>FALSE</code> or <code>NULL</code>). Do no scaling. This is the most flexible option because it lets you do your own scaling to the input data outside of <code>smallvis</code> and it won’t be further modified. Or maybe you don’t want or need to scale your input data further.</li>
@@ -372,6 +373,7 @@ res_scale_none &lt;- svbench(scale = FALSE, perplexity = 40, Y_init = &quot;spca
 </table>
 <p>My apologies to Brendan Frey. Nonetheless, <code>scale = TRUE</code> is a good idea for some datasets, specifically those where each column is a different measurement using very different scales. <code>iris</code> is a candidate for this, although as it turns out, the different columns all have very similar scales, because they are all length or width measurements of the flower features, and in this case scaling makes the separation of classes slightly worse.</p>
 <p>You may also want to consider the <a href="https://jlmelville.github.io/smallvis/pcaw.html">PCA and whitening</a> preprocessing options.</p>
+<p>Up: <a href="https://jlmelville.github.io/smallvis/">Documentation Home</a>.</p>
 </div>
 
 

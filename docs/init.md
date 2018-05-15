@@ -9,6 +9,8 @@ output:
       collapsed: false
 ---
 
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
+
 ## Random Initialization
 
 The usual initialization routine for t-SNE is to start from a small random
@@ -261,3 +263,5 @@ same orientation as the Laplacian Eigenmaps result.
 
 Only the `iris` result shows even a slight difference (well, one of the loops
 in the `coil20` result is slightly rotated).
+
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).

@@ -9,6 +9,8 @@ output:
       collapsed: false
 ---
 
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
+
 Another in my series of investigating the optimization of t-SNE. See also 
 results for [L-BFGS](https://jlmelville.github.io/smallvis/opt.html) and
 the approximate Hessian 
@@ -153,3 +155,4 @@ Conjugate gradient seems to be no worse a choice for t-SNE than L-BFGS, although
 a tight line search is recommended. But still nothing beats the simplicity of
 the DBD defaults for t-SNE.
 
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).

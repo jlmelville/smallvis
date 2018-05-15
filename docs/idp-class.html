@@ -230,6 +230,7 @@ div.tocify {
 </div>
 
 
+<p>Up: <a href="https://jlmelville.github.io/smallvis/">Documentation Home</a>.</p>
 <p>See <a href="https://jlmelville.github.io/smallvis/idp-theory.html">part 1</a> for some theory, and <a href="https://jlmelville.github.io/smallvis/idp.html">part 2</a> for the application of a global IDP in t-SNE.</p>
 <div id="introduction" class="section level2">
 <h2>Introduction</h2>
@@ -699,6 +700,7 @@ IDP = \argmax_{U} \hat{\delta}_U
 <p>The requirement to partition the dataset into classes before applying t-SNE is an annoyance that limits the usefulness of both SIDP and CIDP. It would be much nicer if the input weight matrices available for each perplexity could be used for clustering the data, although if the number of clusters had to be specified, that would just be swapping one manually-chosen parameter for another.</p>
 <p>The use of local IDPs would get around all that, but as we’ve seen, the raw values are noisy, even in simple synthetic data like the Swiss Roll. Averaging using k-nearest neighbors (where k could be related to the perplexity) might help here, but my initial experiments showed that for the Swiss Roll, k had to be a significant proportion of the dataset (around 10%) around points that where the effect of random clumping produced anomalously large perplexities that were the root cause of the folding of the roll.</p>
 <p>I don’t rule out the value of non-global perplexities (although I grow more skeptical of them helping with the three clusters dataset), but it would seem from all of the results we’ve looked at here, that an approach rooted in intrinsic dimensionality will need some modifications to provide a consistent improvement.</p>
+<p>Up: <a href="https://jlmelville.github.io/smallvis/">Documentation Home</a>.</p>
 </div>
 
 

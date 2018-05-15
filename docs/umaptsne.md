@@ -9,6 +9,8 @@ output:
       collapsed: false
 ---
 
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
+
 This a companion to the experiments I did with 
 [UMAP](https://jlmelville.github.io/smallvis/umap.html). Here I'm going to see
 if borrowing some of UMAP's way of doing things affects t-SNE performance
@@ -213,3 +215,5 @@ are the SKD t-SNE results repeated:
 ![fashion knn t-SNE](../img/umaptsne/fashion_knntsne15.png)|![fashion SKD t-SNE](../img/umaptsne/fashion_skdtsne15.png)
 
 Now the t-SNE results resemble the SKD results much more.
+
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).

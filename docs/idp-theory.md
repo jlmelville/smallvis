@@ -10,6 +10,8 @@ output:
       collapsed: false
 ---
 
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
+
 Much of the following discussion is lifted nearly verbatim from the documentation to
 the fore-runner to `smallvis`,
 [sneer](http://jlmelville.github.io/sneer/dimensionality.html), except I've tried
@@ -411,3 +413,5 @@ perplexities. In the multi-scale JSE paper, perplexities in increasing powers of
 2 are used.
 
 For a practical application, see [part 2](https://jlmelville.github.io/smallvis/idp.html).
+
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).

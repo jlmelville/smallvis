@@ -228,6 +228,7 @@ div.tocify {
 </div>
 
 
+<p>Up: <a href="https://jlmelville.github.io/smallvis/">Documentation Home</a>.</p>
 <p><em>Update March 15 2018</em>: This document has been re-written with new results using settings closer to the defaults of UMAP rather than t-SNE and a smooth k-nearest neighbors distance treatment that more correctly matches the Python implementation.</p>
 <p><a href="https://github.com/lmcinnes/umap">UMAP</a> (Uniform Manifold Approximation and Projection) is a dimensionality reduction method based on reducing the cross-entropy between two fuzzy sets. The <a href="https://arxiv.org/abs/1802.03426">UMAP paper</a> goes into some detail on the theory, but not into algorithmic specifics. From the point of view of the nuts and bolts of the computation, you can work out a fair amount from the source code. To take a broad view, it’s definitely in the t-SNE family of dimensionality reduction, but with a different theoretical underpinning, and the implementation itself is similar to LargeVis in how it scales to large datasets.</p>
 <p>More details on the cost function and resulting gradient can be read on the <a href="https://jlmelville.github.io/smallvis/theory.html">theory</a> page. What makes UMAP (and LargeVis) of specific interest is that, unlike t-SNE, it doesn’t require a normalization step to convert affinities to probabilities. This is in fact the key to its superior scaling to very large datasets, compared to Barnes-Hut t-SNE. The reason that this lack of normalization is important is because normalization has been suggested as being one of the properties that leads to the superior performance of t-SNE over other methods (see, for example, this <a href="http://dx.doi.org/10.1109/CIDM.2014.7008663">perspective by Lee and Verleysen</a>). If UMAP can do well without normalization, this suggests that normalization isn’t quite as important as might be thought.</p>
@@ -425,6 +426,7 @@ iris_tsne &lt;- smallvis(iris, scale = FALSE, perplexity = 15, Y_init = &quot;no
 <p>The normalized version, nt-UMAP, is even closer to the t-SNE results and can be optimized easily via the DBD method. DBD optimization of the UMAP and t-UMAP cost functions were certainly a <em>lot</em> slower than the equivalent t-SNE result, but this is an observation of limited practical significance. In real-world use of UMAP (i.e. using the real Python UMAP, not its implementation in <code>smallvis</code>), stochastic gradient descent is used, seems very fast and scales much better than t-SNE.</p>
 <p>However, in a more general sense, it may be that there is something about the normalization that causes DBD to start working well. Or there may be a scheme to balance the positive and negative parts of the gradient that makes DBD start working with un-normalized (and hence separable) cost functions. This might be worth looking into.</p>
 <p><em>February 17, 2018</em>: some more UMAP-related work, looking at <a href="https://jlmelville.github.io/smallvis/umaptsne.html">importing some of UMAP’s ideas into t-SNE</a>.</p>
+<p>Up: <a href="https://jlmelville.github.io/smallvis/">Documentation Home</a>.</p>
 </div>
 
 

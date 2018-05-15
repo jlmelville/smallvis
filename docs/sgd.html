@@ -228,6 +228,7 @@ div.tocify {
 </div>
 
 
+<p>Up: <a href="https://jlmelville.github.io/smallvis/">Documentation Home</a>.</p>
 <p>The <a href="https://dx.doi.org/10.1016/0893-6080%2888%2990003-2">delta-bar-delta</a> method used for optimizing t-SNE is an adaptive learning rate technique that was originally suggested for neural network training. It is mentioned in the same set of lecture notes that described the <a href="https://www.cs.toronto.edu/~tijmen/csc321/slides/lecture_slides_lec6.pdf">RMSprop (PDF)</a> stochastic gradient method.</p>
 <p>Unlike stochastic gradient methods, DBD is meant for batch learning and only uses the sign of the gradient, whereas SGD methods need to take into account the magnitude of the gradient too. Given what I consider to be the surprisingly good performance of DBD compared to methods like L-BFGS (see the <a href="%5BL-BFGS%20experiments%5D(https://jlmelville.github.io/smallvis/opt.html)%20for%20details">optimization</a>, it would be interesting (to me) to see how SGD methods perform. They certainly have an advantage of traditional unconstrained optimization methods as being much easier to implement.</p>
 <p>But which optimizer? A good reference is <a href="http://ruder.io/optimizing-gradient-descent/index.html">Sebastian Ruder’s overview</a>. They all seem about equally straight-forward to implement, and compared to traditional unconstrained optimization methods, they are a breeze.</p>
@@ -448,6 +449,7 @@ iris_amsgrad &lt;- smallvis(iris, scale = FALSE, perplexity = 40, Y_init = &quot
 <p>Everything except Adadelta works amazingly well. Adadelta, which has no controllable learning rate parameter, makes extremely small updates, so it gets nowhere close to converging, or in fact reducing the initial error by even the third decimal place for the larger datasets.</p>
 <p>Everything else does very well, although not as well as Delta-Bar-Delta. On the other hand, these methods only require one gradient evaluation per iteration so are much faster than something like spectral directions.</p>
 <p>For smaller datasets, the usual story is apparent: pretty much any method gets the job done (apart from Adadelta). For MNIST, there’s a bit more difference apparent, with more of the clusters being split up compared to the DBD results. Nadam and Adagrad do the best job here. Looking at MNIST and Fashion, RMSProp also seems to be lagging behind in terms of convergence. In general, the degree of convergence wasn’t as far along after 1000 iterations with any of these alternative algorithms compared to DBD, probably because the learning rate might be on the conservative side. On the other hand, having to tune the parameters for each dataset and algorithm would remove much of its appeal anyway.</p>
+<p>Up: <a href="https://jlmelville.github.io/smallvis/">Documentation Home</a>.</p>
 </div>
 
 

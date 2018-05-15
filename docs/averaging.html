@@ -228,6 +228,7 @@ div.tocify {
 </div>
 
 
+<p>Up: <a href="https://jlmelville.github.io/smallvis/">Documentation Home</a>.</p>
 <p>When looking at <a href="https://jlmelville.github.io/smallvis/init.html">initialization</a> in t-SNE, I noted that using PCA or Laplacian Eigenmaps gave results that were hard to distinguish from the usual random initialization used in t-SNE, even allowing for choosing the result with the lowest error out of ten runs, with the PCA and LE method therefore having the two advantages of being deterministic and not requiring as long to run.</p>
 <p>The other thing that bothers me about choosing the lowest-error result from ten runs is how wasteful it is. Is there really no useful information to be extracted from the other nine results? An obvious strategy is to aggregate the results over all the runs somehow. We can’t use the output coordinates directly, because of the random initialization, but we could calculate the distance matrix for each result, and then aggregate them. Then, we could attempt to come up with a new set of coordinates that best match the aggregated distances via MDS. Finally, if needed, we could run t-SNE again using the aggregated coordinates.</p>
 <p>Here’s an outline of how this could work:</p>
@@ -433,6 +434,7 @@ iris_med_refine &lt;- smallvis(iris, scale = FALSE, perplexity = 40, Y_init = ir
 <h2>Conclusions</h2>
 <p>The obvious conclusion is that the median distance matrix approach is a bad idea. If you must spend the extra time, re-initializing from the best result is less of a waste, but still seems pretty pointless. These results also continue to point to using the Laplacian Eigenmap initialization over random initialization.</p>
 <p>It’s easy to think of other, increasingly complex ways to combine the output of random initializatons that might do better than what I’ve presented here, but these results are terribly encouraging. And anything that requires a distance matrix seems like a sticking point in terms of scaling up the process to larger datasets.</p>
+<p>Up: <a href="https://jlmelville.github.io/smallvis/">Documentation Home</a>.</p>
 </div>
 
 

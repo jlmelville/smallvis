@@ -9,6 +9,8 @@ output:
       collapsed: false
 ---
 
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
+
 As the 
 [t-SNE FAQ](https://lvdmaaten.github.io/tsne/#faq) notes, 
 "who cares about Swiss rolls when you can embed complex real-world data nicely",
@@ -249,3 +251,4 @@ this is yet more evidence that you don't want to spend time optimizing for
 Swiss Roll performance when it comes to real-world performance. But it is extra
 evidence that using the Laplacian Eigenmap initialization is a good choice.
 
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).

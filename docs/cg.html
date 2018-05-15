@@ -228,6 +228,7 @@ div.tocify {
 </div>
 
 
+<p>Up: <a href="https://jlmelville.github.io/smallvis/">Documentation Home</a>.</p>
 <p>Another in my series of investigating the optimization of t-SNE. See also results for <a href="https://jlmelville.github.io/smallvis/opt.html">L-BFGS</a> and the approximate Hessian <a href="https://jlmelville.github.io/smallvis/specd.html">Spectral Direction</a>. The <a href="https://arxiv.org/abs/1206.4646">spectral direction paper</a> also evaluates a lot of the same methods.</p>
 <p>A conjugate gradient method was used with <a href="http://www.jmlr.org/papers/v11/venna10a.html">NeRV</a>, without further details being provided.</p>
 <p>I didn’t hold out high hopes for this, because the general advice in the literature is that they are at best competitive with quasi-Newton methods under some circumstances with their main advantage being their simpler implementation and reduced storage requirements. The price paid being they require stricter line search. The spectral direction paper tested a <a href="http://learning.eng.cam.ac.uk/carl/code/minimize/">Matlab implementation</a>, which uses the Polak-Ribière update (without restarting) and it didn’t seem to do very well.</p>
@@ -391,7 +392,9 @@ iris_cghzp &lt;- smallvis(iris, scale = FALSE, perplexity = 40, Y_init = &quot;s
 </tr>
 </tbody>
 </table>
-<p>This is slightly surprising. On the smaller datasets, as usual, there’s little to choose between any of the methods. For MNIST, the CG results are less ugly than the L-BFGS result. Not much to choose between the PR+ and HZ+ results, either. But still nothing beats the simplicity of the DBD defaults for t-SNE.</p>
+<p>This is slightly surprising. On the smaller datasets, as usual, there’s little to choose between any of the methods. For MNIST, the CG results are less ugly than the L-BFGS result. Not much to choose between the PR+ and HZ+ results, either. Maybe the HZ+ results have the edge over PR+, but either seems fine. Neither is there that much of a difference between the “tight” Wolfe line search results and the loose results. However, MNIST results do show more of a cluster break up with the loose results. Also, the fashion MNIST results do seem to show more outlying points between the (admittedly overlapping) clusters.</p>
+<p>Conjugate gradient seems to be no worse a choice for t-SNE than L-BFGS, although a tight line search is recommended. But still nothing beats the simplicity of the DBD defaults for t-SNE.</p>
+<p>Up: <a href="https://jlmelville.github.io/smallvis/">Documentation Home</a>.</p>
 </div>
 </div>
 

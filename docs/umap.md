@@ -8,6 +8,7 @@ output:
     toc_float:
       collapsed: false
 ---
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
 
 *Update March 15 2018*: This document has been re-written with new results using
 settings closer to the defaults of UMAP rather than t-SNE and a smooth k-nearest
@@ -274,3 +275,5 @@ worth looking into.
 
 *February 17, 2018*: some more UMAP-related work, looking at 
 [importing some of UMAP's ideas into t-SNE](https://jlmelville.github.io/smallvis/umaptsne.html).
+
+Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
