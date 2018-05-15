@@ -256,8 +256,8 @@ Cp - \sum_{ij} p_{ij} \log w_{ij} + \sum_{ij} p_{ij} \log Z
 \]</span> Finally, we’ll do some rearranging and re-write <span class="math inline">\(Z\)</span> back to a sum of weights:</p>
 <p><span class="math display">\[
 C_{tSNE} = 
-Cp - \sum_{ij} p_{ij} \log w_{ij} + \log Z \sum_{ij} p_{ij} =
-Cp - \sum_{ij} p_{ij} \log w_{ij} + \log \sum_{ij} w_{ij}
+Cp - \sum_{ij} p_{ij} \log w_{ij} + \log Z \sum_{ij} p_{ij} \\
+= Cp - \sum_{ij} p_{ij} \log w_{ij} + \log \sum_{ij} w_{ij}
 \]</span></p>
 <p>Ignoring, the constant term, we can see that the SNE cost function consists of an attractive term, where maximizing the <span class="math inline">\(w_{ij}\)</span> (which implies minimizing the distances) would minimize <span class="math inline">\(-p_{ij} \log w_{ij}\)</span>; and a repulsive term, where minimizing the sum of <span class="math inline">\(w_{ij}\)</span> (and hence maximizing the distances), will minimize the log of the sum.</p>
 </div>
@@ -277,6 +277,8 @@ L_{LV} = \sum_{ \left(i, j\right) \in E} p_{ij} \log w_{ij}
 <p><span class="math display">\[
 C_{LV} = 
 -\sum_{ij} v_{ij} \log w_{ij} 
+-\gamma \sum_{ij} \log \left( 1 - w_{ij} \right) \\
+= -\frac{1}{N}\sum_{ij} p_{ij} \log w_{ij} 
 -\gamma \sum_{ij} \log \left( 1 - w_{ij} \right)
 \]</span> In this form, apart from the issue of whether the input weights are normalized or not, the attractive terms of both t-SNE and LargeVis are very similar.</p>
 </div>

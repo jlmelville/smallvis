@@ -66,8 +66,8 @@ Finally, we'll do some rearranging and re-write $Z$ back to a sum of weights:
 
 $$
 C_{tSNE} = 
-Cp - \sum_{ij} p_{ij} \log w_{ij} + \log Z \sum_{ij} p_{ij} =
-Cp - \sum_{ij} p_{ij} \log w_{ij} + \log \sum_{ij} w_{ij}
+Cp - \sum_{ij} p_{ij} \log w_{ij} + \log Z \sum_{ij} p_{ij} \\
+= Cp - \sum_{ij} p_{ij} \log w_{ij} + \log \sum_{ij} w_{ij}
 $$
 
 Ignoring, the constant term, we can see that the SNE cost function consists
@@ -135,6 +135,8 @@ cost function is:
 $$
 C_{LV} = 
 -\sum_{ij} v_{ij} \log w_{ij} 
+-\gamma \sum_{ij} \log \left( 1 - w_{ij} \right) \\
+= -\frac{1}{N}\sum_{ij} p_{ij} \log w_{ij} 
 -\gamma \sum_{ij} \log \left( 1 - w_{ij} \right)
 $$
 In this form, apart from the issue of whether the input weights are normalized
