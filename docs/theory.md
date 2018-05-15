@@ -14,18 +14,21 @@ easier to see how they are related.
 
 A bit of nomenclature first:
 
-* $v_{ij}$ are the un-normalized input affinities. A large affinity means that
-the data points are similar in the input space, so you'd probably like to see
-them close together in the output configuration.
-* $p_{ij}$ are the normalized input affinities, so that they sum to one. They
-are symmetric, so that $p_{ij} = p_{ji}$ They are often interpreted as joint
-probabilities. Probabilities of what exactly? It's not totally
-obvious. Let's say it's the probability of observing an edge between the two
-vertices $i$ and $j$ in the graph representing the neigborhood relationship 
-of your input data. These are dependent only on the input data (and the choice 
-of perplexity) and so are constant with respect to optimizing the output 
-coordinates. If you decide to think of the problem in terms of graph laplacians
-and $p_{ij}$ as "just" a normalized affinity, I won't blame you.
+* $v_{ij}$ are input affinities. A large affinity means that the data points are
+similar in the input space, so you'd probably like to see them close together in
+the output configuration. In all the methods mentioned below, some sort of
+row-normalization has been applied, so that the rows sum to a constant,
+followed by symmetrization, so that $v_{ij} = v_{ji}$. 
+* $p_{ij}$ are the normalized input affinities, so that $\sum_{ij} p_{ij} = 1$,
+which is achieved by just dividing each $v_{ij}$ by $\sum_{ij} v_{ij}$. They are
+therefore also symmetric, so that $p_{ij} = p_{ji}$. They are often interpreted
+as joint probabilities. Probabilities of what exactly? It's not totally obvious.
+Let's say it's the probability of observing an edge between the two vertices $i$
+and $j$ in the graph representing the neigborhood relationship of your input
+data. These are dependent only on the input data (and the choice of perplexity)
+and so are constant with respect to optimizing the output coordinates. If you
+decide to think of the problem in terms of graph laplacians and $p_{ij}$ as
+"just" a normalized affinity, I won't blame you.
 * $w_{ij}$ are the output configuration weights, aka un-normalized affinities 
 or similarities.
 * $q_{ij}$ are the output probabilities, where $q_{ij} = w_{ij} / Z$ and $Z$ is
