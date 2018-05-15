@@ -168,3 +168,9 @@ learning rate or momentum values are too high for the late exaggeration phase.
 Controlling this would introduce coupling between the optimizer and the 
 exaggeration code, which I am not inclined to introduce, so it's just something
 to be aware of.
+
+## Acknowledgement
+
+Thank you to Dmitry Kobak, who drew my attention to the similarity between
+UMAP/LargeVis results and the output of late exaggeration, prompting me to
+implement it in `smallvis`.

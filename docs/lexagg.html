@@ -387,6 +387,10 @@ div.tocify {
 <p>If you find that t-SNE results are not separating clusters in your data in a good way, then it does seem that late exaggeration helps, but for the datasets that <code>smallvis</code> can deal with, I recommend an <code>exaggeration_factor</code> of around 1.5, much lower than the value of 12 mentioned in the FIt-SNE paper, and even 4 is much too large based on the results shown here.</p>
 <p>Finally, even with the reduced exaggeration, for all examples I looked at, the cost does increase over the last 100 iterations, suggesting that the learning rate or momentum values are too high for the late exaggeration phase. Controlling this would introduce coupling between the optimizer and the exaggeration code, which I am not inclined to introduce, so it’s just something to be aware of.</p>
 </div>
+<div id="acknowledgement" class="section level2">
+<h2>Acknowledgement</h2>
+<p>Thank you to Dmitry Kobak, who drew my attention to the similarity between UMAP/LargeVis results and the output of late exaggeration, prompting me to implement it in <code>smallvis</code>.</p>
+</div>
 
 
 
