@@ -139,7 +139,7 @@ $$
 C_{LV} = 
 -\sum_{ij} v_{ij} \log w_{ij} 
 -\gamma \sum_{ij} \log \left( 1 - w_{ij} \right) \\
-= -\frac{1}{N}\sum_{ij} p_{ij} \log w_{ij} 
+= -N\sum_{ij} p_{ij} \log w_{ij} 
 -\gamma \sum_{ij} \log \left( 1 - w_{ij} \right)
 $$
 In this form, apart from the issue of whether the input weights are normalized
