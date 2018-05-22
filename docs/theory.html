@@ -379,12 +379,37 @@ w_{ij}
 <p><span class="math display">\[
 \frac{\partial C_{LV}}{\partial \mathbf{y_i}} = 
   4\sum_j^N \left(
-    v_{ij} w_{ij}
+    w_{ij} v_{ij}
     -\frac{\gamma w_{ij}}{d_{ij}^2 + \epsilon}
    \right)
    \left(\mathbf{y_i - y_j}\right)
 \]</span></p>
 <p>The <span class="math inline">\(\epsilon\)</span> term is needed computationally to avoid division by zero. Results can be quite sensitive to changing this value. In <code>smallvis</code> you can see the effect of it via the <code>lveps</code> parameter. It’s set to <code>0.1</code> in LargeVis.</p>
+<div id="other-weight-functions" class="section level4">
+<h4>Other weight functions</h4>
+<p>The LargeVis paper tests some other weighting functions, although they don’t do as well as the t-SNE-like function. They are available in the <a href="https://cran.r-project.org/package=largeVis">CRAN package</a> though, so here are the gradients for completeness.</p>
+<p>The first alternative function allows the scale parameter of the Cauchy distribution to vary (shown here as <span class="math inline">\(\alpha\)</span>):</p>
+<p><span class="math display">\[
+w_{ij} = \frac{1}{1 + \alpha d_{ij}^2} \\
+\frac{\partial C_{LV}}{\partial \mathbf{y_i}} = 
+  4\sum_j^N \left(
+    \alpha w_{ij} v_{ij}
+    -\frac{\gamma w_{ij}}{d_{ij}^2 + \epsilon}
+   \right)
+   \left(\mathbf{y_i - y_j}\right)
+\]</span> The negative part of the gradient doesn’t contain an <span class="math inline">\(\alpha\)</span> term due to cancellation.</p>
+<p>The other weight function looked at involves an exponential:</p>
+<p><span class="math display">\[
+w_{ij} = \frac{1}{1 + \exp \left(d_{ij}^2\right)} \\
+\frac{\partial C_{LV}}{\partial \mathbf{y_i}} = 
+  4\sum_j^N \left[
+    \left(1 - w_{ij}\right)v_{ij} 
+    - \gamma w_{ij}
+   \right]
+   \left(\mathbf{y_i - y_j}\right)
+\]</span></p>
+<p>Note that section 3 of the paper mentions the above as a possible weight function, but the results in section 4 of the paper claim to actually investigate <span class="math inline">\(w_{ij} = 1 / \left[1 + \exp \left(-d_{ij}^2\right)\right]\)</span>. I assume that’s a typo, because using the negative squared distance results in the weight increasing with distance.</p>
+</div>
 </div>
 <div id="umap-1" class="section level3">
 <h3>UMAP</h3>

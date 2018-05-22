@@ -310,7 +310,7 @@ of a stochastic gradient descent optimization:
 $$
 \frac{\partial C_{LV}}{\partial \mathbf{y_i}} = 
   4\sum_j^N \left(
-    v_{ij} w_{ij}
+    w_{ij} v_{ij}
     -\frac{\gamma w_{ij}}{d_{ij}^2 + \epsilon}
    \right)
    \left(\mathbf{y_i - y_j}\right)
@@ -319,6 +319,48 @@ $$
 The $\epsilon$ term is needed computationally to avoid division by zero. Results
 can be quite sensitive to changing this value. In `smallvis` you can see the
 effect of it via the `lveps` parameter. It's set to `0.1` in LargeVis.
+
+
+#### Other weight functions
+
+The LargeVis paper tests some other weighting functions, although they don't do
+as well as the t-SNE-like function. They are available in the 
+[CRAN package](https://cran.r-project.org/package=largeVis) though, so here are 
+the gradients for completeness.
+
+The first alternative function allows the scale parameter of the Cauchy 
+distribution to vary (shown here as $\alpha$):
+
+$$
+w_{ij} = \frac{1}{1 + \alpha d_{ij}^2} \\
+\frac{\partial C_{LV}}{\partial \mathbf{y_i}} = 
+  4\sum_j^N \left(
+    \alpha w_{ij} v_{ij}
+    -\frac{\gamma w_{ij}}{d_{ij}^2 + \epsilon}
+   \right)
+   \left(\mathbf{y_i - y_j}\right)
+$$
+The negative part of the gradient doesn't contain an $\alpha$ term due to 
+cancellation.
+
+The other weight function looked at involves an exponential:
+
+$$
+w_{ij} = \frac{1}{1 + \exp \left(d_{ij}^2\right)} \\
+\frac{\partial C_{LV}}{\partial \mathbf{y_i}} = 
+  4\sum_j^N \left[
+    \left(1 - w_{ij}\right)v_{ij} 
+    - \gamma w_{ij}
+   \right]
+   \left(\mathbf{y_i - y_j}\right)
+$$
+
+Note that section 3 of the paper mentions the above as a possible weight
+function, but the results in section 4 of the paper claim to actually
+investigate
+$w_{ij} = 1 / \left[1 + \exp \left(-d_{ij}^2\right)\right]$. I assume that's a 
+typo, because using the negative squared distance results in the weight
+increasing with distance.
 
 ### UMAP
 
