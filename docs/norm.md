@@ -328,7 +328,26 @@ a nicer visualization.
 
 ## Conclusions
 
-First, the difference between t-ASNE and t-SNE is much clearer than for ASNE
+First, these results underline the importance of the row-normalization step
+in t-SNE and all its relatives. I was surprised at how important it was:
+avoiding row-normalization turns out to be a bad idea no matter what else you
+do. Perhaps this is simply a side effect of the choice of bandwidths implicitly
+relying on the row-normalization when using perplexity? However,
+row-normalization was identified by 
+[Lee and Verleysen](http://dx.doi.org/10.1109/CIDM.2014.7008663) 
+as one of the important features of the SNE-family of dimensionality reduction,
+their reasoning being that it ameliorates the effects of the change in distance 
+distributions between the dimensionalities of the input and output space. So I 
+shouldn't have been that surprised.
+
+Even UMAP and LargeVis, which eschew any form of normalization to the outputs,
+carry out row normalization in the input space. UMAP is even more interesting in
+this regard, because it doesn't use perplexity as the basis for its
+normalization, although it does use something that is algorithmically quite
+similar: the sum of each row of the input matrix must equal $\log_{2} k$ where
+$k$ is the number of nearest neighbors desired.
+
+Second, the difference between t-ASNE and t-SNE is much clearer than for ASNE
 versus SSNE. While neighborhood preservation values are a little bit higher for
 t-ASNE, if your goal with these methods is simply visualization of any natural
 clustering in your data, t-SNE provides better results, with less outliers *and*
@@ -341,13 +360,6 @@ method also and can be seen as generalizations of
 ASNE (or t-ASNE in the case of the inhomogeneous t-SNE). Although the JSE paper
 says that the two different forms of normalization has "no significant effect",
 it might be worth double checking that given the results here.
-
-Second, I am surprised at how important the row-normalization step is for the
-performance of t-SNE. Avoiding row-normalization turns out to be a bad idea no
-matter what else you do. Perhaps this is simply a side effect of the choice of
-bandwidths implicitly relying on the row-normalization when using perplexity.
-Unfortunately, I'm not aware of any alternative suggestions about sensibly
-choosing bandwidths for the input data.
 
 Third, symmetrization does seem to help when row-normalizing. For
 matrix-normalized results, it doesn't seem required for any of the datasets used
@@ -376,7 +388,7 @@ them together:
 1. Is it really the row-normalization that's important, or is it just that it 
 rescales the input weights usefully?
 
-1. What exactly does symmetrization do to that helps when row-normalizing, that
+1. What exactly does symmetrization do that helps when row-normalizing, that
 doesn't matter when matrix-normalizing?
 
 1. Although ASNE doesn't seem to benefit from RSR normalization, given that JSE
@@ -388,5 +400,16 @@ help them in the way t-ASNE was improved?
 important is symmetrization?
 
 1. What about alternative symmetrization methods to arithmetic averaging?
+
+## Acknowledgement
+
+My original thinking on these matters bundled matrix-normalization and
+row-normalization together, and therefore downplayed the importance of
+row-normalization, particularly due to the lack of any normalization in the
+output space carried out by UMAP and LargeVis. My thanks to Dmitry Kobak, who
+convinced me that I had got things completely backwards: row-normalization of
+inputs is in fact a key step in these methods (including UMAP and LargeVis), and
+consistent with the findings of Lee and Verleysen. I have re-written the
+conclusions to reflect this.
 
 Up: [Documentation Home](https://jlmelville.github.io/smallvis/).

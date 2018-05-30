@@ -46,8 +46,9 @@ out: the bandwidth is 1 for all points. Normalization is carried out point-wise,
 i.e. the normalized output weight associated with point $q_{ij}$ is generated
 from the output weight $w_{ij}$ by $q_{ij} = w_{ij} / \sum_k^N w_{ik}$. This
 creates $N$ separate probability distributions and the input probability matrix
-$P$ is not symmetric. In fact it's better thought of $N$ probability
-distribution arranged row-wise so that each row sums to 1.
+$P$ is not symmetric. In fact it's better thought of as $N$ probability
+distributions arranged row-wise so that each row sums to 1. Elsewhere in these
+docs I refer to this type of normalization as "row-normalization".
 
 ### Symmetric Stochastic Neighbor Embedding
 
@@ -55,8 +56,12 @@ distribution arranged row-wise so that each row sums to 1.
 ASNE only in its normalization scheme. Now, the normalization is pair-wise:
 $q_{ij}$ is generated from the output weight $w_{ij}$ by summing over *all* 
 pairs of distances: $q_{ij} = w_{ij} / \sum_{kl}^N w_{kl}$. The output 
-probability matrix $Q$ is therefore symmetric by construction.  For the input
-probability matrix $P$, symmetry is enforced by averaging $p_{ij}$ and $p_{ji}$.
+probability matrix $Q$ is therefore symmetric by construction and sums to one.
+
+For the input probability matrix $P$, symmetry is enforced by averaging $p_{ij}$
+and $p_{ji}$. To ensure the probabilities also now sum to one, they are then divided 
+by their sum. I refer to this division by the grand matrix sum as
+"matrix-normalizaton" to distinguish it from the row-normalization step.
 
 ### t-Distributed Stochastic Neighbor Embedding
 

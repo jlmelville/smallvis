@@ -243,7 +243,7 @@ C =
 <p><span class="math display">\[
 v_{ij}^{+} = \exp\left(-\beta_i r_{ij}^{2}\right)
 \]</span> i.e. the usual Gaussian input weights as used in SNE, although note we are using un-normalized affinities rather than the probabilities <span class="math inline">\(p_{ij}\)</span>.</p>
-<p>The original EE paper uses a global <span class="math inline">\(\beta\)</span> for all <span class="math inline">\(i\)</span> so the input weights are symmetric. The later <a href="https://arxiv.org/abs/1206.4646">spectral direction</a> paper uses the SNE affinities by perplexity calibration and symmetrizes (but does not normalize) the resulting affinities. For the implementation in <code>smallvis</code> we use the perplexity calibration approach, so we will proceed with the assumption that the weights are always symmetric.</p>
+<p>The original EE paper uses a global <span class="math inline">\(\beta\)</span> for all <span class="math inline">\(i\)</span> so the input weights are symmetric. The later <a href="https://arxiv.org/abs/1206.4646">spectral direction</a> paper uses the SNE affinities by perplexity calibration and symmetrizes the resulting affinities, but does not carry out the matrix-normalization step of dividing the affinities by their sum. For the implementation in <code>smallvis</code> we use the perplexity calibration approach, so we will proceed with the assumption that the weights are always symmetric.</p>
 </div>
 <div id="negative-weights" class="section level3">
 <h3>Negative weights</h3>
@@ -420,8 +420,8 @@ C =
 </div>
 <div id="conclusions" class="section level2">
 <h2>Conclusions</h2>
-<p>As noted by the EE paper itself, depending on the choice of <code>lambda</code>, EE gives results that seem to be equivalent to SSNE, without requiring any normalization. The default <code>lambda = 100</code> seems like a good choice. You can also use the default delta-bar-delta optimization settings with this setting.</p>
-<p>It would be nice to get results as good as t-SNE, but as far as I can tell, no-one has reported any results with a t-distributed version of EE. The advent of methods like LargeVis and UMAP may have filled that niche now.</p>
+<p>As noted by the EE paper itself, depending on the choice of <code>lambda</code>, EE gives results that seem to be equivalent to SSNE, without requiring any normalization of the output weights. The default <code>lambda = 100</code> seems like a good choice. You can also use the default delta-bar-delta optimization settings with this setting.</p>
+<p>It would be nice to get results as good as t-SNE. I have implemented a <a href="https://jlmelville.github.io/smallvis/tee.html">t-distributed version of EE</a> in <code>smallvis</code>, but I am not aware of anyone else ever trying this, and the advent of methods like LargeVis and UMAP may have filled that niche now (and seem to do so more successfully).</p>
 <div id="negative-weights-1" class="section level3">
 <h3>Negative Weights</h3>
 <p>The above experiments were repeated without including negative weights. Apart from having to rescale <code>lambda</code>, there wasn’t a large difference in the results. It did seem a bit harder to find a satisfactory value of <code>lambda</code> that worked for all datasets. With <code>neg_weights = FALSE</code>, a suitable range for <code>lambda</code> seems to be between <code>1e-3</code> to <code>1e-5</code>.</p>

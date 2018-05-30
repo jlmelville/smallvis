@@ -28,15 +28,21 @@ implementation itself is similar to LargeVis in how it scales to large datasets.
 More details on the cost function and resulting gradient can be read on the
 [theory](https://jlmelville.github.io/smallvis/theory.html) page. What makes
 UMAP (and LargeVis) of specific interest is that, unlike t-SNE, it doesn't 
-require a normalization step to convert affinities to probabilities. This is
-in fact the key to its superior scaling to very large datasets, compared to
-Barnes-Hut t-SNE. The reason that this lack of normalization is important is
+require normalization in the output step to convert affinities to probabilities. 
+This is in fact the key to its superior scaling to very large datasets, 
+compared to Barnes-Hut t-SNE.
+
+The reason that this lack of normalization is important is
 because normalization has been suggested as being one of the properties that
 leads to the superior performance of t-SNE over other methods (see, for example,
 this 
 [perspective by Lee and Verleysen](http://dx.doi.org/10.1109/CIDM.2014.7008663)).
-If UMAP can do well without normalization, this suggests that normalization 
-isn't quite as important as might be thought.
+It's important to note that normalization is still carried out on the input
+affinity matrix in UMAP, although in a slightly different way to the 
+perplexity-based calibration used in t-SNE. Another difference is that while 
+the input matrix is symmetrized, the final normalization step used in t-SNE
+(division by the grand total of the matrix so all the "probabilities" sum to 1)
+is not carried out in UMAP.
 
 ## Variations on UMAP
 
@@ -238,7 +244,7 @@ of the loops could be more easily seen.
 
 The UMAP results are remarkable in that they thoroughly resemble the t-SNE
 results in their broad shapes. This, despite the fact that no normalization of
-the similarities are carried out (which in turn makes it amenable to scaling
+the output similarities are carried out (which in turn makes it amenable to scaling
 up to much larger dataset sizes via stochastic gradient descent). The default
 output similarity kernel tends to produce smaller, more well separated clusters,
 but the t-UMAP results are closer to the t-SNE results. It also has the advantage

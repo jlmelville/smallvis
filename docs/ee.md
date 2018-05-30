@@ -52,10 +52,11 @@ un-normalized affinities rather than the probabilities $p_{ij}$.
 The original EE paper uses a global $\beta$ for all $i$ so the input 
 weights are symmetric. The later 
 [spectral direction](https://arxiv.org/abs/1206.4646) paper uses
-the SNE affinities by perplexity calibration and symmetrizes (but does not
-normalize) the resulting affinities. For the implementation in `smallvis` we use
-the perplexity calibration approach, so we will proceed with the assumption that
-the weights are always symmetric.
+the SNE affinities by perplexity calibration and symmetrizes the resulting
+affinities, but does not carry out the matrix-normalization step of dividing the
+affinities by their sum. For the implementation in `smallvis` we use the
+perplexity calibration approach, so we will proceed with the assumption that the
+weights are always symmetric.
 
 ### Negative weights
 
@@ -226,13 +227,16 @@ parentheses in the plot title.
 ## Conclusions
 
 As noted by the EE paper itself, depending on the choice of `lambda`, EE gives
-results that seem to be equivalent to SSNE, without requiring any normalization.
-The default `lambda = 100` seems like a good choice. You can also use the 
-default delta-bar-delta optimization settings with this setting.
+results that seem to be equivalent to SSNE, without requiring any normalization
+of the output weights. The default `lambda = 100` seems like a good choice. You
+can also use the default delta-bar-delta optimization settings with this
+setting.
 
-It would be nice to get results as good as t-SNE, but as far as I can tell, 
-no-one has reported any results with a t-distributed version of EE. The advent
-of methods like LargeVis and UMAP may have filled that niche now.
+It would be nice to get results as good as t-SNE. I have implemented a 
+[t-distributed version of EE](https://jlmelville.github.io/smallvis/tee.html) in
+`smallvis`, but I am not aware of anyone else ever trying this, and the advent 
+of methods like LargeVis and UMAP may have filled that niche now (and seem to
+do so more successfully).
 
 ### Negative Weights
 
