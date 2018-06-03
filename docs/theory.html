@@ -281,6 +281,12 @@ C_{LV} =
 = -N\sum_{ij} p_{ij} \log w_{ij} 
 -\gamma \sum_{ij} \log \left( 1 - w_{ij} \right)
 \]</span> In this form, apart from the issue of whether the input weights are normalized or not, the attractive terms of both t-SNE and LargeVis are very similar.</p>
+<p>The derivative of the cost function with respect to the weights is:</p>
+<p><span class="math display">\[
+\frac{\partial C_{LV}}{\partial w_{ij}} =
+-\frac{v_{ij}}{w_{ij}} +
+\frac{ \gamma}{ \left( 1 - w_{ij} \right)}
+\]</span></p>
 </div>
 <div id="umap" class="section level3">
 <h3>UMAP</h3>
@@ -323,18 +329,14 @@ C_{V} -
 {\left(a d_{ij}^2 + 1 \right)^2} = -b a d_{ij}^{2\left( b - 1\right)} w_{ij}^2 
 =
 -\frac{b \left( 1 - w_{ij} \right)}{d_{ij}^2}w_{ij}
-\]</span> The derivative of the cost functon with respect to the weights is:</p>
+\]</span> The derivative of the cost function with respect to the weights is:</p>
 <p><span class="math display">\[
-\frac{\partial C}{\partial w_{ij}} =
-\left[
+\frac{\partial C_{UMAP}}{\partial w_{ij}} =
 -\frac{v_{ij}}{w_{ij}} +
 \frac{ \left( 1 - v_{ij} \right)}{ \left( 1 - w_{ij} \right)}
-\right]
 = 
-\left[
 -\frac{v_{ij}}{w_{ij} \left(1 - w_{ij} \right)} +
 \frac{w_{ij}}{ w_{ij} \left( 1 - w_{ij} \right)}
-\right]
 \]</span></p>
 </div>
 </div>
@@ -391,6 +393,7 @@ w_{ij}
 <p>The first alternative function allows the scale parameter of the Cauchy distribution to vary (shown here as <span class="math inline">\(\alpha\)</span>):</p>
 <p><span class="math display">\[
 w_{ij} = \frac{1}{1 + \alpha d_{ij}^2} \\
+\frac{\partial w_{ij}}{\partial d_{ij}^2} = - \frac{\alpha}{\left(1 + \alpha d_{ij}^2\right)^2} = -\alpha w_{ij}^2 \\
 \frac{\partial C_{LV}}{\partial \mathbf{y_i}} = 
   4\sum_j^N \left(
     \alpha w_{ij} v_{ij}
@@ -401,6 +404,9 @@ w_{ij} = \frac{1}{1 + \alpha d_{ij}^2} \\
 <p>The other weight function looked at involves an exponential:</p>
 <p><span class="math display">\[
 w_{ij} = \frac{1}{1 + \exp \left(d_{ij}^2\right)} \\
+\frac{\partial w_{ij}}{\partial d_{ij}^2} = 
+- \frac{\exp\left(d_{ij}^2\right)}{\left[1 + \exp \left(d_{ij}^2\right)\right]^2} = 
+-\exp \left(d_{ij}^2\right) w_{ij}^2 = -\left(1 - w_{ij}\right) w_{ij}\\
 \frac{\partial C_{LV}}{\partial \mathbf{y_i}} = 
   4\sum_j^N \left[
     \left(1 - w_{ij}\right)v_{ij} 

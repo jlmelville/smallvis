@@ -152,6 +152,14 @@ $$
 In this form, apart from the issue of whether the input weights are normalized
 or not, the attractive terms of both t-SNE and LargeVis are very similar.
 
+The derivative of the cost function with respect to the weights is:
+
+$$
+\frac{\partial C_{LV}}{\partial w_{ij}} =
+-\frac{v_{ij}}{w_{ij}} +
+\frac{ \gamma}{ \left( 1 - w_{ij} \right)}
+$$
+
 ### UMAP
 
 Note: the following is based on my examination of the UMAP source code, followed
@@ -236,19 +244,15 @@ $$
 =
 -\frac{b \left( 1 - w_{ij} \right)}{d_{ij}^2}w_{ij}
 $$
-The derivative of the cost functon with respect to the weights is:
+The derivative of the cost function with respect to the weights is:
 
 $$
-\frac{\partial C}{\partial w_{ij}} =
-\left[
+\frac{\partial C_{UMAP}}{\partial w_{ij}} =
 -\frac{v_{ij}}{w_{ij}} +
 \frac{ \left( 1 - v_{ij} \right)}{ \left( 1 - w_{ij} \right)}
-\right]
 = 
-\left[
 -\frac{v_{ij}}{w_{ij} \left(1 - w_{ij} \right)} +
 \frac{w_{ij}}{ w_{ij} \left( 1 - w_{ij} \right)}
-\right]
 $$
 
 ## Gradients
@@ -340,6 +344,7 @@ distribution to vary (shown here as $\alpha$):
 
 $$
 w_{ij} = \frac{1}{1 + \alpha d_{ij}^2} \\
+\frac{\partial w_{ij}}{\partial d_{ij}^2} = - \frac{\alpha}{\left(1 + \alpha d_{ij}^2\right)^2} = -\alpha w_{ij}^2 \\
 \frac{\partial C_{LV}}{\partial \mathbf{y_i}} = 
   4\sum_j^N \left(
     \alpha w_{ij} v_{ij}
@@ -354,6 +359,9 @@ The other weight function looked at involves an exponential:
 
 $$
 w_{ij} = \frac{1}{1 + \exp \left(d_{ij}^2\right)} \\
+\frac{\partial w_{ij}}{\partial d_{ij}^2} = 
+- \frac{\exp\left(d_{ij}^2\right)}{\left[1 + \exp \left(d_{ij}^2\right)\right]^2} = 
+-\exp \left(d_{ij}^2\right) w_{ij}^2 = -\left(1 - w_{ij}\right) w_{ij}\\
 \frac{\partial C_{LV}}{\partial \mathbf{y_i}} = 
   4\sum_j^N \left[
     \left(1 - w_{ij}\right)v_{ij} 
