@@ -322,7 +322,7 @@ $$
 \frac{\partial C_{LV}}{\partial \mathbf{y_i}} = 
   4\sum_j^N \left(
     w_{ij} v_{ij}
-    -\frac{\gamma w_{ij}}{d_{ij}^2 + \epsilon}
+    -\frac{\gamma }{d_{ij}^2 + \epsilon}w_{ij}
    \right)
    \left(\mathbf{y_i - y_j}\right)
 $$
@@ -348,7 +348,7 @@ w_{ij} = \frac{1}{1 + \alpha d_{ij}^2} \\
 \frac{\partial C_{LV}}{\partial \mathbf{y_i}} = 
   4\sum_j^N \left(
     \alpha w_{ij} v_{ij}
-    -\frac{\gamma w_{ij}}{d_{ij}^2 + \epsilon}
+    -\frac{\gamma}{d_{ij}^2 + \epsilon} w_{ij}
    \right)
    \left(\mathbf{y_i - y_j}\right)
 $$
