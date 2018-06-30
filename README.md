@@ -194,6 +194,8 @@ scale.
 Also of relevance are:
 
 * [UMAP](https://github.com/lmcinnes/umap) (in Python)
+* [UWOT](https://github.com/jlmelville/uwot) a package implementing LargeVis 
+and UMAP.
 * [LargeVis](https://github.com/lferry007/LargeVis) (in C++)
 * [Spectra](http://spectralib.org/), the C++ library that RSpectra wraps.
 * [FIt-SNE](https://github.com/KlugerLab/FIt-SNE), an FFT-based t-SNE library. 
