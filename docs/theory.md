@@ -88,7 +88,7 @@ will minimize the log of the sum.
 
 ### LargeVis
 
-The LargeVis paper describes partitioning the data into a set  of nearest
+The LargeVis paper describes partitioning the data into a set of nearest
 neighbors (we'll call that $E$), which only feel an attractive force; and
 everything else ($\bar{E}$), which only feel repulsive forces. Perplexity
 calibration and weight definition are carried out as in t-SNE, to give the
@@ -103,36 +103,31 @@ interested in will be $-L_{LV}$, in order that we have a function to minimize.
 Otherwise, it gets a bit confusing keeping track of the signs of the gradients 
 compared to the other methods in `smallvis`.
 
-Before we get to that though, I believe that the likelihood function as given
-above is not a totally accurate representation of the current state of the
-LargeVis implementation. The following is my understanding of how it works at
-the moment.
+To use the LargeVis cost function in `smallvis`, we need to make some small
+modifications. First, although equation 2 of the LargeVis paper indicates that
+the input weights are normalized the current implementation doesn't do that. For
+the SGD sampling used, this doesn't matter, but with the way `smallvis` works,
+we will use $v_{ij}$ rather than $p_{ij}$.
 
-First, although equation 2 of the LargeVis paper indicates that the input 
-weights are normalized, I don't think the input weights actually are normalized, 
-i.e. $v_{ij}$ is used rather than $p_{ij}$.
+Second, LargeVis doesn't actually prevent repulsive terms being applied to 
+nearest neighbors. Again due to the SGD sampling implementation, the proportion
+of nearest neighbors involved in repulsive terms is extremely small so it
+doesn't matter for the LargeVis reference implementation.
 
-Second, I think that the repulsive terms are actually applied to both
-neighborhood and non-neighborhood points, so that the repulsive (second) term in
-the likelihood function is actually a sum over all points, not just $\bar{E}$. I
-have experimented with restricting the repulsion to only the non-neighbors in
-`smallvis`, but this leads to some horrible results involving lots of very small
-well-separated clusters. On reflection it seems like this would be the expected
-outcome of not allowing neighbors to repel each other: neighboring points that
-happen to be initialized close to each other will feel a strong mutual force
-that results in them reducing their distances to zero, which will overwhelm any
-longer range attraction from more distant neighbors. I also can't find any 
-evidence in the LargeVis source code that prevents neighborhood points from
-turning up as part of the non-neighborhood sample: there *is* a check 
-made in the code, but it only prevents one of the $k$ neighbors from 
-contributing to the repulsive part of the gradient applied to any given point.
+However, I have experimented with restricting the repulsion to only the
+non-neighbors in `smallvis`, but this leads to some horrible results involving
+lots of very small well-separated clusters. On reflection it seems like this
+would be the expected outcome of not allowing neighbors to repel each other:
+neighboring points that happen to be initialized close to each other will feel a
+strong mutual force that results in them reducing their distances to zero, which
+will overwhelm any longer range attraction from more distant neighbors.
 
-That leaves the attractive part. The partitioning works here and the
-non-neighbors *are* excluded from contributing to the attractive part
-of the cost, but that term is weighted by $p_{ij}$ anyway, so the perplexity
-calibration guarantees that even if you did calculate probabilities for all
-pairs of points, those that weren't part of the neighborhood would contribute
-negligibly to that component of the cost function.
+That leaves the attractive part of the cost function. The partitioning works
+here and the non-neighbors *are* excluded from contributing to the attractive
+part of the cost, but that term is weighted by $p_{ij}$ anyway, so the
+perplexity calibration guarantees that even if you did calculate probabilities
+for all pairs of points, those that weren't part of the neighborhood would
+contribute negligibly to that component of the cost function.
 
 Taken together, you could therefore ignore the partitioning scheme, as long as
 you were prepared to calculate the complete O(N^2) matrices, which is exactly
