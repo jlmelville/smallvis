@@ -104,12 +104,9 @@ Otherwise, it gets a bit confusing keeping track of the signs of the gradients
 compared to the other methods in `smallvis`.
 
 To use the LargeVis cost function in `smallvis`, we need to make some small
-modifications. First, although equation 2 of the LargeVis paper indicates that
-the input weights are normalized the current implementation doesn't do that. For
-the SGD sampling used, this doesn't matter, but with the way `smallvis` works,
-we will use $v_{ij}$ rather than $p_{ij}$.
+modifications. 
 
-Second, LargeVis doesn't actually prevent repulsive terms being applied to 
+LargeVis doesn't actually prevent repulsive terms being applied to 
 nearest neighbors. Again due to the SGD sampling implementation, the proportion
 of nearest neighbors involved in repulsive terms is extremely small so it
 doesn't matter for the LargeVis reference implementation.
@@ -133,25 +130,21 @@ Taken together, you could therefore ignore the partitioning scheme, as long as
 you were prepared to calculate the complete O(N^2) matrices, which is exactly
 what `smallvis` does. 
 
-Based on the above discussion, along with using the un-normalized input weights,
-and wanting a cost function to minimize, the `smallvis` version of the LargeVis
-cost function is:
+Based on the above discussion, and wanting a cost function to minimize, the 
+`smallvis` version of the LargeVis cost function is:
 
 $$
 C_{LV} = 
--\sum_{ij} v_{ij} \log w_{ij} 
--\gamma \sum_{ij} \log \left( 1 - w_{ij} \right) \\
-= -N\sum_{ij} p_{ij} \log w_{ij} 
+-\sum_{ij} p_{ij} \log w_{ij} 
 -\gamma \sum_{ij} \log \left( 1 - w_{ij} \right)
 $$
-In this form, apart from the issue of whether the input weights are normalized
-or not, the attractive terms of both t-SNE and LargeVis are very similar.
+In this form, the attractive terms of both t-SNE and LargeVis are very similar.
 
 The derivative of the cost function with respect to the weights is:
 
 $$
 \frac{\partial C_{LV}}{\partial w_{ij}} =
--\frac{v_{ij}}{w_{ij}} +
+-\frac{p_{ij}}{w_{ij}} +
 \frac{ \gamma}{ \left( 1 - w_{ij} \right)}
 $$
 
@@ -302,7 +295,7 @@ For LargeVis, the gradient can be written as:
 $$
 \frac{\partial C_{LV}}{\partial \mathbf{y_i}} = 
   4\sum_j^N \left(
-    v_{ij}
+    p_{ij}
     -\frac{\gamma}{1 - w_{ij}} w_{ij}
    \right)
    w_{ij}
@@ -316,7 +309,7 @@ of a stochastic gradient descent optimization:
 $$
 \frac{\partial C_{LV}}{\partial \mathbf{y_i}} = 
   4\sum_j^N \left(
-    w_{ij} v_{ij}
+    w_{ij} p_{ij}
     -\frac{\gamma }{d_{ij}^2 + \epsilon}w_{ij}
    \right)
    \left(\mathbf{y_i - y_j}\right)
@@ -342,7 +335,7 @@ w_{ij} = \frac{1}{1 + \alpha d_{ij}^2} \\
 \frac{\partial w_{ij}}{\partial d_{ij}^2} = - \frac{\alpha}{\left(1 + \alpha d_{ij}^2\right)^2} = -\alpha w_{ij}^2 \\
 \frac{\partial C_{LV}}{\partial \mathbf{y_i}} = 
   4\sum_j^N \left(
-    \alpha w_{ij} v_{ij}
+    \alpha w_{ij} p_{ij}
     -\frac{\gamma}{d_{ij}^2 + \epsilon} w_{ij}
    \right)
    \left(\mathbf{y_i - y_j}\right)
@@ -359,7 +352,7 @@ w_{ij} = \frac{1}{1 + \exp \left(d_{ij}^2\right)} \\
 -\exp \left(d_{ij}^2\right) w_{ij}^2 = -\left(1 - w_{ij}\right) w_{ij}\\
 \frac{\partial C_{LV}}{\partial \mathbf{y_i}} = 
   4\sum_j^N \left[
-    \left(1 - w_{ij}\right)v_{ij} 
+    \left(1 - w_{ij}\right) p_{ij} 
     - \gamma w_{ij}
    \right]
    \left(\mathbf{y_i - y_j}\right)

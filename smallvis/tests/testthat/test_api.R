@@ -302,10 +302,10 @@ test_that("largevis", {
   res <- smallvis(iris10, Y_init = iris10_Y, method = "largevis", eta = 0.1,
                   perplexity = 5,
                   epoch_callback = NULL, verbose = FALSE, ret_extra = TRUE)
-  expect_equal(res$Y, c2y(-8.834, 5.819, 3.866, 7.954, -7.697, -13.68, 2.955, -4.704,
-                        12.38, 1.944, 1.879, 4.428, -1.165, -1.434, -2.13, -1.525, -5.295,
-                        1.379, -0.3885, 4.251), tolerance = 1e-4)
-  expect_equal(final_cost(res), 46.99, tolerance = 1e-4)
+  expect_equal(res$Y, c2y(-27.7, 18.93, 11.98, 24.94, -24.71, -43.54, 8.941, -14.7, 39.25,
+                           6.62, 7.422, 13.25, -4.254, -5.268, -5.443, -2.597, -17.29, 5.18,
+                          -4.154, 13.15), tolerance = 1e-4)
+  expect_equal(final_cost(res), 6.99, tolerance = 1e-3)
 })
 
 test_that("tsne with L-BFGS", {

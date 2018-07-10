@@ -90,7 +90,7 @@ largevis <- function(perplexity, gamma = 7, gr_eps = 0.1) {
   lreplace(tsne(perplexity),
      init = function(cost, X, max_iter, eps = 1e-9, verbose = FALSE, ret_extra = c()) {
        cost <- sne_init(cost, X = X, perplexity = perplexity, symmetrize = "symmetric",
-                        normalize = FALSE, verbose = verbose,
+                        normalize = TRUE, verbose = verbose,
                         ret_extra = ret_extra)
        cost$eps <- eps
        cost
