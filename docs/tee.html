@@ -94,6 +94,9 @@ img {
 .tabbed-pane {
   padding-top: 12px;
 }
+.html-widget {
+  margin-bottom: 20px;
+}
 button.code-folding-btn:focus {
   outline: none;
 }
@@ -263,7 +266,7 @@ C_{v} = \frac{1}{N}\sum_{ij}^{N} v_{ij} \log v_{ij} - \lambda
 <p>so the cost function can be written as:</p>
 <p><span class="math display">\[
 C_{t-EE} = \frac{1}{N}\sum_{ij}^{N} v_{ij} \log v_{ij} -\frac{1}{N}\sum_{ij}^{N} v_{ij} \log w_{ij} + \frac{\lambda}{N}  \sum_{ij}^{N} w_{ij} - \lambda
-\]</span> The first two terms can be combined to give a Kullback-Leibler-like expression, and we can group the <span class="math inline">\(\lambda\)</span> expressions too (wherein I have also rewritten <span class="math inline">\(N\)</span> as <span class="math inline">\(sum_{ij}^{N} v_{ij}\)</span>)</p>
+\]</span> The first two terms can be combined to give a Kullback-Leibler-like expression, and we can group the <span class="math inline">\(\lambda\)</span> expressions too (and I have also rewritten <span class="math inline">\(N\)</span> as <span class="math inline">\(\sum_{ij}^{N} v_{ij}\)</span>)</p>
 <p><span class="math display">\[
 C_{t-EE} = \frac{1}{N} \left[ \sum_{ij}^{N} v_{ij} \log \frac{v_{ij}}{w_{ij}} + \lambda \left(\sum_{ij}^{N} w_{ij} - \sum_{ij}^{N} v_{ij}\right) \right] 
 \]</span></p>

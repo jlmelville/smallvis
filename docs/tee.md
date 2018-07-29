@@ -87,8 +87,8 @@ $$
 C_{t-EE} = \frac{1}{N}\sum_{ij}^{N} v_{ij} \log v_{ij} -\frac{1}{N}\sum_{ij}^{N} v_{ij} \log w_{ij} + \frac{\lambda}{N}  \sum_{ij}^{N} w_{ij} - \lambda
 $$
 The first two terms can be combined to give a Kullback-Leibler-like expression,
-and we can group the $\lambda$ expressions too (wherein I have also rewritten
-$N$ as $sum_{ij}^{N} v_{ij}$)
+and we can group the $\lambda$ expressions too (and I have also rewritten
+$N$ as $\sum_{ij}^{N} v_{ij}$)
 
 $$
 C_{t-EE} = \frac{1}{N} \left[ \sum_{ij}^{N} v_{ij} \log \frac{v_{ij}}{w_{ij}} + \lambda \left(\sum_{ij}^{N} w_{ij} - \sum_{ij}^{N} v_{ij}\right) \right] 
