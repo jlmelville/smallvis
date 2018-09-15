@@ -4,16 +4,16 @@
 \alias{smallvis}
 \title{Dimensionality Reduction via Neighbor Embedding}
 \usage{
-smallvis(X, k = 2, scale = "absmax", Y_init = "rand", perplexity = 30,
-  max_iter = 1000, pca = FALSE, initial_dims = 50, method = "tsne",
-  epoch_callback = TRUE, epoch = max(1, base::round(max_iter/10)),
-  min_cost = 0, tol = 1e-07 * epoch, momentum = 0.5,
-  final_momentum = 0.8, mom_switch_iter = 250, eta = 500,
-  min_gain = 0.01, opt = list("dbd"), exaggeration_factor = 1,
-  stop_lying_iter = max(1, floor(max_iter/10)),
-  late_exaggeration_factor = 1, start_late_lying_iter = max_iter - max(1,
-  floor(max_iter/10)), iter0_cost = FALSE, ret_extra = FALSE,
-  verbose = TRUE)
+smallvis(X, k = 2, scale = "absmax", Y_init = "rand",
+  perplexity = 30, max_iter = 1000, pca = FALSE, initial_dims = 50,
+  method = "tsne", epoch_callback = TRUE, epoch = max(1,
+  base::round(max_iter/10)), min_cost = 0, tol = 1e-07 * epoch,
+  momentum = 0.5, final_momentum = 0.8, mom_switch_iter = 250,
+  eta = 500, min_gain = 0.01, opt = list("dbd"),
+  exaggeration_factor = 1, stop_lying_iter = max(1,
+  floor(max_iter/10)), late_exaggeration_factor = 1,
+  start_late_lying_iter = max_iter - max(1, floor(max_iter/10)),
+  iter0_cost = FALSE, ret_extra = FALSE, verbose = TRUE)
 }
 \arguments{
 \item{X}{Input coordinates or distance matrix.}
