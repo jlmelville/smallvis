@@ -11,13 +11,13 @@ License: GPL (>= 2)
 Imports:
     FNN,
     methods,
-    mize,
+    mize (>= 0.2),
     Rfast,
     vizier
 Suggests:
     RSpectra,
     testthat
-Remotes: jlmelville/vizier, jlmelville/mize
+Remotes: jlmelville/vizier
 Encoding: UTF-8
 LazyData: true
 Date: 2017-11-28
