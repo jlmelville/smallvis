@@ -836,6 +836,11 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
     n <- nrow(X)
   }
 
+  # Check for NA
+  if (any(is.na(X))) {
+    stop("Input data contains NA: missing data is not allowed")
+  }
+
   # Fail early as possible if matrix initializer is invalid
   if (methods::is(Y_init, "matrix")) {
     if (nrow(Y_init) != n || ncol(Y_init) != k) {

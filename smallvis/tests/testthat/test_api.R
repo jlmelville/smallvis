@@ -456,3 +456,11 @@ test_that("multiple perplexities", {
                            48.18, 271.5, 120.7, -35.23, -208.6, 87.18, 284, -171.8, 121.4,
                            -436.3, -32.79), tolerance = 1e-3)
 })
+
+test_that("fix #2 (detect NA in input)", {
+  bad_iris10 <- iris10
+  bad_iris10[1, 1] <- NA
+  expect_error(smallvis(bad_iris10, Y_init = iris10_Y,
+                        perplexity = 4,
+                        epoch_callback = NULL, verbose = FALSE), "NA")
+})
