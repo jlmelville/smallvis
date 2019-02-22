@@ -155,7 +155,8 @@
 #'   PCA: columns are centered, but no scaling beyond that which is applied by
 #'   the \code{scale} parameter is carried out.
 #'   \item{\code{"spca"}}: uses the PCA scores and then scales each score to a
-#'   standard deviation of 1e-4.
+#'   standard deviation of 1e-4, similar to the method advocated by Kobak and
+#'   Berens, 2018.
 #'   \item{\code{"laplacian"}}: initialize from Laplacian Eigenmap (Belkin and
 #'   Niyogi, 2002). The affinity matrix used as input is the result of the
 #'   perplexity or smoothed k-nearest neighbor distance calibration. Either
@@ -602,6 +603,11 @@
 #' Hinton, G. E., & Roweis, S. T. (2002).
 #' Stochastic neighbor embedding.
 #' In \emph{Advances in neural information processing systems} (pp. 833-840).
+#'
+#' Kobak, D., & Berens, P. (2018).
+#' The art of using t-SNE for single-cell transcriptomics. 
+#' \emph{bioRxiv}, 453449.
+#' \url{https://doi.org/10.1101/453449}
 #'
 #' Lee, J. A., Renard, E., Bernard, G., Dupont, P., & Verleysen, M. (2013).
 #' Type 1 and 2 mixtures of Kullback-Leibler divergences as cost functions in
