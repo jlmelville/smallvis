@@ -232,9 +232,9 @@ test_that("tasne", {
   res <- smallvis(iris10, Y_init = iris10_Y, method = "tasne", eta = 0.1,
                   perplexity = 5,
                   epoch_callback = NULL, verbose = FALSE, ret_extra = TRUE)
-  expect_equal(res$Y, c2y(-9.398, 6.729, 5.751, 9.675, -8.758, -23.45, 4.814, -4.545,
-                        16.18, 2.997, 2.331, 4.598, -1.154, -0.7406, -2.752, -0.8487,
-                        -5.518, 1.061, -0.7827, 3.806), tolerance = 1e-4)
+  expect_equal(res$Y, c2y(-9.382, 6.714, 5.741, 9.657, -8.740, -23.40, 4.809, -4.537,
+                        16.15, 2.989, 2.321, 4.593, -1.149, -0.7335, -2.752, -0.8603,
+                        -5.505, 1.061, -0.7827, 3.806), tolerance = 1e-2)
   expect_equal(final_cost(res), 0.5719, tolerance = 1e-4)
 })
 

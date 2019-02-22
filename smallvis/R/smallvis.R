@@ -995,11 +995,11 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
       }
       max_iter <- iter
     }
+    
+    # Recenter after each iteration
+    Y <- sweep(Y, 2, colMeans(Y))
 
     if ((epoch > 0 && iter %% epoch == 0) || iter == max_iter) {
-      # Recenter Y during epoch only
-      Y <- sweep(Y, 2, colMeans(Y))
-
       cost_eval_res <- cost_eval(cost_fn, Y, opt_res)
       cost_fn <- cost_eval_res$cost
       cost <- cost_eval_res$value
@@ -1064,6 +1064,9 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
     }
   }
 
+  # Recenter before output
+  Y <- sweep(Y, 2, colMeans(Y))
+  
   ret_value(Y, ret_extra, method, X, scale, Y_init, iter, start_time,
             cost_fn = cost_fn, opt_res$G,
             perplexity, itercosts,
