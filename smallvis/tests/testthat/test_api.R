@@ -464,3 +464,10 @@ test_that("fix #2 (detect NA in input)", {
                         perplexity = 4,
                         epoch_callback = NULL, verbose = FALSE), "NA")
 })
+
+test_that("opt-SNE eta", {
+  i10_tsne <- smallvis(iris10, Y_init = iris10_Y, eta = "opt", 
+                       perplexity = 4, ret_extra = TRUE,
+                       epoch_callback = NULL, verbose = FALSE)
+  expect_equal(i10_tsne$opt$eta, 10)
+})
