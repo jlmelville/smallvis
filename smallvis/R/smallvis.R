@@ -850,6 +850,12 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
 
   # Optimizer
   if (opt[[1]] == "dbd" || opt[[1]] == "ndbd") {
+    if (eta == "opt") {
+      eta <- n / exaggeration_factor
+      if (verbose) {
+        tsmessage("Using opt-SNE learning rate = ", formatC(eta))
+      }
+    }
     opt_list <- lmerge(opt, list(momentum = momentum,
                        final_momentum = final_momentum,
                        mom_switch_iter = mom_switch_iter,
