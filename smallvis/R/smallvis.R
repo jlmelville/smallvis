@@ -366,7 +366,10 @@
 #' @param final_momentum Final momentum value.
 #' @param mom_switch_iter Iteration at which the momentum will switch from
 #'   \code{momentum} to \code{final_momentum}.
-#' @param eta Learning rate value.
+#' @param eta Learning rate value, a positive number. Or set to \code{"opt"},
+#'   to use the formula suggested by Belkina and co-workers (2018) in their
+#'   opt-SNE package (the size of the dataset divided by the 
+#'   \code{exaggeration_factor}).
 #' @param min_gain Minimum gradient descent step size.
 #' @param opt Optional list specifying alternative minimization method. See
 #'   "Alternative optimizers" section.
@@ -578,6 +581,11 @@
 #' In \emph{Advances in neural information processing systems}
 #' (pp. 585-591).
 #' \url{http://papers.nips.cc/paper/1961-laplacian-eigenmaps-and-spectral-techniques-for-embedding-and-clustering.pdf}
+#'
+#' Belkina, A. C., Ciccolella, C. O., Anno, R., Spidlen, J., Halpert, R., & Snyder-Cappione, J. (2018). 
+#' Automated optimal parameters for T-distributed stochastic neighbor embedding improve visualization and allow analysis of large datasets. 
+#' \emph{bioRxiv}, 451690.
+#' \url{https://www.biorxiv.org/content/10.1101/451690v2.abstract}
 #'
 #' Borg, I., & Groenen, P. J. (2005).
 #' \emph{Modern multidimensional scaling: Theory and applications.}
