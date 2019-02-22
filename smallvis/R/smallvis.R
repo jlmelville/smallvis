@@ -836,9 +836,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
   else {
     if (methods::is(X, "data.frame")) {
       indexes <- which(vapply(X, is.numeric, logical(1)))
-      if (verbose) {
-        message("Found ", length(indexes), " numeric columns")
-      }
+      tsmessage("Found ", length(indexes), " numeric columns")
       if (length(indexes) == 0) {
         stop("No numeric columns found")
       }
@@ -866,9 +864,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
   if (opt[[1]] == "dbd" || opt[[1]] == "ndbd") {
     if (eta == "opt") {
       eta <- n / exaggeration_factor
-      if (verbose) {
-        tsmessage("Using opt-SNE learning rate = ", formatC(eta))
-      }
+      tsmessage("Using opt-SNE learning rate = ", formatC(eta))
     }
     opt_list <- lmerge(opt, list(momentum = momentum,
                        final_momentum = final_momentum,
@@ -904,27 +900,19 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
         # Pretty sure it doesn't matter, given the current options
         A <- cost_fn$V
         if (is.null(A)) {
-          if (verbose) {
-            tsmessage("Using P for spectral initialization")
-          }
+          tsmessage("Using P for spectral initialization")
           A <- cost_fn$P
         }
-        else if (verbose) {
-          tsmessage("Using V for spectral initialization")
-        }
+        tsmessage("Using V for spectral initialization")
         if (is.null(A)) {
           stop("No suitable input for spectral initialization")
         }
         if (Y_init == "laplacian") {
-          if (verbose) {
-            tsmessage("Initializing from Laplacian Eigenmap")
-          }
+          tsmessage("Initializing from Laplacian Eigenmap")
           Y <- laplacian_eigenmap(A, ndim = k)
         }
         else {
-          if (verbose) {
-            tsmessage("Initializing from normalized Laplacian")
-          }
+          tsmessage("Initializing from normalized Laplacian")
           Y <- normalized_spectral_init(A, ndim = k)
         }
       }
@@ -937,9 +925,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
     cost_fn <- cost_eval_res$cost
     cost <- cost_eval_res$value
 
-    if (verbose) {
-      tsmessage("Iteration #0 error: ", formatC(cost))
-    }
+    tsmessage("Iteration #0 error: ", formatC(cost))
 
     if (ret_extra) {
       names(cost) <- 0
@@ -966,9 +952,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
 
   old_cost <- NULL
   tolval <- NULL
-  if (verbose) {
-    tsmessage("Optimizing coordinates")
-  }
+  tsmessage("Optimizing coordinates")
 
   for (iter in 1:max_iter) {
     opt_res <- opt_step(opt, cost_fn, Y, iter)
@@ -978,27 +962,21 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
 
     if (!is.null(cost_fn$P) && iter == stop_lying_iter &&
         exaggeration_factor != 1) {
-      if (verbose) {
-        message("Switching off exaggeration at iter ", iter)
-      }
+      tsmessage("Switching off exaggeration at iter ", iter)
       cost_fn$P <- cost_fn$P / exaggeration_factor
     }
 
     if (!is.null(cost_fn$P) && iter == start_late_lying_iter &&
         late_exaggeration_factor != 1) {
-      if (verbose) {
-        message("Starting late exaggeration = ",
-                formatC(late_exaggeration_factor), " at iter ", iter)
-      }
+      tsmessage("Starting late exaggeration = ",
+              formatC(late_exaggeration_factor), " at iter ", iter)
       cost_fn$P <- cost_fn$P * late_exaggeration_factor
     }
 
     if (nnat(opt$is_terminated)) {
-      if (verbose) {
-        tsmessage("Iteration #", iter,
-                  " stopping early: optimizer reports convergence: ",
-                  opt$terminate$what)
-      }
+      tsmessage("Iteration #", iter,
+                " stopping early: optimizer reports convergence: ",
+                opt$terminate$what)
       max_iter <- iter
     }
     
@@ -1017,21 +995,20 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
 
       if (verbose) {
         tsmessage("Iteration #", iter, " error: ",
-                formatC(cost)
-                , " ||G||2 = ", formatC(norm2(opt_res$G))
-                , appendLF = FALSE
-                )
+                  formatC(cost)
+                  , " ||G||2 = ", formatC(norm2(opt_res$G))
+                  , appendLF = FALSE
+                  )
         if (!is.null(tolval)) {
-          message(" tol = ", formatC(tolval), appendLF = FALSE)
+          tsmessage(" tol = ", formatC(tolval), appendLF = FALSE)
         }
         if (!is.null(opt$counts)) {
-          message(" nf = ", opt$counts$fn, " ng = ", opt$counts$gr,
+          tsmessage(" nf = ", opt$counts$fn, " ng = ", opt$counts$gr,
                   appendLF = FALSE)
         }
         message()
         utils::flush.console()
       }
-
       if (!is.null(epoch_callback)) {
         do_callback(epoch_callback, Y, iter, cost)
       }
@@ -1042,19 +1019,15 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
       }
 
       if (cost < min_cost) {
-        if (verbose) {
-          tsmessage("Stopping early: cost fell below min_cost")
-        }
+        tsmessage("Stopping early: cost fell below min_cost")
         break
       }
 
       # Don't stop early if still exaggerating
       if ((exaggeration_factor == 1 || iter > stop_lying_iter)) {
         if (!nnat(opt$is_terminated) && !is.null(tolval) && tolval < tol) {
-          if (verbose) {
-            tsmessage("Stopping early: relative tolerance (", formatC(tol),
-                      ") met")
-          }
+          tsmessage("Stopping early: relative tolerance (", formatC(tol), 
+                    ") met")
           break
         }
       }
@@ -1383,28 +1356,20 @@ scale_input <- function(X, scale, verbose = FALSE) {
 
   switch(scale,
          range = {
-           if (verbose) {
-             tsmessage("Range scaling X")
-           }
+           tsmessage("Range scaling X")
            X <- as.matrix(X)
            X <- X - min(X)
            X <- X / max(X)
          },
          absmax = {
-           if (verbose) {
-             tsmessage("Normalizing by abs-max")
-           }
+           tsmessage("Normalizing by abs-max")
            X <- base::scale(X, scale = FALSE)
            X <- X / abs(max(X))
          },
          scale = {
-           if (verbose) {
-             tsmessage("Scaling to zero mean and unit variance")
-           }
+           tsmessage("Scaling to zero mean and unit variance")
            X <- Filter(stats::var, X)
-           if (verbose) {
-             message("Kept ", ncol(X), " non-zero-variance columns")
-           }
+           tsmessage("Kept ", ncol(X), " non-zero-variance columns")
            X <- base::scale(X, scale = TRUE)
          },
          none = {
@@ -1423,17 +1388,13 @@ pca_preprocess <- function(X, pca, whiten, initial_dims, verbose = FALSE) {
   }
   if (pca) {
     if (whiten) {
-      if (verbose) {
-        tsmessage("Reducing initial dimensionality with PCA and ",
+      tsmessage("Reducing initial dimensionality with PCA and ",
                 "whitening to ", initial_dims, " dims")
-      }
       X <- pca_whiten(X = X, ncol = initial_dims, verbose = verbose)
     }
     else {
-      if (verbose) {
-        tsmessage("Reducing initial dimensionality with PCA to ",
+      tsmessage("Reducing initial dimensionality with PCA to ",
                 initial_dims, " dims")
-      }
       X <- pca_scores(X = X, ncol = initial_dims, verbose = verbose)
     }
   }
@@ -1446,9 +1407,7 @@ pca_preprocess <- function(X, pca, whiten, initial_dims, verbose = FALSE) {
 init_out <- function(Y_init, X, n, ndim, pca_preprocessed, verbose = FALSE) {
   switch(Y_init,
          pca = {
-           if (verbose) {
-             tsmessage("Initializing from PCA scores")
-           }
+           tsmessage("Initializing from PCA scores")
            if (pca_preprocessed) {
              X[, 1:2]
            }
@@ -1457,9 +1416,7 @@ init_out <- function(Y_init, X, n, ndim, pca_preprocessed, verbose = FALSE) {
            }
          },
          spca = {
-           if (verbose) {
-             tsmessage("Initializing from scaled PCA scores")
-           }
+           tsmessage("Initializing from scaled PCA scores")
            # If we've already done PCA, we can just take the first two columns
            if (pca_preprocessed) {
              scores <- X[, 1:2]
@@ -1470,9 +1427,7 @@ init_out <- function(Y_init, X, n, ndim, pca_preprocessed, verbose = FALSE) {
            scale(scores, scale = apply(scores, 2, stats::sd) / 1e-4)
          },
          rand = {
-           if (verbose) {
-             tsmessage("Initializing from random Gaussian with sd = 1e-4")
-           }
+           tsmessage("Initializing from random Gaussian with sd = 1e-4")
            matrix(stats::rnorm(ndim * n, sd = 1e-4), n)
          }
   )
@@ -1751,10 +1706,8 @@ pca_scores <- function(X, ncol = min(dim(X)), verbose = FALSE,
     if (ret_extra || verbose) {
       lambda <- res_mds$eig
       varex <- sum(lambda[1:ncol]) / sum(lambda)
-      if (verbose) {
-        message("PCA (using classical MDS): ", ncol, " components explained ",
+      tsmessage("PCA (using classical MDS): ", ncol, " components explained ",
                 formatC(varex * 100), "% variance")
-      }
     }
     scores <- res_mds$points
   }
@@ -1767,10 +1720,8 @@ pca_scores <- function(X, ncol = min(dim(X)), verbose = FALSE,
       # calculate eigenvalues of covariance matrix from singular values
       lambda <- (s$d ^ 2) / (nrow(X) - 1)
       varex <- sum(lambda[1:ncol]) / sum(lambda)
-      if (verbose) {
-        message("PCA: ", ncol, " components explained ", formatC(varex * 100),
+      tsmessage("PCA: ", ncol, " components explained ", formatC(varex * 100),
                 "% variance")
-      }
     }
     scores <- s$u %*% D
   }
@@ -1930,9 +1881,7 @@ x2aff <- function(X, perplexity = 15, tol = 1e-5, kernel = "gauss",
   sigma <- sqrt(1 / beta)
 
   if (bad_perp > 0) {
-    if (verbose) {
-      tsmessage("Warning: ", bad_perp, " perplexity calibrations failed!")
-    }
+    tsmessage("Warning: ", bad_perp, " perplexity calibrations failed!")
     warning(bad_perp, " perplexity calibrations failed")
   }
 
@@ -2043,17 +1992,13 @@ knn_graph <- function(X, k) {
 # Given data X and k nearest neighbors, return a geodisic distance matrix
 # Disconnections are treated by using the Euclidean distance.
 geodesic <- function(X, k, fill = TRUE, verbose = FALSE) {
-  if (verbose) {
-    tsmessage("Calculating geodesic distances with k = ", k)
-  }
+  tsmessage("Calculating geodesic distances with k = ", k)
 
   # The hard work is done by Rfast's implementation of Floyd's algorithm
   G <- Rfast::floyd(knndist(X, k))
 
   if (any(is.infinite(G)) && fill) {
-    if (verbose) {
-      message("k = ", k, " resulted in disconnections: filling with Euclidean distances")
-    }
+    tsmessage("k = ", k, " resulted in disconnections: filling with Euclidean distances")
     if (methods::is(X, "dist")) {
       R <- as.matrix(X)
     }
@@ -2081,19 +2026,15 @@ idp <- function(X, perplexities = NULL, tol = 1e-5,
   if (is.null(perplexities)) {
     perplexities <- idp_perps(n)
   }
-  if (verbose) {
-    tsmessage("Searching for intrinsic dimensionality with perplexities from ",
-              formatC(perplexities[1]), " to ", formatC(last(perplexities)))
-  }
+  tsmessage("Searching for intrinsic dimensionality with perplexities from ",
+            formatC(perplexities[1]), " to ", formatC(last(perplexities)))
 
   corr_dim_max <- -Inf
   idp <- 0
   idp_res <- NULL
   for (perplexity in perplexities) {
-    if (verbose) {
-      tsmessage("Commencing calibration for perplexity = ",
-                format_perps(perplexity))
-    }
+    tsmessage("Commencing calibration for perplexity = ",
+              format_perps(perplexity))
     x2a_res <- x2aff(X = X, perplexity = perplexity, tol = tol, kernel = "gauss",
                      verbose = verbose, guesses = guesses)
     corr_dim <- mean(x2a_res$dint)
@@ -2109,10 +2050,8 @@ idp <- function(X, perplexities = NULL, tol = 1e-5,
   if (idp <= 0) {
     stop("Unable to find an IDP: all correlation dimensions were -ve")
   }
-  if (verbose) {
-    tsmessage("Found IDP at perplexity = ", formatC(idp),
-              " intrinsic dimensionality = ", formatC(corr_dim_max))
-  }
+  tsmessage("Found IDP at perplexity = ", formatC(idp),
+            " intrinsic dimensionality = ", formatC(corr_dim_max))
 
   idp_res$idp <- idp
   idp_res
@@ -2182,9 +2121,18 @@ stime <- function() {
 }
 
 # message with a time stamp
-tsmessage <- function(..., domain = NULL, appendLF = TRUE) {
-  message(stime(), " ", ..., domain = domain, appendLF = appendLF)
-  utils::flush.console()
+tsmessage <- function(..., domain = NULL, appendLF = TRUE, force = FALSE,
+                      time_stamp = TRUE) {
+  verbose <- get0("verbose", envir = sys.parent())
+  
+  if (force || (!is.null(verbose) && verbose)) {
+    msg <- ""
+    if (time_stamp) {
+      msg <- paste0(stime(), " ")
+    }
+    message(msg, ..., domain = domain, appendLF = appendLF)
+    utils::flush.console()
+  }
 }
 
 # merge lists, where anything non-NULL in l is kept
@@ -2301,9 +2249,7 @@ smooth_knn_distances <-
            min_k_dist_scale = 1e-3,
            verbose = FALSE) {
 
-    if (verbose) {
-      tsmessage("Commencing smooth kNN distance calibration for k = ", formatC(k))
-    }
+    tsmessage("Commencing smooth kNN distance calibration for k = ", formatC(k))
 
     if (methods::is(X, "dist")) {
       X <- as.matrix(X)
