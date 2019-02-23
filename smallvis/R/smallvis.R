@@ -383,9 +383,13 @@
 #' @param epoch After every \code{epoch} number of steps, calculates and
 #'   displays the cost value and calls \code{epoch_callback}, if supplied.
 #' @param momentum Initial momentum value.
-#' @param final_momentum Final momentum value.
+#' @param final_momentum Final momentum value. If 
+#'   \code{late_exaggeration_factor > 1}, then during late exaggeration, the
+#'   momentum is switched back to \code{momentum} from this value.
 #' @param mom_switch_iter Iteration at which the momentum will switch from
-#'   \code{momentum} to \code{final_momentum}.
+#'   \code{momentum} to \code{final_momentum}. If 
+#'   \code{exaggeration_factor > 1}, then this should occur at some point
+#'   after \code{stop_lying_iter} (default is 150 iterations after).
 #' @param eta Learning rate value, a positive number. Or set to \code{"opt"},
 #'   to use the formula suggested by Belkina and co-workers (2018) in their
 #'   opt-SNE package (the size of the dataset divided by the 
@@ -703,7 +707,8 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
                  epoch_callback = TRUE,
                  epoch = max(1, base::round(max_iter / 10)),
                  min_cost = 0, tol = 1e-7 * epoch,
-                 momentum = 0.5, final_momentum = 0.8, mom_switch_iter = 250,
+                 momentum = 0.5, final_momentum = 0.8, 
+                 mom_switch_iter = stop_lying_iter + 150,
                  eta = 500, min_gain = 0.01,
                  opt = list("dbd"),
                  exaggeration_factor = 1,
@@ -968,7 +973,17 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
                      pca = ifelse(pca && !whiten, initial_dims, 0),
                      whiten = ifelse(pca && whiten, initial_dims, 0)))
   }
-
+  
+  opt_stages <- c()
+  if (exaggeration_factor != 1) {
+    opt_stages <- c(opt_stages, "early")
+  }
+  opt_stages <- c(opt_stages, "opt")
+  if (late_exaggeration_factor != 1) {
+    opt_stages <- c(opt_stages, "late")
+  }
+  opt_stage_idx <- 1
+  
   # Start exaggerating
   if (!is.null(cost_fn$P)) {
     cost_fn$P <- cost_fn$P * exaggeration_factor
@@ -977,7 +992,6 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
   old_cost <- NULL
   tolval <- NULL
   tsmessage("Optimizing coordinates")
-
   for (iter in 1:max_iter) {
     opt_res <- opt_step(opt, cost_fn, Y, iter)
     opt <- opt_res$opt
@@ -988,13 +1002,19 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
         exaggeration_factor != 1) {
       tsmessage("Switching off exaggeration at iter ", iter)
       cost_fn$P <- cost_fn$P / exaggeration_factor
+      opt_stage_idx <- opt_stage_idx + 1
     }
 
     if (!is.null(cost_fn$P) && iter == start_late_lying_iter &&
         late_exaggeration_factor != 1) {
       tsmessage("Starting late exaggeration = ",
-              formatC(late_exaggeration_factor), " at iter ", iter)
+              formatC(late_exaggeration_factor), " at iter ", iter,
+              " until iter ", max_iter)
       cost_fn$P <- cost_fn$P * late_exaggeration_factor
+      opt_stage_idx <- opt_stage_idx + 1
+      # DBD only: go back to initial momentum
+      opt$mom_switch_iter <- start_late_lying_iter + 1
+      opt$final_momentum <- momentum
     }
 
     if (nnat(opt$is_terminated)) {
@@ -1002,6 +1022,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
                 " stopping early: optimizer reports convergence: ",
                 opt$terminate$what)
       max_iter <- iter
+      break
     }
     
     # Recenter after each iteration
@@ -1042,19 +1063,47 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
         itercosts <- c(itercosts, cost)
       }
 
+      # Early stopping test
       if (cost < min_cost) {
         tsmessage("Stopping early: cost fell below min_cost")
         break
       }
 
-      # Don't stop early if still exaggerating
-      if ((exaggeration_factor == 1 || iter > stop_lying_iter)) {
-        if (!nnat(opt$is_terminated) && !is.null(tolval) && tolval < tol) {
-          tsmessage("Stopping early: relative tolerance (", formatC(tol), 
-                    ") met")
+      # Stop current stage early if we aren't making progress
+      if (!nnat(opt$is_terminated) && !is.null(tolval) && tolval < tol) {
+        tsmessage("Stopping early: relative tolerance (", formatC(tol), 
+                  ") met")
+        if (opt_stage_idx == length(opt_stages)) {
+          # run out of optimization stages, so give up
           break
         }
+        
+        opt_stage <- opt_stages[opt_stage_idx]
+        if (opt_stage == "early") {
+          # stop early exaggeration and adjust mom_switch_iter accordingly
+          # Only applies to DBD optimizer
+          n_low_mom_iters <- mom_switch_iter - stop_lying_iter
+          stop_lying_iter <- iter + 1
+          mom_switch_iter <- stop_lying_iter + n_low_mom_iters
+          opt$mom_switch_iter <- mom_switch_iter
+        }
+
+        # we know there is at least one more stage or we would have hit the
+        # break earlier
+        next_opt_stage <- opt_stages[opt_stage_idx + 1]
+        
+        switch(next_opt_stage,
+               opt = tsmessage("Proceeding to main optimization stage"),
+               late = {
+                 n_late_exagg_iters <- max_iter - start_late_lying_iter
+                 start_late_lying_iter <- iter + 1
+                 max_iter <- start_late_lying_iter + n_late_exagg_iters
+                 tsmessage("Proceeding to late exaggeration stage")
+               },
+               stop("BUG: unknown optimization stage '", next_opt_stage, "'")
+        )
       }
+      
 
       if (nnat(opt$is_terminated)) {
         break

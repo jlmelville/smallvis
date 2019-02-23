@@ -115,11 +115,11 @@ dbd <- function(eta = 500, momentum = 0.5, final_momentum = 0.8,
 
       opt$gains <- gains
 
-      if (iter == mom_switch_iter && momentum != final_momentum) {
+      if (iter == opt$mom_switch_iter && opt$mu != opt$final_momentum) {
         opt$mu <- opt$final_momentum
         if (verbose) {
           message("Iteration #", iter,
-                  " switching to final momentum = ", formatC(final_momentum))
+                  " switching to final momentum = ", formatC(opt$final_momentum))
         }
       }
       opt
@@ -178,11 +178,11 @@ ndbd <- function(eta = 500, momentum = 0.5, final_momentum = 0.8,
       opt$gains <- gains
       opt$old_gd <- gd
 
-      if (iter == mom_switch_iter && momentum != final_momentum) {
+      if (iter == opt$mom_switch_iter && opt$mu != opt$final_momentum) {
         opt$mu <- opt$final_momentum
         if (verbose) {
           message("Iteration #", iter,
-                  " switching to final momentum = ", formatC(final_momentum))
+                  " switching to final momentum = ", formatC(opt$final_momentum))
         }
       }
       opt
