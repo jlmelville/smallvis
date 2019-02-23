@@ -471,3 +471,14 @@ test_that("opt-SNE eta", {
                        epoch_callback = NULL, verbose = FALSE)
   expect_equal(i10_tsne$opt$eta, 10)
 })
+
+test_that("multiscale perplexities", {
+  iris10_mstsne <- smallvis(iris10, verbose = FALSE, epoch_callback = NULL,
+                            perplexity = list("multiscale"), Y_init = iris10_Y)
+  expect_equal(iris10_mstsne, c2y(-147.98, 54.76, 80.32, 
+                             136.76, -150.96, -233.56, 57.36, 
+                             -92.88, 202.81, 93.37, 66.78, 
+                             30.68, -52.60, -41.84, 7.637, 
+                             43.56, -109.71, 42.86, -54.20, 
+                             66.84), tolerance = 1e-3)
+})
