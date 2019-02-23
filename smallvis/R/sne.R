@@ -751,6 +751,32 @@ arsrsne <- function(perplexity) {
 
 # Perplexity Calibration --------------------------------------------------
 
+scale_affinities <- function(P, symmetrize = "symmetric", row_normalize = TRUE,
+                             normalize = TRUE) {
+  # row normalization before anything else
+  if (row_normalize) {
+    if (symmetrize == "rowsymm") {
+      P <- 0.5 * (P + t(P))
+      symmetrize <- "none"
+    }
+    P <- P / rowSums(P)
+  }
+  
+  # Symmetrize
+  P <- switch(symmetrize,
+              none = P,
+              symmetric = 0.5 * (P + t(P)),
+              mutual = sqrt(P * t(P)),
+              umap = P + t(P) - P * t(P),
+              stop("unknown symmetrization: ", symmetrize))
+  # Normalize
+  if (normalize) {
+    P <- P / sum(P)
+  }
+  P
+}
+
+
 # symmetrize: type of symmetrization:
 #  none - no symmetrization as in ASNE, JSE, NeRV
 #  symmetric - symmetric nearest neighbor style, default, as in t-SNE.
@@ -785,6 +811,20 @@ sne_init <- function(cost, X, perplexity, kernel = "gaussian",
     P <- x2ares$W
     ret_extra <- unique(c(ret_extra, "idp"))
   }
+  else if (perp_method(perplexity) == "multiscale") {
+    perplexities <- NULL
+    if (is.list(perplexity) && length(perplexity) == 2) {
+      perplexities <- perplexity[[2]]
+    }
+    
+    mspres <- msp(X, perplexities = perplexities, tol = 1e-5,
+                  symmetrize = symmetrize, 
+                  row_normalize = row_normalize,
+                  normalize = normalize,
+                  verbose = verbose)
+    cost$P <- mspres$P
+    return(cost)
+  }
   else {
     if (!is.numeric(perplexity)) {
       stop("Unknown perplexity method, '", perplexity[[1]], "'")
@@ -798,26 +838,11 @@ sne_init <- function(cost, X, perplexity, kernel = "gaussian",
     P <- x2ares$W
   }
 
-  # row normalization before anything else
-  if (row_normalize) {
-    if (symmetrize == "rowsymm") {
-      P <- 0.5 * (P + t(P))
-      symmetrize <- "none"
-    }
-    P <- P / rowSums(P)
-  }
-
-  # Symmetrize
-  P <- switch(symmetrize,
-              none = P,
-              symmetric = 0.5 * (P + t(P)),
-              mutual = sqrt(P * t(P)),
-              umap = P + t(P) - P * t(P),
-              stop("unknown symmetrization: ", symmetrize))
-  # Normalize
-  if (normalize) {
-    P <- P / sum(P)
-  }
+  P <- scale_affinities(P, 
+                        symmetrize = symmetrize, 
+                        row_normalize = row_normalize,
+                        normalize = normalize)
+  
   cost$P <- P
 
   for (r in unique(tolower(ret_extra))) {
@@ -862,5 +887,14 @@ sne_init <- function(cost, X, perplexity, kernel = "gaussian",
 intd_x2aff <- function(D2, beta, W, Z, H, eps = .Machine$double.eps) {
   P <- W / Z
   -2 * beta * sum(D2 * P * (log(P + eps) + H))
+}
+
+shannonpr <- function(P, eps = .Machine$double.eps) {
+  P <- P / rowSums(P)
+  rowSums(-P * log(P + eps))
+}
+
+perpp <- function(P) {
+  exp(shannonpr(P))
 }
 
