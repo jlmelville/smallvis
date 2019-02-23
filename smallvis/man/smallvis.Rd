@@ -8,12 +8,13 @@ smallvis(X, k = 2, scale = "absmax", Y_init = "rand",
   perplexity = 30, max_iter = 1000, pca = FALSE, initial_dims = 50,
   method = "tsne", epoch_callback = TRUE, epoch = max(1,
   base::round(max_iter/10)), min_cost = 0, tol = 1e-07 * epoch,
-  momentum = 0.5, final_momentum = 0.8, mom_switch_iter = 250,
-  eta = 500, min_gain = 0.01, opt = list("dbd"),
-  exaggeration_factor = 1, stop_lying_iter = max(1,
-  floor(max_iter/10)), late_exaggeration_factor = 1,
-  start_late_lying_iter = max_iter - max(1, floor(max_iter/10)),
-  iter0_cost = FALSE, ret_extra = FALSE, verbose = TRUE)
+  momentum = 0.5, final_momentum = 0.8,
+  mom_switch_iter = stop_lying_iter + 150, eta = 500,
+  min_gain = 0.01, opt = list("dbd"), exaggeration_factor = 1,
+  stop_lying_iter = max(1, floor(max_iter/10)),
+  late_exaggeration_factor = 1, start_late_lying_iter = max_iter -
+  max(1, floor(max_iter/10)), iter0_cost = FALSE, ret_extra = FALSE,
+  verbose = TRUE)
 }
 \arguments{
 \item{X}{Input coordinates or distance matrix.}
@@ -71,10 +72,20 @@ early exaggeration).}
 
 \item{momentum}{Initial momentum value.}
 
-\item{final_momentum}{Final momentum value.}
+\item{final_momentum}{Final momentum value. If 
+\code{late_exaggeration_factor > 1}, then during late exaggeration, the
+momentum is switched back to \code{momentum} from this value.}
 
 \item{mom_switch_iter}{Iteration at which the momentum will switch from
-\code{momentum} to \code{final_momentum}.}
+\code{momentum} to \code{final_momentum}. If 
+\code{exaggeration_factor > 1}, then this should occur at some point
+after \code{stop_lying_iter} (default is 150 iterations after). If
+the early exaggeration phase stops early, this value is treated as being
+relative to when early exaggeration stops, to avoid wasting iterations
+at the lower momentum value. For example, if \code{stop_lying_iter = 100}
+and \code{mom_switch_iter = 250} (the defaults), but early exaggeration
+converges at iteration 50, the switch iteration will occur at iteration 
+150.}
 
 \item{eta}{Learning rate value, a positive number. Or set to \code{"opt"},
 to use the formula suggested by Belkina and co-workers (2018) in their
@@ -101,7 +112,14 @@ seem better here (e.g. around 1.5-2).}
 \item{start_late_lying_iter}{Iteration at which to start late exaggeration
 (Linderman and co-workers, 2017). Applies \code{late_exaggeration_factor}
 after the specified iteration until the end of the optimization. For
-\code{max_iter = 1000}, \code{start_late_lying_iter = 900} is suggested.}
+\code{max_iter = 1000}, \code{start_late_lying_iter = 900} is suggested.
+If the main optimization stops early due to the convergence tolerance being
+reached, the late exaggeration stage will start immediately, for the same
+relative number of iterations, e.g. if \code{max_iter = 1000} and
+\code{start_late_lying_iter = 900}, but the optimization converges at
+iteration 800, then late exaggeration will be started between iterations
+801 and 900, so that you still only get 100 iterations of late
+exaggeration, rather than 200 (which is unlikely to be what you wanted).}
 
 \item{iter0_cost}{If \code{TRUE}, calculate the cost for the initial
 configuration. This while be logged to the console if \code{verbose = TRUE}

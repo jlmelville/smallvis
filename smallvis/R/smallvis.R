@@ -389,7 +389,13 @@
 #' @param mom_switch_iter Iteration at which the momentum will switch from
 #'   \code{momentum} to \code{final_momentum}. If 
 #'   \code{exaggeration_factor > 1}, then this should occur at some point
-#'   after \code{stop_lying_iter} (default is 150 iterations after).
+#'   after \code{stop_lying_iter} (default is 150 iterations after). If
+#'   the early exaggeration phase stops early, this value is treated as being
+#'   relative to when early exaggeration stops, to avoid wasting iterations
+#'   at the lower momentum value. For example, if \code{stop_lying_iter = 100}
+#'   and \code{mom_switch_iter = 250} (the defaults), but early exaggeration
+#'   converges at iteration 50, the switch iteration will occur at iteration 
+#'   150.
 #' @param eta Learning rate value, a positive number. Or set to \code{"opt"},
 #'   to use the formula suggested by Belkina and co-workers (2018) in their
 #'   opt-SNE package (the size of the dataset divided by the 
@@ -410,6 +416,13 @@
 #'   (Linderman and co-workers, 2017). Applies \code{late_exaggeration_factor}
 #'   after the specified iteration until the end of the optimization. For
 #'   \code{max_iter = 1000}, \code{start_late_lying_iter = 900} is suggested.
+#'   If the main optimization stops early due to the convergence tolerance being
+#'   reached, the late exaggeration stage will start immediately, for the same
+#'   relative number of iterations, e.g. if \code{max_iter = 1000} and
+#'   \code{start_late_lying_iter = 900}, but the optimization converges at
+#'   iteration 800, then late exaggeration will be started between iterations
+#'   801 and 900, so that you still only get 100 iterations of late
+#'   exaggeration, rather than 200 (which is unlikely to be what you wanted).
 #' @param iter0_cost If \code{TRUE}, calculate the cost for the initial
 #'   configuration. This while be logged to the console if \code{verbose = TRUE}
 #'   or returned in the \code{itercosts} vector if \code{ret_extra = TRUE}.
@@ -1104,7 +1117,6 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
         )
       }
       
-
       if (nnat(opt$is_terminated)) {
         break
       }
