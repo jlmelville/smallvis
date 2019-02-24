@@ -1025,9 +1025,6 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
               " until iter ", max_iter)
       cost_fn$P <- cost_fn$P * late_exaggeration_factor
       opt_stage_idx <- opt_stage_idx + 1
-      # DBD only: go back to initial momentum
-      opt$mom_switch_iter <- start_late_lying_iter + 1
-      opt$final_momentum <- momentum
     }
 
     if (nnat(opt$is_terminated)) {
