@@ -164,12 +164,99 @@ that `smallvis` can deal with, I recommend an `exaggeration_factor` of around
 1.5, much lower than the value of 12 mentioned in the FIt-SNE paper, and even 4
 is much too large based on the results shown here. 
 
-Finally, even with the reduced exaggeration, for all examples I looked at,
-the cost does increase over the last 100 iterations, suggesting that the 
-learning rate or momentum values are too high for the late exaggeration phase.
-Controlling this would introduce coupling between the optimizer and the 
-exaggeration code, which I am not inclined to introduce, so it's just something
-to be aware of.
+## Momentum and exaggeration length
+
+*February 24 2019* Here's a little addendum to flesh out the discussion on
+late exaggeration:
+
+Even with the reduced exaggeration, for all examples I looked at, the cost does
+increase over the last 100 iterations, suggesting that the learning rate or
+momentum values are too high for the late exaggeration phase.
+
+Normally, `mom_switch_iter` is set to happen after early exaggeration finishes,
+so perhaps we should switch back to the lower momentum during late exaggeration?
+
+Below are some examples where I modified the code to use the original `momentum`
+value during late exaggeration. I've also looked at using 250 iterations of
+early and late exaggeration, to see if our conclusions are affected by more
+exaggeration time. In the latter case, `max_iter = 1300`, so
+that the same amount of non-exaggeration optimization was carried out and also
+`mom_switch_iter = 350`, so that there was always 100 iterations of 
+non-exaggerated optimization before the momentum switch occurred.
+
+A sample command for the longer exaggeration settings is:
+
+```R
+iris_tsne <- smallvis(iris, perplexity = 40, Y_init = "spca", eta = 100, 
+                      exaggeration_factor = 4, stop_lying_iter = 250, 
+                      mom_switch_iter = 350, late_exaggeration_factor = 1.5, 
+                      start_late_lying_iter = 1050, max_iter = 1300, 
+                      epoch = 100)
+```
+
+Below are the results. The plots on the left hand side are those using the
+original (low) `momentum`, and those on the right are from using the
+`final_momentum`. The top row uses 100 iterations each for early and late
+exaggeration, and the bottom row uses 250 iterations each.
+
+### iris
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![iris lm](../img/lexagg/lmom/iris_lm.png)|![iris hm](../img/lexagg/lmom/iris_hm.png)
+![iris llm](../img/lexagg/lmom/iris_llm.png)|![iris lhm](../img/lexagg/lmom/iris_lhm.png)
+
+### s1k
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![s1k lm](../img/lexagg/lmom/s1k_lm.png)|![s1k hm](../img/lexagg/lmom/s1k_hm.png)
+![s1k llm](../img/lexagg/lmom/s1k_llm.png)|![s1k lhm](../img/lexagg/lmom/s1k_lhm.png)
+
+### oli
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![oli lm](../img/lexagg/lmom/oli_lm.png)|![oli hm](../img/lexagg/lmom/oli_hm.png)
+![oli llm](../img/lexagg/lmom/oli_llm.png)|![oli lhm](../img/lexagg/lmom/oli_lhm.png)
+
+### frey
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![frey lm](../img/lexagg/lmom/frey_lm.png)|![frey hm](../img/lexagg/lmom/frey_hm.png)
+![frey llm](../img/lexagg/lmom/frey_llm.png)|![frey lhm](../img/lexagg/lmom/frey_lhm.png)
+
+### coil20
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![coil20 lm](../img/lexagg/lmom/coil20_lm.png)|![coil20 hm](../img/lexagg/lmom/coil20_hm.png)
+![coil20 llm](../img/lexagg/lmom/coil20_llm.png)|![coil20 lhm](../img/lexagg/lmom/coil20_lhm.png)
+
+### mnist6k
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![mnist6k lm](../img/lexagg/lmom/mnist6k_lm.png)|![mnist6k hm](../img/lexagg/lmom/mnist6k_hm.png)
+![mnist6k llm](../img/lexagg/lmom/mnist6k_llm.png)|![mnist6k lhm](../img/lexagg/lmom/mnist6k_lhm.png)
+
+### fashion6k
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![fashion6k lm](../img/lexagg/lmom/fashion6k_lm.png)|![fashion6k hm](../img/lexagg/lmom/fashion6k_hm.png)
+![fashion6k llm](../img/lexagg/lmom/fashion6k_llm.png)|![fashion6k lhm](../img/lexagg/lmom/fashion6k_lhm.png)
+
+For the larger datasets, the extra time in late exaggeration results in more
+compression of the clusters, but the change in momentum doesn't seem to do very
+much. And neighbor preservations aren't affected. That's good because reducing
+the momentum this would introduce coupling between the optimizer and the
+exaggeration code, which is not something I relish.
+
+If you want to try late exaggeration, my recommendations remain the same:
+set `late_exaggeration_factor = 1.5`, and you probably don't need more than 100 
+iterations.
 
 ## Acknowledgement
 
