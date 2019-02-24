@@ -1005,7 +1005,11 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
   old_cost <- NULL
   tolval <- NULL
   tsmessage("Optimizing coordinates")
-  for (iter in 1:max_iter) {
+  
+  # Use a while loop, so we can change max_iter inside the loop
+  iter <- 0
+  while (iter < max_iter) {
+    iter <- iter + 1
     opt_res <- opt_step(opt, cost_fn, Y, iter)
     opt <- opt_res$opt
     cost_fn <- opt_res$cost_fn
