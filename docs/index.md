@@ -72,4 +72,4 @@ in t-SNE, as suggested in the [FIt-SNE](https://arxiv.org/abs/1712.09005) paper.
   from from [How to Use t-SNE Effectively](https://distill.pub/2016/misread-tsne).
 * How hard is it to unroll the [Swiss Roll with SNE](https://jlmelville.github.io/smallvis/swisssne.html)?
 * Using input bandwidths in [SNE output functions](https://jlmelville.github.io/smallvis/bandwidths.html).
-
+* [Multiscale perplexities](https://jlmelville.github.io/smallvis/msperp.html) as used in multiscale t-SNE.
