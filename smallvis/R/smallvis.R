@@ -396,7 +396,7 @@
 #'   and \code{mom_switch_iter = 250} (the defaults), but early exaggeration
 #'   converges at iteration 50, the switch iteration will occur at iteration 
 #'   150.
-#' @param eta Learning rate value, a positive number. Or set to \code{"opt"},
+#' @param eta Learning rate value, a positive number. Or set to \code{"optsne"},
 #'   to use the formula suggested by Belkina and co-workers (2018) in their
 #'   opt-SNE package (the size of the dataset divided by the 
 #'   \code{exaggeration_factor}).
@@ -904,7 +904,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
 
   # Optimizer
   if (opt[[1]] == "dbd" || opt[[1]] == "ndbd") {
-    if (eta == "opt") {
+    if (eta == "optsne") {
       eta <- n / exaggeration_factor
       tsmessage("Using opt-SNE learning rate = ", formatC(eta))
     }
