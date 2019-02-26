@@ -373,9 +373,12 @@
 #'   "Method-specific options" for greater control.
 #' @param min_cost If the cost falls below this value, the optimization will
 #'   stop early.
-#' @param tol If the relative tolerance between successive cost values falls
-#'   below this value, the optimization will stop early (but not during
-#'   early exaggeration).
+#' @param tol If the relative tolerance, averaged over the number of iterations
+#'   between successive cost values calculations, falls below this value, the
+#'   optimization will stop early. If there is another stage in the optimization
+#'   to come then the next stage begins immediately. Otherwise, the optimization
+#'   finishes. For \code{tol_wait} iterations after early exaggeration finished,
+#'   early stopping will not occur.
 #' @param epoch_callback Function to call after each epoch. See the
 #'   "Visualization callback" section. By default the current set of
 #'   coordinates will be plotted. Set to\code{FALSE} or \code{NULL} to turn
@@ -426,6 +429,23 @@
 #' @param iter0_cost If \code{TRUE}, calculate the cost for the initial
 #'   configuration. This while be logged to the console if \code{verbose = TRUE}
 #'   or returned in the \code{itercosts} vector if \code{ret_extra = TRUE}.
+#' @param ee_mon_epoch If non-\code{NULL}, then this is the number of iterations
+#'   between epochs during early exaggeration, and which overrides the value
+#'   provided by \code{epoch}. In this mode, the early exaggeration monitoring
+#'   of the average relative rate of change in the cost as used in the opt-SNE
+#'   method (Belkina and co-workers, 2018) is used and the \code{tol} parameter
+#'   is ignored.
+#' @param ee_mon_wait If \code{ee_mon_epoch} is non-\code{NULL}, then wait this
+#'   number of iterations before monitoring the relative rate of change of the
+#'   cost function during early exaggeration.
+#' @param ee_mon_buffer If \code{ee_mon_epoch} is non-\code{NULL}, then ignore
+#'   this number of occurences of the relative rate of change of the cost 
+#'   function decreasing, which would otherwise signal termination of 
+#'   the early exaggeration stage. This is to prevent erroneous termination of
+#'   early exaggeration under conditions when the cost can fluctuate noisily.
+#' @param tol_wait Wait this number of iterations during standard optimization
+#'   (i.e. after early exaggeration, if any), before applying the relative
+#'   tolerance early stopping criterion controlled by \code{tol}.
 #' @param ret_extra If \code{TRUE}, return value is a list containing additional
 #'   values associated with the embedding; otherwise just the output
 #'   coordinates. You may also provide a vector of names of potentially large or
@@ -719,7 +739,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
                  method = "tsne",
                  epoch_callback = TRUE,
                  epoch = max(1, base::round(max_iter / 10)),
-                 min_cost = 0, tol = 1e-7 * epoch,
+                 min_cost = 0, tol = 1e-7,
                  momentum = 0.5, final_momentum = 0.8, 
                  mom_switch_iter = stop_lying_iter + 150,
                  eta = 500, min_gain = 0.01,
@@ -729,6 +749,10 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
                  late_exaggeration_factor = 1,
                  start_late_lying_iter = max_iter - max(1, floor(max_iter / 10)),
                  iter0_cost = FALSE,
+                 ee_mon_epoch = NULL,
+                 ee_mon_wait = 15,
+                 ee_mon_buffer = 2,
+                 tol_wait = 15,
                  ret_extra = FALSE,
                  verbose = TRUE) {
 
@@ -997,9 +1021,24 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
   }
   opt_stage_idx <- 1
   
+  opt_epoch <- epoch
+  opt_tol <- tol
+  old_cdiffrc <- NULL
   # Start exaggerating
-  if (!is.null(cost_fn$P)) {
+  if (!is.null(cost_fn$P) && exaggeration_factor != 1) {
     cost_fn$P <- cost_fn$P * exaggeration_factor
+    if (!is.null(ee_mon_epoch)) {
+      epoch <- ee_mon_epoch
+      # prevent tolerance based convergence if we monitor EE 
+      ee_mon_tol <- 0
+      tol <- ee_mon_tol
+      stop_lying_iter <- max_iter
+      tsmessage("Applying early exaggeration factor = ", exaggeration_factor, 
+                ", epoch every ", epoch, " iterations")
+    }
+  }
+  else {
+    stop_lying_iter <- 0
   }
 
   old_cost <- NULL
@@ -1020,6 +1059,8 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
       tsmessage("Switching off exaggeration at iter ", iter)
       cost_fn$P <- cost_fn$P / exaggeration_factor
       opt_stage_idx <- opt_stage_idx + 1
+      epoch <- opt_epoch
+      tol <- opt_tol
     }
 
     if (!is.null(cost_fn$P) && iter == start_late_lying_iter &&
@@ -1043,15 +1084,16 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
     Y <- sweep(Y, 2, colMeans(Y))
 
     if ((epoch > 0 && iter %% epoch == 0) || iter == max_iter) {
+      stop_early <- FALSE
+      
       cost_eval_res <- cost_eval(cost_fn, Y, opt_res)
       cost_fn <- cost_eval_res$cost
       cost <- cost_eval_res$value
 
       if (!is.null(old_cost)) {
-        tolval <- reltol(cost, old_cost)
+        tolval <- reltol(cost, old_cost) / epoch
       }
-      old_cost <- cost
-
+      
       if (verbose) {
         tsmessage("Iteration #", iter, " error: ",
                   formatC(cost)
@@ -1061,6 +1103,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
         if (!is.null(tolval)) {
           message(" tol = ", formatC(tolval), appendLF = FALSE)
         }
+        
         if (!is.null(opt$counts)) {
           message(" nf = ", opt$counts$fn, " ng = ", opt$counts$gr,
                   appendLF = FALSE)
@@ -1077,16 +1120,40 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
         itercosts <- c(itercosts, cost)
       }
 
-      # Early stopping test
+      # Early stopping tests
+      if (!is.null(ee_mon_epoch)) {
+        cdiff <- old_cost - cost
+        cdiffrc <- cdiff / old_cost
+        if (length(cdiffrc) > 0 && opt_stages[opt_stage_idx] == "early") {
+          if (iter > ee_mon_wait && length(cdiffrc) > 0 && length(old_cdiffrc) > 0 &&
+              cdiffrc < old_cdiffrc) {
+            if (ee_mon_buffer < 1) {
+              stop_early <- TRUE
+              tsmessage("Stopping early: EE relative change reached maximum")
+            }
+            else {
+              ee_mon_buffer <- ee_mon_buffer - 1
+            }
+          }
+        }
+        old_cdiffrc <- cdiffrc
+      }
+      
       if (cost < min_cost) {
+        stop_early <- TRUE
         tsmessage("Stopping early: cost fell below min_cost")
-        break
+      }
+
+      if (!nnat(opt$is_terminated) && !is.null(tolval) && 
+          tolval < tol && cost < old_cost && 
+          (iter > stop_lying_iter + tol_wait 
+          || opt_stages[opt_stage_idx] != "opt")) {
+        stop_early <- TRUE
+        tsmessage("Stopping early: relative tolerance (", formatC(tol), ") met")
       }
 
       # Stop current stage early if we aren't making progress
-      if (!nnat(opt$is_terminated) && !is.null(tolval) && tolval < tol) {
-        tsmessage("Stopping early: relative tolerance (", formatC(tol), 
-                  ") met")
+      if (stop_early) {
         if (opt_stage_idx == length(opt_stages)) {
           # run out of optimization stages, so give up
           break
@@ -1122,6 +1189,8 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
         break
       }
 
+      old_cost <- cost
+      
       # Any special custom epoch stuff
       epoch_res <- do_epoch(opt, cost_fn, iter, Y, cost)
       opt <- epoch_res$opt
@@ -1132,7 +1201,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
   # Recenter before output
   Y <- sweep(Y, 2, colMeans(Y))
   
-  ret_value(Y, ret_extra, method, X, scale, Y_init, iter, start_time,
+  res <- ret_value(Y, ret_extra, method, X, scale, Y_init, iter, start_time,
             cost_fn = cost_fn, opt_res$G,
             perplexity, itercosts,
             stop_lying_iter, start_late_lying_iter, opt_list,
@@ -1140,6 +1209,8 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
             optionals = ret_optionals,
             pca = ifelse(pca && !whiten, initial_dims, 0),
             whiten = ifelse(pca && whiten, initial_dims, 0))
+
+  res
 }
 
 #' Best t-SNE Result From Multiple Initializations

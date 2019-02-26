@@ -7,14 +7,15 @@
 smallvis(X, k = 2, scale = "absmax", Y_init = "rand",
   perplexity = 30, max_iter = 1000, pca = FALSE, initial_dims = 50,
   method = "tsne", epoch_callback = TRUE, epoch = max(1,
-  base::round(max_iter/10)), min_cost = 0, tol = 1e-07 * epoch,
+  base::round(max_iter/10)), min_cost = 0, tol = 1e-07,
   momentum = 0.5, final_momentum = 0.8,
   mom_switch_iter = stop_lying_iter + 150, eta = 500,
   min_gain = 0.01, opt = list("dbd"), exaggeration_factor = 1,
   stop_lying_iter = max(1, floor(max_iter/10)),
   late_exaggeration_factor = 1, start_late_lying_iter = max_iter -
-  max(1, floor(max_iter/10)), iter0_cost = FALSE, ret_extra = FALSE,
-  verbose = TRUE)
+  max(1, floor(max_iter/10)), iter0_cost = FALSE, ee_mon_epoch = NULL,
+  ee_mon_wait = 15, ee_mon_buffer = 2, tol_wait = 15,
+  ret_extra = FALSE, verbose = TRUE)
 }
 \arguments{
 \item{X}{Input coordinates or distance matrix.}
@@ -66,9 +67,12 @@ displays the cost value and calls \code{epoch_callback}, if supplied.}
 \item{min_cost}{If the cost falls below this value, the optimization will
 stop early.}
 
-\item{tol}{If the relative tolerance between successive cost values falls
-below this value, the optimization will stop early (but not during
-early exaggeration).}
+\item{tol}{If the relative tolerance, averaged over the number of iterations
+between successive cost values calculations, falls below this value, the
+optimization will stop early. If there is another stage in the optimization
+to come then the next stage begins immediately. Otherwise, the optimization
+finishes. For \code{tol_wait} iterations after early exaggeration finished,
+early stopping will not occur.}
 
 \item{momentum}{Initial momentum value.}
 
@@ -124,6 +128,27 @@ exaggeration, rather than 200 (which is unlikely to be what you wanted).}
 \item{iter0_cost}{If \code{TRUE}, calculate the cost for the initial
 configuration. This while be logged to the console if \code{verbose = TRUE}
 or returned in the \code{itercosts} vector if \code{ret_extra = TRUE}.}
+
+\item{ee_mon_epoch}{If non-\code{NULL}, then this is the number of iterations
+between epochs during early exaggeration, and which overrides the value
+provided by \code{epoch}. In this mode, the early exaggeration monitoring
+of the average relative rate of change in the cost as used in the opt-SNE
+method (Belkina and co-workers, 2018) is used and the \code{tol} parameter
+is ignored.}
+
+\item{ee_mon_wait}{If \code{ee_mon_epoch} is non-\code{NULL}, then wait this
+number of iterations before monitoring the relative rate of change of the
+cost function during early exaggeration.}
+
+\item{ee_mon_buffer}{If \code{ee_mon_epoch} is non-\code{NULL}, then ignore
+this number of occurences of the relative rate of change of the cost 
+function decreasing, which would otherwise signal termination of 
+the early exaggeration stage. This is to prevent erroneous termination of
+early exaggeration under conditions when the cost can fluctuate noisily.}
+
+\item{tol_wait}{Wait this number of iterations during standard optimization
+(i.e. after early exaggeration, if any), before applying the relative
+tolerance early stopping criterion controlled by \code{tol}.}
 
 \item{ret_extra}{If \code{TRUE}, return value is a list containing additional
 values associated with the embedding; otherwise just the output
