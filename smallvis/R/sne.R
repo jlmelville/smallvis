@@ -845,6 +845,9 @@ sne_init <- function(cost, X, perplexity, kernel = "gaussian",
   
   cost$P <- P
 
+  tsmessage("Effective perplexity of P approx = ", 
+            formatC(stats::median(perpp(P))))
+  
   for (r in unique(tolower(ret_extra))) {
     switch(r,
            v = {
