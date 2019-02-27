@@ -96,3 +96,14 @@ test_that("UMAP", {
   test_grad("tumap", perplexity = perp, gr_eps = 0)
   test_grad("ntumap", perplexity = perp, gr_eps = 0)
 })
+
+
+test_that("AB-SNE", {
+  test_grad("absne", perplexity = perp, alpha = 0.75, lambda = 0.5)
+  test_grad("absne", perplexity = perp, alpha = 0.25, lambda = 0.75)
+  test_grad("absne", perplexity = perp, alpha = 1.0, lambda = 1.0)
+  test_grad("absne", perplexity = perp, alpha = 1.0, lambda = 0.95)
+  test_grad("absne", perplexity = perp, alpha = 1.0, lambda = 1.05)
+  test_grad("absne", perplexity = perp, alpha = 0.6, lambda = 1.0)
+  test_grad("absne", perplexity = perp, alpha = 1.4, lambda = 1.0)
+})

@@ -286,6 +286,8 @@ to the \code{method} parameter are:
   co-workers, use method \code{"bnerv"}.
   \item \code{"jse"} The Jensen-Shannon Embedding method of Lee and
   co-workers (2013).
+  \item \code{"absne"} The alpha-beta SNE method of Narayan and co-workers 
+  (2015).
 }
 
 Note that only the cost function is used from these methods in the context
@@ -375,6 +377,17 @@ Method-specific parameters are as follows:
    to 0 performs like method \code{"ASNE"}. Setting to 1 performs like
    method \code{"NeRV"} with its \code{lambda} parameter set to \code{0}.
    Yes, that's confusing. The default is \code{0.5}.
+   }
+   \item \code{"ABSNE"}
+   \itemize{
+   \item{\code{alpha}} Alpha value for the alpha-beta divergence. Set 
+   \code{alpha < 1} to produce more smaller, finer-grained clusters, and
+   \code{alpha > 1} to produce fewer, larger clusters, with more emphasis 
+   on global structure. Default is \code{1.0}, to give t-SNE-like behavior.
+   \item{\code{lambda}} Sum of alpha + beta, where beta is the beta value
+   for the alpha-beta divergence. Set \code{lambda < 1} to increase cluster
+   separation, and \code{lambda > 1} to decrease cluster separation.
+   Default is \code{1.0}, to give t-SNE-like behavior.
    }
 }
 
@@ -753,6 +766,12 @@ McInnes, L., & Healey, J. (2018).
 UMAP: Uniform Manifold Approximation and Projection for Dimension Reduction
 \emph{arXiv preprint} \emph{arXiv}:1802.03426.
 \url{https://arxiv.org/abs/1802.03426}
+
+Narayan, K. S., Punjani, A., & Abbeel, P. (2015, June). 
+Alpha-Beta Divergences Discover Micro and Macro Structures in Data. 
+In \emph{Proceedings of the 32nd International Conference on Machine Learning (ICML-14)}
+(pp 796-804).
+\url{http://proceedings.mlr.press/v37/narayan15.html}
 
 Tang, J., Liu, J., Zhang, M., & Mei, Q. (2016, April).
 Visualizing large-scale and high-dimensional data.

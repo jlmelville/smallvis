@@ -261,6 +261,73 @@ ntumap <- function(perplexity, gr_eps = 0.1) {
   )
 }
 
+# Other Divergences -------------------------------------------------------
+
+absne <- function(perplexity, inp_kernel = "gaussian", alpha = 1, lambda = 1) {
+  beta <- lambda - alpha
+  eps0 <- 1e-5
+  if (abs(beta) < eps0) {
+    beta <- ifelse(beta == 0, 1, sign(beta)) * eps0
+  }
+  lreplace(
+    tsne(perplexity = perplexity, inp_kernel = inp_kernel),
+    init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
+                    ret_extra = c()) {
+      cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
+                       symmetrize = "symmetric", normalize = TRUE,
+                       verbose = verbose, ret_extra = ret_extra)
+      P <- cost$P
+      Peps <- P + eps
+      cost$Pa <- Peps ^ alpha
+      cost$aabPab <- (alpha / (alpha + beta)) * colSums(Peps ^ (alpha + beta))
+      cost$inva <- 1 / alpha
+      cost$invab <- 1 / (alpha * beta)
+      cost$ab <- alpha + beta
+      cost$bdivab <- beta / (alpha + beta)
+      cost$ab1 <- cost$ab - 1
+      
+      cost$eps <- eps
+      cost
+    },
+    pfn = function(cost, Y) {
+      P <- cost$P
+      eps <- cost$eps
+      
+      cost <- cost_update(cost, Y)
+      
+      invZ <- cost$invZ
+      W <- cost$W
+      Q <- W * invZ
+      Qeps <- Q + eps
+      
+      PaQb <- cost$Pa * (Qeps ^ beta)
+      
+      babQab <- cost$bdivab * (Qeps ^ cost$ab)
+      cost$pcost <- cost$invab * (cost$aabPab + colSums(babQab - PaQb))
+      
+      cost
+    },
+    gr = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+      W <- cost$W
+      invZ <- cost$invZ
+      eps <- cost$eps
+      
+      Q <- W * invZ
+      Qeps <- Q + eps
+      
+      QWa <- Q * W * cost$inva
+      PaQb1 <- cost$Pa * (Qeps ^ (beta - 1))
+      Qab1 <- Qeps ^ (cost$ab1)
+      
+      # Notation from the paper
+      J1 <- sum(cost$Pa * (Qeps ^ beta))
+      J2 <- sum(Qeps ^ cost$ab)
+      cost$G <- k2g(Y,  4 * QWa * (PaQb1 - Qab1 - J1 + J2))
+      cost
+    }
+  )
+}
 
 # Distance Preserving Methods ---------------------------------------------
 

@@ -42,6 +42,9 @@ expect_grad <- function(cost_fn,
   cost_fn <- cost_grad(cost_fn, Y)
   gan <- cost_fn$G
   gfd <- gradient_fd(Y, cost_fn)
+  
+  expect_false(any(is.nan(gan)))
+  expect_false(any(is.nan(gfd)))
   expect_equal(gan, gfd, tolerance = tolerance, scale = scale,
                label = label, info = info,
                expected.label = "finite difference gradient")
