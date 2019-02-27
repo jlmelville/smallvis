@@ -292,6 +292,8 @@ to the \code{method} parameter are:
   (Im and co-workers, 2018).
   \item \code{"hdsne"} The Hellinger distance divergence version of t-SNE 
   (Im and co-workers, 2018).
+  \item \code{"gsne"}, The global SNE (g-SNE) method of Zhou and Sharpee 
+  (2018).
 }
 
 Note that only the cost function is used from these methods in the context
@@ -392,6 +394,13 @@ Method-specific parameters are as follows:
    for the alpha-beta divergence. Set \code{lambda < 1} to increase cluster
    separation, and \code{lambda > 1} to decrease cluster separation.
    Default is \code{1.0}, to give t-SNE-like behavior.
+   }
+   \item \code{"gsne"}
+   \itemize{
+   \item{\code{lambda}} Weighting factor to put increasing emphasis on 
+   preserving global similarities. Set to \code{0} to get t-SNE (no 
+   extra emphasis on global structure), and to \code{1.0} to get equal
+   weighting between the local and global divergences. Default is \code{1.0}.
    }
 }
 
@@ -823,4 +832,9 @@ Yang, Z., Peltonen, J., & Kaski, S. (2015).
 Majorization-Minimization for Manifold Embedding.
 In \emph{Proceedings of the 18th International Conference on Artificial Intelligence and Statistics (AISTATS 2015)}
 (pp. 1088-1097).
+
+Zhou, Y., & Sharpee, T. (2018). 
+Using global t-SNE to preserve inter-cluster data structure. 
+\emph{bioRxiv}, 331611. 
+\url{https://doi.org/10.1101/331611}
 }

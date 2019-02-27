@@ -112,3 +112,13 @@ test_that("f-divergences", {
   test_grad("chisne", perplexity = perp)
   test_grad("hdsne", perplexity = perp)
 })
+
+test_that("g-SNE", {
+  test_grad("gsne", perplexity = perp, lambda = 1e-3)
+  test_grad("gsne", perplexity = perp, lambda = 1e-2)
+  test_grad("gsne", perplexity = perp, lambda = 1e-1)
+  test_grad("gsne", perplexity = perp, lambda = 0)
+  test_grad("gsne", perplexity = perp, lambda = 1)
+  test_grad("gsne", perplexity = perp, lambda = 10)
+  test_grad("gsne", perplexity = perp, lambda = 1000)
+})

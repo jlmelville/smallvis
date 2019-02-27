@@ -420,6 +420,81 @@ hdsne <- function(perplexity, inp_kernel = "gaussian") {
   )
 }
 
+gsne <- function(perplexity, lambda = 1, inp_kernel = "gaussian") {
+  lreplace(
+    tsne(perplexity = perplexity, inp_kernel = inp_kernel),
+    init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
+                    ret_extra = c()) {
+      cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
+                       symmetrize = "symmetric", normalize = TRUE,
+                       verbose = verbose, ret_extra = ret_extra)
+      cost$eps <- eps
+      P <- cost$P
+      cost$plogp <- colSums(P * log((P + eps)))
+        
+      if (methods::is(X, "dist")) {
+        Phat <- as.matrix(X)
+      }
+      else {
+        Phat <- safe_dist2(X)
+      }
+      
+      Phat <- Phat + 1
+      diag(Phat) <- 0
+      
+      Phat <- Phat / sum(Phat)
+      cost$Phat <- Phat
+      
+      cost$phlogph <- colSums(Phat * log(Phat + eps))
+      
+      cost$plamphat <- P - lambda * Phat
+      
+      cost
+    },
+    pfn = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+      
+      eps <- cost$eps
+      
+      P <- cost$P
+      invZ <- cost$invZ
+      W <- cost$W
+      kl <- cost$plogp - colSums(P * log((W * invZ) + eps))
+      
+      Phat <- cost$Phat
+      invZhat <- cost$invZhat
+      What <- cost$What
+      klhat <- cost$phlogph - colSums(Phat * log((What * invZhat) + eps))
+      
+      cost$pcost <- kl + lambda * klhat
+      cost
+    },
+    gr = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+      
+      qlampqhat <- (cost$W * cost$invZ) - lambda * (cost$What * cost$invZhat)
+      # browser()
+      cost$G <- k2g(Y, 4 * cost$W * (cost$plamphat - qlampqhat))
+      cost
+    },
+    update = function(cost, Y) {
+      W <- dist2(Y)
+      What <- 1 + W
+      W <- 1 / What
+      diag(W) <- 0
+      cost$invZ <- 1 / sum(W)
+      cost$W <- W
+
+      diag(What) <- 0
+      cost$What <- What
+      cost$invZhat <- 1 / sum(What)
+
+      cost
+    }
+  )
+}
+
+
 # Distance Preserving Methods ---------------------------------------------
 
 mmds_init <- function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
