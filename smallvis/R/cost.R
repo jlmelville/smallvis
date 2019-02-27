@@ -374,6 +374,52 @@ chisne <- function(perplexity, inp_kernel = "gaussian") {
   )
 }
 
+hdsne <- function(perplexity, inp_kernel = "gaussian") {
+  lreplace(
+    tsne(perplexity = perplexity, inp_kernel = inp_kernel),
+    init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
+                    ret_extra = c()) {
+      cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
+                       symmetrize = "symmetric", normalize = TRUE,
+                       verbose = verbose, ret_extra = ret_extra)
+      cost$eps <- eps
+      cost$sP <- sqrt(cost$P)
+      cost
+    },
+    pfn = function(cost, Y) {
+      P <- cost$P
+
+      cost <- cost_update(cost, Y)
+      
+      invZ <- cost$invZ
+      W <- cost$W
+      Q <- W * invZ
+      
+      PQ <- cost$sP - sqrt(Q)
+      
+      cost$pcost <- colSums(PQ * PQ)
+      cost
+    },
+    gr = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+      sP <- cost$sP
+      W <- cost$W
+      invZ <- cost$invZ
+      eps <- cost$eps
+      
+      Q <- W * invZ
+      
+      QW <- Q * W
+      sQ <- sqrt(Q)
+      sPQ <- sum(sP * sQ)
+      PQ <- sP / (sQ + eps)
+      
+      cost$G <- k2g(Y,  4 * QW * (PQ - sPQ))
+      cost
+    }
+  )
+}
+
 # Distance Preserving Methods ---------------------------------------------
 
 mmds_init <- function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,

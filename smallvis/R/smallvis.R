@@ -51,6 +51,8 @@
 #'   (2015).
 #'   \item \code{"chisne"} The chi-squared divergence version of t-SNE 
 #'   (Im and co-workers, 2018).
+#'   \item \code{"hdsne"} The Hellinger distance divergence version of t-SNE 
+#'   (Im and co-workers, 2018).
 #' }
 #'
 #' Note that only the cost function is used from these methods in the context
@@ -805,7 +807,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
                     "ballmmds", "knnmmds",
                     "dhssne", "pstsne", "tsneu",
                     "skdtsne", "usne", "cetsne",
-                    "tee", "absne", "chisne")
+                    "tee", "absne", "chisne", "hdsne")
   if (is.character(method)) {
     method <- match.arg(tolower(method), method_names)
     cost_fn <- switch(method,
@@ -849,6 +851,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
          tee = tee(perplexity = perplexity),
          absne = absne(perplexity = perplexity),
          chisne = chisne(perplexity = perplexity),
+         hdsne = hdsne(perplexity = perplexity),
          stop("BUG: someone forgot to implement option: '", method, "'")
     )
   }

@@ -290,6 +290,8 @@ to the \code{method} parameter are:
   (2015).
   \item \code{"chisne"} The chi-squared divergence version of t-SNE 
   (Im and co-workers, 2018).
+  \item \code{"hdsne"} The Hellinger distance divergence version of t-SNE 
+  (Im and co-workers, 2018).
 }
 
 Note that only the cost function is used from these methods in the context
