@@ -288,6 +288,8 @@ to the \code{method} parameter are:
   co-workers (2013).
   \item \code{"absne"} The alpha-beta SNE method of Narayan and co-workers 
   (2015).
+  \item \code{"chisne"} The chi-squared divergence version of t-SNE 
+  (Im and co-workers, 2018).
 }
 
 Note that only the cost function is used from these methods in the context
@@ -741,6 +743,11 @@ In \emph{International Conference on Artificial Intelligence and Statistics} (pp
 Hinton, G. E., & Roweis, S. T. (2002).
 Stochastic neighbor embedding.
 In \emph{Advances in neural information processing systems} (pp. 833-840).
+
+Im, D. J., Verma, N., & Branson, K. (2018). 
+Stochastic Neighbor Embedding under f-divergences. 
+\emph{arXiv preprint} \emph{arXiv}:1811.01247.
+\url{https://arxiv.org/abs/1811.01247}
 
 Kobak, D., & Berens, P. (2018).
 The art of using t-SNE for single-cell transcriptomics. 

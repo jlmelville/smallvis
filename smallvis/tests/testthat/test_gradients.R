@@ -107,3 +107,7 @@ test_that("AB-SNE", {
   test_grad("absne", perplexity = perp, alpha = 0.6, lambda = 1.0)
   test_grad("absne", perplexity = perp, alpha = 1.4, lambda = 1.0)
 })
+
+test_that("Chi-squared divergence", {
+  test_grad("chisne", perplexity = perp)
+})

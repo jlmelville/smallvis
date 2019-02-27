@@ -49,6 +49,8 @@
 #'   co-workers (2013).
 #'   \item \code{"absne"} The alpha-beta SNE method of Narayan and co-workers 
 #'   (2015).
+#'   \item \code{"chisne"} The chi-squared divergence version of t-SNE 
+#'   (Im and co-workers, 2018).
 #' }
 #'
 #' Note that only the cost function is used from these methods in the context
@@ -678,6 +680,11 @@
 #' Stochastic neighbor embedding.
 #' In \emph{Advances in neural information processing systems} (pp. 833-840).
 #'
+#' Im, D. J., Verma, N., & Branson, K. (2018). 
+#' Stochastic Neighbor Embedding under f-divergences. 
+#' \emph{arXiv preprint} \emph{arXiv}:1811.01247.
+#' \url{https://arxiv.org/abs/1811.01247}
+#'
 #' Kobak, D., & Berens, P. (2018).
 #' The art of using t-SNE for single-cell transcriptomics. 
 #' \emph{bioRxiv}, 453449.
@@ -798,7 +805,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
                     "ballmmds", "knnmmds",
                     "dhssne", "pstsne", "tsneu",
                     "skdtsne", "usne", "cetsne",
-                    "tee", "absne")
+                    "tee", "absne", "chisne")
   if (is.character(method)) {
     method <- match.arg(tolower(method), method_names)
     cost_fn <- switch(method,
@@ -841,6 +848,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
          cetsne = cetsne(perplexity = perplexity),
          tee = tee(perplexity = perplexity),
          absne = absne(perplexity = perplexity),
+         chisne = chisne(perplexity = perplexity),
          stop("BUG: someone forgot to implement option: '", method, "'")
     )
   }
