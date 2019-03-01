@@ -49,9 +49,9 @@
 #'   co-workers (2013).
 #'   \item \code{"absne"} The alpha-beta SNE method of Narayan and co-workers 
 #'   (2015).
-#'   \item \code{"chisne"} The chi-squared divergence version of t-SNE 
+#'   \item \code{"chsne"} The chi-squared divergence version of t-SNE 
 #'   (Im and co-workers, 2018).
-#'   \item \code{"hdsne"} The Hellinger distance divergence version of t-SNE 
+#'   \item \code{"hlsne"} The Hellinger distance divergence version of t-SNE 
 #'   (Im and co-workers, 2018).
 #'   \item \code{"gsne"}, The global SNE (g-SNE) method of Zhou and Sharpee 
 #'   (2018).
@@ -821,7 +821,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
                     "ballmmds", "knnmmds",
                     "dhssne", "pstsne", "tsneu",
                     "skdtsne", "usne", "cetsne",
-                    "tee", "absne", "chisne", "hdsne", "gsne")
+                    "tee", "absne", "chsne", "hlsne", "gsne")
   if (is.character(method)) {
     method <- match.arg(tolower(method), method_names)
     cost_fn <- switch(method,
@@ -864,8 +864,8 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
          cetsne = cetsne(perplexity = perplexity),
          tee = tee(perplexity = perplexity),
          absne = absne(perplexity = perplexity),
-         chisne = chisne(perplexity = perplexity),
-         hdsne = hdsne(perplexity = perplexity),
+         chsne = chsne(perplexity = perplexity),
+         hlsne = hlsne(perplexity = perplexity),
          gsne = gsne(perplexity = perplexity),
          stop("BUG: someone forgot to implement option: '", method, "'")
     )

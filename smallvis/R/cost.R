@@ -329,7 +329,7 @@ absne <- function(perplexity, inp_kernel = "gaussian", alpha = 1, lambda = 1) {
   )
 }
 
-chisne <- function(perplexity, inp_kernel = "gaussian") {
+chsne <- function(perplexity, inp_kernel = "gaussian") {
   lreplace(
     tsne(perplexity = perplexity, inp_kernel = inp_kernel),
     init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
@@ -374,7 +374,7 @@ chisne <- function(perplexity, inp_kernel = "gaussian") {
   )
 }
 
-hdsne <- function(perplexity, inp_kernel = "gaussian") {
+hlsne <- function(perplexity, inp_kernel = "gaussian") {
   lreplace(
     tsne(perplexity = perplexity, inp_kernel = inp_kernel),
     init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,

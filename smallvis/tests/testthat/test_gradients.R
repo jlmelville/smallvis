@@ -109,8 +109,8 @@ test_that("AB-SNE", {
 })
 
 test_that("f-divergences", {
-  test_grad("chisne", perplexity = perp)
-  test_grad("hdsne", perplexity = perp)
+  test_grad("chsne", perplexity = perp)
+  test_grad("hlsne", perplexity = perp)
 })
 
 test_that("g-SNE", {

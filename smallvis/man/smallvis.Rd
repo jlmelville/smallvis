@@ -288,9 +288,9 @@ to the \code{method} parameter are:
   co-workers (2013).
   \item \code{"absne"} The alpha-beta SNE method of Narayan and co-workers 
   (2015).
-  \item \code{"chisne"} The chi-squared divergence version of t-SNE 
+  \item \code{"chsne"} The chi-squared divergence version of t-SNE 
   (Im and co-workers, 2018).
-  \item \code{"hdsne"} The Hellinger distance divergence version of t-SNE 
+  \item \code{"hlsne"} The Hellinger distance divergence version of t-SNE 
   (Im and co-workers, 2018).
   \item \code{"gsne"}, The global SNE (g-SNE) method of Zhou and Sharpee 
   (2018).
