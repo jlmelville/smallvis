@@ -444,11 +444,9 @@ gsne <- function(perplexity, lambda = 1, inp_kernel = "gaussian") {
       
       Phat <- Phat / sum(Phat)
       cost$Phat <- Phat
-      
       cost$phlogph <- colSums(Phat * log(Phat + eps))
-      
       cost$plamphat <- P - lambda * Phat
-      
+    
       cost
     },
     pfn = function(cost, Y) {
@@ -473,7 +471,6 @@ gsne <- function(perplexity, lambda = 1, inp_kernel = "gaussian") {
       cost <- cost_update(cost, Y)
       
       qlampqhat <- (cost$W * cost$invZ) - lambda * (cost$What * cost$invZhat)
-      # browser()
       cost$G <- k2g(Y, 4 * cost$W * (cost$plamphat - qlampqhat))
       cost
     },
