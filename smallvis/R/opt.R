@@ -10,7 +10,7 @@ adagrad <- function(eta = 0.01, eps = 1e-8, verbose = FALSE) {
       opt$Ghist <- matrix(0, nrow = n, ncol = k)
       opt
     },
-    upd = function(opt, G, iter) {
+    upd = function(opt, cost_fn, Y, iter, G) {
       Ghist <- opt$Ghist
       eps <- opt$eps
       eta <- opt$eta
@@ -36,7 +36,7 @@ adadelta <- function(rho = 0.95, eps = 1e-6, verbose = FALSE) {
 
       opt
     },
-    upd = function(opt, G, iter) {
+    upd = function(opt, cost_fn, Y, iter, G) {
       Ghist <- opt$Ghist
       uYhist <- opt$uYhist
       eps <- opt$eps
@@ -65,7 +65,7 @@ rmsprop <- function(eta = 0.001, rho = 0.9, eps = 1e-6, verbose = FALSE) {
 
       opt
     },
-    upd = function(opt, G, iter) {
+    upd = function(opt, cost_fn, Y, iter, G) {
       Ghist <- opt$Ghist
       eta <- opt$eta
       eps <- opt$eps
@@ -101,7 +101,7 @@ dbd <- function(eta = 500, momentum = 0.5, final_momentum = 0.8,
       opt$gains <- matrix(1, nrow = n, ncol = k)
       opt
     },
-    upd = function(opt, G, iter) {
+    upd = function(opt, cost_fn, Y, iter, G) {
       gains <- opt$gains
       uY <- opt$uY
       min_gain <- opt$min_gain
@@ -144,7 +144,7 @@ ndbd <- function(eta = 500, momentum = 0.5, final_momentum = 0.8,
       opt$gains <- matrix(1, nrow = n, ncol = k)
       opt
     },
-    upd = function(opt, G, iter) {
+    upd = function(opt, cost_fn, Y, iter, G) {
       gains <- opt$gains
       uY <- opt$uY
       min_gain <- opt$min_gain
@@ -204,7 +204,7 @@ adam <- function(eta = 0.002, beta1 = 0.9, beta2 = 0.999, eps = 1e-8,
 
       opt
     },
-    upd = function(opt, G, iter) {
+    upd = function(opt, cost_fn, Y, iter, G) {
       # Uses the slightly simpler formulation from section 2 of the paper
       # which doesn't explicitly store m_hat or v_hat - eps is different
       # between the two versions, though
@@ -247,7 +247,7 @@ amsgrad <- function(eta = 0.002, beta1 = 0.9, beta2 = 0.999, eps = 1e-8,
 
       opt
     },
-    upd = function(opt, G, iter) {
+    upd = function(opt, cost_fn, Y, iter, G) {
       m <- opt$m
       v <- opt$v
       v_hat <- opt$v_hat
@@ -292,7 +292,7 @@ adamax <- function(eta = 0.002, beta1 = 0.9, beta2 = 0.999, eps = 1e-8,
 
       opt
     },
-    upd = function(opt, G, iter) {
+    upd = function(opt, cost_fn, Y, iter, G) {
       m <- opt$m
       u <- opt$u
       eta <- opt$eta
@@ -332,7 +332,7 @@ nadam <- function(eta = 0.002, beta1 = 0.9, beta2 = 0.999, eps = 1e-8,
 
       opt
     },
-    upd = function(opt, G, iter) {
+    upd = function(opt, cost_fn, Y, iter, G) {
       eta <- opt$eta
       eps <- opt$eps
       m <- opt$m
@@ -364,7 +364,7 @@ nadam <- function(eta = 0.002, beta1 = 0.9, beta2 = 0.999, eps = 1e-8,
 
 steepd <- function(eta = 1, verbose = FALSE) {
   list(
-    upd = function(opt, G, iter) {
+    upd = function(opt, cost_fn, Y, iter, G) {
       opt$uY <- -eta * G
       opt
     }
@@ -376,7 +376,7 @@ steepd <- function(eta = 1, verbose = FALSE) {
 # Classical momentum
 mom <- function(eta = 1, mu = 0.9, verbose = FALSE) {
   list(
-    upd = function(opt, G, iter) {
+    upd = function(opt, cost_fn, Y, iter, G) {
       opt$uY <- -eta * G + opt$mu * opt$uY
       opt
     },
@@ -389,7 +389,7 @@ mom <- function(eta = 1, mu = 0.9, verbose = FALSE) {
 # if mu is set to a non numeric value, uses the Nesterov schedule
 nag <- function(eta = 1, mu = 0.9, verbose = FALSE) {
   list(
-    upd = function(opt, G, iter) {
+    upd = function(opt, cost_fn, Y, iter, G) {
       if (!is.numeric(mu)) {
         mu_t <- 1 - 3 / (5 + iter)
       }
@@ -420,7 +420,7 @@ nag <- function(eta = 1, mu = 0.9, verbose = FALSE) {
 # if mu is set to a non numeric value, uses the Nesterov schedule
 gmom <- function(eta = 1, mu = 0.9, beta = 0.5, verbose = FALSE) {
   list(
-    upd = function(opt, G, iter) {
+    upd = function(opt, cost_fn, Y, iter, G) {
       gd <- eta * G
       old_uY <- opt$uY
       old_gd <- opt$old_gd
@@ -598,7 +598,7 @@ opt_step_internal <- function(opt, cost_fn, Y, iter) {
 
   cost_fn <- cost_grad(cost_fn, Y)
 
-  opt <- opt$upd(opt, cost_fn$G, iter)
+  opt <- opt$upd(opt, cost_fn, Y, iter, cost_fn$G)
   cost_fn <- cost_clear(cost_fn)
   list(
     Y = Y + opt$uY,
