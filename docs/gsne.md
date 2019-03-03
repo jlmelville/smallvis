@@ -55,11 +55,14 @@ values of $\lambda$ can be specified by using e.g.
 `method = list("gsne", lambda = 5)`. In the g-SNE paper, values of `lambda` 
 between 0 and 10 are considered, so we will look at `1`, `2.5`, `5` and `10`.
 
-Other settings will be kept standard. Early exaggeration isn't mentioned in 
-the paper, and in my experiments it made no difference to the results, but
-it's on by default in the code on github, so I've also used it to here. The
-exaggeration is *not* applied to $\hat{P}$ in either smallvis or the matlab
-implementation.
+Other settings will be kept standard. The word 'perplexity' doesn't seem to
+appear in the paper at all, and the github code examples use the default value
+of 30, so `perplexity = 40` is going to be fine here.
+
+Early exaggeration also isn't mentioned in the paper, and in my experiments it
+made no difference to the results, but it's on by default in the code on github,
+so I've also used it to here. The exaggeration is *not* applied to $\hat{P}$ in
+either smallvis or the matlab implementation.
 
 ```R
 iris_gsne <- smallvis(iris, method = list("gsne", lambda = 5), perplexity = 40, eta = 100, Y_init = "spca", exaggeration_factor = 4)
