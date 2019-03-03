@@ -377,36 +377,44 @@ chsne <- function(perplexity, inp_kernel = "gaussian") {
       cost
     },
     pfn = function(cost, Y) {
-      P <- cost$P
-      eps <- cost$eps
-      
       cost <- cost_update(cost, Y)
-      
-      invZ <- cost$invZ
-      W <- cost$W
-      Q <- W * invZ
-      
-      invQ <- 1 / Q
-      diag(invQ) <- 0
-      
+      P <- cost$P
+      Q <- cost$Q      
+
       PQ <- P - Q
       
-      cost$pcost <- colSums(PQ * PQ * invQ)
+      cost$pcost <- colSums(PQ * PQ * cost$invQ)
       cost
     },
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
-      W <- cost$W
-      invZ <- cost$invZ
-      eps <- cost$eps
       
-      Q <- W * invZ
-      invQ <- 1 / Q
-      diag(invQ) <- 0
+      Q <- cost$Q
+      Z <- cost$Z
+      invQ <- cost$invQ
       
       P2Q <- cost$P2 * invQ
       
-      cost$G <- k2g(Y,  4 * Q * W * (P2Q * invQ - sum(P2Q)))
+      cost$G <- k2g(Y,  4 * Q * Q * Z * (P2Q * invQ - sum(P2Q)))
+      cost
+    },
+    update = function(cost, Y) {
+      eps <- cost$eps
+      P <- cost$P
+      
+      W <- dist2(Y)
+      W <- 1 / (1 + W)
+      diag(W) <- 0
+      Z <- sum(W)
+      
+      Q <- W / Z
+
+      cost$Q <- Q
+      cost$Z <- Z
+      invQ <- 1 / Q
+      diag(invQ) <- 0
+      cost$invQ <- invQ
+      
       cost
     }
   )
@@ -426,15 +434,9 @@ hlsne <- function(perplexity, inp_kernel = "gaussian") {
       cost
     },
     pfn = function(cost, Y) {
-      P <- cost$P
-      
       cost <- cost_update(cost, Y)
-      
-      invZ <- cost$invZ
-      W <- cost$W
-      Q <- W * invZ
-      
-      PQ <- cost$sP - sqrt(Q)
+
+      PQ <- cost$sP - cost$sQ
       
       cost$pcost <- colSums(PQ * PQ)
       cost
@@ -442,17 +444,35 @@ hlsne <- function(perplexity, inp_kernel = "gaussian") {
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
       sP <- cost$sP
-      W <- cost$W
-      invZ <- cost$invZ
+      Q <- cost$Q
+      Z <- cost$Z
+      sQ <- cost$sQ
       
-      Q <- W * invZ
-      
-      sQ <- sqrt(Q)
       sPQ <- sum(sP * sQ)
       PQ <- sP / sQ
       diag(PQ) <- 0
       
-      cost$G <- k2g(Y,  4 * Q * W * (PQ - sPQ))
+      cost$G <- k2g(Y,  4 * Q * Q * Z * (PQ - sPQ))
+      cost
+    },
+    update = function(cost, Y) {
+      eps <- cost$eps
+      P <- cost$P
+      
+      W <- dist2(Y)
+      W <- 1 / (1 + W)
+      diag(W) <- 0
+      Z <- sum(W)
+      
+      Q <- W / Z
+      
+      cost$Q <- Q
+      cost$Z <- Z
+      cost$sQ <- sqrt(Q)
+      invQ <- 1 / Q
+      diag(invQ) <- 0
+      cost$invQ <- invQ
+      
       cost
     }
   )
