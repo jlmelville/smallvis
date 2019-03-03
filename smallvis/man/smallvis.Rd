@@ -292,6 +292,10 @@ to the \code{method} parameter are:
   (Im and co-workers, 2018).
   \item \code{"hlsne"} The Hellinger distance divergence version of t-SNE 
   (Im and co-workers, 2018).
+  \item \code{"rklsne"} The reverse Kullback-Leibler divergence version of
+  t-SNE (Im and co-workers, 2018).
+  \item \code{"jssne"} The Jensen-Shannon divergence version of t-SNE (Im and
+  co-workers, 2018).
   \item \code{"gsne"}, The global SNE (g-SNE) method of Zhou and Sharpee 
   (2018).
 }

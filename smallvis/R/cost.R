@@ -1,5 +1,12 @@
 # Generic Functions -------------------------------------------------------
 
+logm <- function(m, eps = .Machine$double.eps) {
+  diag(m) <- eps
+  m <- log(m)
+  diag(m) <- 0
+  m
+}
+
 # Convert Force constant to Gradient
 k2g <- function(Y, K, symmetrize = FALSE) {
   if (symmetrize) {
@@ -261,8 +268,199 @@ ntumap <- function(perplexity, gr_eps = 0.1) {
   )
 }
 
+# f-Divergences -----------------------------------------------------------
+
+# Reverse KL divergence
+rklsne <- function(perplexity, inp_kernel = "gaussian") {
+  lreplace(
+    tsne(perplexity = perplexity, inp_kernel = inp_kernel),
+    init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
+                    ret_extra = c()) {
+      cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
+                       symmetrize = "symmetric", normalize = TRUE,
+                       verbose = verbose, ret_extra = ret_extra)
+      cost$lP <- logm(cost$P, eps)
+      cost$eps <- eps
+      cost
+    },
+    pfn = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+
+      cost$pcost <- cost$QlQPcs
+      cost
+    },
+    gr = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+      Q <- cost$Q
+      cost$G <- k2g(Y,  4 * Q * Q * cost$sumW * (sum(cost$QlQPcs) - cost$lQP))
+      cost
+    },
+    update = function(cost, Y) {
+      W <- dist2(Y)
+      W <- 1 / (1 + W)
+      diag(W) <- 0
+      sumW <- sum(W)
+      Q <- W / sumW
+
+      cost$lQP <- logm(Q, cost$eps) - cost$lP
+      cost$QlQPcs <- colSums(Q * cost$lQP)
+      cost$Q <- Q
+      cost$sumW <- sumW
+      
+      cost
+    }
+  )
+}
+
+# Jensen-Shannon divergence
+jssne <- function(perplexity, inp_kernel = "gaussian") {
+  lreplace(
+    tsne(perplexity = perplexity, inp_kernel = inp_kernel),
+    init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
+                    ret_extra = c()) {
+      cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
+                       symmetrize = "symmetric", normalize = TRUE,
+                       verbose = verbose, ret_extra = ret_extra)
+      P <- cost$P
+      cost$PlP <- colSums(P * logm(P, eps))
+      cost$eps <- eps
+      cost
+    },
+    pfn = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+      cost$pcost <- 0.5 * (cost$PlP + cost$QlQZ - colSums(cost$P * cost$lZ))
+      cost
+    },
+    gr = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+      Q <- cost$Q
+
+      cost$G <- k2g(Y,  2 * Q * Q * cost$sumW * (sum(cost$QlQZ) - cost$lQZ))
+      cost
+    },
+    update = function(cost, Y) {
+      eps <- cost$eps
+      P <- cost$P
+      
+      W <- dist2(Y)
+      W <- 1 / (1 + W)
+      diag(W) <- 0
+      sumW <- sum(W)
+      
+      Q <- W / sumW
+      Z <- 0.5 * (P + Q)
+      
+      QlQZ <- logm(Q / Z)
+      cost$lQZ <- QlQZ
+      cost$QlQZ <- colSums(Q * QlQZ)
+      
+      cost$sumW <- sumW
+      cost$Q <- Q
+      cost$lZ <- logm(Z, cost$eps)
+      
+      cost
+    }
+  )
+}
+
+# Chi-squared divergence
+chsne <- function(perplexity, inp_kernel = "gaussian") {
+  lreplace(
+    tsne(perplexity = perplexity, inp_kernel = inp_kernel),
+    init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
+                    ret_extra = c()) {
+      cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
+                       symmetrize = "symmetric", normalize = TRUE,
+                       verbose = verbose, ret_extra = ret_extra)
+      cost$P2 <- cost$P * cost$P
+      cost$eps <- eps
+      cost
+    },
+    pfn = function(cost, Y) {
+      P <- cost$P
+      eps <- cost$eps
+      
+      cost <- cost_update(cost, Y)
+      
+      invZ <- cost$invZ
+      W <- cost$W
+      Q <- W * invZ
+      
+      invQ <- 1 / Q
+      diag(invQ) <- 0
+      
+      PQ <- P - Q
+      
+      cost$pcost <- colSums(PQ * PQ * invQ)
+      cost
+    },
+    gr = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+      W <- cost$W
+      invZ <- cost$invZ
+      eps <- cost$eps
+      
+      Q <- W * invZ
+      invQ <- 1 / Q
+      diag(invQ) <- 0
+      
+      P2Q <- cost$P2 * invQ
+      
+      cost$G <- k2g(Y,  4 * Q * W * (P2Q * invQ - sum(P2Q)))
+      cost
+    }
+  )
+}
+
+# Hellinger distance divergence
+hlsne <- function(perplexity, inp_kernel = "gaussian") {
+  lreplace(
+    tsne(perplexity = perplexity, inp_kernel = inp_kernel),
+    init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
+                    ret_extra = c()) {
+      cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
+                       symmetrize = "symmetric", normalize = TRUE,
+                       verbose = verbose, ret_extra = ret_extra)
+      cost$eps <- eps
+      cost$sP <- sqrt(cost$P)
+      cost
+    },
+    pfn = function(cost, Y) {
+      P <- cost$P
+      
+      cost <- cost_update(cost, Y)
+      
+      invZ <- cost$invZ
+      W <- cost$W
+      Q <- W * invZ
+      
+      PQ <- cost$sP - sqrt(Q)
+      
+      cost$pcost <- colSums(PQ * PQ)
+      cost
+    },
+    gr = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+      sP <- cost$sP
+      W <- cost$W
+      invZ <- cost$invZ
+      
+      Q <- W * invZ
+      
+      sQ <- sqrt(Q)
+      sPQ <- sum(sP * sQ)
+      PQ <- sP / sQ
+      diag(PQ) <- 0
+      
+      cost$G <- k2g(Y,  4 * Q * W * (PQ - sPQ))
+      cost
+    }
+  )
+}
+
 # Other Divergences -------------------------------------------------------
 
+# alpha-beta divergence
 absne <- function(perplexity, inp_kernel = "gaussian", alpha = 1, lambda = 1) {
   beta <- lambda - alpha
   eps0 <- 1e-5
@@ -329,97 +527,7 @@ absne <- function(perplexity, inp_kernel = "gaussian", alpha = 1, lambda = 1) {
   )
 }
 
-chsne <- function(perplexity, inp_kernel = "gaussian") {
-  lreplace(
-    tsne(perplexity = perplexity, inp_kernel = inp_kernel),
-    init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
-                    ret_extra = c()) {
-      cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
-                       symmetrize = "symmetric", normalize = TRUE,
-                       verbose = verbose, ret_extra = ret_extra)
-      cost$P2 <- cost$P * cost$P
-      cost$eps <- eps
-      cost
-    },
-    pfn = function(cost, Y) {
-      P <- cost$P
-      eps <- cost$eps
-      
-      cost <- cost_update(cost, Y)
-      
-      invZ <- cost$invZ
-      W <- cost$W
-      Q <- W * invZ
-
-      PQ <- P - Q
-      
-      cost$pcost <- colSums((PQ * PQ) / (Q + eps))
-      cost
-    },
-    gr = function(cost, Y) {
-      cost <- cost_update(cost, Y)
-      W <- cost$W
-      invZ <- cost$invZ
-      eps <- cost$eps
-      
-      Q <- W * invZ
-      
-      QW <- Q * W
-      sP2Q <- sum(cost$P2 / (Q + eps))
-      P2Q2 <- cost$P2 / ((Q * Q) + eps)
-      
-      cost$G <- k2g(Y,  4 * QW * (P2Q2 - sP2Q ))
-      cost
-    }
-  )
-}
-
-hlsne <- function(perplexity, inp_kernel = "gaussian") {
-  lreplace(
-    tsne(perplexity = perplexity, inp_kernel = inp_kernel),
-    init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
-                    ret_extra = c()) {
-      cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
-                       symmetrize = "symmetric", normalize = TRUE,
-                       verbose = verbose, ret_extra = ret_extra)
-      cost$eps <- eps
-      cost$sP <- sqrt(cost$P)
-      cost
-    },
-    pfn = function(cost, Y) {
-      P <- cost$P
-
-      cost <- cost_update(cost, Y)
-      
-      invZ <- cost$invZ
-      W <- cost$W
-      Q <- W * invZ
-      
-      PQ <- cost$sP - sqrt(Q)
-      
-      cost$pcost <- colSums(PQ * PQ)
-      cost
-    },
-    gr = function(cost, Y) {
-      cost <- cost_update(cost, Y)
-      sP <- cost$sP
-      W <- cost$W
-      invZ <- cost$invZ
-      eps <- cost$eps
-      
-      Q <- W * invZ
-      
-      QW <- Q * W
-      sQ <- sqrt(Q)
-      sPQ <- sum(sP * sQ)
-      PQ <- sP / (sQ + eps)
-      
-      cost$G <- k2g(Y,  4 * QW * (PQ - sPQ))
-      cost
-    }
-  )
-}
-
+# global-SNE
 gsne <- function(perplexity, lambda = 1, inp_kernel = "gaussian") {
   lreplace(
     tsne(perplexity = perplexity, inp_kernel = inp_kernel),

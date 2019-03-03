@@ -53,6 +53,10 @@
 #'   (Im and co-workers, 2018).
 #'   \item \code{"hlsne"} The Hellinger distance divergence version of t-SNE 
 #'   (Im and co-workers, 2018).
+#'   \item \code{"rklsne"} The reverse Kullback-Leibler divergence version of
+#'   t-SNE (Im and co-workers, 2018).
+#'   \item \code{"jssne"} The Jensen-Shannon divergence version of t-SNE (Im and
+#'   co-workers, 2018).
 #'   \item \code{"gsne"}, The global SNE (g-SNE) method of Zhou and Sharpee 
 #'   (2018).
 #' }
@@ -821,7 +825,8 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
                     "ballmmds", "knnmmds",
                     "dhssne", "pstsne", "tsneu",
                     "skdtsne", "usne", "cetsne",
-                    "tee", "absne", "chsne", "hlsne", "gsne")
+                    "tee", "absne", "chsne", "hlsne", "rklsne", "jssne",
+                    "gsne")
   if (is.character(method)) {
     method <- match.arg(tolower(method), method_names)
     cost_fn <- switch(method,
@@ -867,6 +872,8 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
          chsne = chsne(perplexity = perplexity),
          hlsne = hlsne(perplexity = perplexity),
          gsne = gsne(perplexity = perplexity),
+         rklsne = rklsne(perplexity = perplexity),
+         jssne = jssne(perplexity = perplexity),         
          stop("BUG: someone forgot to implement option: '", method, "'")
     )
   }
