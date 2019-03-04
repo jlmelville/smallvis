@@ -75,3 +75,4 @@ in t-SNE, as suggested in the [FIt-SNE](https://arxiv.org/abs/1712.09005) paper.
 * [Multiscale perplexities](https://jlmelville.github.io/smallvis/msperp.html) as used in multiscale t-SNE.
 * The [opt-SNE settings](https://jlmelville.github.io/smallvis/optsne.html) applied to smaller sized datasets.
 * [Global SNE (g-SNE)](https://jlmelville.github.io/smallvis/gsne.html).
+* [t-SNE using f-Divergences](https://jlmelville.github.io/smallvis/ftsne.html).
