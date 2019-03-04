@@ -1198,7 +1198,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
       }
 
       if (!nnat(opt$is_terminated) && !is.null(tolval) && 
-          tolval < tol && cost < old_cost && 
+          tolval < tol && cost <= old_cost && 
           (iter > stop_lying_iter + tol_wait 
           || opt_stages[opt_stage_idx] != "opt")) {
         stop_early <- TRUE
