@@ -491,8 +491,7 @@ hlsne <- function(perplexity, inp_kernel = "gaussian") {
   )
 }
 
-# Other Divergences -------------------------------------------------------
-
+# ABSNE -------------------------------------------------------------------
 
 # alpha-beta divergence
 absne <- function(perplexity, inp_kernel = "gaussian", alpha = 1, lambda = 1) {
@@ -533,26 +532,27 @@ absne <- function(perplexity, inp_kernel = "gaussian", alpha = 1, lambda = 1) {
       cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
                        symmetrize = "symmetric", normalize = TRUE,
                        verbose = verbose, ret_extra = ret_extra)
-      cost$inva <- 1 / alpha
-      cost$invamb <- 1 / (alpha * beta)
-      cost$invaapb <- 1 / (alpha * lambda)
+      cost$inva4 <- 4 / alpha
+      cost$minvab <- -1 / (alpha * beta)
+      cost$inval <- 1 / (alpha * lambda)
       
       P <- cost$P
-      Peps <- P + eps
-      cost$Pa <- Peps ^ alpha
-      cost$cPab <- colSums(Peps ^ lambda) / (beta * lambda)
+      cost$Pa <- powm(P, alpha, eps)
+      cost$Plc <- colSums(powm(P, lambda, eps)) / (beta * lambda)
       
       cost$eps <- eps
       cost
     },
     pfn = function(cost, Y) {
       cost <- cost_update(cost, Y)
-      cost$pcost <- cost$cPab - cost$invamb * cost$J1c  + cost$invaapb * cost$J2c
+      cost$pcost <- cost$minvab * cost$PaQbc + cost$Plc + cost$inval * cost$Qlc
       cost
     },
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
-      cost$G <- k2g(Y, 4 * cost$QQZ * cost$inva * (cost$J1Q - cost$J2Q - cost$J1s + cost$J2s))
+      Q <- cost$Q
+      cost$G <- k2g(Y, cost$inva4 * cost$Z * Q *  
+                      (cost$PaQb - cost$Ql + Q * (cost$Qls - cost$PaQbs)))
       cost
     },
     update = function(cost, Y) {
@@ -561,25 +561,18 @@ absne <- function(perplexity, inp_kernel = "gaussian", alpha = 1, lambda = 1) {
       diag(W) <- 0
       Z <- sum(W)
       Q <- W / Z
-      
-      cost$QQZ <- Q * Q * Z
-      
-      diag(Q) <- cost$eps
-      
-      J1 <- cost$Pa * Q ^ beta
-      J2 <- Q ^ lambda
-      
-      cost$J1Q <- J1 / Q
-      cost$J2Q <- J2 / Q
-      
-      J1c <- colSums(J1)
-      cost$J1c <- J1c
-      cost$J1s <- sum(J1c)
-      
-      J2c <- colSums(J2)
-      cost$J2c <- J2c
-      cost$J2s <- sum(J2c)
-      
+
+      eps <- cost$eps
+      cost$PaQb <- cost$Pa * powm(Q, beta, eps)
+      cost$PaQbc <- colSums(cost$PaQb)
+      cost$PaQbs <- sum(cost$PaQbc)
+
+      cost$Q <- Q
+      cost$Ql <- powm(Q, lambda, eps)
+      cost$Qlc <- colSums(cost$Ql)
+      cost$Qls <- sum(cost$Qlc)  
+          
+      cost$Z <- Z
       cost
     }
   )
@@ -621,9 +614,8 @@ absneb0 <- function(perplexity, inp_kernel = "gaussian", alpha = 1) {
       cost <- cost_update(cost, Y)
       Q <- cost$Q
       
-      cost$G <- k2g(Y, 
-                    cost$invam4 * Q * cost$Z *
-                      (cost$Pa - cost$Qa - Q * cost$Pas + Q * cost$Qas))
+      cost$G <- k2g(Y, cost$invam4 * Q * cost$Z *
+                      (cost$Pa - cost$Qa + Q * (cost$Qas - cost$Pas)))
       cost
     },
     update = function(cost, Y) {
@@ -681,9 +673,8 @@ absneamb <- function(perplexity, inp_kernel = "gaussian", alpha = 1) {
       cost <- cost_update(cost, Y)
       Q <- cost$Q
 
-      cost$G <- k2g(Y, 
-                    cost$invam4 * Q * cost$Z *
-                    (cost$PadivQa - 1 - Q * cost$PadivQas + Q * cost$N2))
+      cost$G <- k2g(Y, cost$invam4 * Q * cost$Z *
+                    (cost$PadivQa - 1 + Q * (cost$N2 - cost$PadivQas)))
       cost
     },
     update = function(cost, Y) {
@@ -740,9 +731,8 @@ absnea0 <- function(perplexity, inp_kernel = "gaussian", beta = 1) {
       cost <- cost_update(cost, Y)
       Q <- cost$Q
       
-      cost$G <- k2g(Y, 
-                    cost$invbm4 * Q * cost$Z *
-                      (cost$QblPb - cost$QblQb - Q * cost$QblPbs + Q * cost$QblQbs))
+      cost$G <- k2g(Y, cost$invbm4 * Q * cost$Z *
+                      (cost$QblPb - cost$QblQb + Q * (cost$QblQbs - cost$QblPbs)))
       cost
     },
     update = function(cost, Y) {
@@ -804,7 +794,7 @@ absne00 <- function(perplexity, inp_kernel = "gaussian") {
       Q <- cost$Q
       
       cost$G <- k2g(Y, 4 * Q * cost$Z *
-                      (cost$lP - cost$lQ - Q * cost$lPs + Q * cost$lQs))
+                      (cost$lP - cost$lQ + Q * (cost$lQs - cost$lPs)))
       cost
     },
     update = function(cost, Y) {
@@ -825,6 +815,8 @@ absne00 <- function(perplexity, inp_kernel = "gaussian") {
     }
   )
 }
+
+# Other Divergences -------------------------------------------------------
 
 # global-SNE
 gsne <- function(perplexity, lambda = 1, inp_kernel = "gaussian") {
