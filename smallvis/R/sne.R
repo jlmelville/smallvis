@@ -20,13 +20,16 @@ tsne <- function(perplexity, inp_kernel = "gaussian") {
       cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
                        symmetrize = "symmetric", normalize = TRUE,
                        verbose = verbose, ret_extra = ret_extra)
-      P <- cost$P
+      cost$eps <- eps
+      cost
+    },
+    cache_input = function(cost) {
       # cache P log P constant part of cost: incur 1 extra log operation now
       # but saves one division operation every time we calculate cost:
       # substantial (10-15%) speed up with Wolfe line search methods
+      P <- cost$P
+      eps <- cost$eps
       cost$plogp <- colSums(P * log((P + eps)))
-
-      cost$eps <- eps
       cost
     },
     pfn = kl_cost,
@@ -57,7 +60,11 @@ tsne <- function(perplexity, inp_kernel = "gaussian") {
       cost$W <- W
       cost
     },
-    sentinel = "W"
+    sentinel = "W",
+    exaggerate = function(cost, exaggeration_factor) {
+      cost$P <- cost$P * exaggeration_factor
+      cost
+    }
   )
 }
 
@@ -240,7 +247,6 @@ wtsne <- function(perplexity) {
       cost$invM <- 1 / cost$M
       cost$eps <- eps
 
-      cost$plogp <- colSums(cost$P * log((cost$P + eps)))
       cost
     },
     gr = function(cost, Y) {
@@ -296,8 +302,7 @@ tsneu <- function(perplexity, inp_kernel = "gaussian") {
       cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
                        symmetrize = "symmetric", normalize = TRUE,
                        verbose = verbose, ret_extra = ret_extra)
-      P <- cost$P
-      cost$plogp <- colSums(P * log((P + eps)))
+
       cost$eps <- eps
 
       cost$V <- cost$V / rowSums(cost$V)
@@ -327,9 +332,6 @@ pstsne <- function(perplexity, inp_kernel = "gaussian") {
       cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
                        symmetrize = "symmetric", normalize = TRUE,
                        verbose = verbose, ret_extra = ret_extra)
-      P <- cost$P
-      cost$plogp <- colSums(P * log((P + eps)))
-      cost$eps <- eps
 
       # need to row-normalize and symmetrize affinities
       cost$V <- cost$V / rowSums(cost$V)
@@ -337,8 +339,15 @@ pstsne <- function(perplexity, inp_kernel = "gaussian") {
       cost$Vsum <- sum(cost$V)
       cost$invVsum <- 1 / (cost$Vsum)
 
+      cost
+    },
+    cache_input = function(cost) {
+      # TODO: override cost function so it uses
+      P <- cost$P
+      eps <- cost$eps
+      cost$plogp <- colSums(P * log((P + eps)))
       cost$invZ <- 1 / (nrow(cost$P) * nrow(cost$P))
-
+      
       cost
     },
     gr = function(cost, Y) {
@@ -431,7 +440,6 @@ skdtsne <- function(perplexity) {
       # Normalize
       P <- P / sum(P)
       cost$P <- P
-      cost$plogp <- colSums(P * log((P + eps)))
 
       cost
     }
@@ -448,8 +456,6 @@ usne <- function(perplexity, inp_kernel = "gaussian", spread = 1,
       cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
                        symmetrize = "symmetric", normalize = TRUE,
                        verbose = verbose, ret_extra = ret_extra)
-      P <- cost$P
-      cost$plogp <- colSums(P * log((P + eps)))
       cost$eps <- eps
 
       ab_params <- find_ab_params(spread = spread, min_dist = min_dist)
@@ -491,9 +497,14 @@ cetsne <- function(perplexity, inp_kernel = "gaussian") {
              cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
                               symmetrize = "symmetric", normalize = TRUE,
                               verbose = verbose, ret_extra = ret_extra)
-             P <- cost$P
-             cost$Cp <- colSums(P * log(P + eps) + (1 - P) * log1p(-P + eps))
+
              cost$eps <- eps
+             cost
+           },
+           cache_input = function(cost) {
+             P <- cost$P
+             eps <- cost$eps
+             cost$Cp <- colSums(P * log(P + eps) + (1 - P) * log1p(-P + eps))
              cost
            },
            pfn = function(cost, Y) {
@@ -545,9 +556,6 @@ btsne <- function(perplexity, inp_kernel = "gaussian") {
       cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
                        symmetrize = "symmetric", normalize = TRUE,
                        verbose = verbose, ret_extra = ret_extra)
-      P <- cost$P
-      cost$plogp <- colSums(P * log((P + eps)))
-
       cost$eps <- eps
       cost
     },
@@ -672,9 +680,6 @@ trmsne <- function(perplexity, inp_kernel = "gaussian") {
              cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
                               symmetrize = "none", normalize = TRUE,
                               verbose = verbose, ret_extra = ret_extra)
-             P <- cost$P
-             cost$plogp <- colSums(P * log((P + eps)))
-
              cost$eps <- eps
              cost
            },
@@ -703,9 +708,6 @@ tmsne <- function(perplexity, inp_kernel = "gaussian") {
                               symmetrize = "none", row_normalize = FALSE,
                               normalize = TRUE,
                               verbose = verbose, ret_extra = ret_extra)
-             P <- cost$P
-             cost$plogp <- colSums(P * log((P + eps)))
-
              cost$eps <- eps
              cost
            }

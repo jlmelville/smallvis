@@ -32,7 +32,7 @@ cost_init <- function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
     cost <- cost$init(cost, X, verbose = verbose, ret_extra = ret_extra,
                       max_iter = max_iter)
   }
-  cost
+  cost_cache_input(cost)
 }
 
 cost_grad <- function(cost, Y) {
@@ -101,6 +101,27 @@ cost_export <- function(cost, val) {
   res
 }
 
+cost_cache_input <- function(cost) {
+  if (!is.null(cost$cache_input)) {
+    cost <- cost$cache_input(cost)
+  }
+  cost  
+}
+
+start_exaggerating <- function(cost, exaggeration_factor) {
+  if (!is.null(cost$exaggerate) && exaggeration_factor != 1) {
+    cost <- cost$exaggerate(cost, exaggeration_factor)
+  }
+  cost_cache_input(cost)
+}
+
+stop_exaggerating <- function(cost, exaggeration_factor) {
+  if (!is.null(cost$exaggerate) && exaggeration_factor != 1) {
+    cost <- cost$exaggerate(cost, 1 / exaggeration_factor)
+  }
+  cost_cache_input(cost)
+}
+
 # LargeVis ----------------------------------------------------------------
 
 # NB This version doesn't normalize the input P, despite what the paper
@@ -161,9 +182,14 @@ umap <- function(perplexity, spread = 1, min_dist = 0.001, gr_eps = 0.1) {
                                 verbose = verbose)$P
       P <- fuzzy_set_union(P)
       cost$P <- P
-      cost$Cp <- colSums(P * log(P + eps) + (1 - P) * log1p(-P + eps))
       cost$eps <- eps
 
+      cost
+    },
+    cache_input = function(cost) {
+      P <- cost$P
+      eps <- cost$eps
+      cost$Cp <- colSums(P * log(P + eps) + (1 - P) * log1p(-P + eps))
       cost
     },
     pfn = function(cost, Y) {
@@ -206,8 +232,6 @@ tumap <- function(perplexity, gr_eps = 0.1) {
                                 verbose = verbose)$P
       P <- fuzzy_set_union(P)
       cost$P <- P
-      cost$Cp <- colSums(P * log(P + eps) + (1 - P) * log1p(-P + eps))
-
       cost
     },
     gr = function(cost, Y) {
@@ -239,7 +263,6 @@ ntumap <- function(perplexity, gr_eps = 0.1) {
 
       P <- P / sum(P)
       cost$P <- P
-      cost$Cp <- colSums(P * log(P + eps) + (1 - P) * log1p(-P + eps))
 
       cost
     },
@@ -291,13 +314,15 @@ rklsne <- function(perplexity, inp_kernel = "gaussian") {
       cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
                        symmetrize = "symmetric", normalize = TRUE,
                        verbose = verbose, ret_extra = ret_extra)
-      cost$lP <- logm(cost$P, eps)
       cost$eps <- eps
+      cost
+    },
+    cache_input = function(cost) {
+      cost$lP <- logm(cost$P, cost$eps)
       cost
     },
     pfn = function(cost, Y) {
       cost <- cost_update(cost, Y)
-
       cost$pcost <- cost$QlQPcs
       cost
     },
@@ -333,9 +358,12 @@ jssne <- function(perplexity, inp_kernel = "gaussian") {
       cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
                        symmetrize = "symmetric", normalize = TRUE,
                        verbose = verbose, ret_extra = ret_extra)
-      P <- cost$P
-      cost$PlP <- colSums(P * logm(P, eps))
       cost$eps <- eps
+      cost
+    },
+    cache_input = function(cost) {
+      P <- cost$P
+      cost$PlP <- colSums(P * logm(P, cost$eps))
       cost
     },
     pfn = function(cost, Y) {
@@ -385,8 +413,12 @@ chsne <- function(perplexity, inp_kernel = "gaussian") {
       cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
                        symmetrize = "symmetric", normalize = TRUE,
                        verbose = verbose, ret_extra = ret_extra)
-      cost$P2 <- cost$P * cost$P
       cost$eps <- eps
+      cost
+    },
+    cache_input = function(cost) {
+      P <- cost$P
+      cost$P2 <- P * P
       cost
     },
     pfn = function(cost, Y) {
@@ -443,6 +475,9 @@ hlsne <- function(perplexity, inp_kernel = "gaussian") {
                        symmetrize = "symmetric", normalize = TRUE,
                        verbose = verbose, ret_extra = ret_extra)
       cost$eps <- eps
+      cost
+    },
+    cache_input = function(cost) {
       cost$sP <- sqrt(cost$P)
       cost
     },
@@ -535,12 +570,15 @@ absne <- function(perplexity, inp_kernel = "gaussian", alpha = 1, lambda = 1) {
       cost$inva4 <- 4 / alpha
       cost$minvab <- -1 / (alpha * beta)
       cost$inval <- 1 / (alpha * lambda)
-      
+
+      cost$eps <- eps
+      cost
+    },
+    cache_input = function(cost) {
       P <- cost$P
+      eps <- cost$eps
       cost$Pa <- powm(P, alpha, eps)
       cost$Plc <- colSums(powm(P, lambda, eps)) / (beta * lambda)
-      
-      cost$eps <- eps
       cost
     },
     pfn = function(cost, Y) {
@@ -594,13 +632,17 @@ absneb0 <- function(perplexity, inp_kernel = "gaussian", alpha = 1) {
       
       cost$eps <- eps
       
+      cost$inva2 <- 1 / (alpha * alpha)
+      cost$invam4 <- 4 / alpha
+      cost
+    },
+    cache_input = function(cost) {
+      eps <- cost$eps
       Pa <- powm(cost$P, alpha, eps)
       cost$Pa <- Pa
       cost$PlPac <- colSums(cost$P * logm(Pa, eps))
       cost$Pac <- colSums(Pa)
       cost$Pas <- sum(cost$Pac)
-      cost$inva2 <- 1 / (alpha * alpha)
-      cost$invam4 <- 4 / alpha
       cost
     },
     pfn = function(cost, Y) {
@@ -639,7 +681,6 @@ absneb0 <- function(perplexity, inp_kernel = "gaussian", alpha = 1) {
   )
 }
 
-
 # alpha = -beta != 0 => lambda = 0
 absneamb <- function(perplexity, inp_kernel = "gaussian", alpha = 1) {
   lreplace(
@@ -657,11 +698,15 @@ absneamb <- function(perplexity, inp_kernel = "gaussian", alpha = 1) {
       cost$N <- nrow(cost$P)
       cost$N2 <- (cost$N  - 1) * cost$N
       cost$eps <- eps
-      
-      cost$Pa <- powm(cost$P, alpha, eps)
-      cost$lPac <- colSums(logm(cost$Pa, eps))
+
       cost$inva2 <- 1 / (alpha * alpha)
       cost$invam4 <- 4 / alpha
+      cost
+    },
+    cache_input = function(cost) {
+      eps <- cost$eps
+      cost$Pa <- powm(cost$P, alpha, eps)
+      cost$lPac <- colSums(logm(cost$Pa, eps))
       cost
     },
     pfn = function(cost, Y) {
@@ -713,11 +758,15 @@ absnea0 <- function(perplexity, inp_kernel = "gaussian", beta = 1) {
       
       cost$eps <- eps
       
+      cost$invb2 <- 1 / (beta * beta)
+      cost$invbm4 <- 4 / beta
+      cost
+    },
+    cache_input = function(cost) {
+      eps <- cost$eps
       Pb <- powm(cost$P, beta, eps)
       cost$Pbc <- colSums(Pb)
       cost$lPb <- logm(Pb, eps)
-      cost$invb2 <- 1 / (beta * beta)
-      cost$invbm4 <- 4 / beta
       cost
     },
     pfn = function(cost, Y) {
@@ -775,11 +824,13 @@ absne00 <- function(perplexity, inp_kernel = "gaussian") {
                        verbose = verbose, ret_extra = ret_extra)
       
       cost$eps <- eps
-      
+      cost
+    },
+    cache_input = function(cost) {
+      eps <- cost$eps
       lP <- logm(cost$P, eps)
       cost$lP <- lP
       cost$lPs <- sum(lP)
-
       cost
     },
     pfn = function(cost, Y) {
@@ -828,9 +879,8 @@ gsne <- function(perplexity, lambda = 1, inp_kernel = "gaussian") {
                        symmetrize = "symmetric", normalize = TRUE,
                        verbose = verbose, ret_extra = ret_extra)
       cost$eps <- eps
-      P <- cost$P
-      cost$plogp <- colSums(P * log((P + eps)))
-        
+      
+      # Phat isn't affected by early exaggeration, so we cache it once only
       if (methods::is(X, "dist")) {
         Phat <- as.matrix(X)
       }
@@ -844,8 +894,16 @@ gsne <- function(perplexity, lambda = 1, inp_kernel = "gaussian") {
       Phat <- Phat / sum(Phat)
       cost$Phat <- Phat
       cost$phlogph <- colSums(Phat * log(Phat + eps))
-      cost$plamphat <- P - lambda * Phat
-    
+      
+      cost
+    },
+    cache_input = function(cost) {
+      eps <- cost$eps
+      P <- cost$P
+      cost$plogp <- colSums(P * log((P + eps)))
+
+      cost$plamphat <- P - lambda * cost$Phat
+      
       cost
     },
     pfn = function(cost, Y) {

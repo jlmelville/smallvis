@@ -1079,7 +1079,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
   old_cdiffrc <- NULL
   # Start exaggerating
   if (!is.null(cost_fn$P) && exaggeration_factor != 1) {
-    cost_fn$P <- cost_fn$P * exaggeration_factor
+    cost_fn <- start_exaggerating(cost_fn, exaggeration_factor)
     if (!is.null(ee_mon_epoch)) {
       epoch <- ee_mon_epoch
       # prevent tolerance based convergence if we monitor EE 
@@ -1110,7 +1110,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
     if (!is.null(cost_fn$P) && iter == stop_lying_iter &&
         exaggeration_factor != 1) {
       tsmessage("Switching off exaggeration at iter ", iter)
-      cost_fn$P <- cost_fn$P / exaggeration_factor
+      cost_fn <- stop_exaggerating(cost_fn, exaggeration_factor)
       opt_stage_idx <- opt_stage_idx + 1
       epoch <- opt_epoch
       tol <- opt_tol
@@ -1121,7 +1121,8 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
       tsmessage("Starting late exaggeration = ",
               formatC(late_exaggeration_factor), " at iter ", iter,
               " until iter ", max_iter)
-      cost_fn$P <- cost_fn$P * late_exaggeration_factor
+      cost_fn <- start_exaggerating(cost_fn, late_exaggeration_factor)
+      
       opt_stage_idx <- opt_stage_idx + 1
     }
 
@@ -1251,6 +1252,13 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
     }
   }
 
+  if (opt_stages[opt_stage_idx] == "early") {
+    cost_fn <- stop_exaggerating(cost_fn, exaggeration_factor)
+  }
+  if (opt_stages[opt_stage_idx] == "late") {
+    cost_fn <- stop_exaggerating(cost_fn, late_exaggeration_factor)
+  }
+  
   # Recenter before output
   Y <- sweep(Y, 2, colMeans(Y))
   

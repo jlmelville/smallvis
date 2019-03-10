@@ -58,12 +58,12 @@ test_that("extra return values and iter0 cost", {
 })
 
 test_that("early and late exaggeration", {
-  # P should be a multiple when exaggeration is on
   i10_tsne <- smallvis(iris10, Y_init = iris10_Y, perplexity = 5,
                        epoch_callback = NULL, verbose = FALSE,
                        ret_extra = c("P"), exaggeration_factor = 4,
                        stop_lying_iter = 11, max_iter = 10)
-  expect_equal(sum(i10_tsne$P), 4)
+  # actually we should scale P back to normal before exporting
+  expect_equal(sum(i10_tsne$P), 1)
   expect_equal(i10_tsne$exaggeration_factor, 4)
   expect_equal(i10_tsne$stop_lying_iter, 11)
   # Don't report late exaggeration if not used
@@ -82,14 +82,14 @@ test_that("early and late exaggeration", {
   expect_null(i10_tsne$late_exaggeration_factor)
 
 
-  # P should be back to a multiple with late exaggeration
+  # P should not be back to a multiple with late exaggeration
   i10_tsne <- smallvis(iris10, Y_init = iris10_Y, perplexity = 5,
                        epoch_callback = NULL, verbose = FALSE,
                        ret_extra = c("P"),
                        exaggeration_factor = 4, stop_lying_iter = 5,
                        late_exaggeration_factor = 4, start_late_lying_iter = 9,
                        max_iter = 10)
-  expect_equal(sum(i10_tsne$P), 4)
+  expect_equal(sum(i10_tsne$P), 1)
   expect_equal(i10_tsne$exaggeration_factor, 4)
   expect_equal(i10_tsne$late_exaggeration_factor, 4)
   expect_equal(i10_tsne$stop_lying_iter, 5)
@@ -102,7 +102,7 @@ test_that("early and late exaggeration", {
                        late_exaggeration_factor = 2,
                        stop_lying_iter = 5,  start_late_lying_iter = 9,
                        max_iter = 10)
-  expect_equal(sum(i10_tsne$P), 2)
+  expect_equal(sum(i10_tsne$P), 1)
   expect_equal(i10_tsne$exaggeration_factor, 4)
   expect_equal(i10_tsne$late_exaggeration_factor, 2)
   expect_equal(i10_tsne$stop_lying_iter, 5)
