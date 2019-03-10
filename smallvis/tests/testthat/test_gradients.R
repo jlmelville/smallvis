@@ -32,6 +32,18 @@ test_that("HSSNE", {
   test_grad("hssne", perplexity = perp, alpha = 1e-6)
   test_grad("hssne", perplexity = perp, alpha = 0.5)
   test_grad("hssne", perplexity = perp, alpha = 1)
+  
+  test_grad("bhssne", perplexity = perp, alpha = 1e-6, beta = 1)
+  test_grad("bhssne", perplexity = perp, alpha = 0.5, beta = 1)
+  test_grad("bhssne", perplexity = perp, alpha = 1, beta = 1)
+  
+  test_grad("bhssne", perplexity = perp, alpha = 1e-6, beta = 0.1)
+  test_grad("bhssne", perplexity = perp, alpha = 0.5, beta = 0.1)
+  test_grad("bhssne", perplexity = perp, alpha = 1, beta = 0.1)
+  
+  test_grad("bhssne", perplexity = perp, alpha = 1e-6, beta = 10)
+  test_grad("bhssne", perplexity = perp, alpha = 0.5, beta = 10)
+  test_grad("bhssne", perplexity = perp, alpha = 1, beta = 10)
 })
 
 test_that("JSE", {
@@ -133,6 +145,14 @@ test_that("AB-SNE", {
 
   test_grad("absne00", perplexity = perp)
   test_grad("absne", perplexity = perp, alpha = 0, lambda = 0)
+  
+  test_grad("abssne", perplexity = perp, alpha = 0.75, lambda = 0.5)
+  test_grad("abssne", perplexity = perp, alpha = 0.25, lambda = 0.75)
+  test_grad("abssne", perplexity = perp, alpha = 1.0, lambda = 1.0)
+  test_grad("abssne", perplexity = perp, alpha = 1.0, lambda = 0.95)
+  test_grad("abssne", perplexity = perp, alpha = 1.0, lambda = 1.05)
+  test_grad("abssne", perplexity = perp, alpha = 0.6, lambda = 1.0)
+  test_grad("abssne", perplexity = perp, alpha = 1.4, lambda = 1.0)
 })
 
 test_that("f-divergences", {

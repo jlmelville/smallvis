@@ -696,7 +696,7 @@ absneamb <- function(perplexity, inp_kernel = "gaussian", alpha = 1) {
                        verbose = verbose, ret_extra = ret_extra)
 
       cost$N <- nrow(cost$P)
-      cost$N2 <- (cost$N  - 1) * cost$N
+      cost$N2 <- (cost$N - 1) * cost$N
       cost$eps <- eps
 
       cost$inva2 <- 1 / (alpha * alpha)
@@ -861,6 +861,79 @@ absne00 <- function(perplexity, inp_kernel = "gaussian") {
       lQ <- logm(Q, cost$eps)
       cost$lQ <- lQ
       cost$lQs <- sum(lQ)
+      
+      cost
+    }
+  )
+}
+
+# alpha-beta divergence
+abssne <- function(perplexity, inp_kernel = "gaussian", alpha = 1, lambda = 1) {
+  beta <- lambda - alpha
+  
+  eps0 <- 1e-5
+
+  if (abs(alpha) < eps0) {
+    alpha <- ifelse(alpha == 0, 1, sign(alpha)) * eps0
+  }
+  if (abs(beta) < eps0) {
+    beta <- ifelse(beta == 0, 1, sign(beta)) * eps0
+  }
+  if (abs(lambda) < eps0) {
+    lambda <- ifelse(lambda == 0, 1, sign(lambda)) * eps0
+  }
+  lreplace(
+    tsne(perplexity = perplexity, inp_kernel = inp_kernel),
+    init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
+                    ret_extra = c()) {
+      if (verbose) {
+        tsmessage("Using ABSSNE with alpha = ", formatC(alpha), 
+                  " beta = ", formatC(beta))
+      }
+      cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
+                       symmetrize = "symmetric", normalize = TRUE,
+                       verbose = verbose, ret_extra = ret_extra)
+      cost$inva4 <- 4 / alpha
+      cost$minvab <- -1 / (alpha * beta)
+      cost$inval <- 1 / (alpha * lambda)
+      
+      cost$eps <- eps
+      cost
+    },
+    cache_input = function(cost) {
+      P <- cost$P
+      eps <- cost$eps
+      cost$Pa <- powm(P, alpha, eps)
+      cost$Plc <- colSums(powm(P, lambda, eps)) / (beta * lambda)
+      cost
+    },
+    pfn = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+      # browser()
+      cost$pcost <- cost$minvab * cost$PaQbc + cost$Plc + cost$inval * cost$Qlc
+      cost
+    },
+    gr = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+      cost$G <- k2g(Y, cost$inva4 *  
+                      (cost$PaQb - cost$Ql + cost$Q * (cost$Qls - cost$PaQbs)))
+      cost
+    },
+    update = function(cost, Y) {
+      W <- dist2(Y)
+      W <- exp(-W)
+      diag(W) <- 0
+      Q <- W / sum(W)
+      
+      eps <- cost$eps
+      cost$PaQb <- cost$Pa * powm(Q, beta, eps)
+      cost$PaQbc <- colSums(cost$PaQb)
+      cost$PaQbs <- sum(cost$PaQbc)
+      
+      cost$Q <- Q
+      cost$Ql <- powm(Q, lambda, eps)
+      cost$Qlc <- colSums(cost$Ql)
+      cost$Qls <- sum(cost$Qlc)  
       
       cost
     }

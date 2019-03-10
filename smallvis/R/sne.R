@@ -170,6 +170,41 @@ hssne <- function(perplexity, alpha = 0.5) {
   )
 }
 
+bhssne <- function(perplexity, alpha = 0.5, beta = 1) {
+  alpha <- max(alpha, 1e-8)
+  beta <- max(beta, 1e-8)
+  lreplace(
+    tsne(perplexity = perplexity),
+    cache_input = function(cost) {
+      P <- cost$P
+      eps <- cost$eps
+      cost$plogp <- colSums(P * logm(P, eps))
+
+      cost$b4 <- 4 * beta
+      cost$ab <- alpha * beta
+      cost$apow <- -1 / alpha
+      cost
+    },
+    gr = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+      W <- cost$W
+      cost$G <- k2g(Y, cost$b4 * (cost$P - W * cost$invZ) * (W ^ alpha))
+
+      cost
+    },
+    update = function(cost, Y) {
+      W <- dist2(Y)
+      W <- (cost$ab * W + 1) ^ cost$apow
+
+      diag(W) <- 0
+      
+      cost$invZ <- 1 / sum(W)
+      cost$W <- W
+      cost
+    }
+  )
+}
+
 # A version of HSSNE where alpha is allowed to vary at every epoch
 dhssne <- function(perplexity, alpha = 0.5) {
   alpha_min <- 1e-8
