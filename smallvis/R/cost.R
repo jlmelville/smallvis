@@ -7,6 +7,18 @@ logm <- function(m, eps = .Machine$double.eps) {
   m
 }
 
+divm <- function(m, n, eps = .Machine$double.eps) {
+  m <- m / n
+  diag(m) <- 0
+  m
+}
+
+powm <- function(m, n, eps = .Machine$double.eps) {
+  m <- m ^ n
+  diag(m) <- 0
+  m
+}
+
 # Convert Force constant to Gradient
 k2g <- function(Y, K, symmetrize = FALSE) {
   if (symmetrize) {
@@ -328,14 +340,14 @@ jssne <- function(perplexity, inp_kernel = "gaussian") {
     },
     pfn = function(cost, Y) {
       cost <- cost_update(cost, Y)
-      cost$pcost <- 0.5 * (cost$PlP + cost$QlQZ - colSums(cost$P * cost$lZ))
+      cost$pcost <- 0.5 * (cost$PlP + cost$QlQZ - colSums(cost$P * logm(cost$Z, cost$eps)))
       cost
     },
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
       Q <- cost$Q
 
-      cost$G <- k2g(Y,  2 * Q * Q * cost$sumW * (sum(cost$QlQZ) - cost$lQZ))
+      cost$G <- k2g(Y,  2 * Q * Q * cost$sumW * (cost$QlQZs - cost$lQZ))
       cost
     },
     update = function(cost, Y) {
@@ -351,12 +363,13 @@ jssne <- function(perplexity, inp_kernel = "gaussian") {
       Z <- 0.5 * (P + Q)
       
       QlQZ <- logm(Q / Z)
-      cost$lQZ <- QlQZ
       cost$QlQZ <- colSums(Q * QlQZ)
+      cost$QlQZs <- sum(cost$QlQZ)
       
+      cost$lQZ <- QlQZ
       cost$sumW <- sumW
       cost$Q <- Q
-      cost$lZ <- logm(Z, cost$eps)
+      cost$Z <- Z 
       
       cost
     }
