@@ -493,68 +493,334 @@ hlsne <- function(perplexity, inp_kernel = "gaussian") {
 
 # Other Divergences -------------------------------------------------------
 
+
 # alpha-beta divergence
 absne <- function(perplexity, inp_kernel = "gaussian", alpha = 1, lambda = 1) {
   beta <- lambda - alpha
+
   eps0 <- 1e-5
-  if (abs(beta) < eps0) {
-    beta <- ifelse(beta == 0, 1, sign(beta)) * eps0
+  if (abs(alpha) > eps0 && abs(lambda) < eps0) {
+    # alpha != 0, beta = -alpha (=> lambda == 0)
+    return(absneamb(perplexity = perplexity,
+                    inp_kernel = inp_kernel, alpha = alpha))
+  }
+  if (abs(alpha) > eps0 && abs(beta) < eps0) {
+    # alpha != 0, beta = 0 (=> lambda = alpha)
+    return(absneb0(perplexity = perplexity,
+                    inp_kernel = inp_kernel, alpha = alpha))
+  }
+  if (abs(alpha) < eps0 && abs(beta) > eps0 ) {
+    # alpha = 0, beta != 0 (=> lambda = beta)
+    return(absnea0(perplexity = perplexity,
+                   inp_kernel = inp_kernel, beta = beta))
+  }
+  if (abs(alpha) < eps0 && abs(beta) < eps0) {
+    # alpha = 0, beta = 0 (=> lambda = 0)
+    return(absne00(perplexity = perplexity, inp_kernel = inp_kernel))
+  }
+
+  if (abs(lambda) < eps0) {
+    lambda <- ifelse(lambda == 0, 1, sign(lambda)) * eps0
   }
   lreplace(
     tsne(perplexity = perplexity, inp_kernel = inp_kernel),
     init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
                     ret_extra = c()) {
+      if (verbose) {
+        tsmessage("Using ABSNE with alpha = ", formatC(alpha), 
+                  " beta = ", formatC(beta))
+      }
       cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
                        symmetrize = "symmetric", normalize = TRUE,
                        verbose = verbose, ret_extra = ret_extra)
+      cost$inva <- 1 / alpha
+      cost$invamb <- 1 / (alpha * beta)
+      cost$invaapb <- 1 / (alpha * lambda)
+      
       P <- cost$P
       Peps <- P + eps
       cost$Pa <- Peps ^ alpha
-      cost$aabPab <- (alpha / (alpha + beta)) * colSums(Peps ^ (alpha + beta))
-      cost$inva <- 1 / alpha
-      cost$invab <- 1 / (alpha * beta)
-      cost$ab <- alpha + beta
-      cost$bdivab <- beta / (alpha + beta)
-      cost$ab1 <- cost$ab - 1
+      cost$cPab <- colSums(Peps ^ lambda) / (beta * lambda)
       
       cost$eps <- eps
       cost
     },
     pfn = function(cost, Y) {
-      P <- cost$P
-      eps <- cost$eps
-      
       cost <- cost_update(cost, Y)
+      cost$pcost <- cost$cPab - cost$invamb * cost$J1c  + cost$invaapb * cost$J2c
+      cost
+    },
+    gr = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+      cost$G <- k2g(Y, 4 * cost$QQZ * cost$inva * (cost$J1Q - cost$J2Q - cost$J1s + cost$J2s))
+      cost
+    },
+    update = function(cost, Y) {
+      W <- dist2(Y)
+      W <- 1 / (1 + W)
+      diag(W) <- 0
+      Z <- sum(W)
+      Q <- W / Z
       
-      invZ <- cost$invZ
-      W <- cost$W
-      Q <- W * invZ
-      Qeps <- Q + eps
+      cost$QQZ <- Q * Q * Z
       
-      PaQb <- cost$Pa * (Qeps ^ beta)
+      diag(Q) <- cost$eps
       
-      babQab <- cost$bdivab * (Qeps ^ cost$ab)
-      cost$pcost <- cost$invab * (cost$aabPab + colSums(babQab - PaQb))
+      J1 <- cost$Pa * Q ^ beta
+      J2 <- Q ^ lambda
+      
+      cost$J1Q <- J1 / Q
+      cost$J2Q <- J2 / Q
+      
+      J1c <- colSums(J1)
+      cost$J1c <- J1c
+      cost$J1s <- sum(J1c)
+      
+      J2c <- colSums(J2)
+      cost$J2c <- J2c
+      cost$J2s <- sum(J2c)
+      
+      cost
+    }
+  )
+}
+
+# alpha != 0, beta = 0 => lambda = alpha
+absneb0 <- function(perplexity, inp_kernel = "gaussian", alpha = 1) {
+  lreplace(
+    tsne(perplexity = perplexity, inp_kernel = inp_kernel),
+    init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
+                    ret_extra = c()) {
+      if (verbose) {
+        tsmessage("Using ABSNE with alpha = ", formatC(alpha), 
+                  " beta = 0")
+      }
+      cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
+                       symmetrize = "symmetric", normalize = TRUE,
+                       verbose = verbose, ret_extra = ret_extra)
+      
+      cost$eps <- eps
+      
+      Pa <- powm(cost$P, alpha, eps)
+      cost$Pa <- Pa
+      cost$PlPac <- colSums(cost$P * logm(Pa, eps))
+      cost$Pac <- colSums(Pa)
+      cost$Pas <- sum(cost$Pac)
+      cost$inva2 <- 1 / (alpha * alpha)
+      cost$invam4 <- 4 / alpha
+      cost
+    },
+    pfn = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+      cost$pcost <- cost$inva2 * 
+        (cost$PlPac - colSums(cost$Pa * logm(cost$Qa, cost$eps)) - 
+           cost$Pac + cost$Qac)
+      cost
+    },
+    gr = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+      Q <- cost$Q
+      
+      cost$G <- k2g(Y, 
+                    cost$invam4 * Q * cost$Z *
+                      (cost$Pa - cost$Qa - Q * cost$Pas + Q * cost$Qas))
+      cost
+    },
+    update = function(cost, Y) {
+      W <- dist2(Y)
+      W <- 1 / (1 + W)
+      diag(W) <- 0
+      Z <- sum(W)
+      Q <- W / Z
+      
+      cost$Q <- Q
+      cost$Z <- Z
+      
+      Qa <- powm(Q, alpha, cost$eps)
+      cost$Q <- Q
+      cost$Qa <- Qa
+      cost$Qac <- colSums(Qa)
+      cost$Qas <- sum(cost$Qac)
+      
+      cost
+    }
+  )
+}
+
+
+# alpha = -beta != 0 => lambda = 0
+absneamb <- function(perplexity, inp_kernel = "gaussian", alpha = 1) {
+  lreplace(
+    tsne(perplexity = perplexity, inp_kernel = inp_kernel),
+    init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
+                    ret_extra = c()) {
+      if (verbose) {
+        tsmessage("Using ABSNE with alpha = ", formatC(alpha), 
+                  " beta = -", formatC(alpha))
+      }
+      cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
+                       symmetrize = "symmetric", normalize = TRUE,
+                       verbose = verbose, ret_extra = ret_extra)
+
+      cost$N <- nrow(cost$P)
+      cost$N2 <- (cost$N  - 1) * cost$N
+      cost$eps <- eps
+      
+      cost$Pa <- powm(cost$P, alpha, eps)
+      cost$lPac <- colSums(logm(cost$Pa, eps))
+      cost$inva2 <- 1 / (alpha * alpha)
+      cost$invam4 <- 4 / alpha
+      cost
+    },
+    pfn = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+      cost$pcost <- cost$inva2 * (cost$lQac - cost$lPac + cost$PadivQac - cost$N)
+      cost
+    },
+    gr = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+      Q <- cost$Q
+
+      cost$G <- k2g(Y, 
+                    cost$invam4 * Q * cost$Z *
+                    (cost$PadivQa - 1 - Q * cost$PadivQas + Q * cost$N2))
+      cost
+    },
+    update = function(cost, Y) {
+      W <- dist2(Y)
+      W <- 1 / (1 + W)
+      diag(W) <- 0
+      Z <- sum(W)
+      Q <- W / Z
+      
+      cost$Q <- Q
+      cost$Z <- Z
+      
+      Qa <- Q ^ alpha
+      cost$lQac <- colSums(logm(Qa, cost$eps))
+      cost$PadivQa <- divm(cost$Pa, Qa)
+      cost$PadivQac <- colSums(cost$PadivQa)
+      cost$PadivQas <- sum(cost$PadivQac)
+      
+      cost
+    }
+  )
+}
+
+# alpha = 0, beta != 0 => lambda = beta
+absnea0 <- function(perplexity, inp_kernel = "gaussian", beta = 1) {
+  lreplace(
+    tsne(perplexity = perplexity, inp_kernel = inp_kernel),
+    init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
+                    ret_extra = c()) {
+      if (verbose) {
+        tsmessage("Using ABSNE with alpha = 0, beta = ", formatC(beta))
+      }
+      cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
+                       symmetrize = "symmetric", normalize = TRUE,
+                       verbose = verbose, ret_extra = ret_extra)
+      
+      cost$eps <- eps
+      
+      Pb <- powm(cost$P, beta, eps)
+      cost$Pbc <- colSums(Pb)
+      cost$lPb <- logm(Pb, eps)
+      cost$invb2 <- 1 / (beta * beta)
+      cost$invbm4 <- 4 / beta
+      cost
+    },
+    pfn = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+      Qb <- cost$Qb
+      cost$pcost <- cost$invb2 * 
+        (cost$QblQbc - cost$QblPbc + cost$Pbc - cost$Qbc)
+      cost
+    },
+    gr = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+      Q <- cost$Q
+      
+      cost$G <- k2g(Y, 
+                    cost$invbm4 * Q * cost$Z *
+                      (cost$QblPb - cost$QblQb - Q * cost$QblPbs + Q * cost$QblQbs))
+      cost
+    },
+    update = function(cost, Y) {
+      W <- dist2(Y)
+      W <- 1 / (1 + W)
+      diag(W) <- 0
+      Z <- sum(W)
+      Q <- W / Z
+      
+      cost$Q <- Q
+      cost$Z <- Z
+      
+      Qb <- powm(Q, beta, cost$eps)
+      cost$Qbc <- colSums(Qb)
+      
+      cost$QblPb <- Qb * cost$lPb
+      cost$QblPbc <- colSums(cost$QblPb)
+      cost$QblPbs <- sum(cost$QblPb)
+      
+      cost$QblQb <- Qb * logm(Qb, cost$eps)
+      cost$QblQbc <- colSums(cost$QblQb)
+      cost$QblQbs <- sum(cost$QblQb)
+      
+      cost
+    }
+  )
+}
+
+# alpha = 0, beta = 0 => lambda = 0
+absne00 <- function(perplexity, inp_kernel = "gaussian") {
+  lreplace(
+    tsne(perplexity = perplexity, inp_kernel = inp_kernel),
+    init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
+                    ret_extra = c()) {
+      if (verbose) {
+        tsmessage("Using ABSNE with alpha = 0, beta = 0")
+      }
+      cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
+                       symmetrize = "symmetric", normalize = TRUE,
+                       verbose = verbose, ret_extra = ret_extra)
+      
+      cost$eps <- eps
+      
+      lP <- logm(cost$P, eps)
+      cost$lP <- lP
+      cost$lPs <- sum(lP)
+
+      cost
+    },
+    pfn = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+      pcost <- cost$lP - cost$lQ
+      cost$pcost <- 0.5 * colSums(pcost * pcost)
       
       cost
     },
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
-      W <- cost$W
-      invZ <- cost$invZ
-      eps <- cost$eps
+      Q <- cost$Q
       
-      Q <- W * invZ
-      Qeps <- Q + eps
+      cost$G <- k2g(Y, 4 * Q * cost$Z *
+                      (cost$lP - cost$lQ - Q * cost$lPs + Q * cost$lQs))
+      cost
+    },
+    update = function(cost, Y) {
+      W <- dist2(Y)
+      W <- 1 / (1 + W)
+      diag(W) <- 0
+      Z <- sum(W)
+      Q <- W / Z
       
-      QWa <- Q * W * cost$inva
-      PaQb1 <- cost$Pa * (Qeps ^ (beta - 1))
-      Qab1 <- Qeps ^ (cost$ab1)
+      cost$Q <- Q
+      cost$Z <- Z
       
-      # Notation from the paper
-      J1 <- sum(cost$Pa * (Qeps ^ beta))
-      J2 <- sum(Qeps ^ cost$ab)
-      cost$G <- k2g(Y,  4 * QWa * (PaQb1 - Qab1 - J1 + J2))
+      lQ <- logm(Q, cost$eps)
+      cost$lQ <- lQ
+      cost$lQs <- sum(lQ)
+      
       cost
     }
   )
