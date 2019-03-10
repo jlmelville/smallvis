@@ -76,3 +76,5 @@ in t-SNE, as suggested in the [FIt-SNE](https://arxiv.org/abs/1712.09005) paper.
 * The [opt-SNE settings](https://jlmelville.github.io/smallvis/optsne.html) applied to smaller sized datasets.
 * [Global SNE (g-SNE)](https://jlmelville.github.io/smallvis/gsne.html).
 * [t-SNE using f-Divergences](https://jlmelville.github.io/smallvis/ftsne.html).
+* [ABSNE](https://jlmelville.github.io/smallvis/absne.html).
+
