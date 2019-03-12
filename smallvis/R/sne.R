@@ -633,7 +633,7 @@ bssne <- function(perplexity, inp_kernel = "gaussian") {
 }
 
 # ASNE with input kernel bandwidths transferred to output
-basne <- function(perplexity) {
+basne <- function(perplexity, beta = NULL) {
   lreplace(asne(perplexity = perplexity),
            init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
                            ret_extra = c()) {
@@ -642,6 +642,9 @@ basne <- function(perplexity) {
              cost <- sne_init(cost, X, perplexity = perplexity,
                               symmetrize = "none", normalize = FALSE,
                               verbose = verbose, ret_extra = ret_extra)
+             if (!is.null(beta)) {
+               cost$beta <- beta
+             }
              cost$eps <- eps
              cost
            },
