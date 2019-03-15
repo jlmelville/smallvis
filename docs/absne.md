@@ -339,7 +339,7 @@ iris_absne_vll <- smallvis(iris, perplexity = 40, Y_init = "spca", method = list
 The first row of each result shows the effect of setting $\alpha < 1$ on the
 left and $\alpha > 1$ on the right. The second row shows the effect of 
 $\lambda < 1$ and the third row has two examples of $\lambda > 1$. In both cases
-$\lamba$ increased from left to right.
+$\lambda$ increased from left to right.
 
 ### iris
 
