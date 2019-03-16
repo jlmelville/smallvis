@@ -24,7 +24,7 @@ k2g <- function(Y, K, symmetrize = FALSE) {
   if (symmetrize) {
     K <- K + t(K)
   }
-  Y * rowSums(K) - (K %*% Y)
+  Y * colSums(K) - (K %*% Y)
 }
 
 cost_init <- function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
