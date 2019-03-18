@@ -265,7 +265,7 @@ test_that("ee", {
   expect_equal(res$Y, c2y(-1.785, 1.447, 0.8011, 1.907, -1.644, -3.393, 0.2531, -0.8798,
                         3.017, 0.276, 0.8166, 1.267, -0.2262, -0.8756, -0.9315, -0.1936,
                         -1.593, 0.1561, 0.1982, 1.383), tolerance = 1e-3)
-  expect_equal(final_cost(res), 5.563, tolerance = 1e-4)
+  expect_equal(final_cost(res), 5.564, tolerance = 1e-4)
 })
 
 test_that("umap", {

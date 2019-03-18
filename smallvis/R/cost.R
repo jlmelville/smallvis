@@ -1,6 +1,6 @@
 # Generic Functions -------------------------------------------------------
 
-logm <- function(m, eps = .Machine$double.eps) {
+logm <- function(m, eps = .Machine$double.xmin) {
   if (eps > 0) {
     m[m < eps] <- eps
   }
@@ -9,14 +9,14 @@ logm <- function(m, eps = .Machine$double.eps) {
   m
 }
 
-divm <- function(m, n, eps = .Machine$double.eps) {
+divm <- function(m, n, eps = .Machine$double.xmin) {
   diag(m) <- eps
   m <- m / n
   diag(m) <- 0
   m
 }
 
-powm <- function(m, n, eps = .Machine$double.eps) {
+powm <- function(m, n, eps = .Machine$double.xmin) {
   diag(m) <- eps
   m <- m ^ n
   diag(m) <- 0
@@ -948,7 +948,7 @@ abssne <- function(perplexity, inp_kernel = "gaussian", alpha = 1, lambda = 1) {
 gsne <- function(perplexity, lambda = 1, inp_kernel = "gaussian") {
   lreplace(
     tsne(perplexity = perplexity, inp_kernel = inp_kernel),
-    init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
+    init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
                     ret_extra = c()) {
       cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
                        symmetrize = "symmetric", normalize = TRUE,
@@ -968,14 +968,14 @@ gsne <- function(perplexity, lambda = 1, inp_kernel = "gaussian") {
       
       Phat <- Phat / sum(Phat)
       cost$Phat <- Phat
-      cost$phlogph <- colSums(Phat * log(Phat + eps))
+      cost$phlogph <- colSums(Phat * logm(Phat, eps))
       
       cost
     },
     cache_input = function(cost) {
       eps <- cost$eps
       P <- cost$P
-      cost$plogp <- colSums(P * log((P + eps)))
+      cost$plogp <- colSums(P * logm(P, eps))
 
       cost$plamphat <- P - lambda * cost$Phat
       
@@ -989,12 +989,12 @@ gsne <- function(perplexity, lambda = 1, inp_kernel = "gaussian") {
       P <- cost$P
       invZ <- cost$invZ
       W <- cost$W
-      kl <- cost$plogp - colSums(P * log((W * invZ) + eps))
+      kl <- cost$plogp - colSums(P * logm(W * invZ, eps))
       
       Phat <- cost$Phat
       invZhat <- cost$invZhat
       What <- cost$What
-      klhat <- cost$phlogph - colSums(Phat * log((What * invZhat) + eps))
+      klhat <- cost$phlogph - colSums(Phat * logm(What * invZhat, eps))
       
       cost$pcost <- kl + lambda * klhat
       cost
@@ -1298,7 +1298,7 @@ knnmmds <- function(k) {
 # squared input distances. Otherwise, no weighting is applied.
 ee <- function(perplexity, lambda = 100, neg_weights = TRUE) {
   list(
-    init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
+    init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
                     ret_extra = c()) {
 
       if (neg_weights) {
@@ -1326,7 +1326,7 @@ ee <- function(perplexity, lambda = 100, neg_weights = TRUE) {
       Vn <- cost$Vn
       W <- cost$W
       eps <- cost$eps
-      cost$pcost <- colSums(-Vp * log(W + eps) + lambda * (Vn * W))
+      cost$pcost <- colSums(-Vp * logm(W, eps) + lambda * (Vn * W))
       cost
     },
     gr = function(cost, Y) {
