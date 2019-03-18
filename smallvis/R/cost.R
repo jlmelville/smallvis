@@ -1,9 +1,7 @@
 # Generic Functions -------------------------------------------------------
 
 logm <- function(m, eps = .Machine$double.xmin) {
-  if (eps > 0) {
-    m[m < eps] <- eps
-  }
+  diag(m) <- eps
   m <- log(m)
   diag(m) <- 0
   m
@@ -146,7 +144,7 @@ largevis <- function(perplexity, gamma = 7, gr_eps = 0.1) {
        eps <- cost$eps
        W <- cost$W
 
-       cost$pcost <- colSums(-P * log(W + eps) - gamma * log1p(-W + eps))
+       cost$pcost <- colSums(-P * logm(W, eps) - gamma * log1p(-W + eps))
        cost
      },
      gr = function(cost, Y) {
@@ -277,7 +275,7 @@ ntumap <- function(perplexity, gr_eps = 0.1) {
       eps <- cost$eps
       Q <- cost$Q
 
-      cost$pcost <- colSums(-P * log(Q + eps) - (1 - P) * log1p(-Q + eps)) + cost$Cp
+      cost$pcost <- colSums(-P * logm(Q, eps) - (1 - P) * log1p(-Q + eps)) + cost$Cp
       cost
     },
     gr = function(cost, Y) {
@@ -313,7 +311,7 @@ ntumap <- function(perplexity, gr_eps = 0.1) {
 rklsne <- function(perplexity, inp_kernel = "gaussian") {
   lreplace(
     tsne(perplexity = perplexity, inp_kernel = inp_kernel),
-    init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
+    init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
                     ret_extra = c()) {
       cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
                        symmetrize = "symmetric", normalize = TRUE,
@@ -322,7 +320,10 @@ rklsne <- function(perplexity, inp_kernel = "gaussian") {
       cost
     },
     cache_input = function(cost) {
-      cost$lP <- logm(cost$P, cost$eps)
+      P <- cost$P
+      eps <- cost$eps
+      P[P < eps] <- eps
+      cost$lP <- logm(P, eps)
       cost
     },
     pfn = function(cost, Y) {
@@ -357,7 +358,7 @@ rklsne <- function(perplexity, inp_kernel = "gaussian") {
 jssne <- function(perplexity, inp_kernel = "gaussian") {
   lreplace(
     tsne(perplexity = perplexity, inp_kernel = inp_kernel),
-    init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
+    init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
                     ret_extra = c()) {
       cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
                        symmetrize = "symmetric", normalize = TRUE,
@@ -367,7 +368,9 @@ jssne <- function(perplexity, inp_kernel = "gaussian") {
     },
     cache_input = function(cost) {
       P <- cost$P
-      cost$PlP <- colSums(P * logm(P, cost$eps))
+      eps <- cost$eps
+      P[P < eps] <- eps
+      cost$PlP <- colSums(P * logm(P, eps))
       cost
     },
     pfn = function(cost, Y) {
@@ -394,7 +397,7 @@ jssne <- function(perplexity, inp_kernel = "gaussian") {
       Q <- W / sumW
       Z <- 0.5 * (P + Q)
       
-      QlQZ <- logm(Q / Z)
+      QlQZ <- logm(Q / Z, eps)
       cost$QlQZ <- colSums(Q * QlQZ)
       cost$QlQZs <- sum(cost$QlQZ)
       
@@ -412,7 +415,7 @@ jssne <- function(perplexity, inp_kernel = "gaussian") {
 chsne <- function(perplexity, inp_kernel = "gaussian") {
   lreplace(
     tsne(perplexity = perplexity, inp_kernel = inp_kernel),
-    init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
+    init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
                     ret_extra = c()) {
       cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
                        symmetrize = "symmetric", normalize = TRUE,
@@ -427,10 +430,7 @@ chsne <- function(perplexity, inp_kernel = "gaussian") {
     },
     pfn = function(cost, Y) {
       cost <- cost_update(cost, Y)
-      P <- cost$P
-      Q <- cost$Q      
-
-      PQ <- P - Q
+      PQ <- cost$P - cost$Q
       
       cost$pcost <- colSums(PQ * PQ * cost$invQ)
       cost
@@ -448,7 +448,6 @@ chsne <- function(perplexity, inp_kernel = "gaussian") {
       cost
     },
     update = function(cost, Y) {
-      eps <- cost$eps
       P <- cost$P
       
       W <- dist2(Y)
@@ -473,7 +472,7 @@ chsne <- function(perplexity, inp_kernel = "gaussian") {
 hlsne <- function(perplexity, inp_kernel = "gaussian") {
   lreplace(
     tsne(perplexity = perplexity, inp_kernel = inp_kernel),
-    init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
+    init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
                     ret_extra = c()) {
       cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
                        symmetrize = "symmetric", normalize = TRUE,
@@ -508,7 +507,6 @@ hlsne <- function(perplexity, inp_kernel = "gaussian") {
       cost
     },
     update = function(cost, Y) {
-      eps <- cost$eps
       P <- cost$P
       
       W <- dist2(Y)
@@ -521,9 +519,6 @@ hlsne <- function(perplexity, inp_kernel = "gaussian") {
       cost$Q <- Q
       cost$Z <- Z
       cost$sQ <- sqrt(Q)
-      invQ <- 1 / Q
-      diag(invQ) <- 0
-      cost$invQ <- invQ
       
       cost
     }
@@ -562,7 +557,7 @@ absne <- function(perplexity, inp_kernel = "gaussian", alpha = 1, lambda = 1) {
   }
   lreplace(
     tsne(perplexity = perplexity, inp_kernel = inp_kernel),
-    init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
+    init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
                     ret_extra = c()) {
       if (verbose) {
         tsmessage("Using ABSNE with alpha = ", formatC(alpha), 
@@ -624,7 +619,7 @@ absne <- function(perplexity, inp_kernel = "gaussian", alpha = 1, lambda = 1) {
 absneb0 <- function(perplexity, inp_kernel = "gaussian", alpha = 1) {
   lreplace(
     tsne(perplexity = perplexity, inp_kernel = inp_kernel),
-    init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
+    init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
                     ret_extra = c()) {
       if (verbose) {
         tsmessage("Using ABSNE with alpha = ", formatC(alpha), 
@@ -642,9 +637,11 @@ absneb0 <- function(perplexity, inp_kernel = "gaussian", alpha = 1) {
     },
     cache_input = function(cost) {
       eps <- cost$eps
-      Pa <- powm(cost$P, alpha, eps)
+      P <- cost$P
+      P[P < eps] <- eps
+      Pa <- powm(P, alpha, eps)
       cost$Pa <- Pa
-      cost$PlPac <- colSums(cost$P * logm(Pa, eps))
+      cost$PlPac <- colSums(P * logm(Pa, eps))
       cost$Pac <- colSums(Pa)
       cost$Pas <- sum(cost$Pac)
       cost
@@ -689,7 +686,7 @@ absneb0 <- function(perplexity, inp_kernel = "gaussian", alpha = 1) {
 absneamb <- function(perplexity, inp_kernel = "gaussian", alpha = 1) {
   lreplace(
     tsne(perplexity = perplexity, inp_kernel = inp_kernel),
-    init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
+    init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
                     ret_extra = c()) {
       if (verbose) {
         tsmessage("Using ABSNE with alpha = ", formatC(alpha), 
@@ -709,8 +706,12 @@ absneamb <- function(perplexity, inp_kernel = "gaussian", alpha = 1) {
     },
     cache_input = function(cost) {
       eps <- cost$eps
-      cost$Pa <- powm(cost$P, alpha, eps)
-      cost$lPac <- colSums(logm(cost$Pa, eps))
+      P <- cost$P
+      P[P < eps] <- eps
+      Pa <- powm(P, alpha, eps)
+      cost$Pa <- Pa
+      Pa[Pa < eps] <- eps
+      cost$lPac <- colSums(logm(Pa, eps))
       cost
     },
     pfn = function(cost, Y) {
@@ -736,7 +737,7 @@ absneamb <- function(perplexity, inp_kernel = "gaussian", alpha = 1) {
       cost$Q <- Q
       cost$Z <- Z
       
-      Qa <- Q ^ alpha
+      Qa <- powm(Q, alpha, cost$eps)
       cost$lQac <- colSums(logm(Qa, cost$eps))
       cost$PadivQa <- divm(cost$Pa, Qa)
       cost$PadivQac <- colSums(cost$PadivQa)
@@ -751,7 +752,7 @@ absneamb <- function(perplexity, inp_kernel = "gaussian", alpha = 1) {
 absnea0 <- function(perplexity, inp_kernel = "gaussian", beta = 1) {
   lreplace(
     tsne(perplexity = perplexity, inp_kernel = inp_kernel),
-    init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
+    init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
                     ret_extra = c()) {
       if (verbose) {
         tsmessage("Using ABSNE with alpha = 0, beta = ", formatC(beta))
@@ -768,7 +769,10 @@ absnea0 <- function(perplexity, inp_kernel = "gaussian", beta = 1) {
     },
     cache_input = function(cost) {
       eps <- cost$eps
-      Pb <- powm(cost$P, beta, eps)
+      P <- cost$P
+      P[P < eps] <- eps
+      Pb <- powm(P, beta, eps)
+      Pb[Pb < eps] <- eps
       cost$Pbc <- colSums(Pb)
       cost$lPb <- logm(Pb, eps)
       cost
@@ -818,7 +822,7 @@ absnea0 <- function(perplexity, inp_kernel = "gaussian", beta = 1) {
 absne00 <- function(perplexity, inp_kernel = "gaussian") {
   lreplace(
     tsne(perplexity = perplexity, inp_kernel = inp_kernel),
-    init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
+    init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
                     ret_extra = c()) {
       if (verbose) {
         tsmessage("Using ABSNE with alpha = 0, beta = 0")
@@ -832,7 +836,9 @@ absne00 <- function(perplexity, inp_kernel = "gaussian") {
     },
     cache_input = function(cost) {
       eps <- cost$eps
-      lP <- logm(cost$P, eps)
+      P <- cost$P
+      P[P < eps] <- eps
+      lP <- logm(P, eps)
       cost$lP <- lP
       cost$lPs <- sum(lP)
       cost
@@ -888,7 +894,7 @@ abssne <- function(perplexity, inp_kernel = "gaussian", alpha = 1, lambda = 1) {
   }
   lreplace(
     tsne(perplexity = perplexity, inp_kernel = inp_kernel),
-    init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
+    init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
                     ret_extra = c()) {
       if (verbose) {
         tsmessage("Using ABSSNE with alpha = ", formatC(alpha), 
@@ -908,6 +914,7 @@ abssne <- function(perplexity, inp_kernel = "gaussian", alpha = 1, lambda = 1) {
     cache_input = function(cost) {
       P <- cost$P
       eps <- cost$eps
+      P[P < eps] <- eps
       cost$Pa <- powm(P, alpha, eps)
       cost$Plc <- colSums(powm(P, lambda, eps)) * cost$ibl
       cost
@@ -975,6 +982,7 @@ gsne <- function(perplexity, lambda = 1, inp_kernel = "gaussian") {
     cache_input = function(cost) {
       eps <- cost$eps
       P <- cost$P
+      P[P < eps] <- eps
       cost$plogp <- colSums(P * logm(P, eps))
 
       cost$plamphat <- P - lambda * cost$Phat
@@ -985,11 +993,9 @@ gsne <- function(perplexity, lambda = 1, inp_kernel = "gaussian") {
       cost <- cost_update(cost, Y)
       
       eps <- cost$eps
-      
-      P <- cost$P
       invZ <- cost$invZ
       W <- cost$W
-      kl <- cost$plogp - colSums(P * logm(W * invZ, eps))
+      kl <- cost$plogp - colSums(cost$P * logm(W * invZ, eps))
       
       Phat <- cost$Phat
       invZhat <- cost$invZhat
@@ -1325,8 +1331,7 @@ ee <- function(perplexity, lambda = 100, neg_weights = TRUE) {
       Vp <- cost$P
       Vn <- cost$Vn
       W <- cost$W
-      eps <- cost$eps
-      cost$pcost <- colSums(-Vp * logm(W, eps) + lambda * (Vn * W))
+      cost$pcost <- colSums(-Vp * logm(W, cost$eps) + lambda * (Vn * W))
       cost
     },
     gr = function(cost, Y) {
@@ -1376,12 +1381,19 @@ nerv <- function(perplexity, lambda = 0.9) {
   oml2 <- 2 * oml
   lreplace(
     tsne(perplexity = perplexity),
-    init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
+    init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
                     ret_extra = c()) {
       cost <- sne_init(cost, X, perplexity = perplexity,
                        symmetrize = "none", normalize = FALSE,
                        verbose = verbose, ret_extra = ret_extra)
       cost$eps <- eps
+      cost
+    },
+    cache_input = function(cost) {
+      eps <- cost$eps
+      P <- cost$P
+      P[P < eps] <- eps
+      cost$P <- P
       cost
     },
     pfn = function(cost, Y) {
@@ -1442,7 +1454,7 @@ jse <- function(perplexity, kappa = 0.5) {
 
   lreplace(
     tsne(perplexity = perplexity),
-    init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
+    init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
                     ret_extra = c()) {
       cost <- sne_init(cost, X, perplexity = perplexity,
                        symmetrize = "none", normalize = FALSE,
@@ -1451,8 +1463,9 @@ jse <- function(perplexity, kappa = 0.5) {
       cost
     },
     cache_input = function(cost) {
-      P <- cost$P
       eps <- cost$eps
+      P <- cost$P
+      P[P < eps] <- eps
       cost$plogp <- rowSums(P * logm(P, eps))
       cost
     },
@@ -1480,10 +1493,11 @@ jse <- function(perplexity, kappa = 0.5) {
       Q <- expQ(Y, eps, is_symmetric = TRUE)$Q
 
       Z <- kappa * cost$P + om_kappa * Q
+      Z[Z < eps] <- eps
       
       cost$Q <- Q
       cost$Z <- Z
-      cost$lQZ <- logm(divm(Q, Z, eps), eps)
+      cost$lQZ <- logm(Q / Z, eps)
       cost$QlQZc <- rowSums(Q * cost$lQZ)
 
       cost
@@ -1495,7 +1509,7 @@ jse <- function(perplexity, kappa = 0.5) {
 
 rsrnerv <- function(perplexity, lambda = 0.9) {
   lreplace(nerv(perplexity = perplexity, lambda = lambda),
-           init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
+           init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
                            ret_extra = c()) {
              cost <- sne_init(cost, X, perplexity = perplexity,
                               symmetrize = "symmetric", normalize = FALSE,
@@ -1512,7 +1526,7 @@ rsrnerv <- function(perplexity, lambda = 0.9) {
 
 rsrjse <- function(perplexity, kappa = 0.5) {
   lreplace(jse(perplexity = perplexity, kappa = kappa),
-           init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
+           init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
                            ret_extra = c()) {
              cost <- sne_init(cost, X, perplexity = perplexity,
                               symmetrize = "symmetric", normalize = FALSE,
@@ -1535,7 +1549,7 @@ bnerv <- function(perplexity, lambda = 0.9) {
   oml2 <- 2 * oml
   lreplace(
     nerv(perplexity = perplexity, lambda = lambda),
-    init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
+    init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
                     ret_extra = c()) {
       ret_extra <- unique(c(ret_extra, 'beta'))
 

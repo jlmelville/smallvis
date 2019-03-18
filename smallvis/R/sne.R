@@ -74,16 +74,9 @@ kl_costQr <- function(cost, Y) {
 }
 
 kl_cost <- function(cost, Y) {
-  P <- cost$P
-  eps <- cost$eps
-
   cost <- cost_update(cost, Y)
-
-  invZ <- cost$invZ
-  W <- cost$W
-
   # P log(P / Q) = P log P - P log Q
-  cost$pcost <- cost$plogp - colSums(P * logm(W * invZ, eps))
+  cost$pcost <- cost$plogp - colSums(cost$P * logm(cost$W * cost$invZ, cost$eps))
   cost
 }
 
@@ -103,7 +96,9 @@ tsne <- function(perplexity, inp_kernel = "gaussian") {
       # but saves one division operation every time we calculate cost:
       # substantial (10-15%) speed up with Wolfe line search methods
       P <- cost$P
-      cost$plogp <- colSums(P * logm(P, cost$eps))
+      eps <- cost$eps
+      P[P < eps] <- eps
+      cost$plogp <- colSums(P * logm(P, eps))
       cost
     },
     pfn = kl_cost,
@@ -185,7 +180,7 @@ asne <- function(perplexity, inp_kernel = "gaussian") {
       cost
     },
     update = function(cost, Y) {
-      cost$Q <- expQ(Y, 0, is_symmetric = FALSE)$Q
+      cost$Q <- expQ(Y, eps = cost$eps, is_symmetric = FALSE)$Q
       cost
     },
     sentinel = "Q"
@@ -228,6 +223,9 @@ bhssne <- function(perplexity, alpha = 0.5, beta = 1) {
   beta <- max(beta, 1e-8)
   lreplace(
     tsne(perplexity = perplexity),
+    b4 = 4 * beta,
+    ab = alpha * beta,
+    apow = -1 / alpha,
     init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
                     ret_extra = c()) {
       ret_extra <- unique(c(ret_extra, 'beta'))
@@ -241,27 +239,16 @@ bhssne <- function(perplexity, alpha = 0.5, beta = 1) {
       cost$eps <- eps
       cost
     },
-    cache_input = function(cost) {
-      P <- cost$P
-      eps <- cost$eps
-      cost$plogp <- colSums(P * logm(P, eps))
-
-      cost$b4 <- 4 * beta
-      cost$ab <- alpha * beta
-      cost$apow <- -1 / alpha
-      cost
-    },
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
       W <- cost$W
-      cost$G <- k2g(Y, cost$b4 * (cost$P - W * cost$invZ) * (W ^ alpha))
+      cost$G <- k2g(Y, cost$b4 * (cost$P - W * cost$invZ) * powm(W, alpha, cost$eps))
 
       cost
     },
     update = function(cost, Y) {
       W <- dist2(Y)
-      W <- (cost$ab * W + 1) ^ cost$apow
-
+      W <- powm(cost$ab * W + 1, cost$apow, cost$eps)
       diag(W) <- 0
       
       cost$invZ <- 1 / sum(W)
@@ -279,7 +266,7 @@ dhssne <- function(perplexity, alpha = 0.5) {
     tsne(perplexity = perplexity),
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
-      cost$G <- k2g(Y, 4 * (cost$P - cost$W * cost$invZ) * (cost$W ^ cost$alpha))
+      cost$G <- k2g(Y, 4 * (cost$P - cost$W * cost$invZ) * powm(cost$W, cost$alpha, cost$eps))
       cost
     },
     epoch = function(opt, cost, iter, Y, fn_val) {
@@ -297,6 +284,7 @@ dhssne <- function(perplexity, alpha = 0.5) {
       errs <- c()
       for (candidate_alpha in alphas) {
         cost$alpha <- candidate_alpha
+        cost$apow <- -1 / candidate_alpha
         cost <- cost_clear(cost)
         cost <- cost_point(cost, Y)
         err <- sum(cost$pcost)
@@ -309,12 +297,13 @@ dhssne <- function(perplexity, alpha = 0.5) {
 
       # choose the alpha which minimizes the error
       old_cost$alpha <- alphas[which.min(errs)]
+      old_cost$apow <- -1 / old_cost$alpha
       list(cost = old_cost)
     },
     update = function(cost, Y) {
       alpha <- cost$alpha
       W <- dist2(Y)
-      W <- (alpha * W + 1) ^ (-1 / alpha)
+      W <- powm(alpha * W + 1, cost$apow, cost$eps)
       diag(W) <- 0
 
       invZ <- 1 / sum(W)
@@ -322,8 +311,8 @@ dhssne <- function(perplexity, alpha = 0.5) {
       cost$W <- W
       cost
     },
-
-    alpha = alpha
+    alpha = alpha,
+    apow = -1 / alpha
   )
 }
 
@@ -454,8 +443,9 @@ pstsne <- function(perplexity, inp_kernel = "gaussian") {
     cache_input = function(cost) {
       P <- cost$P
       eps <- cost$eps
+      P[P < eps] <- eps
       cost$plogp <- colSums(P * logm(P, eps))
-      cost$invZ <- 1 / (nrow(cost$P) * nrow(cost$P))
+      cost$invZ <- 1 / (nrow(P) * nrow(P))
       
       cost
     },
@@ -504,6 +494,8 @@ tee <- function(perplexity, inp_kernel = "gaussian", lambda = 0.01) {
       cost$invN <- 1 / sum(V)
       cost$gradconst <- 4 * cost$invN
       cost$lambda <- lambda
+      
+      V[V < eps] <- eps
       cost$constV <- cost$invN * (colSums(V * logm(V, eps)) - lambda * colSums(V))
       cost
     },
@@ -545,7 +537,6 @@ skdtsne <- function(perplexity) {
       P <- smooth_knn_distances(X, k = perplexity, tol = 1e-5,
                                 verbose = verbose)$P
       P <- fuzzy_set_union(P)
-
       # Normalize
       P <- P / sum(P)
       cost$P <- P
@@ -613,7 +604,8 @@ cetsne <- function(perplexity, inp_kernel = "gaussian") {
            cache_input = function(cost) {
              P <- cost$P
              eps <- cost$eps
-             cost$Cp <- colSums(P * logm(P, eps) + (1 - P) * log1p(-P + eps))
+             P[P < eps] <- eps
+             cost$Cp <- colSums(P * logm(P, eps) + (1 - P) * log1p(-P))
              cost
            },
            pfn = function(cost, Y) {
@@ -738,7 +730,7 @@ basne <- function(perplexity, beta = NULL) {
       cost
     },
     update = function(cost, Y) {
-      cost$Q <- expQ(Y, cost$eps, beta = cost$beta, is_symmetric = FALSE)$Q
+      cost$Q <- expQ(Y, eps = cost$eps, beta = cost$beta, is_symmetric = FALSE)$Q
       cost
     },
     gr = function(cost, Y) {
