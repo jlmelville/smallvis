@@ -105,7 +105,7 @@ $$\frac{\partial C}{\partial \mathbf{y_i}} =
   \right)
 $$
 
-### HD-SNE
+### HL-SNE
 
 The Hellinger distance divergence:
 
