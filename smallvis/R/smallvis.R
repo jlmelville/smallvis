@@ -1040,6 +1040,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
     }
   }
 
+  cost <- NA
   itercosts <- c()
   if (iter0_cost && (verbose || ret_extra)) {
     cost_eval_res <- cost_eval(cost_fn, Y)
@@ -1056,7 +1057,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
 
   # Display initialization
   if (!is.null(epoch_callback)) {
-    do_callback(epoch_callback, Y, 0)
+    do_callback(epoch_callback, Y, 0, cost, cost_fn, opt)
   }
   if (max_iter < 1) {
     return(ret_value(Y, ret_extra, method, X, scale, Y_init, iter = 0,
@@ -1164,11 +1165,12 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
           message(" nf = ", opt$counts$fn, " ng = ", opt$counts$gr,
                   appendLF = FALSE)
         }
+
         message()
         utils::flush.console()
       }
       if (!is.null(epoch_callback)) {
-        do_callback(epoch_callback, Y, iter, cost)
+        do_callback(epoch_callback, Y, iter, cost, cost_fn, opt)
       }
 
       if (ret_extra) {
@@ -1749,17 +1751,15 @@ do_epoch <- function(opt, cost, iter, Y, fn_val) {
 
 # Helper function for epoch callback, allowing user to supply callbacks with
 # multiple arities.
-do_callback <- function(cb, Y, iter, cost = NULL) {
+do_callback <- function(cb, Y, iter, cost = NULL, cost_fn = NULL, opt = NULL) {
   nfs <- length(formals(cb))
-  if (nfs == 1) {
-    cb(Y)
-  }
-  else if (nfs == 2) {
-    cb(Y, iter)
-  }
-  else if (nfs == 3) {
-    cb(Y, iter, cost)
-  }
+  switch(nfs,
+    "1" = cb(Y),
+    "2" = cb(Y, iter),
+    "3" = cb(Y, iter, cost),
+    "4" = cb(Y, iter, cost, cost_fn),
+    "5" = cb(Y, iter, cost, cost_fn, opt)
+  )
 }
 
 # Create a callback for visualization
@@ -1767,7 +1767,7 @@ make_smallvis_cb <- function(df) {
   force(df)
   function(Y, iter, cost = NULL) {
     title <- paste0("iter: ", iter)
-    if (!is.null(cost)) {
+    if (!(is.null(cost) || is.na(cost))) {
       title <- paste0(title, " cost = ", formatC(cost))
     }
     vizier::embed_plot(Y, df, title = title)
