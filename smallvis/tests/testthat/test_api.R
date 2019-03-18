@@ -367,7 +367,8 @@ test_that("Miscellany", {
   expect_equal(res$Y, c2y(-0.4776, 0.3416, 0.3254, 0.5736, -0.4853, -1.467, 0.2133, -0.2623,
                           1.012, 0.2268, 0.02933, 0.352, -0.1008, -0.05319, -0.1635, 0.06401,
                           -0.4247, 0.07757, -0.09564, 0.3148), tolerance = 1e-3)
-  expect_equal(final_cost(res), 2.123, tolerance = 1e-4)
+  # cost should be close-ish to basne
+  expect_equal(final_cost(res), 0.05744, tolerance = 1e-4)
 
   res <- smallvis(iris10, Y_init = iris10_Y, method = "btasne", eta = 0.1,
                   perplexity = 5,
@@ -375,7 +376,8 @@ test_that("Miscellany", {
   expect_equal(res$Y, c2y(-6.105, 4.355, 3.715, 6.291, -5.661, -15.21, 3.147, -2.944,
                           10.5, 1.911, 1.465, 3.026, -0.7081, -0.4368, -1.832, -0.6734,
                           -3.566, 0.6635, -0.4344, 2.497), tolerance = 1e-3)
-  expect_equal(final_cost(res), 104.7, tolerance = 1e-4)
+  # cost should be close-ish to tasne
+  expect_equal(final_cost(res), 0.5708, tolerance = 1e-4)
 
   res <- smallvis(iris10, Y_init = iris10_Y, method = "trmsne", eta = 0.1,
                   perplexity = 5,

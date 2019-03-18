@@ -10,6 +10,7 @@ test_that("SNE", {
   test_grad("wtsne", perplexity = perp)
   test_grad("wssne", perplexity = perp)
   test_grad("basne", perplexity = perp)
+  test_grad("basne", perplexity = perp, beta = 0.5)
   test_grad("bssne", perplexity = perp)
   test_grad("btsne", perplexity = perp)
   test_grad("btasne", perplexity = perp)
@@ -48,13 +49,15 @@ test_that("HSSNE", {
 
 test_that("JSE", {
   test_grad("jse", kappa = 0.5, perplexity = perp)
-  # fd starts losing accuracy for kappa = 0
-  test_grad("jse", kappa = 1e-5, perplexity = perp)
-  test_grad("jse", kappa = 1, perplexity = perp)
-
+  # very low and high values of kappa lose accuracy
+  test_grad("jse", kappa = 0, perplexity = perp)
+  test_grad("jse", kappa = 1e-4, perplexity = perp)
+  test_grad("jse", kappa = 0.999, perplexity = perp)
+  test_grad("jse", kappa = 1, perplexity = perp, tol = 1e-5)
+  
   test_grad("rsrjse", kappa = 0.5, perplexity = perp)
   test_grad("rsrjse", kappa = 1e-5, perplexity = perp)
-  test_grad("rsrjse", kappa = 1, perplexity = perp)
+  test_grad("rsrjse", kappa = 1, perplexity = perp, tol = 1e-5)
 })
 
 test_that("NeRV", {

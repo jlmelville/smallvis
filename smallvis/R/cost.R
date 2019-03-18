@@ -1,19 +1,23 @@
 # Generic Functions -------------------------------------------------------
 
 logm <- function(m, eps = .Machine$double.eps) {
-  diag(m) <- eps
+  if (eps > 0) {
+    m[m < eps] <- eps
+  }
   m <- log(m)
   diag(m) <- 0
   m
 }
 
 divm <- function(m, n, eps = .Machine$double.eps) {
+  diag(m) <- eps
   m <- m / n
   diag(m) <- 0
   m
 }
 
 powm <- function(m, n, eps = .Machine$double.eps) {
+  diag(m) <- eps
   m <- m ^ n
   diag(m) <- 0
   m
@@ -896,6 +900,7 @@ abssne <- function(perplexity, inp_kernel = "gaussian", alpha = 1, lambda = 1) {
       cost$inva4 <- 4 / alpha
       cost$minvab <- -1 / (alpha * beta)
       cost$inval <- 1 / (alpha * lambda)
+      cost$ibl <- 1 / (beta * lambda)
       
       cost$eps <- eps
       cost
@@ -904,12 +909,11 @@ abssne <- function(perplexity, inp_kernel = "gaussian", alpha = 1, lambda = 1) {
       P <- cost$P
       eps <- cost$eps
       cost$Pa <- powm(P, alpha, eps)
-      cost$Plc <- colSums(powm(P, lambda, eps)) / (beta * lambda)
+      cost$Plc <- colSums(powm(P, lambda, eps)) * cost$ibl
       cost
     },
     pfn = function(cost, Y) {
       cost <- cost_update(cost, Y)
-      # browser()
       cost$pcost <- cost$minvab * cost$PaQbc + cost$Plc + cost$inval * cost$Qlc
       cost
     },
@@ -920,12 +924,10 @@ abssne <- function(perplexity, inp_kernel = "gaussian", alpha = 1, lambda = 1) {
       cost
     },
     update = function(cost, Y) {
-      W <- dist2(Y)
-      W <- exp(-W)
-      diag(W) <- 0
-      Q <- W / sum(W)
-      
       eps <- cost$eps
+      
+      Q <- expQ(Y, cost$eps, is_symmetric = TRUE, matrix_normalize = TRUE)$Q
+      
       cost$PaQb <- cost$Pa * powm(Q, beta, eps)
       cost$PaQbc <- colSums(cost$PaQb)
       cost$PaQbs <- sum(cost$PaQbc)
@@ -1369,6 +1371,9 @@ ee <- function(perplexity, lambda = 100, neg_weights = TRUE) {
 # default lambda = 0.9 from "Majorization-Minimization for Manifold Embedding"
 # Yang, Peltonen, Kaski 2015
 nerv <- function(perplexity, lambda = 0.9) {
+  lambda2 <- 2 * lambda
+  oml <- 1 - lambda
+  oml2 <- 2 * oml
   lreplace(
     tsne(perplexity = perplexity),
     init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
@@ -1386,57 +1391,34 @@ nerv <- function(perplexity, lambda = 0.9) {
 
       kl_fwd <- rowSums(P * cost$lPQ)
 
-      cost$pcost <- lambda * kl_fwd + (1 - lambda) * cost$kl_rev
+      cost$pcost <- lambda * kl_fwd + oml * cost$kl_rev
       cost
     },
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
-
-      eps <- cost$eps
-      P <- cost$P
       Q <- cost$Q
 
-      # Forward KL gradient
-      K <- lambda * (P - Q)
-      # Total K
-      K <- K + (1 - lambda) * (Q * (cost$lPQ + cost$kl_rev))
+      # Total K including multiplying by 2 in gradient
+      K <- lambda2 * (cost$P - Q) + oml2 * Q * (cost$lPQ + cost$kl_rev)
 
-      cost$G <- k2g(Y, 2 * K, symmetrize = TRUE)
+      cost$G <- k2g(Y, K, symmetrize = TRUE)
       cost
     },
     update = function(cost, Y) {
       eps <- cost$eps
 
-      W <- dist2(Y)
-      W <- exp(-W)
-      # Particularly for low lambda, need to make sure W is never all zero
-      W[W < eps] <- eps
-      diag(W) <- 0
-      invZ <- 1 / colSums(W)
-      Q <- W * invZ
-
-      # Reverse KL gradient
-      lPQ <- log((cost$P + eps) / (Q + eps))
-      # for KLrev we want Q * log(Q/P), so take -ve of log(P/Q)
-      kl_rev <- rowSums(Q * -lPQ)
-
-      cost$invZ <- invZ
+      Q <- expQ(Y, eps, is_symmetric = TRUE)$Q
       cost$Q <- Q
-      cost$kl_rev <- kl_rev
-      cost$lPQ <- lPQ
-
+      
+      # Reverse KL gradient
+      cost$lPQ <- logm(cost$P / Q, eps)
+      # for KLrev we want Q * log(Q/P), so take -ve of log(P/Q)
+      cost$kl_rev <- rowSums(Q * -cost$lPQ)
       cost
     },
     sentinel = "Q",
     export = function(cost, val) {
       res <- cost_export(cost, val)
-
-      if (is.null(res)) {
-        switch(val,
-               w = {
-                 res <- cost$Q / cost$invZ
-               })
-      }
       res
     }
     )
@@ -1449,10 +1431,12 @@ nerv <- function(perplexity, lambda = 0.9) {
 # kappa = 0 behaves like ASNE
 # kappa = 1 behaves like NeRV with lambda = 0. Yes that's confusing.
 jse <- function(perplexity, kappa = 0.5) {
-  # safeguard against 0 kappa, because gradient requires kappa to be > 0
-  # check for kappa == 1 for better accuracy
-  kappa <- max(1e-8, kappa)
+  eps0 <- 1e-5
+  kappa <- max(kappa, eps0)
+  kappa <- min(kappa, 1 - eps0)
+
   kappa_inv <- 1 / kappa
+  m2_kappa_inv <- -2 * kappa_inv
   om_kappa <- 1 - kappa
   om_kappa_inv <- 1 / om_kappa
 
@@ -1466,58 +1450,41 @@ jse <- function(perplexity, kappa = 0.5) {
       cost$eps <- eps
       cost
     },
+    cache_input = function(cost) {
+      P <- cost$P
+      eps <- cost$eps
+      cost$plogp <- rowSums(P * logm(P, eps))
+      cost
+    },
     pfn = function(cost, Y) {
       cost <- cost_update(cost, Y)
-
       eps <- cost$eps
-      P <- cost$P
-      Z <- cost$Z
 
-      kl_fwd <- rowSums(P * log((P + eps) /  (Z + eps)))
+      lZ <- logm(cost$Z, eps)
 
-      if (kappa == 1) {
-        cost$pcost <- cost$kl_rev
-      }
-      else {
-        cost$pcost <- om_kappa_inv * kl_fwd + kappa_inv * cost$kl_rev
-      }
-
+      cost$pcost <- 
+        om_kappa_inv * (cost$plogp - rowSums(cost$P * logm(cost$Z, eps))) +
+        kappa_inv * cost$QlQZc
+      
       cost
     },
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
-
-      K <- kappa_inv * (cost$Q * (cost$lZQ + cost$kl_rev))
-      cost$G <- k2g(Y, 2 * K, symmetrize = TRUE)
+      cost$G <- k2g(Y, m2_kappa_inv * cost$Q * (cost$lQZ - cost$QlQZc), 
+                    symmetrize = TRUE)
       cost
     },
     update = function(cost, Y) {
       eps <- cost$eps
-      P <- cost$P
-      W <- dist2(Y)
-      W <- exp(-W)
 
-      W[W < eps] <- eps
-      diag(W) <- 0
-      # nomenclature overlap problem here
-      # normally sum of W is Z, but in JSE that's the combination of P and Q
-      invS <- 1 / colSums(W)
-      Q <- W * invS
+      Q <- expQ(Y, eps, is_symmetric = TRUE)$Q
 
-      if (kappa == 1) {
-        Z <- P
-      }
-      else {
-        Z <- kappa * P + om_kappa * Q
-      }
-
-      lZQ <- log((Z + eps) / (Q + eps))
-      kl_rev <- rowSums(Q * -lZQ)
-
+      Z <- kappa * cost$P + om_kappa * Q
+      
       cost$Q <- Q
       cost$Z <- Z
-      cost$lZQ <- lZQ
-      cost$kl_rev <- kl_rev
+      cost$lQZ <- logm(divm(Q, Z, eps), eps)
+      cost$QlQZc <- rowSums(Q * cost$lQZ)
 
       cost
     },
@@ -1563,6 +1530,9 @@ rsrjse <- function(perplexity, kappa = 0.5) {
 # NeRV with input bandwidths transferred to the output kernel, as in the
 # original paper.
 bnerv <- function(perplexity, lambda = 0.9) {
+  lambda2 <- 2 * lambda
+  oml <- 1 - lambda
+  oml2 <- 2 * oml
   lreplace(
     nerv(perplexity = perplexity, lambda = lambda),
     init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
@@ -1573,42 +1543,33 @@ bnerv <- function(perplexity, lambda = 0.9) {
                        symmetrize = "none", normalize = FALSE,
                        verbose = verbose, ret_extra = ret_extra)
       cost$eps <- eps
+      cost$lambda2b <- lambda2 * cost$beta
+      cost$oml2b <- oml2 * cost$beta
       cost
     },
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
-
-      eps <- cost$eps
       Q <- cost$Q
-
-      # Forward KL gradient
-      K <- lambda * (cost$P - Q)
-      # Total K
-      K <- K + (1 - lambda) * (Q * (cost$lPQ + cost$kl_rev))
-
-      cost$G <- k2g(Y, 2 * cost$beta * K, symmetrize = TRUE)
+      
+      # Total K including multiplying by 2 * beta in gradient
+      K <- cost$lambda2b * (cost$P - Q) + cost$oml2b * Q * (cost$lPQ + cost$kl_rev)
+      
+      cost$G <- k2g(Y, K, symmetrize = TRUE)
+      cost
+      
       cost
     },
     update = function(cost, Y) {
       eps <- cost$eps
 
-      W <- dist2(Y)
-      W <- exp(-W * cost$beta)
-
-      W[W < eps] <- eps
-      diag(W) <- 0
-      invZ <- 1 / rowSums(W)
-      Q <- W * invZ
-
-      # Reverse KL gradient
-      lPQ <- log((cost$P + eps) / (Q + eps))
-      kl_rev <- rowSums(Q * -lPQ)
-
-      cost$invZ <- invZ
+      Q <- expQ(Y, eps, beta = cost$beta, is_symmetric = FALSE)$Q
       cost$Q <- Q
-      cost$kl_rev <- kl_rev
-      cost$lPQ <- lPQ
+      
+      # Reverse KL gradient
+      cost$lPQ <- logm(cost$P / Q, eps)
+      cost$kl_rev <- rowSums(Q * -cost$lPQ)
 
       cost
-    })
+    }
+  )
 }
