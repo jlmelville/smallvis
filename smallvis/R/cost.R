@@ -289,8 +289,7 @@ ntumap <- function(perplexity, gr_eps = 0.1) {
       W <- 1 / (1 + W)
       diag(W) <- 0
 
-      invZ <- 1 / sum(W)
-      Q <- W * invZ
+      Q <- W / sum(W)
       C <- (P - Q) / (1 - Q)
       sumC <- sum(C)
 
@@ -993,22 +992,15 @@ gsne <- function(perplexity, lambda = 1, inp_kernel = "gaussian") {
       cost <- cost_update(cost, Y)
       
       eps <- cost$eps
-      invZ <- cost$invZ
-      W <- cost$W
-      kl <- cost$plogp - colSums(cost$P * logm(W * invZ, eps))
-      
-      Phat <- cost$Phat
-      invZhat <- cost$invZhat
-      What <- cost$What
-      klhat <- cost$phlogph - colSums(Phat * logm(What * invZhat, eps))
-      
+      kl <- cost$plogp - colSums(cost$P * logm(cost$W / cost$Z, eps))
+      klhat <- cost$phlogph - colSums(cost$Phat * logm(cost$What / cost$Zhat, eps))
       cost$pcost <- kl + lambda * klhat
       cost
     },
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
       
-      qlampqhat <- (cost$W * cost$invZ) - lambda * (cost$What * cost$invZhat)
+      qlampqhat <- (cost$W / cost$Z) - lambda * (cost$What / cost$Zhat)
       cost$G <- k2g(Y, 4 * cost$W * (cost$plamphat - qlampqhat))
       cost
     },
@@ -1017,12 +1009,12 @@ gsne <- function(perplexity, lambda = 1, inp_kernel = "gaussian") {
       What <- 1 + W
       W <- 1 / What
       diag(W) <- 0
-      cost$invZ <- 1 / sum(W)
+      cost$Z <- sum(W)
       cost$W <- W
 
       diag(What) <- 0
       cost$What <- What
-      cost$invZhat <- 1 / sum(What)
+      cost$Zhat <- sum(What)
 
       cost
     }

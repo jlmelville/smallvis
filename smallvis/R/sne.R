@@ -123,9 +123,8 @@ tsne <- function(perplexity, inp_kernel = "gaussian") {
       W <- dist2(Y)
       W <- 1 / (1 + W)
       diag(W) <- 0
-      invZ <- 1 / sum(W)
 
-      cost$invZ <- invZ
+      cost$invZ <- 1 / sum(W)
       cost$W <- W
       cost
     },
@@ -193,20 +192,22 @@ asne <- function(perplexity, inp_kernel = "gaussian") {
 # In \emph{Advances in neural information processing systems} (pp. 2169-2177).
 hssne <- function(perplexity, alpha = 0.5) {
   alpha <- max(alpha, 1e-8)
+  apow <- -1 / alpha
   lreplace(
     tsne(perplexity = perplexity),
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
       # to include bandwidth
       # K <- 4 * beta * (P - W * invZ) * (W ^ alpha)
-      cost$G <- k2g(Y, 4 * (cost$P - cost$W * cost$invZ) * (cost$W ^ alpha))
+      W <- cost$W
+      cost$G <- k2g(Y, 4 * (cost$P - W * cost$invZ) * powm(W, alpha, cost$eps))
       cost
     },
     update = function(cost, Y) {
       W <- dist2(Y)
       # to include bandwidth
       # W <- (alpha * beta * W + 1) ^ (-1 / alpha)
-      W <- (alpha * W + 1) ^ (-1 / alpha)
+      W <- powm(alpha * W + 1, apow, cost$eps)
       diag(W) <- 0
 
       cost$invZ <- 1 / sum(W)
@@ -839,14 +840,11 @@ trmsne <- function(perplexity, inp_kernel = "gaussian") {
              cost
            },
            gr = function(cost, Y) {
-             P <- cost$P
-             W <- dist2(Y)
-             W <- 1 / (1 + W)
-             diag(W) <- 0
-             invZ <- 1 / sum(W)
-             cost$invZ <- invZ
-             cost$W <- W
-             cost$G <- k2g(Y, 2 * W * (P - W * invZ), symmetrize = TRUE)
+             cost <- cost_update(cost, Y)
+
+             invZ <- cost$invZ
+             W <- cost$W
+             cost$G <- k2g(Y, 2 * W * (cost$P - W * invZ), symmetrize = TRUE)
              cost
            }
   )
