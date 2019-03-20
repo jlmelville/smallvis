@@ -49,7 +49,7 @@ to [automatically select perplexity](https://jlmelville.github.io/smallvis/idp.h
 [non-global perplexities](https://jlmelville.github.io/smallvis/idp-class.html).
 * [Distance-preserving methods](https://jlmelville.github.io/smallvis/mmds.html) (geodesic as well as Euclidean).
 * A comparison of various flavours of [Stochastic Neighbor Embedding](https://jlmelville.github.io/smallvis/sne.html) (t-distributed and otherwise).
-* A comparison of [NeRV and JSE](https://jlmelville.github.io/smallvis/nervjse.html).
+* A comparison of [NeRV and JSE](https://jlmelville.github.io/smallvis/nervjse.html) and a look at symmetric JSE (SJSE).
 * [Heavy-Tailed SSNE (HSSNE)](https://jlmelville.github.io/smallvis/hssne.html).
 * [Optimizing the Heavy-Tail parameter in HSSNE](https://jlmelville.github.io/smallvis/dhssne.html).
 * Testing some different [initialization methods](https://jlmelville.github.io/smallvis/init.html)
