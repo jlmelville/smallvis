@@ -395,13 +395,13 @@ test_that("Miscellany", {
                           -2.248, 0.5002, -0.6253, 1.444), tolerance = 1e-3)
   expect_equal(final_cost(res), 0.1226, tolerance = 1e-4)
 
-  res <- smallvis(iris10, Y_init = iris10_Y, method = "trsrsne", eta = 0.1,
-                  perplexity = 5,
-                  epoch_callback = NULL, verbose = FALSE, ret_extra = TRUE)
-  expect_equal(res$Y, c2y(-3.524, 2.286, 1.786, 3.237, -3.254, -5.546, 1.27, -2.062,
-                          4.891, 0.9163, 0.6728, 1.785, -0.5903, -0.4569, -0.7359, -0.3572,
-                          -2.115, 0.4887, -0.3448, 1.654), tolerance = 1e-3)
-  expect_equal(final_cost(res), 0.2683, tolerance = 1e-4)
+
+  expect_api(method = "trsrsne", Y = c(-3.523, 2.288, 1.785, 3.236, -3.255, 
+                                       -5.547, 1.268, -2.062, 4.891, 0.918,
+                                       0.6765, 1.782, -0.5922, -0.4603,
+                                       -0.7325, -0.3513, -2.116, 0.4909,
+                                       -0.3499, 1.653),
+             cost = 0.2683)
 
   res <- smallvis(iris10, Y_init = iris10_Y, method = "arsrsne", eta = 0.1,
                   perplexity = 5,

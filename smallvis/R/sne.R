@@ -76,7 +76,7 @@ kl_costQr <- function(cost, Y) {
 kl_cost <- function(cost, Y) {
   cost <- cost_update(cost, Y)
   # P log(P / Q) = P log P - P log Q
-  cost$pcost <- cost$plogp - colSums(cost$P * logm(cost$W * cost$invZ, cost$eps))
+  cost$pcost <- cost$plogp - colSums(cost$P * logm(cost$W / cost$Z, cost$eps))
   cost
 }
 
@@ -105,7 +105,8 @@ tsne <- function(perplexity, inp_kernel = "gaussian") {
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
       P <- cost$P
-      cost$G <- k2g(Y, 4 * cost$W * (P - cost$W * cost$invZ))
+      cost$G <- k2g(Y, 4 * cost$W * (P - cost$W / cost$Z))
+      
       cost
     },
     export = function(cost, val) {
@@ -114,7 +115,7 @@ tsne <- function(perplexity, inp_kernel = "gaussian") {
       if (is.null(res)) {
         switch(val,
                q = {
-                 res <- cost$W * cost$invZ
+                 res <- cost$W / cost$Z
                })
       }
       res
@@ -124,7 +125,7 @@ tsne <- function(perplexity, inp_kernel = "gaussian") {
       W <- 1 / (1 + W)
       diag(W) <- 0
 
-      cost$invZ <- 1 / sum(W)
+      cost$Z <- sum(W)
       cost$W <- W
       cost
     },
@@ -198,9 +199,9 @@ hssne <- function(perplexity, alpha = 0.5) {
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
       # to include bandwidth
-      # K <- 4 * beta * (P - W * invZ) * (W ^ alpha)
+      # K <- 4 * beta * (P - W / Z) * powm(W, alpha, eps)
       W <- cost$W
-      cost$G <- k2g(Y, 4 * (cost$P - W * cost$invZ) * powm(W, alpha, cost$eps))
+      cost$G <- k2g(Y, 4 * (cost$P - W / cost$Z) * powm(W, alpha, cost$eps))
       cost
     },
     update = function(cost, Y) {
@@ -210,7 +211,7 @@ hssne <- function(perplexity, alpha = 0.5) {
       W <- powm(alpha * W + 1, apow, cost$eps)
       diag(W) <- 0
 
-      cost$invZ <- 1 / sum(W)
+      cost$Z <- sum(W)
       cost$W <- W
       cost
     }
@@ -243,7 +244,7 @@ bhssne <- function(perplexity, alpha = 0.5, beta = 1) {
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
       W <- cost$W
-      cost$G <- k2g(Y, cost$b4 * (cost$P - W * cost$invZ) * powm(W, alpha, cost$eps))
+      cost$G <- k2g(Y, cost$b4 * (cost$P - W / cost$Z) * powm(W, alpha, cost$eps))
 
       cost
     },
@@ -252,7 +253,7 @@ bhssne <- function(perplexity, alpha = 0.5, beta = 1) {
       W <- powm(cost$ab * W + 1, cost$apow, cost$eps)
       diag(W) <- 0
       
-      cost$invZ <- 1 / sum(W)
+      cost$Z <- sum(W)
       cost$W <- W
       cost
     }
@@ -267,7 +268,7 @@ dhssne <- function(perplexity, alpha = 0.5) {
     tsne(perplexity = perplexity),
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
-      cost$G <- k2g(Y, 4 * (cost$P - cost$W * cost$invZ) * powm(cost$W, cost$alpha, cost$eps))
+      cost$G <- k2g(Y, 4 * (cost$P - cost$W / cost$Z) * powm(cost$W, cost$alpha, cost$eps))
       cost
     },
     epoch = function(opt, cost, iter, Y, fn_val) {
@@ -307,8 +308,7 @@ dhssne <- function(perplexity, alpha = 0.5) {
       W <- powm(alpha * W + 1, cost$apow, cost$eps)
       diag(W) <- 0
 
-      invZ <- 1 / sum(W)
-      cost$invZ <- invZ
+      cost$Z <- sum(W)
       cost$W <- W
       cost
     },
@@ -342,7 +342,7 @@ wtsne <- function(perplexity) {
     },
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
-      cost$G <- k2g(Y, 4 * cost$W * cost$invM * (cost$P - cost$W * cost$invZ))
+      cost$G <- k2g(Y, 4 * cost$W * cost$invM * (cost$P - cost$W / cost$Z))
       cost
     },
     update = function(cost, Y) {
@@ -351,9 +351,8 @@ wtsne <- function(perplexity) {
       W <- dist2(Y)
       W <- M / (1 + W)
       diag(W) <- 0
-      invZ <- 1 / sum(W)
 
-      cost$invZ <- invZ
+      cost$Z <- sum(W)
       cost$W <- W
       cost
     }
@@ -415,7 +414,7 @@ tsneu <- function(perplexity, inp_kernel = "gaussian") {
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
 
-      cost$G <- k2g(Y, 4 * cost$W * cost$invVsum * (cost$V - cost$W * cost$invZ * cost$Vsum))
+      cost$G <- k2g(Y, 4 * cost$W * cost$invVsum * (cost$V - (cost$W / cost$Z) * cost$Vsum))
       cost
     }
   )
@@ -446,14 +445,14 @@ pstsne <- function(perplexity, inp_kernel = "gaussian") {
       eps <- cost$eps
       P[P < eps] <- eps
       cost$plogp <- colSums(P * logm(P, eps))
-      cost$invZ <- 1 / (nrow(P) * nrow(P))
+      cost$Z <- nrow(P) * nrow(P)
       
       cost
     },
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
 
-      cost$G <- k2g(Y, 4 * cost$W * cost$invVsum * (cost$V - cost$W * cost$invZ * cost$Vsum))
+      cost$G <- k2g(Y, 4 * cost$W * cost$invVsum * (cost$V - (cost$W / cost$Z) * cost$Vsum))
       cost
     },
     update = function(cost, Y) {
@@ -468,7 +467,7 @@ pstsne <- function(perplexity, inp_kernel = "gaussian") {
     epoch = function(opt, cost, iter, Y, fn_val) {
       cost <- cost_update(cost, Y)
 
-      cost$invZ <- 1 / sum(cost$W)
+      cost$Z <- sum(cost$W)
       list(cost = cost)
     }
   )
@@ -577,14 +576,14 @@ usne <- function(perplexity, inp_kernel = "gaussian", spread = 1,
       W <- 1 / (1 + cost$a * D2 ^ cost$b)
       diag(W) <- 0
 
-      cost$invZ <- 1 / sum(W)
+      cost$Z <- sum(W)
       cost$W <- W
       cost$D2 <- D2
       cost
     },
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
-      cost$G <- k2g(Y, 4 * (cost$b * (1 - cost$W) / (cost$D2 + gr_eps)) * (cost$P - cost$W * cost$invZ))
+      cost$G <- k2g(Y, 4 * (cost$b * (1 - cost$W) / (cost$D2 + gr_eps)) * (cost$P - cost$W / cost$Z))
       cost
     }
   )
@@ -630,8 +629,7 @@ cetsne <- function(perplexity, inp_kernel = "gaussian") {
              W <- 1 / (1 + W)
              diag(W) <- 0
 
-             invZ <- 1 / sum(W)
-             Q <- W * invZ
+             Q <- W / sum(W)
              C <- (P - Q) / (1 - Q)
              sumC <- sum(C)
 
@@ -667,7 +665,7 @@ btsne <- function(perplexity, inp_kernel = "gaussian", beta = NULL) {
     },
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
-      cost$G <- k2g(Y, 2 * cost$beta * cost$W * (cost$P - cost$W * cost$invZ), symmetrize = TRUE)
+      cost$G <- k2g(Y, 2 * cost$beta * cost$W * (cost$P - (cost$W / cost$Z)), symmetrize = TRUE)
       cost
     },
     update = function(cost, Y) {
@@ -675,7 +673,7 @@ btsne <- function(perplexity, inp_kernel = "gaussian", beta = NULL) {
       W <- 1 / (1 + (cost$beta * W))
       diag(W) <- 0
 
-      cost$invZ <- 1 / sum(W)
+      cost$Z <- sum(W)
       cost$W <- W
       cost
     }
@@ -750,8 +748,8 @@ btasne <- function(perplexity, beta = NULL) {
     gr = function(cost, Y) {
     cost <- cost_update(cost, Y)
      W <- cost$W
-     cost$G <- k2g(Y, 2 * cost$beta * W * (cost$P - W * cost$invZ), 
-                     symmetrize = TRUE)
+     cost$G <- k2g(Y, 2 * cost$beta * W * (cost$P - W / cost$Z), 
+                   symmetrize = TRUE)
      cost
     },
     update = function(cost, Y) {
@@ -760,7 +758,7 @@ btasne <- function(perplexity, beta = NULL) {
       diag(W) <- 0
        
       cost$W <- W
-      cost$invZ <- 1 / rowSums(W)
+      cost$Z <- rowSums(W)
       cost
     }
   )
@@ -779,7 +777,8 @@ tasne <- function(perplexity) {
            gr = function(cost, Y) {
              cost <- cost_update(cost, Y)
              
-             cost$G <- k2g(Y, 2 * cost$W * (cost$P - cost$W * cost$invZ), symmetrize = TRUE)
+             cost$G <- k2g(Y, 2 * cost$W * (cost$P - cost$W / cost$Z), 
+                           symmetrize = TRUE)
              cost
            },
            update = function(cost, Y) {
@@ -788,7 +787,7 @@ tasne <- function(perplexity) {
              diag(W) <- 0
              
              cost$W <- W
-             cost$invZ <- 1 / rowSums(W)
+             cost$Z <- 1 / rowSums(W)
              cost
            }
   )
@@ -811,7 +810,8 @@ tasne <- function(perplexity) {
   gr = function(cost, Y) {
     cost <- cost_update(cost, Y)
 
-    cost$G <- k2g(Y, 2 * cost$W * (cost$P - cost$W * cost$invZ), symmetrize = TRUE)
+    cost$G <- k2g(Y, 2 * cost$W * (cost$P - cost$W / cost$Z), 
+                  symmetrize = TRUE)
     cost
   },
   update = function(cost, Y) {
@@ -820,7 +820,7 @@ tasne <- function(perplexity) {
     diag(W) <- 0
 
     cost$W <- W
-    cost$invZ <- 1 / rowSums(W)
+    cost$Z <- rowSums(W)
     cost
   }
   )
@@ -842,9 +842,8 @@ trmsne <- function(perplexity, inp_kernel = "gaussian") {
            gr = function(cost, Y) {
              cost <- cost_update(cost, Y)
 
-             invZ <- cost$invZ
              W <- cost$W
-             cost$G <- k2g(Y, 2 * W * (cost$P - W * invZ), symmetrize = TRUE)
+             cost$G <- k2g(Y, 2 * W * (cost$P - W / cost$Z), symmetrize = TRUE)
              cost
            }
   )
