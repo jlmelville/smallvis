@@ -437,4 +437,182 @@ I'd say that these results aren't that different visually, and don't offer a
 significant difference in terms of neighborhood retrieval either. It was worth
 a shot.
 
+
+### Addendum 2: JSE revisited
+
+*March 19 2019*. I recently revisited the issues with optimizing JSE. In some
+cases, the problem with one point becoming an outlier seemed to be due to an
+elementary mistake I made in implementing the weight calculation: $\exp^(-x)$
+becomes zero for not-all-that-large $x$. `abs(exp(-36) - .Machine$double.eps)`
+is around `1e-17` and as far as R on my machine is concerned, `exp(-746) == 0`.
+And bearing in mind that the exponent is the squared distance that means any
+pair of points more than 27 units of distance apart will have a similarity of
+zero. Because JSE is asymmetric, we only row normalize, and therefore under
+those circumstances, it's possible for some of the rows of the $Q$ matrix to be
+close to uniform, which leads to small force constants in the gradient. That
+leads to the displacement of the two points to dominate the gradient, and we
+already said that it's under these conditions that the distances are relatively
+large. So it only takes a bit of an imbalance of how the points are distributed
+and the differences can add up to a gradient that is relatively large.
+
+The solution is to use the log-sum-exp trick. There are several places that 
+discuss this: 
+
+* https://statmodeling.stat.columbia.edu/2016/06/11/log-sum-of-exponentials/
+* https://www.xarg.org/2016/06/the-log-sum-exp-trick-in-machine-learning/
+* http://wittawat.com/posts/log-sum_exp_underflow.html
+
+The upshot is that we can replace the raw exponential calculation with
+with using shifted exponentials, where we substract the maximum value of 
+$-d_{ij}^2$ from each distance before calculating the similarity. After 
+normalization, the resulting probabilities are the same as in the unshifted
+case, but with a much lower risk of numeric underflow.
+
+I don't think I've seen this extended to the input similiarities calculated
+during the perplexity calibration, although you could. I've not seen any
+discussion of this being an issue anywhere, except in the 
+[intrinsic t-SNE](https://link.springer.com/chapter/10.1007%2F978-3-319-68474-1_13)
+where they note it can be an issue with un-normalized data, along with a
+quote from van der Maaten, suggesting that the distances all be divided by a
+suitably large number under these circumstances (most t-SNE implementations
+already do something like this).
+
+Additionally, I also was much more careful with making sure that we weren't
+allowing zeros to creep into any matrix that needed to calculate a logarithm.
+And I also reduced the epsilon used in these cases from `.Machine$double.eps`
+to `.Machine$double.xmin`, which also cured some potential convergence issues
+due where replacing zeros in the probability matrix (even using as small a value
+as `.Machine$double.eps`) caused an accumulation of errors that made it look
+like the cost function was increasing.
+
+These changes made the JSE gradient calculation even slower than it was before.
+But it did make it a bit easier to optimize. As discussed above, I was unable
+to use standard DBD settings with `kappa = 0.9`. Now, the optimizations all
+proceeded, even with `final_momentum = 0.8`. This is definitely progress. 
+Unfortunately, I then noticed an outlier for `s1k` with `kappa = 0.5`. In this
+case, it just seemed like the arrangement of the points meant that the best
+bet for the outlier was to put as much of the probability mass on its nearest
+two neighbors, which it could achieve by increasing the distance between all
+other points.
+
+At this point I was tempted to conclude that I either was incapable of coding
+the JSE gradient correctly or this was a fundamental issue with JSE. It also
+reminded me that the original ASNE paper laments the difficulty of optimizing
+the ASNE cost function and later papers note that SSNE is much easier to work
+with. Perhaps this is the sort of thing they had trouble with, except the more
+complex JSE gradient, with its logs and divisions of numbers close to zero
+was exacerbating the issues. Also, the JSE paper uses a perplexity annealing
+approach to optimize JSE to avoid "poor local minima", so it may be that 
+something like this has been seen by others.
+
+Rather than pursue perplexity annealing (or something similar like starting at
+a low value of `kappa` and slowly increasing it to the desired level), perhaps
+symmetrizing JSE would also help, like it did with SNE. Changes to the gradient
+for JSE are straightforward and entirely analogous to the difference between
+the ASNE gradient and the SSNE gradient. 
+
+I repeated the tests for JSE and symmetric JSE (SJSE) using the settings below:
+
+```R
+iris_sjse0.9 <- benchmark(perplexity = 40, Y_init = "spca", method = list("sjse", kappa = 0.9), eta = 10, max_iter = 2000, epoch = 50, mom_switch_iter = 250, tol_wait = 100)
+iris_jse0.9 <- benchmark(perplexity = 40, Y_init = "spca", method = list("jse", kappa = 0.9), eta = 1e-3, max_iter = 2000, epoch = 50, mom_switch_iter = 250, tol_wait = 100)
+
+iris_asne <- benchmark(perplexity = 40, Y_init = "spca", method = "asne", eta = 0.01, max_iter = 2000, epoch = 50, mom_switch_iter = 250, tol_wait = 100)
+iris_ssne <- benchmark(perplexity = 40, Y_init = "spca", method = "ssne", eta = 10, max_iter = 2000, epoch = 50, mom_switch_iter = 250, tol_wait = 100)
+```
+
+We now use standard settings for JSE and SJSE, except that for JSE, I found that
+the low value of `eta` means that there's a risk of early convergence unless
+you tell `smallvis` to wait until after the first 100 iterations 
+(`tol_wait = 100`). To compensate for the lower learning rate I increased the
+number of iterations to 2000. This is probably unnecessary for practical uses
+of JSE and SJSE.
+
+The results below show the new JSE results on the left, with `kappa` slowly
+decreasing. The equivalent SJSE results are on the right. In the last row for
+each dataset are ASNE and SSNE results, which are analogous to setting `kappa =
+0` for JSE and SJSE respectively.
+
+### iris
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![iris jse0.9](../img/jsenew/iris_jse0.9.png)|![iris sjse0.9](../img/jsenew/iris_sjse0.9.png)
+![iris jse0.5](../img/jsenew/iris_jse0.5.png)|![iris sjse0.5](../img/jsenew/iris_sjse0.5.png)
+![iris jse0.1](../img/jsenew/iris_jse0.1.png)|![iris sjse0.1](../img/jsenew/iris_sjse0.1.png)
+![iris asne](../img/jsenew/iris_asne.png)|![iris ssne](../img/jsenew/iris_ssne.png)
+
+### s1k
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![s1k jse0.9](../img/jsenew/s1k_jse0.9.png)|![s1k sjse0.9](../img/jsenew/s1k_sjse0.9.png)
+![s1k jse0.5](../img/jsenew/s1k_jse0.5.png)|![s1k sjse0.5](../img/jsenew/s1k_sjse0.5.png)
+![s1k jse0.1](../img/jsenew/s1k_jse0.1.png)|![s1k sjse0.1](../img/jsenew/s1k_sjse0.1.png)
+![s1k asne](../img/jsenew/s1k_asne.png)|![s1k ssne](../img/jsenew/s1k_ssne.png)
+
+Note the outlier for JSE with `kappa = 0.5`. Bah!
+
+### oli
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![oli jse0.9](../img/jsenew/oli_jse0.9.png)|![oli sjse0.9](../img/jsenew/oli_sjse0.9.png)
+![oli jse0.5](../img/jsenew/oli_jse0.5.png)|![oli sjse0.5](../img/jsenew/oli_sjse0.5.png)
+![oli jse0.1](../img/jsenew/oli_jse0.1.png)|![oli sjse0.1](../img/jsenew/oli_sjse0.1.png)
+![oli asne](../img/jsenew/oli_asne.png)|![oli ssne](../img/jsenew/oli_ssne.png)
+
+### frey
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![frey jse0.9](../img/jsenew/frey_jse0.9.png)|![frey sjse0.9](../img/jsenew/frey_sjse0.9.png)
+![frey jse0.5](../img/jsenew/frey_jse0.5.png)|![frey sjse0.5](../img/jsenew/frey_sjse0.5.png)
+![frey jse0.1](../img/jsenew/frey_jse0.1.png)|![frey sjse0.1](../img/jsenew/frey_sjse0.1.png)
+![frey asne](../img/jsenew/frey_asne.png)|![frey ssne](../img/jsenew/frey_ssne.png)
+
+### coil20
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![coil20 jse0.9](../img/jsenew/coil20_jse0.9.png)|![coil20 sjse0.9](../img/jsenew/coil20_sjse0.9.png)
+![coil20 jse0.5](../img/jsenew/coil20_jse0.5.png)|![coil20 sjse0.5](../img/jsenew/coil20_sjse0.5.png)
+![coil20 jse0.1](../img/jsenew/coil20_jse0.1.png)|![coil20 sjse0.1](../img/jsenew/coil20_sjse0.1.png)
+![coil20 asne](../img/jsenew/coil20_asne.png)|![coil20 ssne](../img/jsenew/coil20_ssne.png)
+
+### mnist6k
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![mnist6k jse0.9](../img/jsenew/mnist6k_jse0.9.png)|![mnist6k sjse0.9](../img/jsenew/mnist6k_sjse0.9.png)
+![mnist6k jse0.5](../img/jsenew/mnist6k_jse0.5.png)|![mnist6k sjse0.5](../img/jsenew/mnist6k_sjse0.5.png)
+![mnist6k jse0.1](../img/jsenew/mnist6k_jse0.1.png)|![mnist6k sjse0.1](../img/jsenew/mnist6k_sjse0.1.png)
+![mnist6k asne](../img/jsenew/mnist6k_asne.png)|![mnist6k ssne](../img/jsenew/mnist6k_ssne.png)
+
+### fashion6k
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![fashion6k jse0.9](../img/jsenew/fashion6k_jse0.9.png)|![fashion6k sjse0.9](../img/jsenew/fashion6k_sjse0.9.png)
+![fashion6k jse0.5](../img/jsenew/fashion6k_jse0.5.png)|![fashion6k sjse0.5](../img/jsenew/fashion6k_sjse0.5.png)
+![fashion6k jse0.1](../img/jsenew/fashion6k_jse0.1.png)|![fashion6k sjse0.1](../img/jsenew/fashion6k_sjse0.1.png)
+![fashion6k asne](../img/jsenew/fashion6k_asne.png)|![fashion6k ssne](../img/jsenew/fashion6k_ssne.png)
+
+The degree of difference seems qualitatively larger between SJSE and JSE than 
+that between ASNE and SSNE. This seems to be more pronounced for `kappa = 0.9`,
+but the JSE and SJSE results are still quite similar. For example, there's a 
+"mottling" sort of pattern for the clusters that form in both `fashion6k` and 
+`mnist6k` with `kappa = 0.9`. It's definitely more pronounced with the JSE
+results, but still apparent in SJSE. Also, SJSE results seem to produce 
+better-spaced clusters with fewer outliers.
+
+They may not represent an absolutely 100% authentic JSE experience, but 
+I definitely prefer the SJSE results overall. They also optimize more easily
+from the scaled PCA initialization with less risk of outliers. I have also 
+implemented a symmetric NeRV (`method = "snerv"`), but haven't done any
+proper benchmarking on it yet.
+
+Finally, it's possible SJSE initialization could be a useful alternative to
+perplexity annealing for producing stable embeddings with JSE.
+
 Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
