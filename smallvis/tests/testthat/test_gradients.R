@@ -55,6 +55,12 @@ test_that("JSE", {
   test_grad("jse", kappa = 0.999, perplexity = perp)
   test_grad("jse", kappa = 1, perplexity = perp, tol = 1e-5)
   
+  test_grad("sjse", kappa = 0.5, perplexity = perp)
+  test_grad("sjse", kappa = 0, perplexity = perp)
+  test_grad("sjse", kappa = 1e-4, perplexity = perp)
+  test_grad("sjse", kappa = 0.999, perplexity = perp)
+  test_grad("sjse", kappa = 1, perplexity = perp, tol = 1e-5)
+  
   test_grad("rsrjse", kappa = 0.5, perplexity = perp)
   test_grad("rsrjse", kappa = 1e-5, perplexity = perp)
   test_grad("rsrjse", kappa = 1, perplexity = perp, tol = 1e-5)
@@ -72,6 +78,12 @@ test_that("NeRV", {
   test_grad("bnerv", lambda = 0.5, perplexity = perp)
   test_grad("bnerv", lambda = 1e-5, perplexity = perp)
   test_grad("bnerv", lambda = 1, perplexity = perp)
+  
+  test_grad("snerv", lambda = 0.5, perplexity = perp)
+  test_grad("snerv", lambda = 0, perplexity = perp)
+  test_grad("snerv", lambda = 1e-4, perplexity = perp)
+  test_grad("snerv", lambda = 0.999, perplexity = perp)
+  test_grad("snerv", lambda = 1, perplexity = perp)
 })
 
 test_that("MDS", {

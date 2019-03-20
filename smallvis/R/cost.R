@@ -1428,6 +1428,58 @@ nerv <- function(perplexity, lambda = 0.9) {
     )
 }
 
+snerv <- function(perplexity, lambda = 0.9) {
+  lambda4 <- 4 * lambda
+  oml <- 1 - lambda
+  oml4 <- 4 * oml
+  lreplace(
+    ssne(perplexity = perplexity),
+    cache_input = function(cost) {
+      eps <- cost$eps
+      P <- cost$P
+      P[P < eps] <- eps
+      cost$P <- P
+      cost
+    },
+    pfn = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+      
+      P <- cost$P
+      
+      kl_fwd <- colSums(P * cost$lPQ)
+      
+      cost$pcost <- lambda * kl_fwd + oml * cost$kl_rev
+      cost
+    },
+    gr = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+      Q <- cost$Q
+      
+      # Total K including multiplying by 4 in gradient
+      K <- lambda4 * (cost$P - Q) + oml4 * Q * (cost$lPQ + cost$QlPQs)
+      
+      cost$G <- k2g(Y, K, symmetrize = FALSE)
+      cost
+    },
+    update = function(cost, Y) {
+      eps <- cost$eps
+      
+      Q <- expQ(Y, eps, is_symmetric = TRUE, matrix_normalize = TRUE)$Q      
+      cost$Q <- Q
+      
+      # Reverse KL gradient
+      cost$lPQ <- logm(cost$P / Q, eps)
+      cost$kl_rev <- colSums(Q * -cost$lPQ)
+      cost$QlPQs <- sum(cost$kl_rev)
+      cost
+    },
+    export = function(cost, val) {
+      res <- cost_export(cost, val)
+      res
+    }
+  )
+}
+
 # Lee, J. A., Renard, E., Bernard, G., Dupont, P., & Verleysen, M. (2013).
 # Type 1 and 2 mixtures of Kullback-Leibler divergences as cost functions in
 # dimensionality reduction based on similarity preservation.
@@ -1445,7 +1497,7 @@ jse <- function(perplexity, kappa = 0.5) {
   om_kappa_inv <- 1 / om_kappa
 
   lreplace(
-    tsne(perplexity = perplexity),
+    ssne(perplexity = perplexity),
     init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
                     ret_extra = c()) {
       cost <- sne_init(cost, X, perplexity = perplexity,
@@ -1465,8 +1517,6 @@ jse <- function(perplexity, kappa = 0.5) {
       cost <- cost_update(cost, Y)
       eps <- cost$eps
 
-      lZ <- logm(cost$Z, eps)
-
       cost$pcost <- 
         om_kappa_inv * (cost$plogp - rowSums(cost$P * logm(cost$Z, eps))) +
         kappa_inv * cost$QlQZc
@@ -1475,23 +1525,76 @@ jse <- function(perplexity, kappa = 0.5) {
     },
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
-      cost$G <- k2g(Y, m2_kappa_inv * cost$Q * (cost$lQZ - cost$QlQZc), 
+      K <- m2_kappa_inv * cost$Q * (cost$lQZ - cost$QlQZc)
+      cost$G <- k2g(Y, K, 
                     symmetrize = TRUE)
+
       cost
     },
     update = function(cost, Y) {
       eps <- cost$eps
 
-      Q <- expQ(Y, eps, is_symmetric = TRUE)$Q
+      Q <- expQ(Y, eps = eps, is_symmetric = TRUE)$Q
 
       Z <- kappa * cost$P + om_kappa * Q
       Z[Z < eps] <- eps
+      diag(Z) <- 0
       
       cost$Q <- Q
       cost$Z <- Z
       cost$lQZ <- logm(Q / Z, eps)
       cost$QlQZc <- rowSums(Q * cost$lQZ)
 
+      cost
+    },
+    export = cost_export
+  )
+}
+
+
+sjse <- function(perplexity, kappa = 0.5) {
+  eps0 <- 1e-5
+  kappa <- max(kappa, eps0)
+  kappa <- min(kappa, 1 - eps0)
+  
+  kappa_inv <- 1 / kappa
+  m4_kappa_inv <- -4 * kappa_inv
+  om_kappa <- 1 - kappa
+  om_kappa_inv <- 1 / om_kappa
+  
+  lreplace(
+    ssne(perplexity = perplexity),
+    pfn = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+      eps <- cost$eps
+      
+      cost$pcost <- 
+        om_kappa_inv * (cost$plogp - colSums(cost$P * logm(cost$Z, eps))) +
+        kappa_inv * cost$QlQZc
+      
+      cost
+    },
+    gr = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+      K <- m4_kappa_inv * cost$Q * (cost$lQZ - cost$QlQZs)
+      cost$G <- k2g(Y, K, symmetrize = FALSE)
+
+      cost
+    },
+    update = function(cost, Y) {
+      eps <- cost$eps
+      
+      Q <- expQ(Y, cost$eps, is_symmetric = TRUE, matrix_normalize = TRUE)$Q      
+      Z <- kappa * cost$P + om_kappa * Q
+      Z[Z < eps] <- eps
+      diag(Z) <- 0
+      
+      cost$Q <- Q
+      cost$Z <- Z
+      cost$lQZ <- logm(Q / Z, eps)
+      cost$QlQZc <- colSums(Q * cost$lQZ)
+      cost$QlQZs <- sum(cost$QlQZc)
+      
       cost
     },
     export = cost_export
