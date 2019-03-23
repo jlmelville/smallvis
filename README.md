@@ -136,10 +136,21 @@ tsne_iris_lex <- smallvis(iris, eta = 100, exaggeration_factor = 4, stop_lying_i
 * [Weighted SNE using degree centrality](http://www.jmlr.org/proceedings/papers/v32/yange14.html) (wt-SSNE).
 * [Elastic Embedding (PDF)](http://faculty.ucmerced.edu/mcarreira-perpinan/papers/icml10.pdf).
 * [LargeVis](https://arxiv.org/abs/1602.00370) (the cost function, not the stochastic gradient descent part).
-* [UMAP](https://arxiv.org/abs/1802.03426) (the cost function and calibration method).
+* [UMAP](https://arxiv.org/abs/1802.03426) (the cost function and calibration method): see [uwot](https://github.com/jlmelville/uwot) for a more functional version.
+* [Alpha-Beta-SNE (ABSNE)](http://proceedings.mlr.press/v37/narayan15.html) and [ft-SNE](https://github.com/jiwoongim/ft-SNE) which
+generalize t-SNE to a family of divergences.
+* [Global t-SNE (GSNE)](https://github.com/gyrheart/gsne).
+
 
 ## Things To Be Aware Of
 
+* March 23 2019: Methods that use the exponential function (e.g. NeRV, JSE, SSNE, 
+ASNE) are now more robust, but sadly a lot slower, due to me implementing the
+[log-sum-exp "trick"](https://statmodeling.stat.columbia.edu/2016/06/11/log-sum-of-exponentials/)
+to avoid numeric underflow. This mainly helps JSE, which showed a tendency to
+have its gradients suddenly explode. It's still difficult to optimize, though.
+Perhaps [symmetric JSE](https://jlmelville.github.io/smallvis/nervjse.html#addendum_2:_jse_revisited)
+can help under those circumstances.
 * Feb 13 2018: the [UMAP paper](https://arxiv.org/abs/1802.03426) is out, but I 
 have yet to read and understand it fully, so the implementation in `smallvis` 
 currently relies
