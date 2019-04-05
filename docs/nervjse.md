@@ -442,18 +442,19 @@ a shot.
 
 *March 19 2019*. I recently revisited the issues with optimizing JSE. In some
 cases, the problem with one point becoming an outlier seemed to be due to an
-elementary mistake I made in implementing the weight calculation: $\exp^(-x)$
-becomes zero for not-all-that-large $x$. `abs(exp(-36) - .Machine$double.eps)`
-is around `1e-17` and as far as R on my machine is concerned, `exp(-746) == 0`.
-And bearing in mind that the exponent is the squared distance that means any
-pair of points more than 27 units of distance apart will have a similarity of
-zero. Because JSE is asymmetric, we only row normalize, and therefore under
-those circumstances, it's possible for some of the rows of the $Q$ matrix to be
-close to uniform, which leads to small force constants in the gradient. That
-leads to the displacement of the two points to dominate the gradient, and we
-already said that it's under these conditions that the distances are relatively
-large. So it only takes a bit of an imbalance of how the points are distributed
-and the differences can add up to a gradient that is relatively large.
+elementary mistake I made in implementing the weight calculation: 
+$\operatorname{e}^{-x}$ becomes zero for not-all-that-large $x$. 
+`abs(exp(-36) - .Machine$double.eps)` is around `1e-17` and as far as R on my 
+machine is concerned, `exp(-746) == 0`. And bearing in mind that the exponent is
+the squared distance that means any pair of points more than 27 units of
+distance apart will have a similarity of zero. Because JSE is asymmetric, we
+only row normalize, and therefore under those circumstances, it's possible for
+some of the rows of the $Q$ matrix to be close to uniform, which leads to small
+force constants in the gradient. That leads to the displacement of the two
+points to dominate the gradient, and we already said that it's under these
+conditions that the distances are relatively large. So it only takes a bit of an
+imbalance of how the points are distributed and the differences can add up to a
+gradient that is relatively large.
 
 The solution is to use the log-sum-exp trick. There are several places that 
 discuss this: 
