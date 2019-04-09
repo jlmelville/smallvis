@@ -220,7 +220,10 @@ $$w_{ij} = 1 / \left(1 + ad_{ij}^{2b}\right)$$
 where $a$ and $b$ are determined by a non-linear least squares fit based on 
 a couple of user-selected parameters that control the tightness of the squashing
 function. By setting $a = 1$ and $b = 1$ you get the t-SNE style weighting back.
-The current UMAP defaults result in $a = 1.929$ and $b = 0.7915$.
+The current UMAP defaults result in $a = 1.929$ and $b = 0.7915$. *April 8 2019*:
+I was wrong about this, due to a mis-reading of a related default parameter.
+The *actual* UMAP defaults are $a = 1.577$ and $b = 0.895$. This has very
+little effect on the visualizations.
 
 To get to the UMAP gradient, we need the derivative of the weight with respect
 to the squared distance.
