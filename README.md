@@ -6,10 +6,13 @@ dimensionality reduction methods, including [t-Distributed Stochastic Neighbor E
 [LargeVis](https://arxiv.org/abs/1602.00370) and 
 [UMAP](https://arxiv.org/abs/1802.03426). 
 
-LargeVis and UMAP are of particular interest because they seem to give 
-visualizations which are very competitive with t-SNE, while being more amenable
-to scaling up to large datasets. Why do these methods work so well? This package
-is designed to make it easier to experiment with and compare these methods.
+LargeVis and UMAP are of particular interest because they seem to give
+visualizations which are very competitive with t-SNE, but can use stochastic
+gradient descent to give faster run times and/or better scaling with dataset
+size than the typical Barnes-Hut t-SNE implementation.
+
+This package is designed to make it easier to experiment with and compare these 
+methods, by removing differences in implementation details.
 
 One way it does this is by abandoning the more advanced nearest-neighbor 
 methods, distance approximations, sampling, and multi-threaded stochastic 
