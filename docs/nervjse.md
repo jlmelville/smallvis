@@ -444,14 +444,15 @@ a shot.
 cases, the problem with one point becoming an outlier seemed to be due to an
 elementary mistake I made in implementing the weight calculation: 
 $\operatorname{e}^{-x}$ becomes zero for not-all-that-large $x$. 
-`abs(exp(-36) - .Machine$double.eps)` is around `1e-17` and as far as R on my 
-machine is concerned, `exp(-746) == 0`. And bearing in mind that the exponent is
+`abs(exp(-36) - .Machine$double.eps)` is around `1e-17` and on my machine, 
+as far as R is concerned, `exp(-746) == 0`. Bearing in mind that the exponent is
 the squared distance that means any pair of points more than 27 units of
 distance apart will have a similarity of zero. Because JSE is asymmetric, we
-only row normalize, and therefore under those circumstances, it's possible for
-some of the rows of the $Q$ matrix to be close to uniform, which leads to small
-force constants in the gradient. That leads to the displacement of the two
-points to dominate the gradient, and we already said that it's under these
+only row normalize, and under those circumstances, there is a much larger risk
+that many of the similarities round to zero and you end up with the rows of the
+$Q$ matrix to being close to uniform. In turn, that leads to small force
+constants in the gradient. And *that* leads to the displacement of two points
+being able to dominate the gradient. And we already said that it's under these
 conditions that the distances are relatively large. So it only takes a bit of an
 imbalance of how the points are distributed and the differences can add up to a
 gradient that is relatively large.
@@ -463,11 +464,11 @@ discuss this:
 * https://www.xarg.org/2016/06/the-log-sum-exp-trick-in-machine-learning/
 * http://wittawat.com/posts/log-sum_exp_underflow.html
 
-The upshot is that we can replace the raw exponential calculation with
-with using shifted exponentials, where we substract the maximum value of 
-$-d_{ij}^2$ from each distance before calculating the similarity. After 
-normalization, the resulting probabilities are the same as in the unshifted
-case, but with a much lower risk of numeric underflow.
+The upshot is that we can replace the raw exponential calculation with using
+shifted exponentials, where we substract the maximum value of $-d_{ij}^2$ from
+each distance before calculating the similarity. After normalization, the
+resulting probabilities are the same as in the unshifted case, but with a much
+lower risk of numeric underflow.
 
 I don't think I've seen this extended to the input similiarities calculated
 during the perplexity calibration, although you could. I've not seen any
@@ -480,11 +481,11 @@ already do something like this).
 
 Additionally, I also was much more careful with making sure that we weren't
 allowing zeros to creep into any matrix that needed to calculate a logarithm.
-And I also reduced the epsilon used in these cases from `.Machine$double.eps`
-to `.Machine$double.xmin`, which also cured some potential convergence issues
-due where replacing zeros in the probability matrix (even using as small a value
-as `.Machine$double.eps`) caused an accumulation of errors that made it look
-like the cost function was increasing.
+And I also reduced the epsilon used in these cases from `.Machine$double.eps` to
+`.Machine$double.xmin`, which also cured some potential convergence issues where
+replacing zeros in the probability matrix (even using as small a value as
+`.Machine$double.eps`) caused an accumulation of errors that made it look like
+the cost function was increasing.
 
 These changes made the JSE gradient calculation even slower than it was before.
 But it did make it a bit easier to optimize. As discussed above, I was unable
