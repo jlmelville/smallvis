@@ -141,7 +141,6 @@ tsne_iris_lex <- smallvis(iris, eta = 100, exaggeration_factor = 4, stop_lying_i
 generalize t-SNE to a family of divergences.
 * [Global t-SNE (GSNE)](https://github.com/gyrheart/gsne).
 
-
 ## Things To Be Aware Of
 
 * March 23 2019: Methods that use the exponential function (e.g. NeRV, JSE, SSNE, 

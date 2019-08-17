@@ -139,7 +139,7 @@ As a reminder, Belkina and co-workers suggest examining the relative rate of
 change of the KL divergence during early exaggeration and terminating the
 exaggeration phase after the relative rate of change reaches a maximum. 
 
-One objection to this is that it requires calculting the KL divergence at each
+One objection to this is that it requires calculating the KL divergence at each
 iteration, which isn't necessary during usual optimization. But there is an
 additional slight problem in that some datasets show quite noisy behavior during
 early exaggeration. Below is a plot of the relative KL change during early
@@ -173,8 +173,8 @@ is slightly more conservative in terminating the early exaggeration, as the
 procedure has been modified to:
 
 * wait 15 iterations before monitoring the relative rate of change of KL.
-* calcuate the relative rate of change every three iterations, rather than
-ever iteration.
+* calculate the relative rate of change every three iterations, rather than
+every iteration.
 * only terminate early exaggeration after the relative rate of change of KL
 has been observed to decrease three times.
 
@@ -199,7 +199,7 @@ iris_ee_tol <- smallvis(iris, perplexity = 40, eta = "optsne", Y_init = "spca", 
 
 Left hand images are the results with the early exaggeration being monitored.
 The iteration at which the early exaggeration was stopped is given in the title
-of the image. The rigth hand images are the results from the previous section
+of the image. The right hand images are the results from the previous section
 with `eta = "optsne"`.
 
 #### iris
@@ -259,7 +259,7 @@ un-split version in terms of KL divergence, but is obviously less appealing.
 
 As early exaggeration is only 10% of the run time of the optimization, stopping
 after 30 iterations doesn't save a huge amount of time, and doesn't seem to help
-the embedding quality, at least if you initizialize with scaled PCA.
+the embedding quality, at least if you initialize with scaled PCA.
 
 ## Early stopping
 
@@ -286,7 +286,7 @@ during that period of the optimization.
 
 `tol_wait = 15` sets the number of iterations to wait during standard
 optimization before allowing early stopping. In practice I don't think I've seen
-any possibility of convergence occuring so early after turning off early 
+any possibility of convergence occurring so early after turning off early 
 exaggeration, but it's included for completeness.
 
 ```R
@@ -413,7 +413,7 @@ even fewer iterations than just early stopping alone in all datasets except
 `coil20`, which takes an extra 100 iterations to stop.
 
 Otherwise, these results are quite similar to the results from using only
-early stopping. The `minst6k` results show the '4' cluster split by the '9'
+early stopping. The `mnist6k` results show the '4' cluster split by the '9'
 cluster, just as with the early exaggeration monitoring-only run.
 
 
@@ -506,7 +506,7 @@ Setting `eta = "optsne"` seems mildly helpful for larger datasets. It may give
 a learning rate that's too low for small datasets, however. 
 
 The early exaggeration monitoring wasn't that helpful for the datasets studied
-here: it reduced the time spend in early exaggeration, but it wasn't that long
+here: it reduced the time spent in early exaggeration, but it wasn't that long
 to begin with. None of the datasets tested here indicated that more time in
 early exaggeration than 100 iterations was needed, so you may as well leave it
 at that default.

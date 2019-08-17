@@ -7,10 +7,11 @@
 <meta charset="utf-8" />
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
 
 
-<meta name="date" content="2019-02-24" />
+<meta name="date" content="2019-02-25" />
 
 <title>opt-SNE settings</title>
 
@@ -86,8 +87,6 @@ overflow: auto;
 margin-left: 2%;
 position: fixed;
 border: 1px solid #ccc;
-webkit-border-radius: 6px;
-moz-border-radius: 6px;
 border-radius: 6px;
 }
 
@@ -115,9 +114,14 @@ font-size: 12px;
 .tocify-subheader .tocify-subheader {
 text-indent: 30px;
 }
-
 .tocify-subheader .tocify-subheader .tocify-subheader {
 text-indent: 40px;
+}
+.tocify-subheader .tocify-subheader .tocify-subheader .tocify-subheader {
+text-indent: 50px;
+}
+.tocify-subheader .tocify-subheader .tocify-subheader .tocify-subheader .tocify-subheader {
+text-indent: 60px;
 }
 
 .tocify .tocify-item > a, .tocify .nav-list .nav-header {
@@ -521,13 +525,13 @@ float: none;
 
           item.append($("<a/>", {
 
-            "text": self.text()
+            "html": self.html()
 
           }));
 
         } else {
 
-          item.text(self.text());
+          item.html(self.html());
 
         }
 
@@ -1344,9 +1348,7 @@ h6 {
 </style>
 
 
-</head>
 
-<body>
 
 <style type="text/css">
 .main-container {
@@ -1377,8 +1379,6 @@ summary {
 </style>
 
 
-
-<div class="container-fluid main-container">
 
 <!-- tabsets -->
 
@@ -1436,48 +1436,9 @@ summary {
 }
 </style>
 
-<script>
-$(document).ready(function () {
-  window.buildTabsets("TOC");
-});
-
-$(document).ready(function () {
-  $('.tabset-dropdown > .nav-tabs > li').click(function () {
-    $(this).parent().toggleClass('nav-tabs-open')
-  });
-});
-</script>
-
 <!-- code folding -->
 
 
-
-<script>
-$(document).ready(function ()  {
-
-    // move toc-ignore selectors from section div to header
-    $('div.section.toc-ignore')
-        .removeClass('toc-ignore')
-        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
-
-    // establish options
-    var options = {
-      selectors: "h1,h2,h3",
-      theme: "bootstrap3",
-      context: '.toc-content',
-      hashGenerator: function (text) {
-        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_').toLowerCase();
-      },
-      ignoreSelector: ".toc-ignore",
-      scrollTo: 0
-    };
-    options.showAndHide = false;
-    options.smoothScroll = true;
-
-    // tocify
-    var toc = $("#TOC").tocify(options).data("toc-tocify");
-});
-</script>
 
 <style type="text/css">
 
@@ -1526,8 +1487,6 @@ div.tocify {
 
 .tocify-subheader .tocify-item {
   font-size: 0.90em;
-  padding-left: 25px;
-  text-indent: 0;
 }
 
 .tocify .list-group-item {
@@ -1542,6 +1501,16 @@ div.tocify {
 }
 
 </style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
 
 <!-- setup 3col/9col grid for toc_float and main content  -->
 <div class="row-fluid">
@@ -1560,7 +1529,7 @@ div.tocify {
 
 
 <h1 class="title toc-ignore">opt-SNE settings</h1>
-<h4 class="date"><em>February 24, 2019</em></h4>
+<h4 class="date">February 25, 2019</h4>
 
 </div>
 
@@ -1676,7 +1645,7 @@ iris_tsne &lt;- smallvis(iris, perplexity = 40, Y_init = &quot;spca&quot;, eta =
 <div id="early-exaggeration" class="section level2">
 <h2>Early Exaggeration</h2>
 <p>As a reminder, Belkina and co-workers suggest examining the relative rate of change of the KL divergence during early exaggeration and terminating the exaggeration phase after the relative rate of change reaches a maximum.</p>
-<p>One objection to this is that it requires calculting the KL divergence at each iteration, which isn’t necessary during usual optimization. But there is an additional slight problem in that some datasets show quite noisy behavior during early exaggeration. Below is a plot of the relative KL change during early exaggeration for two datasets. On the left is <code>mnist6k</code>, which is quite well-behaved, and on the right, <code>iris</code>, which is not:</p>
+<p>One objection to this is that it requires calculating the KL divergence at each iteration, which isn’t necessary during usual optimization. But there is an additional slight problem in that some datasets show quite noisy behavior during early exaggeration. Below is a plot of the relative KL change during early exaggeration for two datasets. On the left is <code>mnist6k</code>, which is quite well-behaved, and on the right, <code>iris</code>, which is not:</p>
 <table>
 <tbody>
 <tr class="odd">
@@ -1698,7 +1667,7 @@ iris_tsne &lt;- smallvis(iris, perplexity = 40, Y_init = &quot;spca&quot;, eta =
 <p>At any rate it seems like these issues or something like them are also known to the authors, as the <a href="https://github.com/omiq-ai/Multicore-opt-SNE/blob/ccd25265c91d3ba7ec637e3ffe040e3b7b6c5516/multicore_tsne/tsne.cpp">current (as of February 2019) implementation of opt-SNE</a> is slightly more conservative in terminating the early exaggeration, as the procedure has been modified to:</p>
 <ul>
 <li>wait 15 iterations before monitoring the relative rate of change of KL.</li>
-<li>calcuate the relative rate of change every three iterations, rather than ever iteration.</li>
+<li>calculate the relative rate of change every three iterations, rather than every iteration.</li>
 <li>only terminate early exaggeration after the relative rate of change of KL has been observed to decrease three times.</li>
 </ul>
 <div id="settings-1" class="section level3">
@@ -1708,7 +1677,7 @@ iris_tsne &lt;- smallvis(iris, perplexity = 40, Y_init = &quot;spca&quot;, eta =
 </div>
 <div id="results-1" class="section level3">
 <h3>Results</h3>
-<p>Left hand images are the results with the early exaggeration being monitored. The iteration at which the early exaggeration was stopped is given in the title of the image. The rigth hand images are the results from the previous section with <code>eta = &quot;optsne&quot;</code>.</p>
+<p>Left hand images are the results with the early exaggeration being monitored. The iteration at which the early exaggeration was stopped is given in the title of the image. The right hand images are the results from the previous section with <code>eta = &quot;optsne&quot;</code>.</p>
 <div id="iris-1" class="section level4">
 <h4>iris</h4>
 <table>
@@ -1787,7 +1756,7 @@ iris_tsne &lt;- smallvis(iris, perplexity = 40, Y_init = &quot;spca&quot;, eta =
 </table>
 <p>Rather than extending the exaggeration time, for all the datasets studied, the effect of the exaggeration monitoring is to terminate it much earlier than the full 100 iterations. No dataset uses exaggeration for more than 33 iterations.</p>
 <p>Nonetheless, the results aren’t hugely affected. The final divergences are in general a little bit elevated, but there’s not a huge effect on either the neighbor preservation or the visual quality of the embedding. The <code>mnist6k</code> results are slightly different: the result with the ‘4’ cluster (in green at the bottom) is split by the ‘9’ cluster (magenta). This embedding turns up now and again with various t-SNE settings and seems to be nearly as stable as the un-split version in terms of KL divergence, but is obviously less appealing.</p>
-<p>As early exaggeration is only 10% of the run time of the optimization, stopping after 30 iterations doesn’t save a huge amount of time, and doesn’t seem to help the embedding quality, at least if you initizialize with scaled PCA.</p>
+<p>As early exaggeration is only 10% of the run time of the optimization, stopping after 30 iterations doesn’t save a huge amount of time, and doesn’t seem to help the embedding quality, at least if you initialize with scaled PCA.</p>
 </div>
 </div>
 </div>
@@ -1803,7 +1772,7 @@ iris_tsne &lt;- smallvis(iris, perplexity = 40, Y_init = &quot;spca&quot;, eta =
 <div id="settings-2" class="section level3">
 <h3>Settings</h3>
 <p>We’ll compare the tolerance used by the current version of opt-SNE, rather than the version given in the paper, but the difference won’t be too large. We’ll go back to 100 iterations of early exaggeration with no early stopping possible during that period of the optimization.</p>
-<p><code>tol_wait = 15</code> sets the number of iterations to wait during standard optimization before allowing early stopping. In practice I don’t think I’ve seen any possibility of convergence occuring so early after turning off early exaggeration, but it’s included for completeness.</p>
+<p><code>tol_wait = 15</code> sets the number of iterations to wait during standard optimization before allowing early stopping. In practice I don’t think I’ve seen any possibility of convergence occurring so early after turning off early exaggeration, but it’s included for completeness.</p>
 <pre class="r"><code>iris_early &lt;- smallvis(iris, perplexity = 40, eta = &quot;optsne&quot;, Y_init = &quot;spca&quot;, exaggeration_factor = 4, epoch = 5, tol = 2e-4, tol_wait = 15)</code></pre>
 </div>
 <div id="results-2" class="section level3">
@@ -1976,7 +1945,7 @@ iris_tsne &lt;- smallvis(iris, perplexity = 40, Y_init = &quot;spca&quot;, eta =
 </tbody>
 </table>
 <p>Combining the early exaggeration monitoring and the early stopping leads to even fewer iterations than just early stopping alone in all datasets except <code>coil20</code>, which takes an extra 100 iterations to stop.</p>
-<p>Otherwise, these results are quite similar to the results from using only early stopping. The <code>minst6k</code> results show the ‘4’ cluster split by the ‘9’ cluster, just as with the early exaggeration monitoring-only run.</p>
+<p>Otherwise, these results are quite similar to the results from using only early stopping. The <code>mnist6k</code> results show the ‘4’ cluster split by the ‘9’ cluster, just as with the early exaggeration monitoring-only run.</p>
 </div>
 </div>
 </div>
@@ -2075,7 +2044,7 @@ iris_tsne &lt;- smallvis(iris, perplexity = 40, Y_init = &quot;spca&quot;, eta =
 <h2>Conclusions</h2>
 <p>The opt-SNE settings are designed for very large datasets, so it’s perhaps not surprising that some of the recommendations don’t have a big effect for the small datasets that <code>smallvis</code> can handle.</p>
 <p>Setting <code>eta = &quot;optsne&quot;</code> seems mildly helpful for larger datasets. It may give a learning rate that’s too low for small datasets, however.</p>
-<p>The early exaggeration monitoring wasn’t that helpful for the datasets studied here: it reduced the time spend in early exaggeration, but it wasn’t that long to begin with. None of the datasets tested here indicated that more time in early exaggeration than 100 iterations was needed, so you may as well leave it at that default.</p>
+<p>The early exaggeration monitoring wasn’t that helpful for the datasets studied here: it reduced the time spent in early exaggeration, but it wasn’t that long to begin with. None of the datasets tested here indicated that more time in early exaggeration than 100 iterations was needed, so you may as well leave it at that default.</p>
 <p>Early stopping via the <code>tol</code> setting is definitely helpful. With the opt-SNE setting of <code>tol = 2e-4</code>, all of the tested datasets had converged by iteration 600 at the latest, rather than terminating at the default of 1000. Using the opt-SNE epoch settings of 3 (for early exaggeration) and 5 does seem excessive, though. Probably a setting of between 25-50 is a better trade off between early stopping opportunity and KL divergence calculation time.</p>
 <p>Up: <a href="https://jlmelville.github.io/smallvis/">Documentation Home</a>.</p>
 </div>
@@ -2098,6 +2067,49 @@ $(document).ready(function () {
 });
 
 
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open')
+  });
+});
+</script>
+
+<!-- code folding -->
+
+<script>
+$(document).ready(function ()  {
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_').toLowerCase();
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = false;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
 </script>
 
 <!-- dynamically load mathjax for compatibility with self-contained -->
