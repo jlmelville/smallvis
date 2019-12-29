@@ -36,6 +36,13 @@ t-distributed kernel is recovered when $\alpha = 1$. You may have to take my
 word for it that this becomes the Gaussian kernel as $\alpha \rightarrow 0$ 
 (or plot it).
 
+*December 29 2019:* HSSNE is also implemented in
+[FIt-SNE](https://github.com/KlugerLab/FIt-SNE), although in the
+[associated paper](https://arxiv.org/abs/1902.05804) the degree
+of freedom parameter, while also referred to as $\alpha$, is defined as 
+$1 / \alpha$ compared to the original HSSNE. So when comparing their recommended
+values with those tried here, take the reciprocal of their reported values.
+
 ## Gradient
 
 The HSSNE gradient is:
@@ -137,7 +144,7 @@ The effect of increasing $\alpha$ is quite obvious: compressing the
 natural clusters that are present in the results. In some of the cases, an 
 $\alpha$ value different from `0` (equivalent to SSNE) or `1` (t-SNE) does give
 a superior neighborhood retrieval value. But the difference isn't huge and 
-visually I'm not sure you'd be mislead by just using t-SNE in all cases. It may
+visually I'm not sure you'd be misled by just using t-SNE in all cases. It may
 well be that better results could be found by a more fine-grained search of
 an $\alpha$ value for each data set, but it's hard to argue for adding another
 parameter that needs fiddling with, especially given that the presence of the 
@@ -158,5 +165,16 @@ global value, which would allow different cluster densities to expand at
 different rates. This *definitely* would require optimization. Such a technique
 was described by Kitazono and co-workers and named
 [inhomogeneous t-SNE](http://dx.doi.org/10.1007/978-3-319-46675-0_14).
+
+*Update December 29 2019:* Results by 
+[Kobak and co-workers](https://arxiv.org/abs/1902.05804) using HSSNE implemented
+in [FIt-SNE](https://github.com/KlugerLab/FIt-SNE) and therefore able to study
+larger datasets (e.g. the entire MNIST dataset) recommend values of $\alpha$ 
+as large as 2 for larger datasets, but note that the optimization effort can
+be substantially increased.
+[Kahloot and Ekler](http://real.mtak.hu/100794/1/AACS19_paper_12.pdf) recommend
+$\alpha = 2.5$ for the 
+[small NORB](https://cs.nyu.edu/~ylclab/data/norb-v1.0-small/) and
+[CIFAR 10 and 100](https://www.cs.toronto.edu/~kriz/cifar.html) datasets.
 
 Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
