@@ -51,8 +51,8 @@ heat kernel.
 
 What *does* matter is that $W$ should be:
 
-* Symmetric
-* Contain all non-negative values (i.e. positive semi-definite)
+* Symmetric.
+* Contain all non-negative values (i.e. positive semi-definite).
 
 If $N$ is large then it is usual to sparsify $W$ by only keeping the 
 $k$-largest values in each column. This creates the k-nearest neighbor
@@ -89,13 +89,14 @@ Also referred to as the *combinatorial* graph Laplacian by Tremblay and Loukas.
 $$L_{sym} = D^{-1/2} L D^{-1/2} = I - D^{-1/2} W D^{-1/2}$$
 
 also sometimes called just the *normalized* Laplacian and referred to by the 
-nomenclature $L_{n}$, but...
+nomenclature $L_{n}$, but see below for another normalized Laplacian, which
+makes this naming ambiguous.
 
 ### Random Walk Normalized Laplacian
 
 $$L_{rw} = D^{-1} L = I - D^{-1} W$$
 
-...von Luxburg notes that this is *also* sometimes referred to as the normalized
+von Luxburg notes that this is *also* sometimes referred to as the normalized
 Laplacian, so it's best to use the longer names von Luxburg uses to avoid
 confusion.
 
@@ -128,6 +129,11 @@ I will also borrow the nomenclature of von Luxburg which refers to the "first"
 $k$ eigenvectors as being the eigenvectors associated with the $k$ *smallest*
 eigenvalues.
 
+### Eigenvalues
+
+For Laplacians, the the smallest eigenvalue is 0. For the normalized Laplacians
+$L_{sym}$ and $L_{rw}$, the maximum value an eigenvalue can attain in 2.
+
 ## Laplacian Eigenmaps
 
 Solve the generalized eigenvalue problem:
@@ -135,7 +141,7 @@ Solve the generalized eigenvalue problem:
 $$Lv = \lambda D v$$
 
 The Laplacian Eigenmap uses the smallest eigenvectors. But not the very smallest
-eigenvector, which is constant (we can scale it to be a vector of 1s), and 
+eigenvector, $v_1$, which is constant (we can scale it to be a vector of 1s), and 
 corresponds to an eigenvalue of zero. So if you want to reduce to two 
 dimensions, use the second-smallest and third-smallest eigenvectors.
 
@@ -158,9 +164,15 @@ at least in R, because generalized problems require installing the CRAN package
 ### Output
 
 Now that you have $k$ eigenvectors, stack them columnwise to form an 
-$N$ x $k$ matrix (let's call it $Y$). The rows of that matrix are the 
-coordinates of the graph vertices in the reduced dimension, i.e. the ith row of 
-the 2D Laplacian Eigenmap representing vertex i would be:
+$N$ x $k$ matrix (let's call it $Y$):
+
+
+$$Y = \left[v_2 | v_3 | \dots v_k \right]$$
+
+where, as noted above, we are not using the uninformative smallest eigenvector,
+$v_1$. The rows of that matrix are the coordinates of the graph vertices in the
+reduced dimension, i.e. the ith row of the 2D Laplacian Eigenmap representing
+vertex i would be:
 
 $$y_i = \left(v_{i,2}, v_{i,3} \right)$$
 
@@ -179,9 +191,9 @@ forming the reduced-dimension matrix $Y$ from column-stacking the eigenvectors.
 
 1. Un-normalized: compute the first $k$ eigenvectors of $L$.
 2. Normalized (Shi and Malik): compute the first $k$ *generalized* eigenvectors
-of $L$. This is equivalent to computing the first $k$ eigenvectors of $L_{rw}$
-(hence justifying the term "normalized") and is therefore completely equivalent
-to clustering on Laplacian Eigenmaps.
+of $L$. This is just what Laplacian Eigenamps do, so from the above discussion
+we know that it is equivalent to computing the first $k$ eigenvectors of 
+$L_{rw}$ (hence justifying the term "normalized").
 3. Normalized (Ng, Jordan and Weiss): compute the first $k$ eigenvectors of
 $L_{sym}$. This version requires an additional row normalization step of the
 output matrix, $Y$, before you can do clustering: normalize each row so the
@@ -220,8 +232,7 @@ $Y$ would look like in the simplest 2D case:
 
 $$y_i = \left(\mu_{2} v_{i,2}, \mu_{3} v_{i,3} \right)$$
 
-where $v_1$ is the uninteresting eigenvector of all 1s (and $\mu_1 = 1$). For
-$P$, 
+where $v_1$ is the uninteresting eigenvector of all 1s (and $\mu_1 = 1$).
 
 Where does the diffusion come in? $P$ can also be thought of as a transition
 matrix of a Markov chain: a large $p_{ij}$ means that $i$ has a high probability

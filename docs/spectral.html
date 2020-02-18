@@ -1551,8 +1551,8 @@ div.tocify {
 <p>This function is sometimes referred to as a radial basis function (RBF) or the heat kernel.</p>
 <p>What <em>does</em> matter is that <span class="math inline">\(W\)</span> should be:</p>
 <ul>
-<li>Symmetric</li>
-<li>Contain all non-negative values (i.e. positive semi-definite)</li>
+<li>Symmetric.</li>
+<li>Contain all non-negative values (i.e. positive semi-definite).</li>
 </ul>
 <p>If <span class="math inline">\(N\)</span> is large then it is usual to sparsify <span class="math inline">\(W\)</span> by only keeping the <span class="math inline">\(k\)</span>-largest values in each column. This creates the k-nearest neighbor similarity graph, which must then be resymmetrized (e.g. by adding the self-transpose).</p>
 <p>Also, it’s common for the diagonal of <span class="math inline">\(W\)</span> to be all zeros.</p>
@@ -1574,12 +1574,12 @@ div.tocify {
 <div id="symmetrized-normalized-laplacian" class="section level3">
 <h3>Symmetrized Normalized Laplacian</h3>
 <p><span class="math display">\[L_{sym} = D^{-1/2} L D^{-1/2} = I - D^{-1/2} W D^{-1/2}\]</span></p>
-<p>also sometimes called just the <em>normalized</em> Laplacian and referred to by the nomenclature <span class="math inline">\(L_{n}\)</span>, but…</p>
+<p>also sometimes called just the <em>normalized</em> Laplacian and referred to by the nomenclature <span class="math inline">\(L_{n}\)</span>, but see below for another normalized Laplacian, which makes this naming ambiguous.</p>
 </div>
 <div id="random-walk-normalized-laplacian" class="section level3">
 <h3>Random Walk Normalized Laplacian</h3>
 <p><span class="math display">\[L_{rw} = D^{-1} L = I - D^{-1} W\]</span></p>
-<p>…von Luxburg notes that this is <em>also</em> sometimes referred to as the normalized Laplacian, so it’s best to use the longer names von Luxburg uses to avoid confusion.</p>
+<p>von Luxburg notes that this is <em>also</em> sometimes referred to as the normalized Laplacian, so it’s best to use the longer names von Luxburg uses to avoid confusion.</p>
 </div>
 <div id="random-walk-transition-matrix" class="section level3">
 <h3>Random Walk Transition Matrix</h3>
@@ -1599,12 +1599,16 @@ div.tocify {
 <h3>“First” Eigenvectors</h3>
 <p>I will also borrow the nomenclature of von Luxburg which refers to the “first” <span class="math inline">\(k\)</span> eigenvectors as being the eigenvectors associated with the <span class="math inline">\(k\)</span> <em>smallest</em> eigenvalues.</p>
 </div>
+<div id="eigenvalues" class="section level3">
+<h3>Eigenvalues</h3>
+<p>For Laplacians, the the smallest eigenvalue is 0. For the normalized Laplacians <span class="math inline">\(L_{sym}\)</span> and <span class="math inline">\(L_{rw}\)</span>, the maximum value an eigenvalue can attain in 2.</p>
+</div>
 </div>
 <div id="laplacian-eigenmaps" class="section level2">
 <h2>Laplacian Eigenmaps</h2>
 <p>Solve the generalized eigenvalue problem:</p>
 <p><span class="math display">\[Lv = \lambda D v\]</span></p>
-<p>The Laplacian Eigenmap uses the smallest eigenvectors. But not the very smallest eigenvector, which is constant (we can scale it to be a vector of 1s), and corresponds to an eigenvalue of zero. So if you want to reduce to two dimensions, use the second-smallest and third-smallest eigenvectors.</p>
+<p>The Laplacian Eigenmap uses the smallest eigenvectors. But not the very smallest eigenvector, <span class="math inline">\(v_1\)</span>, which is constant (we can scale it to be a vector of 1s), and corresponds to an eigenvalue of zero. So if you want to reduce to two dimensions, use the second-smallest and third-smallest eigenvectors.</p>
 <p>Let’s do a brief bit of rearranging:</p>
 <p><span class="math display">\[
 Lv = \lambda D v \\
@@ -1616,7 +1620,9 @@ L_{rw} v = \lambda v
 <p>So it turns out that the standard eigenvalue problem with <span class="math inline">\(L_{rw}\)</span> will produce the same results as the generalized eigenvalue problem with <span class="math inline">\(L\)</span> and <span class="math inline">\(D\)</span>. A non-generalized eigenvalue problem is preferable to the generalized problem, at least in R, because generalized problems require installing the CRAN package <code>geigen</code>.</p>
 <div id="output" class="section level3">
 <h3>Output</h3>
-<p>Now that you have <span class="math inline">\(k\)</span> eigenvectors, stack them columnwise to form an <span class="math inline">\(N\)</span> x <span class="math inline">\(k\)</span> matrix (let’s call it <span class="math inline">\(Y\)</span>). The rows of that matrix are the coordinates of the graph vertices in the reduced dimension, i.e. the ith row of the 2D Laplacian Eigenmap representing vertex i would be:</p>
+<p>Now that you have <span class="math inline">\(k\)</span> eigenvectors, stack them columnwise to form an <span class="math inline">\(N\)</span> x <span class="math inline">\(k\)</span> matrix (let’s call it <span class="math inline">\(Y\)</span>):</p>
+<p><span class="math display">\[Y = \left[v_2 | v_3 | \dots v_k \right]\]</span></p>
+<p>where, as noted above, we are not using the uninformative smallest eigenvector, <span class="math inline">\(v_1\)</span>. The rows of that matrix are the coordinates of the graph vertices in the reduced dimension, i.e. the ith row of the 2D Laplacian Eigenmap representing vertex i would be:</p>
 <p><span class="math display">\[y_i = \left(v_{i,2}, v_{i,3} \right)\]</span></p>
 </div>
 <div id="the-connection-with-locally-linear-embedding" class="section level3">
@@ -1629,7 +1635,7 @@ L_{rw} v = \lambda v
 <p>von Luxburg describes three different spectral clustering algorithms, which all involve forming a Laplacian matrix, calculating some eigenvectors, and the forming the reduced-dimension matrix <span class="math inline">\(Y\)</span> from column-stacking the eigenvectors.</p>
 <ol style="list-style-type: decimal">
 <li>Un-normalized: compute the first <span class="math inline">\(k\)</span> eigenvectors of <span class="math inline">\(L\)</span>.</li>
-<li>Normalized (Shi and Malik): compute the first <span class="math inline">\(k\)</span> <em>generalized</em> eigenvectors of <span class="math inline">\(L\)</span>. This is equivalent to computing the first <span class="math inline">\(k\)</span> eigenvectors of <span class="math inline">\(L_{rw}\)</span> (hence justifying the term “normalized”) and is therefore completely equivalent to clustering on Laplacian Eigenmaps.</li>
+<li>Normalized (Shi and Malik): compute the first <span class="math inline">\(k\)</span> <em>generalized</em> eigenvectors of <span class="math inline">\(L\)</span>. This is just what Laplacian Eigenamps do, so from the above discussion we know that it is equivalent to computing the first <span class="math inline">\(k\)</span> eigenvectors of <span class="math inline">\(L_{rw}\)</span> (hence justifying the term “normalized”).</li>
 <li>Normalized (Ng, Jordan and Weiss): compute the first <span class="math inline">\(k\)</span> eigenvectors of <span class="math inline">\(L_{sym}\)</span>. This version requires an additional row normalization step of the output matrix, <span class="math inline">\(Y\)</span>, before you can do clustering: normalize each row so the each row sums to one (unit norm normalization).</li>
 </ol>
 <p>After some additional theoretical discussions, von Luxburg concludes that clustering on the un-normalized graph Laplacian has some undesirable properties, so you definitely want to use one of the normalized Laplacians for clustering. Of the two normalized Laplacians, the Shi-Malik approach (once cast in terms of using <span class="math inline">\(L_{rw}\)</span>) is the least effort. I would a slight downside to <span class="math inline">\(L_{rw}\)</span> is that unlike <span class="math inline">\(L\)</span> and <span class="math inline">\(L_{sym}\)</span>, it is not symmetric, and symmetric matrices usually have access to slightly more methods (or more efficient methods) for solving the eigenproblem.</p>
@@ -1643,7 +1649,7 @@ L_{rw} v = \lambda v
 <p><span class="math display">\[\mu = 1 - \lambda\]</span></p>
 <p>and unlike Laplacian Eigenmaps and spectral clustering, the eigenvalues <em>are</em> used in generating the coordinates. Specifically, they are used to scale the eigenvectors when forming the <span class="math inline">\(Y\)</span> matrix. For example, here’s what one row of <span class="math inline">\(Y\)</span> would look like in the simplest 2D case:</p>
 <p><span class="math display">\[y_i = \left(\mu_{2} v_{i,2}, \mu_{3} v_{i,3} \right)\]</span></p>
-<p>where <span class="math inline">\(v_1\)</span> is the uninteresting eigenvector of all 1s (and <span class="math inline">\(\mu_1 = 1\)</span>). For <span class="math inline">\(P\)</span>,</p>
+<p>where <span class="math inline">\(v_1\)</span> is the uninteresting eigenvector of all 1s (and <span class="math inline">\(\mu_1 = 1\)</span>).</p>
 <p>Where does the diffusion come in? <span class="math inline">\(P\)</span> can also be thought of as a transition matrix of a Markov chain: a large <span class="math inline">\(p_{ij}\)</span> means that <span class="math inline">\(i\)</span> has a high probability oftransitioning to <span class="math inline">\(j\)</span>. And because you can evaluate the probabilities at time step <span class="math inline">\(t\)</span> by creating the iterated matrix <span class="math inline">\(P^{t}\)</span>, you can get a sense of the geometry of the data at different scales by seeing how the probability changes over time. And there’s not even that much extra work to do: the eigenvectors of the iterated matrix are the same as the original matrix <span class="math inline">\(P\)</span>, and the eigenvalues are given by <span class="math inline">\(\mu^{t}\)</span>.</p>
 <p>For a give value of <span class="math inline">\(t\)</span>, the 2D diffusion map at time <span class="math inline">\(t\)</span> is therefore:</p>
 <p><span class="math display">\[y_i = \left(\mu_{2}^{t} v_{i,2}, \mu_{3}^{t} v_{i,3} \right)\]</span></p>
