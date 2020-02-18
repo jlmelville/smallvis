@@ -31,9 +31,10 @@ in the dataset is a vertex, and the strength of the connection between each
 vertex is given by a weighted edge.
 
 The graph is represented as a matrix, $W$: an $N$ x $N$ matrix of edge weights 
-(or "similarities" or "affinities"), where if $w_{ij}$ is large, that means 
-object $i$ and $j$ are considered similar. $W$ is sometimes also called a kernel
-matrix and the function that generated the similarities as a kernel.
+(or "similarities" or "affinities": you may also see the matrix written as $A$), 
+where if $w_{ij}$ is large, that meansobject $i$ and $j$ are considered similar.
+$W$ is sometimes also called a kernel matrix and the function that generated the
+similarities as a kernel.
 
 It doesn't particularly matter for this discussion what the kernel function is.
 Let's just say it's a Gaussian function of the Euclidean distances (which it
@@ -45,10 +46,23 @@ where $r_{ij}$ is the Euclidean distance between point $i$ and $j$ and $\sigma$
 is a bandwidth parameter of some kind (you can set it to one and forget it 
 exists if you prefer).
 
+This function is sometimes referred to as a radial basis function (RBF) or the
+heat kernel.
+
 What *does* matter is that $W$ should be:
 
 * Symmetric
-* Contain all non-negative values
+* Contain all non-negative values (i.e. positive semi-definite)
+
+If $N$ is large then it is usual to sparsify $W$ by only keeping the 
+$k$-largest values in each column. This creates the k-nearest neighbor
+similarity graph, which must then be resymmetrized (e.g. by adding the 
+self-transpose).
+
+Also, it's common for the diagonal of $W$ to be all zeros.
+
+If your data is naturally a graph, then you skip all of the above, you already
+have the data you need to create $W$.
 
 ## The Degree Matrix
 
@@ -61,27 +75,44 @@ $$d_{ii} = \sum_{j} w_{ij}$$
 
 ## Some Graph Laplacians
 
-Now that we have $W$ and $D$, we can create some Laplacians.
+Now that we have $W$ and $D$, we can create some Laplacians, using the naming
+scheme given by von Luxburg:
 
 ### Unnormalized Graph Laplacian
 
 $$L = D - W$$
 
+Also referred to as the *combinatorial* graph Laplacian by Tremblay and Loukas.
+
 ### Symmetrized Normalized Laplacian
 
-$$L_{sym} = D^{-1/2} L D^{-1/2}$$
+$$L_{sym} = D^{-1/2} L D^{-1/2} = I - D^{-1/2} W D^{-1/2}$$
+
+also sometimes called just the *normalized* Laplacian and referred to by the 
+nomenclature $L_{n}$, but...
 
 ### Random Walk Normalized Laplacian
 
-$$L_{rw} = D^{-1} L$$
+$$L_{rw} = D^{-1} L = I - D^{-1} W$$
+
+...von Luxburg notes that this is *also* sometimes referred to as the normalized
+Laplacian, so it's best to use the longer names von Luxburg uses to avoid
+confusion.
 
 ### Random Walk Transition Matrix
 
 $$P = D^{-1} W$$
 
-Also called the "Diffusion Operator" in Socher's report.
+Also called the *Diffusion Operator* in Socher's report. This also means you
+can write the Random Walk Normalized Laplacian as:
+
+$$L_{rw} = I - P$$
+
+$P$ is row-normalized (i.e. all rows add up to 1).
 
 ## Eigenvectors
+
+### Smallest and Largest
 
 As the "spectral" bit indicates, a lot of eigenvectors are going to be mentioned
 below. When I talk about "largest" and "smallest" eigenvectors, I am referring
@@ -91,77 +122,127 @@ there shouldn't be any ambiguity about whether I mean a big negative or positive
 eigenvalue (none of them are negative except close to zero due to numerical 
 issues).
 
+### "First" Eigenvectors
+
+I will also borrow the nomenclature of von Luxburg which refers to the "first"
+$k$ eigenvectors as being the eigenvectors associated with the $k$ *smallest*
+eigenvalues.
+
 ## Laplacian Eigenmaps
 
 Solve the generalized eigenvalue problem:
 
-$$Lv = \lambda_{L} D v$$
+$$Lv = \lambda D v$$
 
 The Laplacian Eigenmap uses the smallest eigenvectors. But not the very smallest
-eigenvector, which is constant. So if you want to reduce to two dimensions, use
-the second-smallest and third-smallest eigenvectors.
+eigenvector, which is constant (we can scale it to be a vector of 1s), and 
+corresponds to an eigenvalue of zero. So if you want to reduce to two 
+dimensions, use the second-smallest and third-smallest eigenvectors.
 
-It turns out that the following standard eigenvalue problem will produce the 
-same eigenvectors:
+Let's do a brief bit of rearranging:
 
-$$Pv = \lambda_{P} v$$
+$$
+Lv = \lambda D v \\
+D^{-1} L v = \lambda v \\
+\left(D^{-1} D - D^{-1} W \right) v = \lambda v \\
+\left(I - P \right) v = \lambda v \\
+L_{rw} v = \lambda v
+$$
 
-except with this expression, you want the *largest* eigenvectors (except not
-the very largest one), rather than the smallest eigenvectors. The eigenvalues
-themselves are not the same, but are related via:
+So it turns out that the standard eigenvalue problem with $L_{rw}$ will produce
+the same results as the generalized eigenvalue problem with $L$ and $D$.
+A non-generalized eigenvalue problem is preferable to the generalized problem, 
+at least in R, because generalized problems require installing the CRAN package
+`geigen`.
 
-$$\lambda_{L} = 1 - \lambda_{P}$$
+### Output
 
-Not that you need them for a Laplacian Eigenmap. A non-generalized eigenvalue 
-problem is preferable to the generalized problem, at least in R, because 
-generalized problems require installing the CRAN package `geigen`.
+Now that you have $k$ eigenvectors, stack them columnwise to form an 
+$N$ x $k$ matrix (let's call it $Y$). The rows of that matrix are the 
+coordinates of the graph vertices in the reduced dimension, i.e. the ith row of 
+the 2D Laplacian Eigenmap representing vertex i would be:
+
+$$y_i = \left(v_{i,2}, v_{i,3} \right)$$
+
 
 ### The Connection with Locally Linear Embedding
 
 The Laplacian Eigenmap paper demonstrates a connection between LE and LLE, in
 that LLE is approximately computing the eigenvectors of $L^2$, which has the
-same eigenvectors as $L$.
+same eigenvectors as $L$ (and the square of the eigenvalues).
 
-## Spectral Clustering
+## Spectral Clustering and Normalization
 
-Shi and Malik recommend clustering using the generalized eigenvectors of $L$, 
-which is the same as clustering on the output of Laplacian Eigenmaps. Ng, Jordan
-and Weiss suggest using the normalized bottom eigenvectors of $L_{sym}$, where
-the normalization is with respect to ensuring the rows of the output matrix all 
-sum to 1.
+von Luxburg describes three different spectral clustering algorithms, which all
+involve forming a Laplacian matrix, calculating some eigenvectors, and the
+forming the reduced-dimension matrix $Y$ from column-stacking the eigenvectors.
 
-Von Luxburg notes that clustering on the un-normalized graph Laplacian has some
-undesirable properties, so you definitely want to use a normalized Laplacian in
-that case. Because the Shi and Malik version of spectral clustering can also be
-cast as a standard eigenvalue problem and requires slightly less work than the
-Ng, Jordan and Weiss scheme, the Shi-Malik approach is preferable.
+1. Un-normalized: compute the first $k$ eigenvectors of $L$.
+2. Normalized (Shi and Malik): compute the first $k$ *generalized* eigenvectors
+of $L$. This is equivalent to computing the first $k$ eigenvectors of $L_{rw}$
+(hence justifying the term "normalized") and is therefore completely equivalent
+to clustering on Laplacian Eigenmaps.
+3. Normalized (Ng, Jordan and Weiss): compute the first $k$ eigenvectors of
+$L_{sym}$. This version requires an additional row normalization step of the
+output matrix, $Y$, before you can do clustering: normalize each row so the
+each row sums to one (unit norm normalization).
+
+After some additional theoretical discussions, von Luxburg concludes that 
+clustering on the un-normalized graph Laplacian has some undesirable properties,
+so you definitely want to use one of the normalized Laplacians for clustering.
+Of the two normalized Laplacians, the Shi-Malik approach (once cast in terms 
+of using $L_{rw}$) is the least effort. I would a slight downside to $L_{rw}$
+is that unlike $L$ and $L_{sym}$, it is not symmetric, and symmetric matrices
+usually have access to slightly more methods (or more efficient methods) for 
+solving the eigenproblem.
+
+Conclusion: use $L_{rw}$ (Laplacian Eigenmaps).
 
 ## Diffusion Maps
 
 Practically speaking, we can consider diffusion maps as a generalization of
-Laplacian Eigenmaps. Our old friend the diffusion operator $P$ can also be
-thought of as a transition matrix of a Markov chain: a large $p_{ij}$ means
-that $i$ has a high probability of transitioning to $j$. And because you can
-evaluate the probabilities at time step $t$ by creating the iterated matrix
-$P^{t}$, you can get a sense of the geometry of the data at different 
-scales by seeing how the probability changes over time. And because the 
-eigenvectors of a matrix raised to a power the same as the original matrix, 
-and the eigenvalues are just raised to the power themselves, there's not even 
-that much extra work to do.
+Laplacian Eigenmaps, but solving the eigenproblem for $P$ rather than $L_{rw}$:
 
-For the basic diffusion map, the only difference from Laplacian Eigenmaps is 
-that the eigenvectors should be scaled by the eigenvalues. For example, the 2D 
-diffusion map would be given by the pair of vectors:
+$$P v = \mu v$$
 
-$$(\lambda_{L,2}^{t} v_2, \lambda_{L,3}^{t} v_3)$$
+The eigenvectors are the same whether you use $L_{rw}$ or $P$, but the 
+eigenvalues are different, so I am using $\mu$ instead of $\lambda$ to 
+differentiate them from the eigenvalues associated with Laplacian Eigenmaps
+and the usual spectral clustering algorithms. As it happens, the eigenvalues
+are related by:
 
-where $\lambda_{L,n}$ means the $n$th largest eigenvalue as in LE, raised to the
-power of $t$, according to the time step you want. But do note that the 
-eigenvalues required are those of the generalized eigenproblem involving $L$,
-not the eigenvalues of $P$, so if you are generating the map using $P$, the
-correct scaling is:
+$$\mu = 1 - \lambda$$
 
-$$\left[\left(1 - \lambda_{P,2}^{t}\right) v_2, \left(1 - \lambda_{P,3}^{t}\right) v_3 \right]$$
+and unlike Laplacian Eigenmaps and spectral clustering, the eigenvalues *are*
+used in generating the coordinates. Specifically, they are used to scale the
+eigenvectors when forming the $Y$ matrix. For example, here's what one row of
+$Y$ would look like in the simplest 2D case:
+
+$$y_i = \left(\mu_{2} v_{i,2}, \mu_{3} v_{i,3} \right)$$
+
+where $v_1$ is the uninteresting eigenvector of all 1s (and $\mu_1 = 1$). For
+$P$, 
+
+Where does the diffusion come in? $P$ can also be thought of as a transition
+matrix of a Markov chain: a large $p_{ij}$ means that $i$ has a high probability
+oftransitioning to $j$. And because you can evaluate the probabilities at time
+step $t$ by creating the iterated matrix $P^{t}$, you can get a sense of the
+geometry of the data at different scales by seeing how the probability changes
+over time. And there's not even that much extra work to do: the eigenvectors of 
+the iterated matrix are the same as the original matrix $P$, and the eigenvalues 
+are given by $\mu^{t}$. 
+
+For a give value of $t$, the 2D diffusion map at time $t$ is therefore:
+
+$$y_i = \left(\mu_{2}^{t} v_{i,2}, \mu_{3}^{t} v_{i,3} \right)$$
+
+or if you want an even more obvious connection to Laplacian Eigenmaps:
+
+$$y_i = \left[\left(1 - \lambda_{2}\right)^{t} v_{i,2}, \left(1 - \lambda_{3}\right)^{t} v_{i,3}\right]$$
+
+Because the values of $\lambda$ are in increasing order, this makes it easier
+to see that the effect of $t$ is to relatively upweight the contribution of 
+later eigenvectors in determining the distance between points on the map.
 
 ### Anisotropic Diffusion
 
@@ -219,6 +300,10 @@ That paper also mentions that Diffusion Maps use normalized affinities (i.e.
 t-SNE like normalization to probabilities), but I haven't seen this point
 made elsewhere.
 
+* For more on the properties of the heat kernel, see e.g. 
+[Sun and co-workers](https://doi.org/10.1111/j.1467-8659.2009.01515.x) or
+[Tsitsulin and co-workers](https://www.forskningsdatabasen.dk/en/catalog/2491832216).
+
 * Von Luxburg's 
 [A Tutorial on Spectral Clustering (PDF)](http://www.kyb.mpg.de/fileadmin/user_upload/files/publications/attachments/luxburg06_TR_v2_4139%5b1%5d.pdf)
 collects a lot of material on the definitions of graph Laplacians and the
@@ -228,6 +313,9 @@ though.
 * Radu Horaud's 
 [Graph Laplacian tutorial (PDF)](https://csustan.csustan.edu/~tom/Lecture-Notes/Clustering/GraphLaplacian-tutorial.pdf)
 also covers some of the ground of the Von Luxburg tutorial.
+
+* Another [review on spectral clustering](https://arxiv.org/abs/1901.10204) by
+Tremblay and Loukas.
 
 * The [Locally Linear Embedding](https://cs.nyu.edu/~roweis/lle/) method turns 
 out to be related to Laplacian Eigenmaps. A wonderfully practical tutorial, packed with R
