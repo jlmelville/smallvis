@@ -1721,13 +1721,26 @@ L_{rw} v = \lambda v
 lapm &lt;- function(WD) {
   W &lt;- WD$W
   D &lt;- WD$D
-  Dinv &lt;- solve(D)
-  Dinvs &lt;- sqrt(Dinv)
+
   L &lt;- D - W
-  Lsym &lt;- Dinvs %*% L %*% Dinvs
-  P &lt;- Dinv %*% W
-  I &lt;- diag(nrow = nrow(D), ncol = ncol(D))
-  Lrw &lt;- I - P
+  
+  # Commented out code more closely follows the mathematical definitions, but
+  # pointlessly stores and inverts the full diagonal matrix as well as carrying
+  # out matrix multiplications
+  # Dinv &lt;- solve(D)
+  Dinv &lt;- 1 / diag(D)
+  
+  # Lsym &lt;- Dinvs %*% L %*% Dinvs
+  Dinvs &lt;- sqrt(Dinv)
+  Lsym &lt;- Dinvs * sweep(L, 2, Dinvs, &#39;*&#39;)
+
+  #P &lt;- Dinv %*% W
+  P &lt;- Dinv * WD$W
+  
+  # I &lt;- diag(nrow = nrow(D), ncol = ncol(D))
+  # Lrw &lt;- I - P
+  Lrw &lt;- -P
+  diag(Lrw) &lt;- 1 - diag(Lrw)
   
   list(L = L, Lsym = Lsym, Lrw = Lrw, P = P)
 }
@@ -1777,7 +1790,7 @@ sorteig &lt;- function(X, norm = FALSE, val1 = FALSE) {
   list(vectors = vectors, values = values, lengths = sqrt(colSums(vectors ^ 2)))
 }</code></pre>
 <p>An example:</p>
-<pre><code>WD &lt;- randw(5)
+<pre class="r"><code>WD &lt;- randw(5)
 lap &lt;- lapm(WD)
 
 # Laplacian Eigenmaps: these two should give the same results

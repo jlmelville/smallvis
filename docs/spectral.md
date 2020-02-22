@@ -406,13 +406,26 @@ randw <- function(n = 3) {
 lapm <- function(WD) {
   W <- WD$W
   D <- WD$D
-  Dinv <- solve(D)
-  Dinvs <- sqrt(Dinv)
+
   L <- D - W
-  Lsym <- Dinvs %*% L %*% Dinvs
-  P <- Dinv %*% W
-  I <- diag(nrow = nrow(D), ncol = ncol(D))
-  Lrw <- I - P
+  
+  # Commented out code more closely follows the mathematical definitions, but
+  # pointlessly stores and inverts the full diagonal matrix as well as carrying
+  # out matrix multiplications
+  # Dinv <- solve(D)
+  Dinv <- 1 / diag(D)
+  
+  # Lsym <- Dinvs %*% L %*% Dinvs
+  Dinvs <- sqrt(Dinv)
+  Lsym <- Dinvs * sweep(L, 2, Dinvs, '*')
+
+  #P <- Dinv %*% W
+  P <- Dinv * WD$W
+  
+  # I <- diag(nrow = nrow(D), ncol = ncol(D))
+  # Lrw <- I - P
+  Lrw <- -P
+  diag(Lrw) <- 1 - diag(Lrw)
   
   list(L = L, Lsym = Lsym, Lrw = Lrw, P = P)
 }
@@ -465,7 +478,7 @@ sorteig <- function(X, norm = FALSE, val1 = FALSE) {
 
 An example:
 
-```
+```R
 WD <- randw(5)
 lap <- lapm(WD)
 
