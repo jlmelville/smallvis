@@ -197,7 +197,7 @@ forming the reduced-dimension matrix $Y$ from column-stacking the eigenvectors.
 
 1. Un-normalized: compute the first $k$ eigenvectors of $L$.
 2. Normalized (Shi and Malik): compute the first $k$ *generalized* eigenvectors
-of $L$. This is just what Laplacian Eigenamps do, so from the above discussion
+of $L$. This is just what Laplacian Eigenmaps do, so from the above discussion
 we know that it is equivalent to computing the first $k$ eigenvectors of 
 $L_{rw}$ (hence justifying the term "normalized").
 3. Normalized (Ng, Jordan and Weiss): compute the first $k$ eigenvectors of
@@ -250,9 +250,9 @@ matrix of a Markov chain: a large $p_{ij}$ means that $i$ has a high probability
 oftransitioning to $j$. And because you can evaluate the probabilities at time
 step $t$ by creating the iterated matrix $P^{t}$, you can get a sense of the
 geometry of the data at different scales by seeing how the probability changes
-over time. And there's not even that much extra work to do: the eigenvectors of 
-the iterated matrix are the same as the original matrix $P$, and the eigenvalues 
-are given by $\mu^{t}$. 
+over time. And there's not even that much extra work to do: the eigenvectors of
+the iterated matrix are the same as the original matrix $P$, and the eigenvalues
+are given by $\mu^{t}$.
 
 For a give value of $t$, the 2D diffusion map at time $t$ is therefore:
 
