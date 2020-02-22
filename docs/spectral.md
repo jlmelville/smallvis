@@ -141,8 +141,8 @@ Solve the generalized eigenvalue problem:
 $$Lv = \lambda D v$$
 
 The Laplacian Eigenmap uses the smallest eigenvectors. But not the very smallest
-eigenvector, $v_1$, which is constant (we can scale it to be a vector of 1s), and 
-corresponds to an eigenvalue of zero. So if you want to reduce to two 
+eigenvector, $v_1$, which is constant (we can scale it to be a vector of 1s),
+and corresponds to an eigenvalue of zero. So if you want to reduce to two
 dimensions, use the second-smallest and third-smallest eigenvectors.
 
 Let's do a brief bit of rearranging:
@@ -156,10 +156,16 @@ L_{rw} v = \lambda v
 $$
 
 So it turns out that the standard eigenvalue problem with $L_{rw}$ will produce
-the same results as the generalized eigenvalue problem with $L$ and $D$.
-A non-generalized eigenvalue problem is preferable to the generalized problem, 
-at least in R, because generalized problems require installing the CRAN package
-`geigen`.
+the same results as the generalized eigenvalue problem with $L$ and $D$. A
+non-generalized eigenvalue problem is preferable to the generalized problem, at
+least in R, because generalized problems require installing the CRAN package
+`geigen`. You could even use the eigenvectors of $P$, although you have to bear
+in mind that the eigenvalues of $P$ differ from $L_{rw}$ although in that case
+the order of the eigenvectors are reversed, i.e. you want those associated with
+the *largest* eigenvalues, ignoring the top eigenvector (which is the constant
+eigenvector). $P$ might even be preferable because it's ever-so-slightly less
+work to calculate than $L_{rw}$. We'll revisit the relationship between $L_{rw}$
+and $P$ when we talk about diffusion maps.
 
 ### Output
 
@@ -225,14 +231,19 @@ are related by:
 
 $$\mu = 1 - \lambda$$
 
-and unlike Laplacian Eigenmaps and spectral clustering, the eigenvalues *are*
-used in generating the coordinates. Specifically, they are used to scale the
+This does have a book-keeping consequence because we order the eigenvectors by
+eigenvalue. In diffusion maps, you keep the *top* eigenvectors ignoring the very
+top eigenvector. Because of the relationship between $L_{rw}$ and $P$, it turns
+out that you still end up using the same eigenvectors for diffusion maps as you
+do for Laplacian Eigenmaps, just the ordering is reversed.
+
+Additionally, in a diffusion map the eigenvalues are used to scale the
 eigenvectors when forming the $Y$ matrix. For example, here's what one row of
-$Y$ would look like in the simplest 2D case:
+$Y$ would look like in the simplest 2D diffusion map case:
 
-$$y_i = \left(\mu_{2} v_{i,2}, \mu_{3} v_{i,3} \right)$$
+$$y_i = \left(\mu_{N-1} v_{i,N-1}, \mu_{N-2} v_{i,N-2} \right)$$
 
-where $v_1$ is the uninteresting eigenvector of all 1s (and $\mu_1 = 1$).
+where $v_N$ is the uninteresting top eigenvector of all 1s (and $\mu_N = 1$).
 
 Where does the diffusion come in? $P$ can also be thought of as a transition
 matrix of a Markov chain: a large $p_{ij}$ means that $i$ has a high probability
@@ -245,9 +256,10 @@ are given by $\mu^{t}$.
 
 For a give value of $t$, the 2D diffusion map at time $t$ is therefore:
 
-$$y_i = \left(\mu_{2}^{t} v_{i,2}, \mu_{3}^{t} v_{i,3} \right)$$
+$$y_i = \left(\mu_{N-1}^{t} v_{i,N-1}, \mu_{N-2}^{t} v_{i,N-2} \right)$$
 
-or if you want an even more obvious connection to Laplacian Eigenmaps:
+where $N$ is the total number of eigenvalues. If you want an even more
+obvious connection to Laplacian Eigenmaps (and slightly clearer notation):
 
 $$y_i = \left[\left(1 - \lambda_{2}\right)^{t} v_{i,2}, \left(1 - \lambda_{3}\right)^{t} v_{i,3}\right]$$
 
