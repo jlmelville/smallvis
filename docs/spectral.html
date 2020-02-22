@@ -1698,6 +1698,92 @@ L_{rw} v = \lambda v
 <li><p>The <a href="https://doi.org/10.1109/34.868688">Shi and Malik</a> paper on spectral clustering.</p></li>
 <li><p>The <a href="https://papers.nips.cc/paper/2092-on-spectral-clustering-analysis-and-an-algorithm.pdf">Ng, Jordan and Weiss (PDF)</a> spectral clustering paper.</p></li>
 </ul>
+</div>
+<div id="some-r-code" class="section level2">
+<h2>Some R code</h2>
+<p>For a bit of experimentation, here is some R code:</p>
+<ul>
+<li><p><code>randw</code>: generate a list containing: <code>W</code>, a typical random affinity matrix: positive semi definite, symmetric, with zeros on the diagonal, and <code>D</code> the degree matrix.</p></li>
+<li><p><code>lapm</code>: takes the list of matrices returned by <code>randw</code> and returns its own list containing the various Laplacian matrices discussed: <code>L</code>, the un-normalized Laplacian; <code>Lsym</code>, the symmetrized normalized Laplacian; <code>Lrw</code>, the random walk Laplacian; and <code>P</code> the random walk transition matrix.</p></li>
+<li><p><code>eig</code>: calculates the eigenvectors and eigenvalues of an input matrix <code>X</code>, and returns them in increasing order. If you set <code>norm = TRUE</code>, it will return the eigenvectors after normalizing their length to 1. If you set <code>norm</code>, to a numeric value, it will return the eigenvectors scaled such that their length is that value. To get the lowest eigenvector to be all 1s, you should set <code>norm</code> to the square root of the number of columns in <code>X</code>. As a short-cut you can set <code>norm = &quot;n&quot;</code>. If <code>val1 = TRUE</code> then the eigenvalues are subtracted from 1 before returning. This is useful for the comparison of the eigenvalues of <span class="math inline">\(P\)</span> and <span class="math inline">\(L_{rw}\)</span>, as described in the section on diffusion maps. The return value is the <code>vectors</code> as a matrix with eigenvectors in each column, and <code>values</code>, with the corresponding eigenvalues. Also, <code>lengths</code>, which gives the length of each vector (after any scaling by <code>norm</code>).</p></li>
+<li><p><code>geig</code>: calculates the generalized eigenvectors and eigenvalues for <code>A v = lambda B v</code>. Has the same parameters and return value structure as <code>eig</code>. You need to install <a href="https://cran.r-project.org/package=geigen">geigen</a> for this to work.</p></li>
+<li><p><code>reig</code>: uses the <a href="https://cran.r-project.org/package=RSpectra">RSpectra</a> package to only calculate the first <code>k</code> eigenvectors, so you must provide <code>k</code>. If you set <code>k</code> to be the full matrix it will just use <code>eigen</code> anyway.</p></li>
+</ul>
+<pre class="r"><code>randw &lt;- function(n = 3) {
+  X &lt;- matrix(rnorm(n * n), nrow = n)
+  X &lt;- X * X
+  X &lt;- t(X) + X
+  diag(X) &lt;- 0
+  
+  list(W = X, D = diag(colSums(X)))
+}
+
+lapm &lt;- function(WD) {
+  W &lt;- WD$W
+  D &lt;- WD$D
+  Dinv &lt;- solve(D)
+  Dinvs &lt;- sqrt(Dinv)
+  L &lt;- D - W
+  Lsym &lt;- Dinvs %*% L %*% Dinvs
+  P &lt;- Dinv %*% W
+  I &lt;- diag(nrow = nrow(D), ncol = ncol(D))
+  Lrw &lt;- I - P
+  
+  list(L = L, Lsym = Lsym, Lrw = Lrw, P = P)
+}
+
+eig &lt;- function(X, norm = FALSE, val1 = FALSE) {
+  res &lt;- eigen(X)
+  sorteig(res, norm = norm, val1 = val1)
+}
+
+geig &lt;- function(A, B, norm = FALSE, val1 = FALSE) {
+  res &lt;- geigen::geigen(A, B)
+  sorteig(res, norm = norm, val1 = val1)
+}
+
+reig &lt;- function(X, k, norm = FALSE, val1 = FALSE) {
+  res &lt;- RSpectra::eigs(X, k = k, which = &quot;SM&quot;)
+  res$vectors &lt;- Re(res$vectors)
+  res$values &lt;- Re(res$value)
+  sorteig(res, norm = norm, val1 = val1)
+}
+
+sorteig &lt;- function(X, norm = FALSE, val1 = FALSE) {
+  vectors &lt;- X$vectors
+  values &lt;- X$values
+
+  if (val1) {
+    values &lt;- 1 - values
+  }
+  
+  if ((is.logical(norm) &amp;&amp; norm) || is.numeric(norm) || (is.character(norm) &amp;&amp; norm == &quot;n&quot;)) {
+    if (is.logical(norm)) {
+      m &lt;- 1
+    }
+    else if (is.numeric(norm)) {
+      m &lt;- norm
+    }
+    else {
+      m &lt;- sqrt(nrow(vectors)) # make smallest eigenvector all 1s
+    }
+    sqrtcsums &lt;- sqrt(colSums(vectors * vectors))
+    vectors &lt;- m * sweep(vectors, 2, sqrtcsums, &quot;/&quot;)
+  }
+
+  vectors &lt;- vectors[, order(values)]
+  values &lt;- sort(values)
+
+  list(vectors = vectors, values = values, lengths = sqrt(colSums(vectors ^ 2)))
+}</code></pre>
+<p>An example:</p>
+<pre><code>WD &lt;- randw(5)
+lap &lt;- lapm(WD)
+
+# Laplacian Eigenmaps: these two should give the same results
+# use norm = &quot;n&quot;, because otherwise the eigenvectors can have different lengths
+geig(lap$L, WD$D, norm = &quot;n&quot;)
+eig(lap$Lrw, norm = &quot;n&quot;)</code></pre>
 <p>Up: <a href="https://jlmelville.github.io/smallvis/">Documentation Home</a>.</p>
 </div>
 
