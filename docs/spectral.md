@@ -328,9 +328,9 @@ made elsewhere.
 [Tsitsulin and co-workers](https://www.forskningsdatabasen.dk/en/catalog/2491832216).
 
 * Von Luxburg's 
-[A Tutorial on Spectral Clustering (PDF)](http://www.kyb.mpg.de/fileadmin/user_upload/files/publications/attachments/luxburg06_TR_v2_4139%5b1%5d.pdf)
+[A Tutorial on Spectral Clustering](https://arxiv.org/abs/0711.0189)
 collects a lot of material on the definitions of graph Laplacians and the
-relationship of eigenvalues and eigenvectors. Sadly doesn't get into Diffusion Maps,
+relationship of eigenvalues and eigenvectors. Doesn't get into Diffusion Maps,
 though.
 
 * Radu Horaud's 
@@ -366,139 +366,15 @@ very hard going.
 * The [Shi and Malik](https://doi.org/10.1109/34.868688) paper on spectral 
 clustering.
 
-* The [Ng, Jordan and Weiss (PDF)](https://papers.nips.cc/paper/2092-on-spectral-clustering-analysis-and-an-algorithm.pdf) 
+* The [Ng, Jordan and Weiss](https://papers.nips.cc/paper/2092-on-spectral-clustering-analysis-and-an-algorithm) 
 spectral clustering paper.
 
+* A nice [visual tool](https://dominikschmidt.xyz/spectral-clustering-exp/) for
+spectral clustering.
 
 ## Some R code
 
-For a bit of experimentation, here is some R code:
-
-* `randw`: generate a list containing: `W`, a typical random affinity matrix: 
-positive semi definite, symmetric, with zeros on the diagonal, and `D` the
-degree matrix.
-
-* `lapm`: takes the list of matrices returned by `randw` and returns its own
-list containing the various Laplacian matrices discussed: `L`, the un-normalized
-Laplacian; `Lsym`, the symmetrized normalized Laplacian; `Lrw`, the random walk
-Laplacian; and `P` the random walk transition matrix.
-
-* `eig`: calculates the eigenvectors and eigenvalues of an input matrix `X`, and
-returns them in increasing order. If you set `norm = TRUE`, it will return the
-eigenvectors after normalizing their length to 1. If you set `norm`, to a
-numeric value, it will return the eigenvectors scaled such that their length is
-that value. To get the lowest eigenvector to be all 1s, you should set `norm` to
-the square root of the number of columns in `X`. As a short-cut you can set
-`norm = "n"`. If `val1 = TRUE` then the eigenvalues are subtracted from 1 before
-returning. This is useful for the comparison of the eigenvalues of $P$ and
-$L_{rw}$, as described in the section on diffusion maps. The return value is the
-`vectors` as a matrix with eigenvectors in each column, and `values`, with the
-corresponding eigenvalues. Also, `lengths`, which gives the length of each
-vector (after any scaling by `norm`).
-
-* `geig`: calculates the generalized eigenvectors and eigenvalues for 
-`A v = lambda B v`. Has the same parameters and return value structure as `eig`.
-You need to install [geigen](https://cran.r-project.org/package=geigen) for this
-to work.
-
-* `reig`: uses the [RSpectra](https://cran.r-project.org/package=RSpectra) 
-package to only calculate the first `k` eigenvectors, so you must provide `k`.
-If you set `k` to be the full matrix it will just use `eigen` anyway.
-
-```R
-randw <- function(n = 3) {
-  X <- matrix(rnorm(n * n), nrow = n)
-  X <- X * X
-  X <- t(X) + X
-  diag(X) <- 0
-  
-  list(W = X, D = diag(colSums(X)))
-}
-
-lapm <- function(WD) {
-  W <- WD$W
-  D <- WD$D
-
-  L <- D - W
-  
-  # Commented out code more closely follows the mathematical definitions, but
-  # pointlessly stores and inverts the full diagonal matrix as well as carrying
-  # out matrix multiplications
-  # Dinv <- solve(D)
-  Dinv <- 1 / diag(D)
-  
-  # Lsym <- Dinvs %*% L %*% Dinvs
-  Dinvs <- sqrt(Dinv)
-  Lsym <- Dinvs * sweep(L, 2, Dinvs, '*')
-
-  #P <- Dinv %*% W
-  P <- Dinv * WD$W
-  
-  # I <- diag(nrow = nrow(D), ncol = ncol(D))
-  # Lrw <- I - P
-  Lrw <- -P
-  diag(Lrw) <- 1 - diag(Lrw)
-  
-  list(L = L, Lsym = Lsym, Lrw = Lrw, P = P)
-}
-
-eig <- function(X, norm = FALSE, val1 = FALSE) {
-  res <- eigen(X)
-  sorteig(res, norm = norm, val1 = val1)
-}
-
-geig <- function(A, B, norm = FALSE, val1 = FALSE) {
-  res <- geigen::geigen(A, B)
-  sorteig(res, norm = norm, val1 = val1)
-}
-
-reig <- function(X, k, norm = FALSE, val1 = FALSE) {
-  res <- RSpectra::eigs(X, k = k, which = "SM")
-  res$vectors <- Re(res$vectors)
-  res$values <- Re(res$value)
-  sorteig(res, norm = norm, val1 = val1)
-}
-
-sorteig <- function(X, norm = FALSE, val1 = FALSE) {
-  vectors <- X$vectors
-  values <- X$values
-
-  if (val1) {
-    values <- 1 - values
-  }
-  
-  if ((is.logical(norm) && norm) || is.numeric(norm) || (is.character(norm) && norm == "n")) {
-    if (is.logical(norm)) {
-      m <- 1
-    }
-    else if (is.numeric(norm)) {
-      m <- norm
-    }
-    else {
-      m <- sqrt(nrow(vectors)) # make smallest eigenvector all 1s
-    }
-    sqrtcsums <- sqrt(colSums(vectors * vectors))
-    vectors <- m * sweep(vectors, 2, sqrtcsums, "/")
-  }
-
-  vectors <- vectors[, order(values)]
-  values <- sort(values)
-
-  list(vectors = vectors, values = values, lengths = sqrt(colSums(vectors ^ 2)))
-}
-```
-
-An example:
-
-```R
-WD <- randw(5)
-lap <- lapm(WD)
-
-# Laplacian Eigenmaps: these two should give the same results
-# use norm = "n", because otherwise the eigenvectors can have different lengths
-geig(lap$L, WD$D, norm = "n")
-eig(lap$Lrw, norm = "n")
-```
-
+For a bit of experimentation on graph Laplacians, there is some R code at: 
+<https://gist.github.com/jlmelville/772060a26001d7d25d7453b0df4feff9>
 
 Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
