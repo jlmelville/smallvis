@@ -372,9 +372,12 @@ spectral clustering paper.
 * A nice [visual tool](https://dominikschmidt.xyz/spectral-clustering-exp/) for
 spectral clustering.
 
-## Some R code
+## Some code
 
 For a bit of experimentation on graph Laplacians, there is some R code at: 
 <https://gist.github.com/jlmelville/772060a26001d7d25d7453b0df4feff9>
+
+Python code is at 
+<https://gist.github.com/jlmelville/8b7655fb4803ce49e4f560d316b04a46>.
 
 Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
