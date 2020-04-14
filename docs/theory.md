@@ -370,18 +370,11 @@ increasing with distance.
 
 ### UMAP
 
-Likewise, here's one way to express the UMAP gradient:
+Likewise, here's one way to express the UMAP gradient in terms of $v_{ij}$
+and $w_{ij}$:
 
 $$
-\frac{\partial C_{UMAP}}{\partial \mathbf{y_i}} = 
-  4\sum_j^N 
-\left(
-   v_{ij}
--
-  w_{ij}
-\right)
-   \frac{b}{d_{ij}^2}
-   \left(\mathbf{y_i - y_j}\right)
+\frac{\partial C_{UMAP}}{\partial \mathbf{y_i}}
 = 
   4\sum_j^N 
 \left(
@@ -392,7 +385,23 @@ $$
    b\left(\frac{aw_{ij}}{1 - w_{ij}}\right)^{\frac{1}{b}}
    \left(\mathbf{y_i - y_j}\right)
 $$
-and more explicitly:
+
+or equivalently:
+
+$$
+\frac{\partial C_{UMAP}}{\partial \mathbf{y_i}}
+= 
+  4\sum_j^N 
+\left(
+   v_{ij}
+-
+  w_{ij}
+\right)
+   \frac{b}{d_{ij}^2}
+   \left(\mathbf{y_i - y_j}\right)
+$$
+
+and even more explicitly:
 
 $$
 \frac{\partial C_{UMAP}}{\partial \mathbf{y_i}} = 
@@ -407,6 +416,20 @@ Again we need a value for $\epsilon$, which is `0.001` in the UMAP source.
 
 The t-SNE, LargeVis and UMAP gradients all have a similar form based around the
 difference between the input and output weights, $v_{ij} - w_{ij}$, although
-LargeVis and t-SNE re-weight the repulsion compared to UMAP. 
+LargeVis and t-SNE re-weight the repulsion compared to UMAP. The similarities
+between UMAP versus the others is more easily seen if the same definition for
+$w_{ij}$ is used, i.e. setting $a=1$ and $b=1$, which simplifies the UMAP
+gradient to:
+
+$$
+\frac{\partial C_{UMAP\left(a=1,b=1\right)}}{\partial \mathbf{y_i}} = 
+  4\sum_j^N \left[
+    w_{ij} v_{ij} 
+    -\frac{\left(1 - v_{ij}\right) }{d_{ij}^2 + \epsilon} w_{ij}
+   \right]
+   \left(\mathbf{y_i - y_j}\right)
+$$
+
+The similarity to LargeVis is (hopefully) much clearer now.
 
 Up: [Documentation Home](https://jlmelville.github.io/smallvis/).

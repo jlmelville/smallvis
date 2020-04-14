@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
 
 <head>
 
 <meta charset="utf-8" />
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
 
 
@@ -85,8 +85,6 @@ overflow: auto;
 margin-left: 2%;
 position: fixed;
 border: 1px solid #ccc;
-webkit-border-radius: 6px;
-moz-border-radius: 6px;
 border-radius: 6px;
 }
 
@@ -114,9 +112,14 @@ font-size: 12px;
 .tocify-subheader .tocify-subheader {
 text-indent: 30px;
 }
-
 .tocify-subheader .tocify-subheader .tocify-subheader {
 text-indent: 40px;
+}
+.tocify-subheader .tocify-subheader .tocify-subheader .tocify-subheader {
+text-indent: 50px;
+}
+.tocify-subheader .tocify-subheader .tocify-subheader .tocify-subheader .tocify-subheader {
+text-indent: 60px;
 }
 
 .tocify .tocify-item > a, .tocify .nav-list .nav-header {
@@ -520,13 +523,13 @@ float: none;
 
           item.append($("<a/>", {
 
-            "text": self.text()
+            "html": self.html()
 
           }));
 
         } else {
 
-          item.text(self.text());
+          item.html(self.html());
 
         }
 
@@ -1357,7 +1360,6 @@ code {
 }
 img {
   max-width:100%;
-  height: auto;
 }
 .tabbed-pane {
   padding-top: 12px;
@@ -1419,6 +1421,7 @@ summary {
   border: none;
   display: inline-block;
   border-radius: 4px;
+  background-color: transparent;
 }
 
 .tabset-dropdown > .nav-tabs.nav-tabs-open > li {
@@ -1431,48 +1434,9 @@ summary {
 }
 </style>
 
-<script>
-$(document).ready(function () {
-  window.buildTabsets("TOC");
-});
-
-$(document).ready(function () {
-  $('.tabset-dropdown > .nav-tabs > li').click(function () {
-    $(this).parent().toggleClass('nav-tabs-open')
-  });
-});
-</script>
-
 <!-- code folding -->
 
 
-
-<script>
-$(document).ready(function ()  {
-
-    // move toc-ignore selectors from section div to header
-    $('div.section.toc-ignore')
-        .removeClass('toc-ignore')
-        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
-
-    // establish options
-    var options = {
-      selectors: "h1,h2,h3",
-      theme: "bootstrap3",
-      context: '.toc-content',
-      hashGenerator: function (text) {
-        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_').toLowerCase();
-      },
-      ignoreSelector: ".toc-ignore",
-      scrollTo: 0
-    };
-    options.showAndHide = false;
-    options.smoothScroll = true;
-
-    // tocify
-    var toc = $("#TOC").tocify(options).data("toc-tocify");
-});
-</script>
 
 <style type="text/css">
 
@@ -1486,6 +1450,12 @@ $(document).ready(function ()  {
 }
 }
 
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
 
 .toc-content {
   padding-left: 30px;
@@ -1521,8 +1491,6 @@ div.tocify {
 
 .tocify-subheader .tocify-item {
   font-size: 0.90em;
-  padding-left: 25px;
-  text-indent: 0;
 }
 
 .tocify .list-group-item {
@@ -1760,17 +1728,9 @@ w_{ij} = \frac{1}{1 + \exp \left(d_{ij}^2\right)} \\
 </div>
 <div id="umap-1" class="section level3">
 <h3>UMAP</h3>
-<p>Likewise, here’s one way to express the UMAP gradient:</p>
+<p>Likewise, here’s one way to express the UMAP gradient in terms of <span class="math inline">\(v_{ij}\)</span> and <span class="math inline">\(w_{ij}\)</span>:</p>
 <p><span class="math display">\[
-\frac{\partial C_{UMAP}}{\partial \mathbf{y_i}} = 
-  4\sum_j^N 
-\left(
-   v_{ij}
--
-  w_{ij}
-\right)
-   \frac{b}{d_{ij}^2}
-   \left(\mathbf{y_i - y_j}\right)
+\frac{\partial C_{UMAP}}{\partial \mathbf{y_i}}
 = 
   4\sum_j^N 
 \left(
@@ -1780,7 +1740,21 @@ w_{ij} = \frac{1}{1 + \exp \left(d_{ij}^2\right)} \\
 \right)
    b\left(\frac{aw_{ij}}{1 - w_{ij}}\right)^{\frac{1}{b}}
    \left(\mathbf{y_i - y_j}\right)
-\]</span> and more explicitly:</p>
+\]</span></p>
+<p>or equivalently:</p>
+<p><span class="math display">\[
+\frac{\partial C_{UMAP}}{\partial \mathbf{y_i}}
+= 
+  4\sum_j^N 
+\left(
+   v_{ij}
+-
+  w_{ij}
+\right)
+   \frac{b}{d_{ij}^2}
+   \left(\mathbf{y_i - y_j}\right)
+\]</span></p>
+<p>and even more explicitly:</p>
 <p><span class="math display">\[
 \frac{\partial C_{UMAP}}{\partial \mathbf{y_i}} = 
   4\sum_j^N \left[
@@ -1790,7 +1764,16 @@ w_{ij} = \frac{1}{1 + \exp \left(d_{ij}^2\right)} \\
    \left(\mathbf{y_i - y_j}\right)
 \]</span></p>
 <p>Again we need a value for <span class="math inline">\(\epsilon\)</span>, which is <code>0.001</code> in the UMAP source.</p>
-<p>The t-SNE, LargeVis and UMAP gradients all have a similar form based around the difference between the input and output weights, <span class="math inline">\(v_{ij} - w_{ij}\)</span>, although LargeVis and t-SNE re-weight the repulsion compared to UMAP.</p>
+<p>The t-SNE, LargeVis and UMAP gradients all have a similar form based around the difference between the input and output weights, <span class="math inline">\(v_{ij} - w_{ij}\)</span>, although LargeVis and t-SNE re-weight the repulsion compared to UMAP. The similarities between UMAP versus the others is more easily seen if the same definition for <span class="math inline">\(w_{ij}\)</span> is used, i.e. setting <span class="math inline">\(a=1\)</span> and <span class="math inline">\(b=1\)</span>, which simplifies the UMAP gradient to:</p>
+<p><span class="math display">\[
+\frac{\partial C_{UMAP\left(a=1,b=1\right)}}{\partial \mathbf{y_i}} = 
+  4\sum_j^N \left[
+    w_{ij} v_{ij} 
+    -\frac{\left(1 - v_{ij}\right) }{d_{ij}^2 + \epsilon} w_{ij}
+   \right]
+   \left(\mathbf{y_i - y_j}\right)
+\]</span></p>
+<p>The similarity to LargeVis is (hopefully) much clearer now.</p>
 <p>Up: <a href="https://jlmelville.github.io/smallvis/">Documentation Home</a>.</p>
 </div>
 </div>
@@ -1813,6 +1796,49 @@ $(document).ready(function () {
 });
 
 
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open')
+  });
+});
+</script>
+
+<!-- code folding -->
+
+<script>
+$(document).ready(function ()  {
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_').toLowerCase();
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = false;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
 </script>
 
 <!-- dynamically load mathjax for compatibility with self-contained -->
