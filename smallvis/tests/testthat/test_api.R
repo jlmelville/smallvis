@@ -268,6 +268,17 @@ test_that("ee", {
   expect_equal(final_cost(res), 5.564, tolerance = 1e-4)
 })
 
+test_that("t-ee", {
+  res <- smallvis(iris10, Y_init = iris10_Y, method = list("tee", lambda = 0.1), eta = 0.1,
+                  perplexity = 5,
+                  epoch_callback = NULL, verbose = FALSE, ret_extra = TRUE, min_cost = -Inf)
+  expect_equal(res$Y, c2y(-0.7807, 0.4401, 0.5232, 0.6401, -0.7868, -1.031, 
+                          0.4438, -0.6558, 0.8577, 0.3495, 0.0125, -0.006836, 
+                          -0.008432, -0.01029, 0.01259, 0.01648, -0.007337, 
+                          0.01051, -0.0138, -0.005385), tolerance = 1e-3)
+  expect_equal(final_cost(res), -1.052, tolerance = 1e-4)
+})
+
 test_that("umap", {
   res <- smallvis(iris10, Y_init = iris10_Y, method = "umap", eta = 0.1,
                   perplexity = 5,
