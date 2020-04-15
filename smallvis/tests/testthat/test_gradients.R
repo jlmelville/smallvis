@@ -111,7 +111,7 @@ test_that("EE", {
 
 test_that("LargeVis", {
   # LV gradients can be extremely large compared to other methods
-  test_grad("largevis", tolerance = 1e-3, gamma = 7, perplexity = perp, gr_eps = 0)
+  test_grad("largevis", tolerance = 1e-5, gamma = 1, perplexity = perp, gr_eps = 0)
   test_grad("largevis", gamma = 1e-3, perplexity = perp, gr_eps = 0)
   test_grad("largevis", tolerance = 1e-2, gamma = 1000, perplexity = perp, gr_eps = 0)
 })

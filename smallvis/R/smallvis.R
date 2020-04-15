@@ -92,7 +92,11 @@
 #'    \item \code{"LargeVis"}
 #'    \itemize{
 #'    \item{\code{gamma}} Weighting term for the repulsive versus attractive
-#'     forces. Default is \code{7}.
+#'     forces. Default is \code{1}. The implementation by the creators of 
+#'     LargeVis uses a default \code{gamma = 7}, but note that this is for 
+#'     stochastic gradient descent with limited sampling of the repulsive 
+#'     contributions so it's unlikely to be a good choice with the 
+#'     implementation used in this package.
 #'    \item{\code{lveps}} Epsilon used in the gradient to prevent
 #'     division by zero. Default is \code{0.1}.
 #'    }

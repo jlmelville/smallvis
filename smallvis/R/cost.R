@@ -126,9 +126,7 @@ stop_exaggerating <- function(cost, exaggeration_factor) {
 
 # LargeVis ----------------------------------------------------------------
 
-# NB This version doesn't normalize the input P, despite what the paper
-# indicates (source code of the current implementation doesn't seem to either)
-largevis <- function(perplexity, gamma = 7, gr_eps = 0.1) {
+largevis <- function(perplexity, gamma = 1, gr_eps = 0.1) {
   lreplace(tsne(perplexity),
      init = function(cost, X, max_iter, eps = 1e-9, verbose = FALSE, ret_extra = c()) {
        cost <- sne_init(cost, X = X, perplexity = perplexity, symmetrize = "symmetric",
