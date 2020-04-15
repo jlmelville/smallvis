@@ -517,4 +517,77 @@ LargeVis, there's probably not a great need for a stochastic gradient version of
 t-EE, given that it is so similar to LargeVis and provides no advantages over it
 or UMAP, unless a solid heuristic for choosing $\lambda$ emerges.
 
+## Addendum: Homotopy Method
+
+*April 14 2020*: Dmitry Kobak suggested to me that the horrible results we see
+with large values of $\lambda$ are due to the lack of early exaggeration, and
+that we can simulate that by running the optimization with a small value of
+$\lambda$ initially. To test this, I have run a series of t-EE optimizations, 
+starting at `lambda = 0.001` with sPCA initialization, then running at 
+progressively higher values of `lambda` using the final configuration of the
+previous run as the initial coordinates for the new run. The values of `lambda`
+I used were `c(0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1)` and I gave each run 
+1000 iterations to remove any convergence issues (so I don't intend this to
+be a particularly practical approach). The results are below:
+
+### iris
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![iris lee](../img/tee/iris_lee.png)|
+
+### s1k
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![s1k lee](../img/tee/s1k_lee.png)|
+
+### oli
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![oli lee](../img/tee/oli_lee.png)|
+
+### frey
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![frey lee](../img/tee/frey_lee.png)|
+
+### coil20
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![coil20 lee](../img/tee/coil20_lee.png)|
+
+### mnist6k
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![mnist6k lee](../img/tee/mnist6k_lee.png)|
+
+### fashion6k
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![fashion6k lee](../img/tee/fashion6k_lee.png)|
+
+These are much nicer looking, albeit slightly over-expanded. This *isn't* just
+a case of these plots having longer to optimize: if you start with `lambda = 1`
+for `mnist6k`, for example, after 7000 iterations the result is:
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![mnist6k 7000 iterations](../img/tee/mnist6k_7k.png)|
+
+Still visually bad and with a higher final cost.
+
+Conclusion: Dmitry is correct. Early exaggeration-like settings seem to be
+important for getting good results in t-EE. It should be pointed out here that
+this is exactly the "homotopy method" that is advocated in the 
+[elastic embedding (PDF)](http://faculty.ucmerced.edu/mcarreira-perpinan/papers/icml10.pdf)
+paper, so I only have myself to blame for not following this established advice.
+I don't know if the connection between early exaggeration in t-SNE and the 
+homotopy method is established elsewhere.
+
 Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
