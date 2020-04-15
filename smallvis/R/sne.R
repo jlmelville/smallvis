@@ -81,12 +81,13 @@ kl_cost <- function(cost, Y) {
 }
 
 # t-SNE
-tsne <- function(perplexity, inp_kernel = "gaussian") {
+tsne <- function(perplexity, inp_kernel = "gaussian", symmetrize = "symmetric") {
   list(
     init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
                     ret_extra = c()) {
+      symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
-                       symmetrize = "symmetric", normalize = TRUE,
+                       symmetrize = symmetrize, normalize = TRUE,
                        verbose = verbose, ret_extra = ret_extra)
       cost$eps <- eps
       cost
@@ -476,21 +477,18 @@ pstsne <- function(perplexity, inp_kernel = "gaussian") {
 # t-Distributed Elastic Embedding
 # EE-like cost function in terms of I-Divergence
 # Scaled to give a gradient similar in form to t-SNE
-tee <- function(perplexity, inp_kernel = "gaussian", lambda = 0.01) {
+tee <- function(perplexity, inp_kernel = "gaussian", symmetrize = "symmetric", lambda = 0.01) {
   lreplace(
     tsne(perplexity = perplexity, inp_kernel = inp_kernel),
     init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
                     ret_extra = c()) {
+      symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       ret_extra = unique(c(ret_extra, "V", "dint"))
       cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
-                       symmetrize = "symmetric", normalize = TRUE,
+                       symmetrize = symmetrize, normalize = FALSE,
                        verbose = verbose, ret_extra = ret_extra)
-      V <- cost$V
-      V <- V / rowSums(V)
-      V <- 0.5 * (V + t(V))
-
+      V <- cost$P
       cost$eps <- eps
-      cost$V <- V
       cost$invN <- 1 / sum(V)
       cost$gradconst <- 4 * cost$invN
       cost$lambda <- lambda
@@ -501,7 +499,7 @@ tee <- function(perplexity, inp_kernel = "gaussian", lambda = 0.01) {
     },
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
-      cost$G <- k2g(Y, cost$gradconst * cost$W * (cost$V - cost$W * cost$lambda))
+      cost$G <- k2g(Y, cost$gradconst * cost$W * (cost$P - cost$W * cost$lambda))
       cost
     },
     update = function(cost, Y) {
@@ -514,7 +512,7 @@ tee <- function(perplexity, inp_kernel = "gaussian", lambda = 0.01) {
     pfn = function(cost, Y) {
       cost <- cost_update(cost, Y)
 
-      V <- cost$V
+      V <- cost$P
       W <- cost$W
       eps <- cost$eps
 
@@ -905,6 +903,13 @@ arsrsne <- function(perplexity) {
 
 # Perplexity Calibration --------------------------------------------------
 
+# Some symmetrization options mean "actually, no symmetrization please". This
+# function returns the ones that will actually produce a symmetric matrix,
+# necessary for symmetric methods (e.g. tsne vs asne).
+true_symmetrize_options <- function() {
+  c("symmetric", "mutual", "umap")
+}
+
 scale_affinities <- function(P, symmetrize = "symmetric", row_normalize = TRUE,
                              normalize = TRUE) {
   # row normalization before anything else
@@ -930,13 +935,6 @@ scale_affinities <- function(P, symmetrize = "symmetric", row_normalize = TRUE,
   P
 }
 
-
-# symmetrize: type of symmetrization:
-#  none - no symmetrization as in ASNE, JSE, NeRV
-#  symmetric - symmetric nearest neighbor style, default, as in t-SNE.
-#  mutual - mutual nearest neighbor style as suggested by Schubert and Gertz in
-#  "Intrinsic t-Stochastic Neighbor Embedding for Visualization and Outlier
-#   Detection - A Remedy Against the Curse of Dimensionality?"
 sne_init <- function(cost, X, perplexity, kernel = "gaussian",
                      symmetrize = "symmetric", row_normalize = TRUE,
                      normalize = TRUE,
