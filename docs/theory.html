@@ -1578,24 +1578,36 @@ Cp - \sum_{ij} p_{ij} \log w_{ij} + \log Z \sum_{ij} p_{ij} \\
 <p><span class="math display">\[
 L_{LV} = \sum_{ \left(i, j\right) \in E} p_{ij} \log w_{ij} 
 +\gamma \sum_{\left(i, j\right) \in \bar{E}} \log \left( 1 - w_{ij} \right)
-\]</span> Likelihood functions are maximized, so the final cost function we’re interested in will be <span class="math inline">\(-L_{LV}\)</span>, in order that we have a function to minimize. Otherwise, it gets a bit confusing keeping track of the signs of the gradients compared to the other methods in <code>smallvis</code>.</p>
-<p>To use the LargeVis cost function in <code>smallvis</code>, we need to make some small modifications.</p>
-<p>LargeVis doesn’t actually prevent repulsive terms being applied to nearest neighbors. Again due to the SGD sampling implementation, the proportion of nearest neighbors involved in repulsive terms is extremely small so it doesn’t matter for the LargeVis reference implementation.</p>
-<p>However, I have experimented with restricting the repulsion to only the non-neighbors in <code>smallvis</code>, but this leads to some horrible results involving lots of very small well-separated clusters. On reflection it seems like this would be the expected outcome of not allowing neighbors to repel each other: neighboring points that happen to be initialized close to each other will feel a strong mutual force that results in them reducing their distances to zero, which will overwhelm any longer range attraction from more distant neighbors.</p>
+\]</span></p>
+<p><span class="math inline">\(\gamma\)</span> is a free parameter which balances the weight of the attractive to repulsive contributions. It is set to 7 in the LargeVis paper with no explanation.</p>
+<p>Likelihood functions are maximized, so the final cost function we’re interested in will be <span class="math inline">\(-L_{LV}\)</span>, in order that we have a function to minimize. Otherwise, it gets a bit confusing keeping track of the signs of the gradients compared to the other methods in <code>smallvis</code>.</p>
+<p>To use the LargeVis cost function in <code>smallvis</code>, we need to make some small modifications:</p>
+<div id="repulsive-terms" class="section level4">
+<h4>Repulsive Terms</h4>
+<p>The LargeVis SGD implementation doesn’t actually prevent repulsive terms being applied to nearest neighbors, it just gets decreasingly likely that a nearest neighbor will be sampled as <span class="math inline">\(N\)</span> increases, so the proportion of <span class="math inline">\(E\)</span> that are involved in repulsions becomes so small that it has no practical effect.</p>
+<p>However, in an exact-gradient implementation (as used in <code>smallvis</code>), not including nearest neighbors leads to some horrible results involving lots of very small well-separated clusters. On reflection it seems like this would be the expected outcome of not allowing neighbors to repel each other: neighboring points that happen to be initialized close to each other will feel a strong mutual force that results in them reducing their distances to zero, which will overwhelm any longer range attraction from more distant neighbors.</p>
+</div>
+<div id="attractive-terms" class="section level4">
+<h4>Attractive Terms</h4>
 <p>That leaves the attractive part of the cost function. The partitioning works here and the non-neighbors <em>are</em> excluded from contributing to the attractive part of the cost, but that term is weighted by <span class="math inline">\(p_{ij}\)</span> anyway, so the perplexity calibration guarantees that even if you did calculate probabilities for all pairs of points, those that weren’t part of the neighborhood would contribute negligibly to that component of the cost function.</p>
 <p>Taken together, you could therefore ignore the partitioning scheme, as long as you were prepared to calculate the complete O(N^2) matrices, which is exactly what <code>smallvis</code> does.</p>
+</div>
+<div id="exact-gradient-largevis-cost-function" class="section level4">
+<h4>Exact Gradient LargeVis Cost Function</h4>
 <p>Based on the above discussion, and wanting a cost function to minimize, the <code>smallvis</code> version of the LargeVis cost function is:</p>
 <p><span class="math display">\[
 C_{LV} = 
 -\sum_{ij} p_{ij} \log w_{ij} 
 -\gamma \sum_{ij} \log \left( 1 - w_{ij} \right)
-\]</span> In this form, the attractive terms of both t-SNE and LargeVis are very similar.</p>
+\]</span></p>
+<p>In this form, the attractive terms of both t-SNE and LargeVis are very similar.</p>
 <p>The derivative of the cost function with respect to the weights is:</p>
 <p><span class="math display">\[
 \frac{\partial C_{LV}}{\partial w_{ij}} =
 -\frac{p_{ij}}{w_{ij}} +
 \frac{ \gamma}{ \left( 1 - w_{ij} \right)}
 \]</span></p>
+</div>
 </div>
 <div id="umap" class="section level3">
 <h3>UMAP</h3>
@@ -1690,8 +1702,8 @@ w_{ij}
 <p><span class="math display">\[
 \frac{\partial C_{LV}}{\partial \mathbf{y_i}} = 
   4\sum_j^N \left(
-    w_{ij} p_{ij}
-    -\frac{\gamma }{d_{ij}^2 + \epsilon}w_{ij}
+    \frac{p_{ij}}{ 1 + d_{ij}^2 }
+    -\frac{\gamma }{ \left( \epsilon + d_{ij}^2 \right) \left( 1 + d_{ij}^2 \right) } 
    \right)
    \left(\mathbf{y_i - y_j}\right)
 \]</span></p>
@@ -1706,7 +1718,7 @@ w_{ij} = \frac{1}{1 + \alpha d_{ij}^2} \\
 \frac{\partial C_{LV}}{\partial \mathbf{y_i}} = 
   4\sum_j^N \left(
     \alpha w_{ij} p_{ij}
-    -\frac{\gamma}{d_{ij}^2 + \epsilon} w_{ij}
+    -\frac{\gamma}{ \epsilon + d_{ij}^2 } w_{ij}
    \right)
    \left(\mathbf{y_i - y_j}\right)
 \]</span> The negative part of the gradient doesn’t contain an <span class="math inline">\(\alpha\)</span> term due to cancellation.</p>
@@ -1724,6 +1736,15 @@ w_{ij} = \frac{1}{1 + \exp \left(d_{ij}^2\right)} \\
    \left(\mathbf{y_i - y_j}\right)
 \]</span></p>
 <p>Note that section 3 of the paper mentions the above as a possible weight function, but the results in section 4 of the paper claim to actually investigate <span class="math inline">\(w_{ij} = 1 / \left[1 + \exp \left(-d_{ij}^2\right)\right]\)</span>. I assume that’s a typo, because using the negative squared distance results in the weight increasing with distance.</p>
+</div>
+<div id="some-implementation-question-marks" class="section level4">
+<h4>Some Implementation Question Marks</h4>
+<p>Before leaving LargeVis, here are a couple of other issues to think about:</p>
+<ul>
+<li>Does it make sense to be matching <span class="math inline">\(p_{ij}\)</span> to <span class="math inline">\(w_{ij}\)</span>, rather than <span class="math inline">\(v_{ij}\)</span>? One is normalized, the other isn’t. As it happens, the LargeVis source code doesn’t actually generate the <span class="math inline">\(p_{ij}\)</span> from the <span class="math inline">\(v_{ij}\)</span>. It’s hard to know whether the equation in the paper or the source code is what is really meant, because the stochastic gradient descent implementation doesn’t use the input weights in the gradient, only for generating probabilities and these are unaffected by the lack of normalization. So it doesn’t matter at all for the SGD implementation, But the difference <em>is</em> important for the exact gradient implementation, because using <span class="math inline">\(p_{ij}\)</span> reduces the attractive forces in the gradient by a factor of <span class="math inline">\(N\)</span>.</li>
+<li>What is the role of <span class="math inline">\(\gamma\)</span> in the repulsion? There’s no explanation for what it’s supposed to represent, but it will presumably interact with the negative sampling rate, which in the LargeVis paper and source code has a default value of 5 negative samples for each positive sample. There is then the question of what the correct value of <span class="math inline">\(\gamma\)</span> should be in an exact gradient scenario. One way to view it is to see it as a way to scale up the contribution from the missing repulsions in stochastic gradient descent, i.e. as the negative sampling rate increases, <span class="math inline">\(\gamma\)</span> should decrease, in which case <span class="math inline">\(\gamma = 1\)</span> is the sensible choice for the full gradient. But in the LargeVis paper the cost function is introduced before any mention of stochastic gradient descent or sampling so it seems like it is intended to be an intrinsic part of the cost function. The right selection of <span class="math inline">\(\gamma\)</span> is now likely to be dependent on both <span class="math inline">\(N\)</span> and the perplexity choice, as well as the choice of using <span class="math inline">\(p_{ij}\)</span> or <span class="math inline">\(v_{ij}\)</span> mentioned above. Using the SGD implementation <span class="math inline">\(\gamma = 7\)</span> is almost certainly not the right choice.</li>
+</ul>
+<p>As we will see below, UMAP makes the decision to use <span class="math inline">\(v_{ij}\)</span>, but it doesn’t use a <span class="math inline">\(\gamma\)</span> value to weight repulsions, so it’s not a huge help in deciding the best way to implement LargeVis in an exact gradient form.</p>
 </div>
 </div>
 <div id="umap-1" class="section level3">
@@ -1759,17 +1780,18 @@ w_{ij} = \frac{1}{1 + \exp \left(d_{ij}^2\right)} \\
 \frac{\partial C_{UMAP}}{\partial \mathbf{y_i}} = 
   4\sum_j^N \left[
     abd_{ij}^{2\left(b - 1\right)} w_{ij} v_{ij} 
-    -\frac{b \left(1 - v_{ij}\right) }{d_{ij}^2 + \epsilon} w_{ij}
+    -\frac{b \left(1 - v_{ij}\right) }{ \epsilon + d_{ij}^2 } w_{ij}
    \right]
    \left(\mathbf{y_i - y_j}\right)
 \]</span></p>
 <p>Again we need a value for <span class="math inline">\(\epsilon\)</span>, which is <code>0.001</code> in the UMAP source.</p>
-<p>The t-SNE, LargeVis and UMAP gradients all have a similar form based around the difference between the input and output weights, <span class="math inline">\(v_{ij} - w_{ij}\)</span>, although LargeVis and t-SNE re-weight the repulsion compared to UMAP. The similarities between UMAP versus the others is more easily seen if the same definition for <span class="math inline">\(w_{ij}\)</span> is used, i.e. setting <span class="math inline">\(a=1\)</span> and <span class="math inline">\(b=1\)</span>, which simplifies the UMAP gradient to:</p>
+<p>The t-SNE, LargeVis and UMAP gradients all have a similar form based around the difference between the input and output weights, <span class="math inline">\(v_{ij} - w_{ij}\)</span>, with varying scalings of the weights depending on the method. The similarities between UMAP versus the others is more easily seen if the same definition for <span class="math inline">\(w_{ij}\)</span> is used, i.e. setting <span class="math inline">\(a=1\)</span> and <span class="math inline">\(b=1\)</span>, which simplifies the UMAP gradient to:</p>
 <p><span class="math display">\[
 \frac{\partial C_{UMAP\left(a=1,b=1\right)}}{\partial \mathbf{y_i}} = 
   4\sum_j^N \left[
-    w_{ij} v_{ij} 
-    -\frac{\left(1 - v_{ij}\right) }{d_{ij}^2 + \epsilon} w_{ij}
+    \frac{ v_{ij} }{ 1 + d_{ij}^2 } 
+    -
+    \frac{1 - v_{ij} }{ \left( \epsilon + d_{ij}^2 \right) \left( 1 + d_{ij}^2 \right) } 
    \right]
    \left(\mathbf{y_i - y_j}\right)
 \]</span></p>

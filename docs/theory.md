@@ -98,26 +98,35 @@ $$
 L_{LV} = \sum_{ \left(i, j\right) \in E} p_{ij} \log w_{ij} 
 +\gamma \sum_{\left(i, j\right) \in \bar{E}} \log \left( 1 - w_{ij} \right)
 $$
+
+$\gamma$ is a free parameter which balances the weight of the attractive to 
+repulsive contributions. It is set to 7 in the LargeVis paper with no
+explanation.
+
 Likelihood functions are maximized, so the final cost function we're
 interested in will be $-L_{LV}$, in order that we have a function to minimize.
 Otherwise, it gets a bit confusing keeping track of the signs of the gradients 
 compared to the other methods in `smallvis`.
 
 To use the LargeVis cost function in `smallvis`, we need to make some small
-modifications. 
+modifications:
 
-LargeVis doesn't actually prevent repulsive terms being applied to 
-nearest neighbors. Again due to the SGD sampling implementation, the proportion
-of nearest neighbors involved in repulsive terms is extremely small so it
-doesn't matter for the LargeVis reference implementation.
+#### Repulsive Terms
 
-However, I have experimented with restricting the repulsion to only the
-non-neighbors in `smallvis`, but this leads to some horrible results involving
-lots of very small well-separated clusters. On reflection it seems like this
-would be the expected outcome of not allowing neighbors to repel each other:
-neighboring points that happen to be initialized close to each other will feel a
-strong mutual force that results in them reducing their distances to zero, which
-will overwhelm any longer range attraction from more distant neighbors.
+The LargeVis SGD implementation doesn't actually prevent repulsive terms being 
+applied to nearest neighbors, it just gets decreasingly likely that a nearest
+neighbor will be sampled as $N$ increases, so the proportion of $E$ that are
+involved in repulsions becomes so small that it has no practical effect.
+
+However, in an exact-gradient implementation (as used in `smallvis`), not
+including nearest neighbors leads to some horrible results involving lots of
+very small well-separated clusters. On reflection it seems like this would be
+the expected outcome of not allowing neighbors to repel each other: neighboring
+points that happen to be initialized close to each other will feel a strong
+mutual force that results in them reducing their distances to zero, which will
+overwhelm any longer range attraction from more distant neighbors.
+
+#### Attractive Terms
 
 That leaves the attractive part of the cost function. The partitioning works
 here and the non-neighbors *are* excluded from contributing to the attractive
@@ -130,6 +139,8 @@ Taken together, you could therefore ignore the partitioning scheme, as long as
 you were prepared to calculate the complete O(N^2) matrices, which is exactly
 what `smallvis` does. 
 
+#### Exact Gradient LargeVis Cost Function
+
 Based on the above discussion, and wanting a cost function to minimize, the 
 `smallvis` version of the LargeVis cost function is:
 
@@ -138,6 +149,7 @@ C_{LV} =
 -\sum_{ij} p_{ij} \log w_{ij} 
 -\gamma \sum_{ij} \log \left( 1 - w_{ij} \right)
 $$
+
 In this form, the attractive terms of both t-SNE and LargeVis are very similar.
 
 The derivative of the cost function with respect to the weights is:
@@ -312,8 +324,8 @@ of a stochastic gradient descent optimization:
 $$
 \frac{\partial C_{LV}}{\partial \mathbf{y_i}} = 
   4\sum_j^N \left(
-    w_{ij} p_{ij}
-    -\frac{\gamma }{d_{ij}^2 + \epsilon}w_{ij}
+    \frac{p_{ij}}{ 1 + d_{ij}^2 }
+    -\frac{\gamma }{ \left( \epsilon + d_{ij}^2 \right) \left( 1 + d_{ij}^2 \right) } 
    \right)
    \left(\mathbf{y_i - y_j}\right)
 $$
@@ -321,7 +333,6 @@ $$
 The $\epsilon$ term is needed computationally to avoid division by zero. Results
 can be quite sensitive to changing this value. In `smallvis` you can see the
 effect of it via the `lveps` parameter. It's set to `0.1` in LargeVis.
-
 
 #### Other weight functions
 
@@ -339,7 +350,7 @@ w_{ij} = \frac{1}{1 + \alpha d_{ij}^2} \\
 \frac{\partial C_{LV}}{\partial \mathbf{y_i}} = 
   4\sum_j^N \left(
     \alpha w_{ij} p_{ij}
-    -\frac{\gamma}{d_{ij}^2 + \epsilon} w_{ij}
+    -\frac{\gamma}{ \epsilon + d_{ij}^2 } w_{ij}
    \right)
    \left(\mathbf{y_i - y_j}\right)
 $$
@@ -367,6 +378,41 @@ investigate
 $w_{ij} = 1 / \left[1 + \exp \left(-d_{ij}^2\right)\right]$. I assume that's a 
 typo, because using the negative squared distance results in the weight
 increasing with distance.
+
+
+#### Some Implementation Question Marks
+
+Before leaving LargeVis, here are a couple of other issues to think about:
+
+* Does it make sense to be matching $p_{ij}$ to $w_{ij}$, rather than $v_{ij}$?
+One is normalized, the other isn't. As it happens, the LargeVis source code
+doesn't actually generate the $p_{ij}$ from the $v_{ij}$. It's hard to know
+whether the equation in the paper or the source code is what is really meant,
+because the stochastic gradient descent implementation doesn't use the input
+weights in the gradient, only for generating probabilities and these are
+unaffected by the lack of normalization. So it doesn't matter at all for the SGD
+implementation, But the difference *is* important for the exact gradient
+implementation, because using $p_{ij}$ reduces the attractive forces in the
+gradient by a factor of $N$.
+* What is the role of $\gamma$ in the repulsion? There's no explanation for what
+it's supposed to represent, but it will presumably interact with the negative
+sampling rate, which in the LargeVis paper and source code has a default value
+of 5 negative samples for each positive sample. There is then the question of
+what the correct value of $\gamma$ should be in an exact gradient scenario. One
+way to view it is to see it as a way to scale up the contribution from the
+missing repulsions in stochastic gradient descent, i.e. as the negative sampling
+rate increases, $\gamma$ should decrease, in which case $\gamma = 1$ is the
+sensible choice for the full gradient. But in the LargeVis paper the cost
+function is introduced before any mention of stochastic gradient descent or
+sampling so it seems like it is intended to be an intrinsic part of the cost
+function. The right selection of $\gamma$ is now likely to be dependent on both
+$N$ and the perplexity choice, as well as the choice of using $p_{ij}$ or 
+$v_{ij}$ mentioned above. Using the SGD implementation $\gamma = 7$ is almost
+certainly not the right choice.
+
+As we will see below, UMAP makes the decision to use $v_{ij}$, but it doesn't
+use a $\gamma$ value to weight repulsions, so it's not a huge help in deciding
+the best way to implement LargeVis in an exact gradient form.
 
 ### UMAP
 
@@ -407,7 +453,7 @@ $$
 \frac{\partial C_{UMAP}}{\partial \mathbf{y_i}} = 
   4\sum_j^N \left[
     abd_{ij}^{2\left(b - 1\right)} w_{ij} v_{ij} 
-    -\frac{b \left(1 - v_{ij}\right) }{d_{ij}^2 + \epsilon} w_{ij}
+    -\frac{b \left(1 - v_{ij}\right) }{ \epsilon + d_{ij}^2 } w_{ij}
    \right]
    \left(\mathbf{y_i - y_j}\right)
 $$
@@ -415,17 +461,17 @@ $$
 Again we need a value for $\epsilon$, which is `0.001` in the UMAP source.
 
 The t-SNE, LargeVis and UMAP gradients all have a similar form based around the
-difference between the input and output weights, $v_{ij} - w_{ij}$, although
-LargeVis and t-SNE re-weight the repulsion compared to UMAP. The similarities
-between UMAP versus the others is more easily seen if the same definition for
-$w_{ij}$ is used, i.e. setting $a=1$ and $b=1$, which simplifies the UMAP
-gradient to:
+difference between the input and output weights, $v_{ij} - w_{ij}$, with varying
+scalings of the weights depending on the method. The similarities between UMAP
+versus the others is more easily seen if the same definition for $w_{ij}$ is
+used, i.e. setting $a=1$ and $b=1$, which simplifies the UMAP gradient to:
 
 $$
 \frac{\partial C_{UMAP\left(a=1,b=1\right)}}{\partial \mathbf{y_i}} = 
   4\sum_j^N \left[
-    w_{ij} v_{ij} 
-    -\frac{\left(1 - v_{ij}\right) }{d_{ij}^2 + \epsilon} w_{ij}
+    \frac{ v_{ij} }{ 1 + d_{ij}^2 } 
+    -
+    \frac{1 - v_{ij} }{ \left( \epsilon + d_{ij}^2 \right) \left( 1 + d_{ij}^2 \right) } 
    \right]
    \left(\mathbf{y_i - y_j}\right)
 $$
