@@ -109,6 +109,16 @@ test_that("early and late exaggeration", {
   expect_equal(i10_tsne$start_late_lying_iter, 9)
 })
 
+test_that("tsne with knn kernel", {
+  res <- smallvis(iris10, Y_init = iris10_Y, perplexity = 5,
+                       epoch_callback = NULL, verbose = FALSE, ret_extra = TRUE,
+                       method = list("tsne", inp_kernel = "knn"))
+  expect_equal(res$Y, c2y(-276.7, 247.6, 81.28, 204.7, -184.4, -384.5, -15.83, 
+                          -100.5, 387.4, 40.96, 93.64, 114.7, 172.6, -83.46,
+                          -65.53, -178.7, -175.7, 132.9, -24.35, 13.96), 
+               tolerance = 0.1)
+  expect_equal(final_cost(res), 0.1934, tolerance = 1e-5)
+})
 
 test_that("mmds", {
   res <- smallvis(iris10, Y_init = iris10_Y, method = "mmds", eta = 0.1,

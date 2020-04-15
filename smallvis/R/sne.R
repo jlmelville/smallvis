@@ -954,7 +954,7 @@ sne_init <- function(cost, X, perplexity, kernel = "gaussian",
     P <- knn_graph(X, k = perplexity)
     x2ares <- list(W = P)
   }
-  if (perp_method(perplexity) == "idp") {
+  else if (perp_method(perplexity) == "idp") {
     perplexities <- NULL
     if (is.list(perplexity) && length(perplexity) == 2) {
       perplexities <- perplexity[[2]]
@@ -996,7 +996,6 @@ sne_init <- function(cost, X, perplexity, kernel = "gaussian",
                         symmetrize = symmetrize, 
                         row_normalize = row_normalize,
                         normalize = normalize)
-  
   cost$P <- P
 
   tsmessage("Effective perplexity of P approx = ", 
