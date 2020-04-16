@@ -323,10 +323,11 @@ test_that("largevis", {
   res <- smallvis(iris10, Y_init = iris10_Y, method = "largevis", eta = 0.1,
                   perplexity = 5,
                   epoch_callback = NULL, verbose = FALSE, ret_extra = TRUE)
-  expect_equal(res$Y, c2y(-10.61, 7.02, 4.569, 9.455, -9.111, -16.27, 3.427, 
-                          -5.646, 14.78, 2.378, 2.273, 5.295, -1.349, -1.739, 
-                          -2.476, -2.023, -6.277, 1.822, -0.6911, 5.165), tolerance = 1e-3)
-  expect_equal(final_cost(res), 5.051, tolerance = 1e-3)
+  expect_equal(res$Y, c2y(-11.1, 7.342, 4.811, 9.939, -9.594, -17.1, 3.629, 
+                          -5.908, 15.51, 2.475, 2.384, 5.541, -1.44, -1.834,
+                          -2.617, -2.024, -6.613, 1.845, -0.6199, 5.379), 
+               tolerance = 1e-3)
+  expect_equal(final_cost(res), 5.046, tolerance = 1e-4)
 })
 
 test_that("tsne with L-BFGS", {
@@ -570,4 +571,18 @@ test_that("multiscale perplexities", {
                              30.68, -52.60, -41.84, 7.637, 
                              43.56, -109.71, 42.86, -54.20, 
                              66.84), tolerance = 1e-3)
+})
+
+test_that("t-EE and LargeVis are equivalent (sometimes)", {
+  restee <- smallvis(iris10, Y_init = iris10_Y, perplexity = 4,
+                     method = list("tee", lambda = 1, eps = .Machine$double.xmin), 
+                     opt = list("steepd", eta = 0.1), min_cost = -Inf,
+                     verbose = FALSE, epoch_callback = NULL)
+
+  reslv <- smallvis(iris10, Y_init = iris10_Y, perplexity = 4,
+                    method = list("largevis", normalize = FALSE, gamma = 1, 
+                                  gr_eps = 1, eps = .Machine$double.xmin), 
+                    opt = list("steepd", eta = 0.01),
+                    verbose = FALSE, epoch_callback = NULL)
+  expect_equal(restee, reslv)
 })

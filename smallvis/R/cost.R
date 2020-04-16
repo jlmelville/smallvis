@@ -138,6 +138,7 @@ largevis <- function(perplexity, inp_kernel = "gaussian",
                         normalize = normalize, verbose = verbose,
                         ret_extra = ret_extra)
        cost$eps <- eps
+       cost$greps1 <- gr_eps - 1
        cost
      },
      pfn = function(cost, Y) {
@@ -154,7 +155,7 @@ largevis <- function(perplexity, inp_kernel = "gaussian",
        cost <- cost_update(cost, Y)
 
        W <- cost$W
-       cost$G <- k2g(Y, 4 * W * (cost$P - ((gamma * W) / ((1 - W) + gr_eps))))
+       cost$G <- k2g(Y, 4 * W * (cost$P - ((gamma * W) / (1 + cost$greps1 * W))))
        cost
      },
      update = function(cost, Y) {
