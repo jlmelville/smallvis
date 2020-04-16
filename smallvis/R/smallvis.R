@@ -73,11 +73,10 @@
 #' used. To control these, instead of passing a name to the \code{method}
 #' parameter, pass a list. The first element is the name of the method you wish
 #' to use. Subsequent elements must be named values specifying the parameters.
-#' Method-specific parameters are as follows:
-#'
+#' 
+#' Some parameters are available for all (nor nearly all) methods.
+#' 
 #' \itemize{
-#'    \item \code{"tsne"}
-#'    \itemize{
 #'    \item{\code{inp_kernel}} the input kernel function. Can be one of:
 #'       \code{"gauss"} (the default), \code{"exp"} or \code{"knn"}.
 #'       \code{"exp"} uses unsquared distances to calculate similarities and is
@@ -88,7 +87,17 @@
 #'       neighbors or vice versa. Other elements are set to zero. Note that no
 #'       sparsification is carried out with this kernel, so there are no
 #'       memory or performance improvements to be had with this setting.
-#'    }
+#'       \code{"skd"} uses the smooth knn distances method as used by UMAP.
+#'    \item{\code{symmetrize}} the type of symmetrization, used by symmetric 
+#'       methods only. Can be one of:
+#'       \code{"symmetric"} symmetric nearest neighbor style, by arithmetic 
+#'       averaging, as in t-SNE.
+#'       \code{"fuzzy"} symmetrization by fuzzy set union as used in UMAP.
+#'       \code{"mutual"} mutual nearest neighbor style as suggested by Schubert
+#'       and Gertz (2017).
+#' }
+#'
+#' \itemize{
 #'    \item \code{"LargeVis"}
 #'    \itemize{
 #'    \item{\code{gamma}} Weighting term for the repulsive versus attractive
@@ -97,12 +106,12 @@
 #'     stochastic gradient descent with limited sampling of the repulsive 
 #'     contributions so it's unlikely to be a good choice with the 
 #'     implementation used in this package.
-#'    \item{\code{lveps}} Epsilon used in the gradient to prevent
+#'    \item{\code{gr_eps}} Epsilon used in the gradient to prevent
 #'     division by zero. Default is \code{0.1}.
 #'    }
 #'    \item \code{"UMAP"}
 #'    \itemize{
-#'    \item{\code{lveps}} Epsilon used in the gradient to prevent
+#'    \item{\code{gr_eps}} Epsilon used in the gradient to prevent
 #'     division by zero. Default is \code{0.1}.
 #'    \item{\code{spread}} Parameter controlling the output kernel function.
 #'     Controls the length over which the output kernel decays from 1 to 0.
@@ -116,7 +125,7 @@
 #'    }
 #'    \item \code{"tUMAP"}
 #'    \itemize{
-#'    \item{\code{lveps}} Epsilon used in the gradient to prevent
+#'    \item{\code{gr_eps}} Epsilon used in the gradient to prevent
 #'     division by zero. Default is \code{0.1}.
 #'    }
 #'    \item \code{"HSSNE"}
@@ -734,6 +743,12 @@
 #' In \emph{Proceedings of the 32nd International Conference on Machine Learning (ICML-14)}
 #' (pp 796-804).
 #' \url{http://proceedings.mlr.press/v37/narayan15.html}
+#'
+#' Schubert, E., & Gertz, M. (2017, October). 
+#' Intrinsic t-stochastic neighbor embedding for visualization and outlier detection.
+#' In \emph{International Conference on Similarity Search and Applications}
+#' (pp. 188-203). Springer, Cham.
+#' \url{https://doi.org/10.1007/978-3-319-68474-1_13}
 #'
 #' Tang, J., Liu, J., Zhang, M., & Mei, Q. (2016, April).
 #' Visualizing large-scale and high-dimensional data.
@@ -2642,4 +2657,16 @@ smooth_knn_distances <-
 fuzzy_set_union <- function(X, set_op_mix_ratio = 1) {
   XX <- X * t(X)
   set_op_mix_ratio * (X + t(X) - XX) + (1 - set_op_mix_ratio) * XX
+}
+
+init_ab <- function(cost, spread = 1, min_dist = 0.001, verbose = FALSE) {
+  ab_params <- find_ab_params(spread = spread, min_dist = min_dist)
+  a <- ab_params[1]
+  b <- ab_params[2]
+  if (verbose) {
+    message("Umap curve parameters = ", formatC(a), ", ", formatC(b))
+  }
+  cost$a <- a
+  cost$b <- b
+  cost
 }
