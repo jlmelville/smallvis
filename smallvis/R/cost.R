@@ -126,11 +126,16 @@ stop_exaggerating <- function(cost, exaggeration_factor) {
 
 # LargeVis ----------------------------------------------------------------
 
-largevis <- function(perplexity, gamma = 1, gr_eps = 0.1) {
+largevis <- function(perplexity, inp_kernel = "gaussian", 
+                     symmetrize = "symmetric", gamma = 1, gr_eps = 0.1, 
+                     normalize = TRUE, eps = 1e-9) {
+  eps. <- eps
   lreplace(tsne(perplexity),
-     init = function(cost, X, max_iter, eps = 1e-9, verbose = FALSE, ret_extra = c()) {
-       cost <- sne_init(cost, X = X, perplexity = perplexity, symmetrize = "symmetric",
-                        normalize = TRUE, verbose = verbose,
+     init = function(cost, X, max_iter, eps = eps., verbose = FALSE, ret_extra = c()) {
+       symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
+       cost <- sne_init(cost, X = X, perplexity = perplexity, 
+                        symmetrize = symmetrize, kernel = inp_kernel,
+                        normalize = normalize, verbose = verbose,
                         ret_extra = ret_extra)
        cost$eps <- eps
        cost
@@ -166,24 +171,19 @@ largevis <- function(perplexity, gamma = 1, gr_eps = 0.1) {
 
 # UMAP --------------------------------------------------------------------
 
-umap <- function(perplexity, spread = 1, min_dist = 0.001, gr_eps = 0.1) {
+umap <- function(perplexity, inp_kernel = "skd", symmetrize = "umap",
+                 spread = 1, min_dist = 0.001, gr_eps = 0.1, eps = 1e-9) {
+  eps. <- eps
   lreplace(tsne(perplexity),
-    init = function(cost, X, max_iter, eps = 1e-9, verbose = FALSE, ret_extra = c()) {
-      ab_params <- find_ab_params(spread = spread, min_dist = min_dist)
-      a <- ab_params[1]
-      b <- ab_params[2]
-      if (verbose) {
-        message("Umap curve parameters = ", formatC(a), ", ", formatC(b))
-      }
-      cost$a <- a
-      cost$b <- b
-
-      P <- smooth_knn_distances(X, k = perplexity, tol = 1e-5,
-                                verbose = verbose)$P
-      P <- fuzzy_set_union(P)
-      cost$P <- P
+    init = function(cost, X, max_iter, eps = eps., verbose = FALSE, ret_extra = c()) {
+      symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
+      cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
+                       symmetrize = symmetrize, normalize = FALSE,
+                       verbose = verbose, ret_extra = ret_extra)
+      
+      cost <- init_ab(cost, spread = spread, min_dist = min_dist, verbose = verbose)
+      
       cost$eps <- eps
-
       cost
     },
     cache_input = function(cost) {
@@ -223,15 +223,17 @@ umap <- function(perplexity, spread = 1, min_dist = 0.001, gr_eps = 0.1) {
 }
 
 # UMAP with the output kernel fixed to the t-distribution
-tumap <- function(perplexity, gr_eps = 0.1) {
+tumap <- function(perplexity, inp_kernel = "skd", symmetrize = "umap", 
+                  gr_eps = 0.1, eps = 1e-9) {
+  eps. <- eps
   lreplace(umap(perplexity),
-    init = function(cost, X, max_iter, eps = 1e-9, verbose = FALSE, ret_extra = c()) {
+    init = function(cost, X, max_iter, eps = eps., verbose = FALSE, ret_extra = c()) {
+      symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       cost$eps <- eps
 
-      P <- smooth_knn_distances(X, k = perplexity, tol = 1e-5,
-                                verbose = verbose)$P
-      P <- fuzzy_set_union(P)
-      cost$P <- P
+      cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
+                       symmetrize = symmetrize, normalize = FALSE,
+                       verbose = verbose, ret_extra = ret_extra)
       cost
     },
     gr = function(cost, Y) {
@@ -252,18 +254,16 @@ tumap <- function(perplexity, gr_eps = 0.1) {
 }
 
 # t-UMAP where output and input affinities are normalized
-ntumap <- function(perplexity, gr_eps = 0.1) {
+ntumap <- function(perplexity, inp_kernel = "skd", symmetrize = "umap",
+                   gr_eps = 0.1, eps = 1e-9) {
+  eps. <- eps
   lreplace(tumap(perplexity),
-    init = function(cost, X, max_iter, eps = 1e-9, verbose = FALSE, ret_extra = c()) {
+    init = function(cost, X, max_iter, eps = eps., verbose = FALSE, ret_extra = c()) {
+      symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       cost$eps <- eps
-
-      P <- smooth_knn_distances(X, k = perplexity, tol = 1e-5,
-                                 verbose = verbose)$P
-      P <- fuzzy_set_union(P)
-
-      P <- P / sum(P)
-      cost$P <- P
-
+      cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
+                       symmetrize = symmetrize, normalize = TRUE,
+                       verbose = verbose, ret_extra = ret_extra)
       cost
     },
     pfn = function(cost, Y) {
@@ -305,13 +305,16 @@ ntumap <- function(perplexity, gr_eps = 0.1) {
 # f-Divergences -----------------------------------------------------------
 
 # Reverse KL divergence
-rklsne <- function(perplexity, inp_kernel = "gaussian") {
+rklsne <- function(perplexity, inp_kernel = "gaussian", 
+                   symmetrize = "symmetric", eps = .Machine$double.xmin) {
+  eps. <- eps
   lreplace(
-    tsne(perplexity = perplexity, inp_kernel = inp_kernel),
-    init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
+    tsne(perplexity = perplexity),
+    init = function(cost, X, max_iter, eps = eps., verbose = FALSE,
                     ret_extra = c()) {
+      symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
-                       symmetrize = "symmetric", normalize = TRUE,
+                       symmetrize = symmetrize, normalize = TRUE,
                        verbose = verbose, ret_extra = ret_extra)
       cost$eps <- eps
       cost
@@ -352,13 +355,16 @@ rklsne <- function(perplexity, inp_kernel = "gaussian") {
 }
 
 # Jensen-Shannon divergence
-jssne <- function(perplexity, inp_kernel = "gaussian") {
+jssne <- function(perplexity, inp_kernel = "gaussian", 
+                  symmetrize = "symmetric", eps = .Machine$double.xmin) {
+  eps. <- eps
   lreplace(
     tsne(perplexity = perplexity, inp_kernel = inp_kernel),
-    init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
+    init = function(cost, X, max_iter, eps = eps., verbose = FALSE,
                     ret_extra = c()) {
+      symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
-                       symmetrize = "symmetric", normalize = TRUE,
+                       symmetrize = symmetrize, normalize = TRUE,
                        verbose = verbose, ret_extra = ret_extra)
       cost$eps <- eps
       cost
@@ -409,13 +415,16 @@ jssne <- function(perplexity, inp_kernel = "gaussian") {
 }
 
 # Chi-squared divergence
-chsne <- function(perplexity, inp_kernel = "gaussian") {
+chsne <- function(perplexity, inp_kernel = "gaussian", 
+                  symmetrize = "symmetric", eps = .Machine$double.xmin) {
+  eps. <- eps
   lreplace(
     tsne(perplexity = perplexity, inp_kernel = inp_kernel),
-    init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
+    init = function(cost, X, max_iter, eps = eps., verbose = FALSE,
                     ret_extra = c()) {
+      symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
-                       symmetrize = "symmetric", normalize = TRUE,
+                       symmetrize = symmetrize, normalize = TRUE,
                        verbose = verbose, ret_extra = ret_extra)
       cost$eps <- eps
       cost
@@ -466,11 +475,14 @@ chsne <- function(perplexity, inp_kernel = "gaussian") {
 }
 
 # Hellinger distance divergence
-hlsne <- function(perplexity, inp_kernel = "gaussian") {
+hlsne <- function(perplexity, inp_kernel = "gaussian", 
+                  symmetrize = "symmetric", eps = .Machine$double.xmin) {
+  eps. <- eps
   lreplace(
     tsne(perplexity = perplexity, inp_kernel = inp_kernel),
-    init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
+    init = function(cost, X, max_iter, eps = eps., verbose = FALSE,
                     ret_extra = c()) {
+      symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
                        symmetrize = "symmetric", normalize = TRUE,
                        verbose = verbose, ret_extra = ret_extra)
@@ -525,43 +537,48 @@ hlsne <- function(perplexity, inp_kernel = "gaussian") {
 # ABSNE -------------------------------------------------------------------
 
 # alpha-beta divergence
-absne <- function(perplexity, inp_kernel = "gaussian", alpha = 1, lambda = 1) {
+absne <- function(perplexity, inp_kernel = "gaussian", 
+                  symmetrize = "symmetric", alpha = 1, lambda = 1,
+                  eps = .Machine$double.xmin) {
+  eps. <- eps
   beta <- lambda - alpha
 
   eps0 <- 1e-5
   if (abs(alpha) > eps0 && abs(lambda) < eps0) {
     # alpha != 0, beta = -alpha (=> lambda == 0)
-    return(absneamb(perplexity = perplexity,
-                    inp_kernel = inp_kernel, alpha = alpha))
+    return(absneamb(perplexity = perplexity, inp_kernel = inp_kernel, 
+                    symmetrize = symmetrize, alpha = alpha, eps = eps))
   }
   if (abs(alpha) > eps0 && abs(beta) < eps0) {
     # alpha != 0, beta = 0 (=> lambda = alpha)
-    return(absneb0(perplexity = perplexity,
-                    inp_kernel = inp_kernel, alpha = alpha))
+    return(absneb0(perplexity = perplexity, inp_kernel = inp_kernel, 
+                   symmetrize = symmetrize, alpha = alpha, eps = eps))
   }
   if (abs(alpha) < eps0 && abs(beta) > eps0 ) {
     # alpha = 0, beta != 0 (=> lambda = beta)
-    return(absnea0(perplexity = perplexity,
-                   inp_kernel = inp_kernel, beta = beta))
+    return(absnea0(perplexity = perplexity, inp_kernel = inp_kernel, 
+                   symmetrize = symmetrize, beta = beta, eps = eps))
   }
   if (abs(alpha) < eps0 && abs(beta) < eps0) {
     # alpha = 0, beta = 0 (=> lambda = 0)
-    return(absne00(perplexity = perplexity, inp_kernel = inp_kernel))
+    return(absne00(perplexity = perplexity, inp_kernel = inp_kernel,
+                   symmetrize = symmetrize, eps = eps))
   }
 
   if (abs(lambda) < eps0) {
     lambda <- ifelse(lambda == 0, 1, sign(lambda)) * eps0
   }
   lreplace(
-    tsne(perplexity = perplexity, inp_kernel = inp_kernel),
-    init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
+    tsne(perplexity = perplexity),
+    init = function(cost, X, max_iter, eps = eps., verbose = FALSE,
                     ret_extra = c()) {
+      symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       if (verbose) {
         tsmessage("Using ABSNE with alpha = ", formatC(alpha), 
                   " beta = ", formatC(beta))
       }
       cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
-                       symmetrize = "symmetric", normalize = TRUE,
+                       symmetrize = symmetrize, normalize = TRUE,
                        verbose = verbose, ret_extra = ret_extra)
       cost$inva4 <- 4 / alpha
       cost$minvab <- -1 / (alpha * beta)
@@ -613,17 +630,21 @@ absne <- function(perplexity, inp_kernel = "gaussian", alpha = 1, lambda = 1) {
 }
 
 # alpha != 0, beta = 0 => lambda = alpha
-absneb0 <- function(perplexity, inp_kernel = "gaussian", alpha = 1) {
+absneb0 <- function(perplexity, inp_kernel = "gaussian", 
+                    symmetrize = "symmetric", alpha = 1,
+                    eps = .Machine$double.xmin) {
+  eps. <- eps
   lreplace(
-    tsne(perplexity = perplexity, inp_kernel = inp_kernel),
-    init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
+    tsne(perplexity = perplexity),
+    init = function(cost, X, max_iter, eps = eps., verbose = FALSE,
                     ret_extra = c()) {
+      symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       if (verbose) {
         tsmessage("Using ABSNE with alpha = ", formatC(alpha), 
                   " beta = 0")
       }
       cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
-                       symmetrize = "symmetric", normalize = TRUE,
+                       symmetrize = symmetrize, normalize = TRUE,
                        verbose = verbose, ret_extra = ret_extra)
       
       cost$eps <- eps
@@ -680,17 +701,21 @@ absneb0 <- function(perplexity, inp_kernel = "gaussian", alpha = 1) {
 }
 
 # alpha = -beta != 0 => lambda = 0
-absneamb <- function(perplexity, inp_kernel = "gaussian", alpha = 1) {
+absneamb <- function(perplexity, inp_kernel = "gaussian", 
+                     symmetrize = "symmetric", alpha = 1,
+                     eps = .Machine$double.xmin) {
+  eps. <- eps
   lreplace(
-    tsne(perplexity = perplexity, inp_kernel = inp_kernel),
-    init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
+    tsne(perplexity = perplexity),
+    init = function(cost, X, max_iter, eps = eps., verbose = FALSE,
                     ret_extra = c()) {
+      symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       if (verbose) {
         tsmessage("Using ABSNE with alpha = ", formatC(alpha), 
                   " beta = -", formatC(alpha))
       }
       cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
-                       symmetrize = "symmetric", normalize = TRUE,
+                       symmetrize = symmetrize, normalize = TRUE,
                        verbose = verbose, ret_extra = ret_extra)
 
       cost$N <- nrow(cost$P)
@@ -746,16 +771,20 @@ absneamb <- function(perplexity, inp_kernel = "gaussian", alpha = 1) {
 }
 
 # alpha = 0, beta != 0 => lambda = beta
-absnea0 <- function(perplexity, inp_kernel = "gaussian", beta = 1) {
+absnea0 <- function(perplexity, inp_kernel = "gaussian", 
+                    symmetrize = "symmetric", beta = 1,
+                    eps = .Machine$double.xmin) {
+  eps. <- eps
   lreplace(
-    tsne(perplexity = perplexity, inp_kernel = inp_kernel),
-    init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
+    tsne(perplexity = perplexity),
+    init = function(cost, X, max_iter, eps = eps., verbose = FALSE,
                     ret_extra = c()) {
+      symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       if (verbose) {
         tsmessage("Using ABSNE with alpha = 0, beta = ", formatC(beta))
       }
       cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
-                       symmetrize = "symmetric", normalize = TRUE,
+                       symmetrize = symmetrize, normalize = TRUE,
                        verbose = verbose, ret_extra = ret_extra)
       
       cost$eps <- eps
@@ -816,18 +845,20 @@ absnea0 <- function(perplexity, inp_kernel = "gaussian", beta = 1) {
 }
 
 # alpha = 0, beta = 0 => lambda = 0
-absne00 <- function(perplexity, inp_kernel = "gaussian") {
+absne00 <- function(perplexity, inp_kernel = "gaussian", 
+                    symmetrize = "symmetric", eps = .Machine$double.xmin) {
+  eps. <- eps
   lreplace(
-    tsne(perplexity = perplexity, inp_kernel = inp_kernel),
-    init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
+    tsne(perplexity = perplexity),
+    init = function(cost, X, max_iter, eps = eps., verbose = FALSE,
                     ret_extra = c()) {
+      symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       if (verbose) {
         tsmessage("Using ABSNE with alpha = 0, beta = 0")
       }
       cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
-                       symmetrize = "symmetric", normalize = TRUE,
+                       symmetrize = symmetrize, normalize = TRUE,
                        verbose = verbose, ret_extra = ret_extra)
-      
       cost$eps <- eps
       cost
     },
@@ -875,7 +906,10 @@ absne00 <- function(perplexity, inp_kernel = "gaussian") {
 }
 
 # alpha-beta divergence
-abssne <- function(perplexity, inp_kernel = "gaussian", alpha = 1, lambda = 1) {
+abssne <- function(perplexity, inp_kernel = "gaussian", 
+                   symmetrize = "symmetric", alpha = 1, lambda = 1,
+                   eps = .Machine$double.xmin) {
+  eps. <- eps
   beta <- lambda - alpha
   
   eps0 <- 1e-5
@@ -890,15 +924,16 @@ abssne <- function(perplexity, inp_kernel = "gaussian", alpha = 1, lambda = 1) {
     lambda <- ifelse(lambda == 0, 1, sign(lambda)) * eps0
   }
   lreplace(
-    tsne(perplexity = perplexity, inp_kernel = inp_kernel),
-    init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
+    tsne(perplexity = perplexity),
+    init = function(cost, X, max_iter, eps = eps., verbose = FALSE,
                     ret_extra = c()) {
+      symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       if (verbose) {
         tsmessage("Using ABSSNE with alpha = ", formatC(alpha), 
                   " beta = ", formatC(beta))
       }
       cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
-                       symmetrize = "symmetric", normalize = TRUE,
+                       symmetrize = symmetrize, normalize = TRUE,
                        verbose = verbose, ret_extra = ret_extra)
       cost$inva4 <- 4 / alpha
       cost$minvab <- -1 / (alpha * beta)
@@ -949,13 +984,16 @@ abssne <- function(perplexity, inp_kernel = "gaussian", alpha = 1, lambda = 1) {
 # Other Divergences -------------------------------------------------------
 
 # global-SNE
-gsne <- function(perplexity, lambda = 1, inp_kernel = "gaussian") {
+gsne <- function(perplexity, lambda = 1, inp_kernel = "gaussian", 
+                 symmetrize = "symmetric", eps = .Machine$double.xmin) {
+  eps. <- eps
   lreplace(
-    tsne(perplexity = perplexity, inp_kernel = inp_kernel),
-    init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
+    tsne(perplexity = perplexity),
+    init = function(cost, X, max_iter, eps = eps., verbose = FALSE,
                     ret_extra = c()) {
+      symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
-                       symmetrize = "symmetric", normalize = TRUE,
+                       symmetrize = symmetrize, normalize = TRUE,
                        verbose = verbose, ret_extra = ret_extra)
       cost$eps <- eps
       
@@ -1292,11 +1330,14 @@ knnmmds <- function(k) {
 # lambda control the strength of repulsive vs attractive forces
 # if neg_weights is true, the repulsive contribution is weighted based on the
 # squared input distances. Otherwise, no weighting is applied.
-ee <- function(perplexity, lambda = 100, neg_weights = TRUE) {
+ee <- function(perplexity, lambda = 100, neg_weights = TRUE, 
+               inp_kernel = "gaussian", symmetrize = "symmetric", 
+               eps = .Machine$double.xmin) {
+  eps. <- eps
   list(
-    init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
+    init = function(cost, X, max_iter, eps = eps., verbose = FALSE,
                     ret_extra = c()) {
-
+      symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       if (neg_weights) {
         if (methods::is(X, "dist")) {
           R <- X
@@ -1309,8 +1350,8 @@ ee <- function(perplexity, lambda = 100, neg_weights = TRUE) {
       else {
         cost$Vn <- 1
       }
-      cost <- sne_init(cost, X, perplexity = perplexity,
-                       symmetrize = "symmetric", normalize = TRUE,
+      cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
+                       symmetrize = symmetrize, normalize = TRUE,
                        verbose = verbose, ret_extra = ret_extra)
       cost$eps <- eps
       cost
@@ -1365,15 +1406,17 @@ ee <- function(perplexity, lambda = 100, neg_weights = TRUE) {
 # lambda = 1 gives ASNE results
 # default lambda = 0.9 from "Majorization-Minimization for Manifold Embedding"
 # Yang, Peltonen, Kaski 2015
-nerv <- function(perplexity, lambda = 0.9) {
+nerv <- function(perplexity, lambda = 0.9, inp_kernel = "gaussian", 
+                 eps = .Machine$double.xmin) {
+  eps. <- eps
   lambda2 <- 2 * lambda
   oml <- 1 - lambda
   oml2 <- 2 * oml
   lreplace(
     tsne(perplexity = perplexity),
-    init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
+    init = function(cost, X, max_iter, eps = eps., verbose = FALSE,
                     ret_extra = c()) {
-      cost <- sne_init(cost, X, perplexity = perplexity,
+      cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
                        symmetrize = "none", normalize = FALSE,
                        verbose = verbose, ret_extra = ret_extra)
       cost$eps <- eps
@@ -1426,12 +1469,14 @@ nerv <- function(perplexity, lambda = 0.9) {
     )
 }
 
-snerv <- function(perplexity, lambda = 0.9) {
+snerv <- function(perplexity, lambda = 0.9, inp_kernel = "gaussian", 
+                  symmetrize = "symmetric", eps = .Machine$double.xmin) {
   lambda4 <- 4 * lambda
   oml <- 1 - lambda
   oml4 <- 4 * oml
   lreplace(
-    ssne(perplexity = perplexity),
+    ssne(perplexity = perplexity, inp_kernel = inp_kernel, 
+         symmetrize = symmetrize, eps = eps),
     cache_input = function(cost) {
       eps <- cost$eps
       P <- cost$P
@@ -1484,7 +1529,9 @@ snerv <- function(perplexity, lambda = 0.9) {
 # \emph{Neurocomputing}, \emph{112}, 92-108.
 # kappa = 0 behaves like ASNE
 # kappa = 1 behaves like NeRV with lambda = 0. Yes that's confusing.
-jse <- function(perplexity, kappa = 0.5) {
+jse <- function(perplexity, kappa = 0.5, inp_kernel = "gaussian", 
+                eps = .Machine$double.xmin) {
+  eps. <- eps
   eps0 <- 1e-5
   kappa <- max(kappa, eps0)
   kappa <- min(kappa, 1 - eps0)
@@ -1496,9 +1543,9 @@ jse <- function(perplexity, kappa = 0.5) {
 
   lreplace(
     ssne(perplexity = perplexity),
-    init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
+    init = function(cost, X, max_iter, eps = eps., verbose = FALSE,
                     ret_extra = c()) {
-      cost <- sne_init(cost, X, perplexity = perplexity,
+      cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
                        symmetrize = "none", normalize = FALSE,
                        verbose = verbose, ret_extra = ret_extra)
       cost$eps <- eps
@@ -1550,7 +1597,8 @@ jse <- function(perplexity, kappa = 0.5) {
 }
 
 
-sjse <- function(perplexity, kappa = 0.5) {
+sjse <- function(perplexity, kappa = 0.5, inp_kernel = "gaussian", 
+                 symmetrize = "symmetric", eps = .Machine$double.xmin) {
   eps0 <- 1e-5
   kappa <- max(kappa, eps0)
   kappa <- min(kappa, 1 - eps0)
@@ -1561,7 +1609,8 @@ sjse <- function(perplexity, kappa = 0.5) {
   om_kappa_inv <- 1 / om_kappa
   
   lreplace(
-    ssne(perplexity = perplexity),
+    ssne(perplexity = perplexity, inp_kernel = inp_kernel, 
+         symmetrize = symmetrize, eps = eps),
     pfn = function(cost, Y) {
       cost <- cost_update(cost, Y)
       eps <- cost$eps

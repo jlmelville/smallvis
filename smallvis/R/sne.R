@@ -81,9 +81,10 @@ kl_cost <- function(cost, Y) {
 }
 
 # t-SNE
-tsne <- function(perplexity, inp_kernel = "gaussian", symmetrize = "symmetric") {
+tsne <- function(perplexity, inp_kernel = "gaussian", symmetrize = "symmetric", 
+                 eps = .Machine$double.xmin) {
   list(
-    init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
+    init = function(cost, X, max_iter, verbose = FALSE,
                     ret_extra = c()) {
       symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
@@ -141,9 +142,11 @@ tsne <- function(perplexity, inp_kernel = "gaussian", symmetrize = "symmetric") 
 # Cook, J., Sutskever, I., Mnih, A., & Hinton, G. E. (2007).
 # Visualizing similarity data with a mixture of maps.
 # In \emph{International Conference on Artificial Intelligence and Statistics} (pp. 67-74).
-ssne <- function(perplexity, inp_kernel = "gaussian") {
+ssne <- function(perplexity, inp_kernel = "gaussian", 
+                 symmetrize = "symmetric", eps = .Machine$double.xmin) {
   lreplace(
-    tsne(perplexity = perplexity, inp_kernel = inp_kernel),
+    tsne(perplexity = perplexity, inp_kernel = inp_kernel, 
+         symmetrize = symmetrize, eps = eps),
     pfn = kl_costQ,
     gr = function(cost, Y) {
       cost <- cost$update(cost, Y)
@@ -163,9 +166,11 @@ ssne <- function(perplexity, inp_kernel = "gaussian") {
 # Hinton, G. E., & Roweis, S. T. (2002).
 # Stochastic neighbor embedding.
 # In \emph{Advances in neural information processing systems} (pp. 833-840).
-asne <- function(perplexity, inp_kernel = "gaussian") {
+asne <- function(perplexity, inp_kernel = "gaussian", 
+                 eps = .Machine$double.xmin) {
+  eps. <- eps
   lreplace(tsne(perplexity),
-    init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
+    init = function(cost, X, max_iter, eps = eps., verbose = FALSE,
                     ret_extra = c()) {
       cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
                        symmetrize = "none", normalize = FALSE,
@@ -192,11 +197,13 @@ asne <- function(perplexity, inp_kernel = "gaussian") {
 # Yang, Z., King, I., Xu, Z., & Oja, E. (2009).
 # Heavy-tailed symmetric stochastic neighbor embedding.
 # In \emph{Advances in neural information processing systems} (pp. 2169-2177).
-hssne <- function(perplexity, alpha = 0.5) {
+hssne <- function(perplexity, alpha = 0.5, inp_kernel = "gaussian", 
+                  symmetrize = "symmetric", eps = .Machine$double.xmin) {
   alpha <- max(alpha, 1e-8)
   apow <- -1 / alpha
   lreplace(
-    tsne(perplexity = perplexity),
+    tsne(perplexity = perplexity, inp_kernel = inp_kernel, 
+         symmetrize = symmetrize, eps = eps),
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
       # to include bandwidth
@@ -262,11 +269,13 @@ bhssne <- function(perplexity, alpha = 0.5, beta = 1) {
 }
 
 # A version of HSSNE where alpha is allowed to vary at every epoch
-dhssne <- function(perplexity, alpha = 0.5) {
+dhssne <- function(perplexity, alpha = 0.5, inp_kernel = "gaussian", 
+                   symmetrize = "symmetric", eps = .Machine$double.xmin) {
   alpha_min <- 1e-8
   alpha <- max(alpha, alpha_min)
   lreplace(
-    tsne(perplexity = perplexity),
+    tsne(perplexity = perplexity, inp_kernel = inp_kernel, 
+         symmetrize = symmetrize, eps = eps),
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
       cost$G <- k2g(Y, 4 * (cost$P - cost$W / cost$Z) * powm(cost$W, cost$alpha, cost$eps))
@@ -322,14 +331,18 @@ dhssne <- function(perplexity, alpha = 0.5) {
 # Optimization equivalence of divergences improves neighbor embedding.
 # In \emph{Proceedings of the 31st International Conference on Machine Learning (ICML-14)}
 # (pp. 460-468).
-wtsne <- function(perplexity) {
+wtsne <- function(perplexity, inp_kernel = "gaussian", 
+                  symmetrize = "symmetric", eps = .Machine$double.xmin) {
+  eps. <- eps
   lreplace(tsne(perplexity = perplexity),
-    init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
-                    ret_extra = c()) {
+    init = function(cost, X, max_iter, eps = eps., 
+                    verbose = FALSE, ret_extra = c()) {
+      symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       ret_extra <- c(ret_extra, "pdeg")
-      cost <- sne_init(cost, X, perplexity = perplexity,
-                         symmetrize = "symmetric", normalize = TRUE,
-                         verbose = verbose, ret_extra = ret_extra)
+      cost <- sne_init(cost, X, perplexity = perplexity, 
+                       kernel = inp_kernel, symmetrize = symmetrize,
+                       normalize = TRUE, verbose = verbose,
+                       ret_extra = ret_extra)
       # P matrix degree centrality: column sums
       deg <- cost$pdeg
       if (verbose) {
@@ -360,14 +373,18 @@ wtsne <- function(perplexity) {
   )
 }
 
-wssne <- function(perplexity) {
+wssne <- function(perplexity, inp_kernel = "gaussian", 
+                  symmetrize = "symmetric", eps = .Machine$double.xmin) {
+  eps. <- eps
   lreplace(ssne(perplexity = perplexity),
-     init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
-                     ret_extra = c()) {
+     init = function(cost, X, max_iter, eps = eps., 
+                     verbose = FALSE, ret_extra = c()) {
+       symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
        ret_extra <- c(ret_extra, "pdeg")
        cost <- sne_init(cost, X, perplexity = perplexity,
-                        symmetrize = "symmetric", normalize = TRUE,
-                        verbose = verbose, ret_extra = ret_extra)
+                        kernel = inp_kernel, symmetrize = symmetrize, 
+                        normalize = TRUE, verbose = verbose, 
+                        ret_extra = ret_extra)
        # P matrix degree centrality: column sums
        deg <- cost$pdeg
        if (verbose) {
@@ -477,10 +494,12 @@ pstsne <- function(perplexity, inp_kernel = "gaussian") {
 # t-Distributed Elastic Embedding
 # EE-like cost function in terms of I-Divergence
 # Scaled to give a gradient similar in form to t-SNE
-tee <- function(perplexity, inp_kernel = "gaussian", symmetrize = "symmetric", lambda = 0.01) {
+tee <- function(perplexity, inp_kernel = "gaussian", symmetrize = "symmetric",
+                lambda = 0.01, eps = .Machine$double.xmin) {
+  eps. <- eps
   lreplace(
-    tsne(perplexity = perplexity, inp_kernel = inp_kernel),
-    init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
+    tsne(perplexity = perplexity),
+    init = function(cost, X, max_iter, eps = eps., verbose = FALSE,
                     ret_extra = c()) {
       symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       ret_extra = unique(c(ret_extra, "V", "dint"))
@@ -527,44 +546,24 @@ tee <- function(perplexity, inp_kernel = "gaussian", symmetrize = "symmetric", l
 
 # Calculate P via normalized smooth knn-distances
 skdtsne <- function(perplexity) {
-  lreplace(
-    tsne(perplexity = perplexity),
-    init = function(cost, X, max_iter, eps = 1e-9, verbose = FALSE, ret_extra = c()) {
-      cost$eps <- eps
-
-      P <- smooth_knn_distances(X, k = perplexity, tol = 1e-5,
-                                verbose = verbose)$P
-      P <- fuzzy_set_union(P)
-      # Normalize
-      P <- P / sum(P)
-      cost$P <- P
-
-      cost
-    }
-  )
+  tsne(perplexity = perplexity, inp_kernel = "skd", symmetrize = "umap", 
+       eps = 1e-9)
 }
 
 # Use the UMAP curve family in output kernel
-usne <- function(perplexity, inp_kernel = "gaussian", spread = 1,
-                  min_dist = 0.001, gr_eps = 0.1) {
+usne <- function(perplexity, inp_kernel = "gaussian", symmetrize = "symmetric", 
+                 spread = 1, min_dist = 0.001, gr_eps = 0.1, eps = .Machine$double.xmin) {
+  eps. <- eps
   lreplace(
     tsne(perplexity = perplexity),
-    init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
+    init = function(cost, X, max_iter, eps = eps., verbose = FALSE,
                     ret_extra = c()) {
+      symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
-                       symmetrize = "symmetric", normalize = TRUE,
+                       symmetrize = symmetrize, normalize = TRUE,
                        verbose = verbose, ret_extra = ret_extra)
       cost$eps <- eps
-
-      ab_params <- find_ab_params(spread = spread, min_dist = min_dist)
-      a <- ab_params[1]
-      b <- ab_params[2]
-      if (verbose) {
-        message("Umap curve parameters = ", formatC(a), ", ", formatC(b))
-      }
-      cost$a <- a
-      cost$b <- b
-
+      cost <- init_ab(cost, spread = spread, min_dist = min_dist, verbose = verbose)
       cost
     },
     update = function(cost, Y) {
@@ -588,9 +587,11 @@ usne <- function(perplexity, inp_kernel = "gaussian", spread = 1,
 }
 
 # UMAP cross entropy cost instead of KL divergence
-cetsne <- function(perplexity, inp_kernel = "gaussian") {
+cetsne <- function(perplexity, inp_kernel = "gaussian", 
+                   symmetrize = "symmetric", eps = .Machine$double.xmin) {
+  eps. <- eps
   lreplace(tsne(perplexity),
-           init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
+           init = function(cost, X, max_iter, eps = eps., verbose = FALSE,
                            ret_extra = c()) {
              cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
                               symmetrize = "symmetric", normalize = TRUE,
@@ -795,11 +796,13 @@ tasne <- function(perplexity) {
 # Normalization Experiments -----------------------------------------------
 
 # ASNE but with the t-distributed kernel
-tasne <- function(perplexity) {
+tasne <- function(perplexity, inp_kernel = "gaussian", 
+                  eps = .Machine$double.xmin) {
+  eps. <- eps
   lreplace(tsne(perplexity = perplexity),
-  init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
+  init = function(cost, X, max_iter, eps = eps., verbose = FALSE,
                   ret_extra = c()) {
-    cost <- sne_init(cost, X, perplexity = perplexity,
+    cost <- sne_init(cost, X, perplexity = perplexity, inp_kernel <- inp_kernel,
                      symmetrize = "none", normalize = FALSE,
                      verbose = verbose, ret_extra = ret_extra)
     cost$eps <- eps
@@ -926,7 +929,8 @@ scale_affinities <- function(P, symmetrize = "symmetric", row_normalize = TRUE,
               none = P,
               symmetric = 0.5 * (P + t(P)),
               mutual = sqrt(P * t(P)),
-              umap = P + t(P) - P * t(P),
+              umap = fuzzy_set_union(P),
+              fuzzy = fuzzy_set_union(P),
               stop("unknown symmetrization: ", symmetrize))
   # Normalize
   if (normalize) {
@@ -946,10 +950,14 @@ sne_init <- function(cost, X, perplexity, kernel = "gaussian",
     if (length(perplexity) > 1) {
       stop("Can't use multiple perplexities with knn kernel")
     }
-    if (verbose) {
-      tsmessage("Using knn kernel with k = ", formatC(perplexity))
-    }
+    tsmessage("Using knn kernel with k = ", formatC(perplexity))
     P <- knn_graph(X, k = perplexity)
+    x2ares <- list(W = P)
+  }
+  else if (tolower(kernel) == "skd") {
+    P <- smooth_knn_distances(X, k = perplexity, tol = 1e-5,
+                              verbose = verbose)$P
+    row_normalize <- FALSE
     x2ares <- list(W = P)
   }
   else if (perp_method(perplexity) == "idp") {
