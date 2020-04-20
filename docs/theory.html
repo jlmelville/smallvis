@@ -1701,13 +1701,13 @@ w_{ij}
 <p>where I’ve tried to retain the structure of the expression that most resembles that of t-SNE, but the following is probably more convenient for the purposes of a stochastic gradient descent optimization:</p>
 <p><span class="math display">\[
 \frac{\partial C_{LV}}{\partial \mathbf{y_i}} = 
-  4\sum_j^N \left(
+  4\sum_j^N \left[
     \frac{p_{ij}}{ 1 + d_{ij}^2 }
     -\frac{\gamma }{ \left( \epsilon + d_{ij}^2 \right) \left( 1 + d_{ij}^2 \right) } 
-   \right)
+   \right]
    \left(\mathbf{y_i - y_j}\right)
 \]</span></p>
-<p>The <span class="math inline">\(\epsilon\)</span> term is needed computationally to avoid division by zero. Results can be quite sensitive to changing this value. In <code>smallvis</code> you can see the effect of it via the <code>lveps</code> parameter. It’s set to <code>0.1</code> in LargeVis.</p>
+<p>The <span class="math inline">\(\epsilon\)</span> term is needed computationally to avoid division by zero. Results can be quite sensitive to changing this value. In <code>smallvis</code> you can see the effect of it via the <code>gr_eps</code> parameter. It’s set to <code>0.1</code> in LargeVis.</p>
 <div id="other-weight-functions" class="section level4">
 <h4>Other weight functions</h4>
 <p>The LargeVis paper tests some other weighting functions, although they don’t do as well as the t-SNE-like function. They are available in the <a href="https://cran.r-project.org/package=largeVis">CRAN package</a> though, so here are the gradients for completeness.</p>
@@ -1736,15 +1736,6 @@ w_{ij} = \frac{1}{1 + \exp \left(d_{ij}^2\right)} \\
    \left(\mathbf{y_i - y_j}\right)
 \]</span></p>
 <p>Note that section 3 of the paper mentions the above as a possible weight function, but the results in section 4 of the paper claim to actually investigate <span class="math inline">\(w_{ij} = 1 / \left[1 + \exp \left(-d_{ij}^2\right)\right]\)</span>. I assume that’s a typo, because using the negative squared distance results in the weight increasing with distance.</p>
-</div>
-<div id="some-implementation-question-marks" class="section level4">
-<h4>Some Implementation Question Marks</h4>
-<p>Before leaving LargeVis, here are a couple of other issues to think about:</p>
-<ul>
-<li>Does it make sense to be matching <span class="math inline">\(p_{ij}\)</span> to <span class="math inline">\(w_{ij}\)</span>, rather than <span class="math inline">\(v_{ij}\)</span>? One is normalized, the other isn’t. As it happens, the LargeVis source code doesn’t actually generate the <span class="math inline">\(p_{ij}\)</span> from the <span class="math inline">\(v_{ij}\)</span>. It’s hard to know whether the equation in the paper or the source code is what is really meant, because the stochastic gradient descent implementation doesn’t use the input weights in the gradient, only for generating probabilities and these are unaffected by the lack of normalization. So it doesn’t matter at all for the SGD implementation, But the difference <em>is</em> important for the exact gradient implementation, because using <span class="math inline">\(p_{ij}\)</span> reduces the attractive forces in the gradient by a factor of <span class="math inline">\(N\)</span>.</li>
-<li>What is the role of <span class="math inline">\(\gamma\)</span> in the repulsion? There’s no explanation for what it’s supposed to represent, but it will presumably interact with the negative sampling rate, which in the LargeVis paper and source code has a default value of 5 negative samples for each positive sample. There is then the question of what the correct value of <span class="math inline">\(\gamma\)</span> should be in an exact gradient scenario. One way to view it is to see it as a way to scale up the contribution from the missing repulsions in stochastic gradient descent, i.e. as the negative sampling rate increases, <span class="math inline">\(\gamma\)</span> should decrease, in which case <span class="math inline">\(\gamma = 1\)</span> is the sensible choice for the full gradient. But in the LargeVis paper the cost function is introduced before any mention of stochastic gradient descent or sampling so it seems like it is intended to be an intrinsic part of the cost function. The right selection of <span class="math inline">\(\gamma\)</span> is now likely to be dependent on both <span class="math inline">\(N\)</span> and the perplexity choice, as well as the choice of using <span class="math inline">\(p_{ij}\)</span> or <span class="math inline">\(v_{ij}\)</span> mentioned above. Using the SGD implementation <span class="math inline">\(\gamma = 7\)</span> is almost certainly not the right choice.</li>
-</ul>
-<p>As we will see below, UMAP makes the decision to use <span class="math inline">\(v_{ij}\)</span>, but it doesn’t use a <span class="math inline">\(\gamma\)</span> value to weight repulsions, so it’s not a huge help in deciding the best way to implement LargeVis in an exact gradient form.</p>
 </div>
 </div>
 <div id="umap-1" class="section level3">

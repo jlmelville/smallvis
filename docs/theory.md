@@ -323,16 +323,16 @@ of a stochastic gradient descent optimization:
 
 $$
 \frac{\partial C_{LV}}{\partial \mathbf{y_i}} = 
-  4\sum_j^N \left(
+  4\sum_j^N \left[
     \frac{p_{ij}}{ 1 + d_{ij}^2 }
     -\frac{\gamma }{ \left( \epsilon + d_{ij}^2 \right) \left( 1 + d_{ij}^2 \right) } 
-   \right)
+   \right]
    \left(\mathbf{y_i - y_j}\right)
 $$
 
 The $\epsilon$ term is needed computationally to avoid division by zero. Results
 can be quite sensitive to changing this value. In `smallvis` you can see the
-effect of it via the `lveps` parameter. It's set to `0.1` in LargeVis.
+effect of it via the `gr_eps` parameter. It's set to `0.1` in LargeVis.
 
 #### Other weight functions
 
@@ -378,41 +378,6 @@ investigate
 $w_{ij} = 1 / \left[1 + \exp \left(-d_{ij}^2\right)\right]$. I assume that's a 
 typo, because using the negative squared distance results in the weight
 increasing with distance.
-
-
-#### Some Implementation Question Marks
-
-Before leaving LargeVis, here are a couple of other issues to think about:
-
-* Does it make sense to be matching $p_{ij}$ to $w_{ij}$, rather than $v_{ij}$?
-One is normalized, the other isn't. As it happens, the LargeVis source code
-doesn't actually generate the $p_{ij}$ from the $v_{ij}$. It's hard to know
-whether the equation in the paper or the source code is what is really meant,
-because the stochastic gradient descent implementation doesn't use the input
-weights in the gradient, only for generating probabilities and these are
-unaffected by the lack of normalization. So it doesn't matter at all for the SGD
-implementation, But the difference *is* important for the exact gradient
-implementation, because using $p_{ij}$ reduces the attractive forces in the
-gradient by a factor of $N$.
-* What is the role of $\gamma$ in the repulsion? There's no explanation for what
-it's supposed to represent, but it will presumably interact with the negative
-sampling rate, which in the LargeVis paper and source code has a default value
-of 5 negative samples for each positive sample. There is then the question of
-what the correct value of $\gamma$ should be in an exact gradient scenario. One
-way to view it is to see it as a way to scale up the contribution from the
-missing repulsions in stochastic gradient descent, i.e. as the negative sampling
-rate increases, $\gamma$ should decrease, in which case $\gamma = 1$ is the
-sensible choice for the full gradient. But in the LargeVis paper the cost
-function is introduced before any mention of stochastic gradient descent or
-sampling so it seems like it is intended to be an intrinsic part of the cost
-function. The right selection of $\gamma$ is now likely to be dependent on both
-$N$ and the perplexity choice, as well as the choice of using $p_{ij}$ or 
-$v_{ij}$ mentioned above. Using the SGD implementation $\gamma = 7$ is almost
-certainly not the right choice.
-
-As we will see below, UMAP makes the decision to use $v_{ij}$, but it doesn't
-use a $\gamma$ value to weight repulsions, so it's not a huge help in deciding
-the best way to implement LargeVis in an exact gradient form.
 
 ### UMAP
 
