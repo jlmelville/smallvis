@@ -538,6 +538,10 @@ tee <- function(perplexity, inp_kernel = "gaussian", symmetrize = "symmetric",
       cost$pcost <- cost$constV +
         cost$invN * (cost$lambda * colSums(W) - colSums(V * logm(W, eps)))
       cost
+    },
+    exaggerate = function(cost, exaggeration_factor) {
+      cost$V <- cost$V * exaggeration_factor
+      cost
     }
   )
 }
