@@ -416,7 +416,7 @@ from an even stronger `exaggeration_factor = 100`.
 A typical setting is:
 
 ```R
-iris_lvee <- smallvis(iris, method=list("largevis", gamma = 1e-3, gr_eps = 1e-3, normalize = FALSE), Y_init = "spca", eta = 0.15, perplexity = 40, g2tol = 1e-7, min_cost = -Inf, exaggeration_factor = 100, stop_lying_iter = 100)
+iris_lvee <- smallvis(iris, method=list("largevis", gamma = 1e-3, gr_eps = 1e-3, normalize = FALSE), Y_init = "spca", eta = 0.15, perplexity = 40, g2tol = 1e-7, min_cost = -Inf, exaggeration_factor = 10, stop_lying_iter = 100)
 ```
 
 ### iris
@@ -652,7 +652,7 @@ to be more expansion with the SGD results and the three clusters (black, cyan
 and blue) on the right hand side of the plots are pushed further, similarly to
 the situation with `frey`.
 
-`fashion6k` also tends to show a slightly different relative arrangement of
+`mnist6k` and `fashion6k` alsoshow a slightly different relative arrangement of
 clusters. This may be a limitation of the SGD implementation in terms of
 representing the LargeVis cost function as implemented in `smallvis`, but this
 is a mystery I will leave for another time. If it turns out to be due to a bug
