@@ -18,6 +18,7 @@ smallvis(
   epoch = max(1, base::round(max_iter/10)),
   min_cost = 0,
   tol = 1e-07,
+  g2tol = NULL,
   momentum = 0.5,
   final_momentum = 0.8,
   mom_switch_iter = stop_lying_iter + 150,
@@ -93,6 +94,15 @@ optimization will stop early. If there is another stage in the optimization
 to come then the next stage begins immediately. Otherwise, the optimization
 finishes. For \code{tol_wait} iterations after early exaggeration finished,
 early stopping will not occur.}
+
+\item{g2tol}{If the 2-norm (i.e the magnitude) of the gradient vector falls
+below this value, stop early. This is off by default and the \code{tol}
+parameter is probably more reliable, but for some combinations of
+parameters, you may see the cost value plateauing and apparently the
+tolerance value falling below \code{tol} but termination not occurring:
+this means that the cost function is very slightly increasing. This is
+probably a numerical precision issue rather than divergence occuring, so in
+this case, use the gradient norm to stop early.}
 
 \item{momentum}{Initial momentum value.}
 

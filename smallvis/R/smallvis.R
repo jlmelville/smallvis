@@ -422,6 +422,14 @@
 #'   to come then the next stage begins immediately. Otherwise, the optimization
 #'   finishes. For \code{tol_wait} iterations after early exaggeration finished,
 #'   early stopping will not occur.
+#' @param g2tol If the 2-norm (i.e the magnitude) of the gradient vector falls
+#'   below this value, stop early. This is off by default and the \code{tol}
+#'   parameter is probably more reliable, but for some combinations of
+#'   parameters, you may see the cost value plateauing and apparently the
+#'   tolerance value falling below \code{tol} but termination not occurring:
+#'   this means that the cost function is very slightly increasing. This is
+#'   probably a numerical precision issue rather than divergence occuring, so in
+#'   this case, use the gradient norm to stop early.
 #' @param epoch_callback Function to call after each epoch. See the
 #'   "Visualization callback" section. By default the current set of
 #'   coordinates will be plotted. Set to\code{FALSE} or \code{NULL} to turn
@@ -804,7 +812,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
                  method = "tsne",
                  epoch_callback = TRUE,
                  epoch = max(1, base::round(max_iter / 10)),
-                 min_cost = 0, tol = 1e-7,
+                 min_cost = 0, tol = 1e-7, g2tol = NULL,
                  momentum = 0.5, final_momentum = 0.8, 
                  mom_switch_iter = stop_lying_iter + 150,
                  eta = 500, min_gain = 0.01,
@@ -1046,7 +1054,9 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
           tsmessage("Using P for spectral initialization")
           A <- cost_fn$P
         }
-        tsmessage("Using V for spectral initialization")
+        else {
+          tsmessage("Using V for spectral initialization")
+        }
         if (is.null(A)) {
           stop("No suitable input for spectral initialization")
         }
@@ -1223,7 +1233,7 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
         stop_early <- TRUE
         tsmessage("Stopping early: cost fell below min_cost")
       }
-
+      
       if (!nnat(opt$is_terminated) && !is.null(tolval) && 
           tolval < tol && cost <= old_cost && 
           (iter > stop_lying_iter + tol_wait 
@@ -1232,6 +1242,17 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
         tsmessage("Stopping early: relative tolerance (", formatC(tol), ") met")
       }
 
+      # Alternative tolerance grad 2norm doesn't need cost to decrease to stop
+      # (Use this for certain settings with e.g. LargeVis where numerical issues
+      # can cause the cost function to increase almost negligibly)
+      g2tolval <- (norm2(opt_res$G))
+      if (!nnat(opt$is_terminated) && !is.null(g2tol) && g2tolval < g2tol &&
+          (iter > stop_lying_iter + tol_wait 
+           || opt_stages[opt_stage_idx] != "opt")) {
+        stop_early <- TRUE
+        tsmessage("Stopping early: ||G||2 tolerance (", formatC(g2tol), ") met")
+      }
+      
       # Stop current stage early if we aren't making progress
       if (stop_early) {
         if (opt_stage_idx == length(opt_stages)) {
