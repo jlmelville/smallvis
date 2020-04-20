@@ -56,6 +56,7 @@ to [automatically select perplexity](https://jlmelville.github.io/smallvis/idp.h
 for t-SNE. Related: does using an [average distance matrix](https://jlmelville.github.io/smallvis/averaging.html) 
 based on the result of multiple random initializations do better than just picking the result with the lowest error? 
 (It doesn't.)
+* A look at an exact gradient version of [LargeVis](https://jlmelville.github.io/smallvis/umap.html).
 * Some initial results using [UMAP](https://jlmelville.github.io/smallvis/umap.html)
 and related methods. Also, looking at the effect of borrowing some features from UMAP
 to see [the effect on t-SNE](https://jlmelville.github.io/smallvis/umaptsne.html) (sadly, not much).
