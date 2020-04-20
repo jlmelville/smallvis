@@ -1,11 +1,10 @@
 <!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
 
 <head>
 
 <meta charset="utf-8" />
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="pandoc" />
 <meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
@@ -287,7 +286,6 @@ code {
 }
 img {
   max-width:100%;
-  height: auto;
 }
 .tabbed-pane {
   padding-top: 12px;
@@ -349,6 +347,7 @@ summary {
   border: none;
   display: inline-block;
   border-radius: 4px;
+  background-color: transparent;
 }
 
 .tabset-dropdown > .nav-tabs.nav-tabs-open > li {
@@ -416,6 +415,7 @@ library(smallvis)</code></pre>
 <li><a href="https://jlmelville.github.io/smallvis/hssne.html">Heavy-Tailed SSNE (HSSNE)</a>.</li>
 <li><a href="https://jlmelville.github.io/smallvis/dhssne.html">Optimizing the Heavy-Tail parameter in HSSNE</a>.</li>
 <li>Testing some different <a href="https://jlmelville.github.io/smallvis/init.html">initialization methods</a> for t-SNE. Related: does using an <a href="https://jlmelville.github.io/smallvis/averaging.html">average distance matrix</a> based on the result of multiple random initializations do better than just picking the result with the lowest error? (It doesn’t.)</li>
+<li>A look at an exact gradient version of <a href="https://jlmelville.github.io/smallvis/umap.html">LargeVis</a>.</li>
 <li>Some initial results using <a href="https://jlmelville.github.io/smallvis/umap.html">UMAP</a> and related methods. Also, looking at the effect of borrowing some features from UMAP to see <a href="https://jlmelville.github.io/smallvis/umaptsne.html">the effect on t-SNE</a> (sadly, not much).</li>
 <li><a href="https://jlmelville.github.io/smallvis/norm.html">t-SNE normalization</a>.</li>
 <li>An evaluation of <a href="https://jlmelville.github.io/smallvis/lexagg.html">late exaggeration</a> in t-SNE, as suggested in the <a href="https://arxiv.org/abs/1712.09005">FIt-SNE</a> paper.</li>
