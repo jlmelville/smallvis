@@ -169,7 +169,7 @@ Depending on the choice of $\gamma$, this means that repulsions could be being
 down-weighted in LargeVis compared to t-SNE, where, for the datasets I use with
 `smallvis` and a perplexity of 40, the values of $\gamma$ typically range from
 $1/N$ at the start of the optimization to ~0.1 at the end (for more on this see
-the [t-EE page](https://jlmelville.github.io/smallvis/tee.htm). If that's the 
+the [t-EE page](https://jlmelville.github.io/smallvis/tee.htm)). If that's the 
 case, this would explain the more compressed clusters seen in LargeVis compared
 to t-SNE.
 
@@ -196,8 +196,9 @@ On the other hand, if you don't normalize, then the learning rate becomes more
 sensitive to $N$. I suggest starting with something like $100 / N$. For some
 choices of `gamma` and `gr_eps`, the LargeVis cost can be negative (which has
 no particular significance), so you will want to set `min_cost = -Inf` to stop
-the optimization stopping. If you set `normalize = TRUE`, then `eta = 100` is
-an ok choice.
+the optimization stopping. If you set `normalize = TRUE`, then based on my
+experience with t-EE, then `eta = 100, gr_eps = 1` is an ok choice if you don't 
+want the hassle of setting a data dependent learning rate.
 
 Finally, for other choices of `gamma` and `gr_eps`, although they converge just 
 fine, you may observe that the usual cost change tolerance doesn't trigger. This
@@ -496,15 +497,16 @@ the following settings:
 iris_lv <- smallvis(iris, method = list("largevis", normalize = TRUE, gamma = 10 / nrow(iris) ^ 2, gr_eps = 0.1), eta = nrow(iris) / 100, perplexity = 40, g2tol = 1e-7, min_cost = -Inf, exaggeration_factor = 10, Y_init = "spca")
 ```
 
-This uses a data-dependent learning rate of $\eta = N / 100$ and 
-$\gamma = 10 / N^2$. With the `exaggeration_factor = 10`, this means that the
-repulsion weight in the gradient will be $1 / N$ (remember that the repulsion 
-weight is $\gamma N$ in the normalized version of LargeVis) during early 
-exaggeration, which is approximately the initial t-SNE repulsion weight. After
-early exaggeration the repulsion is reduced by a factor of 10, but remains well
-below the repulsion weight of around 0.05-0.3 that t-SNE achieves with these
-datasets and settings. So I anticipate that the LargeVis results will be
-comparable to, but more compressed than, the t-SNE results.
+This uses a data-dependent $\gamma = 10 / N^2$ and learning rate of 
+$\eta = N / 100$, although a fixed $\eta = 100$ works nearly as well for this
+combination of $\epsilon$ and $\gamma$. With the `exaggeration_factor = 10`,
+this means that the repulsion weight in the gradient will be $1 / N$ (remember
+that the repulsion weight is $\gamma N$ in the normalized version of LargeVis)
+during early exaggeration, which is approximately the initial t-SNE repulsion
+weight. After early exaggeration the repulsion is reduced by a factor of 10, but
+remains well below the repulsion weight of around 0.05-0.3 that t-SNE achieves
+with these datasets and settings. So I anticipate that the LargeVis results will
+be comparable to, but more compressed than, the t-SNE results.
 
 ### iris
 
@@ -567,11 +569,10 @@ Finally, let's compare the results in `smallvis` to the `lvish` function in
 fairly close to the "true" LargeVis results. I'm not aiming to reproduce the
 `lvish` results in `smallvis`
 
-In order to make things more
-similar, for both `smallvis` and `lvish` we will use a knn kernel, where for a
-given perplexity $PP$, the nearest $PP$ neighbors of point $i$ get an input
-affinity of $1/PP$ and 0 everywhere else. The resulting matrix is symmetrized as
-usual to get the final $v_{ij}$ values.
+In order to make things more similar, for both `smallvis` and `lvish` we will
+use a knn kernel, where for a given perplexity $PP$, the nearest $PP$ neighbors
+of point $i$ get an input affinity of $1/PP$ and 0 everywhere else. The
+resulting matrix is symmetrized as usual to get the final $v_{ij}$ values.
 
 For `smallvis`, the only difference between the previous set of results is 
 adding `inp_kernel = "knn"` to the `method` list. For `lvish`, the settings
