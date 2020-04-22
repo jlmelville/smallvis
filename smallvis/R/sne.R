@@ -914,7 +914,7 @@ arsrsne <- function(perplexity) {
 # function returns the ones that will actually produce a symmetric matrix,
 # necessary for symmetric methods (e.g. tsne vs asne).
 true_symmetrize_options <- function() {
-  c("symmetric", "mutual", "umap")
+  c("symmetric", "average", "mutual", "umap", "fuzzy")
 }
 
 scale_affinities <- function(P, symmetrize = "symmetric", row_normalize = TRUE,
@@ -932,6 +932,7 @@ scale_affinities <- function(P, symmetrize = "symmetric", row_normalize = TRUE,
   P <- switch(symmetrize,
               none = P,
               symmetric = 0.5 * (P + t(P)),
+              average = 0.5 * (P + t(P)),
               mutual = sqrt(P * t(P)),
               umap = fuzzy_set_union(P),
               fuzzy = fuzzy_set_union(P),
