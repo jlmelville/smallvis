@@ -392,7 +392,7 @@ t-SNE-style affinity calculations, because the lack of matrix normalization in
 UMAP might allow for larger differences in perplexity-calibration versus smooth
 knn distances to emerge. There's good reason to believe that there *could* in
 principle be some differences, because although UMAP affinities are
-row-normalized, they are normalized to $log_2 k$ where k is the number of
+row-normalized, they are normalized to $\log_2 k$ where k is the number of
 nearest neighbors (analogous to perplexity), which is always going to be larger
 than 1 for any sensible choice of $k$.
 
