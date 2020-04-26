@@ -698,11 +698,417 @@ like UMAP and LargeVis.
 close equivalent to LargeVis or even UMAP visualizations, subject to which
 implementation provides you with the scalability and features you need.
 
+## Turning LargeVis into UMAP
+
+*April 26 2020*: Dmitry Kobak compared the results above to what I reported
+about [UMAP](https://jlmelville.github.io/smallvis/umap.html), and given how
+close LargeVis should be to UMAP (especially in the t-UMAP form), thought that
+there were some more things that needed explaining, especially around the
+results when $\gamma = 1$. It turns out that he was correct. This new section
+goes into a bit more detail on the specifics of what separates UMAP from
+LargeVis.
+
+The results above make clear that having an adjustable $\gamma$ value is
+important to get good visualizations, and that you probably want $\gamma < 1$.
+This seems to conflict with UMAP, which has no $\gamma$ in its cost function. It
+*does* appear in the Python implementation (as the `repulsion_strength`
+parameter), but its purpose is entirely to account for the missing repulsions
+due to limited sampling of repulsions in stochastic gradient descent (this was
+confirmed to me in an email from UMAP creator Leland McInnes). So in its
+exact-gradient form, there should be no $\gamma$. That means t-UMAP ought to 
+behave similarly to LargeVis with $\gamma = 1$, which we know to be difficult to
+get good results with. In the
+[UMAP](https://jlmelville.github.io/smallvis/umap.html) pages I do note that 
+UMAP and t-UMAP were quite hard to optimize: that would be in line with my
+findings here that large values of $\gamma$ make optimizing LargeVis difficult.
+But we can see from the annealed-$\gamma$ results that with $\gamma = 1$, we get
+very expanded clusters, which are not like the t-UMAP results on the UMAP page,
+which are much more compact. Can we account for this?
+
+The big difference between LargeVis and UMAP is in the affinity calculation:
+LargeVis does the things the t-SNE way (Gaussian perplexity calibration and
+symmetrization by averaging) and UMAP uses smooth knn distances and fuzzy 
+set union for symmetrization. Using
+[UMAP input affinities in t-SNE](https://jlmelville.github.io/smallvis/umaptsne.html)
+doesn't make a big difference, but the final matrix normalization may play a
+role there: before that step, apart from some minor perturbation due to
+symmetrization, the t-SNE input affinities are normalized to sum to 1, while in
+UMAP they sum to $\log_2 k$, with `k` being the number of neighbors, so
+analogous to the `perplexity` setting in t-SNE. The theory of UMAP does not call
+for any normalization of input affinities to probabilities, so unlike LargeVis
+there is no confusion over whether you normalize or not: you do not.
+
+Although the individual values of $v_{ij}$ are between 0 and 1 in both methods,
+the difference in normalization means that there is a lot more total affinity
+in the smooth knn distances methods, which suggests that the attractive
+interactions are up-weighted relative to the perplexity-based calibration in
+t-SNE. This would mean that compared to LargeVis, there is an effective 
+$\gamma < 1$ in UMAP, which would make the optimization a little easier. But is
+the reduction in repulsion enough to make a noticeable difference? We can test 
+this in un-normalized LargeVis with different input kernels: 
+`inp_kernel = "gauss"` for the usual t-SNE perplexity calibration, and 
+`inp_kernel = "skd"` for the smooth knn distances. For completeness, we'll also
+look at `inp_kernel = "knn"`, where each of the `perplexity` nearest neighbors 
+get an affinity of `1 / perplexity`, which was instructive when compared to skd
+in t-SNE. We'll also look at averaging (`symm = "av"`) versus fuzzy set union 
+(`symm = "fuzzy")`. This made little difference with t-SNE, but perhaps the lack
+of normalization will reveal larger changes.
+
+The results below will be done at two perplexities: `perplexity = 40`, which
+is a typical value used in t-SNE, and `perplexity = 15`, which is closer to the
+sort of value used in UMAP. For the `input_kernel = "skd"`, the `perplexity`
+parameter is interpreted as the number of nearest neighbors.
+
+Rather than go straight to a fully UMAP-like setting with `gamma = 1`, we'll use
+values of `gamma` that gave reasonable visualizations based on the previous
+results: $\gamma = 10 / N$ with an initial exaggeration factor of 10 for 100
+iterations. An example for `iris` with `perplexity = 15`:
+
+```R
+iris_ga15 <- smallvis(iris, method = list("largevis", gamma = 10 / nrow(iris), gr_eps = 0.1, normalize = FALSE, inp_kernel = "gauss", symmetrize = "average"), eta = 0.01, Y_init = "spca", perplexity = 15, g2tol = 1e-7, min_cost = -Inf, exaggeration_factor = 10)
+```
+
+In the results below, the first row uses t-SNE-like perplexity calibration
+(the LargeVis default). The second row uses smooth knn distances (the UMAP
+default). The third row uses the k-nearest-neighbors perplexity calibration.
+
+The left hand column uses the averaging symmetrization (LargeVis default),
+the right hand column uses fuzzy set union (UMAP default).
+
+Results for `perplexity = 40` are shown first, then `perplexity = 15` in a
+second section
+
+## Kernel + Symmetrization Results: Perplexity 40
+
+### iris
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![iris ga40](../img/lv/iris_ga40.png)|![iris gf40](../img/lv/iris_gf40.png)
+![iris sa40](../img/lv/iris_sa40.png)|![iris sf40](../img/lv/iris_sf40.png)
+![iris ka40](../img/lv/iris_ka40.png)|![iris kf40](../img/lv/iris_kf40.png)
+
+### s1k
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![s1k ga40](../img/lv/s1k_ga40.png)|![s1k gf40](../img/lv/s1k_gf40.png)
+![s1k sa40](../img/lv/s1k_sa40.png)|![s1k sf40](../img/lv/s1k_sf40.png)
+![s1k ka40](../img/lv/s1k_ka40.png)|![s1k kf40](../img/lv/s1k_kf40.png)
+
+### oli
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![oli ga40](../img/lv/oli_ga40.png)|![oli gf40](../img/lv/oli_gf40.png)
+![oli sa40](../img/lv/oli_sa40.png)|![oli sf40](../img/lv/oli_sf40.png)
+![oli ka40](../img/lv/oli_ka40.png)|![oli kf40](../img/lv/oli_kf40.png)
+
+### frey
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![frey ga40](../img/lv/frey_ga40.png)|![frey gf40](../img/lv/frey_gf40.png)
+![frey sa40](../img/lv/frey_sa40.png)|![frey sf40](../img/lv/frey_sf40.png)
+![frey ka40](../img/lv/frey_ka40.png)|![frey kf40](../img/lv/frey_kf40.png)
+
+### coil20
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![coil20 ga40](../img/lv/coil20_ga40.png)|![coil20 gf40](../img/lv/coil20_gf40.png)
+![coil20 sa40](../img/lv/coil20_sa40.png)|![coil20 sf40](../img/lv/coil20_sf40.png)
+![coil20 ka40](../img/lv/coil20_ka40.png)|![coil20 kf40](../img/lv/coil20_kf40.png)
+
+### mnist6k
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![mnist6k ga40](../img/lv/mnist6k_ga40.png)|![mnist6k gf40](../img/lv/mnist6k_gf40.png)
+![mnist6k sa40](../img/lv/mnist6k_sa40.png)|![mnist6k sf40](../img/lv/mnist6k_sf40.png)
+![mnist6k ka40](../img/lv/mnist6k_ka40.png)|![mnist6k kf40](../img/lv/mnist6k_kf40.png)
+
+### fashion6k
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![fashion6k ga40](../img/lv/fashion6k_ga40.png)|![fashion6k gf40](../img/lv/fashion6k_gf40.png)
+![fashion6k sa40](../img/lv/fashion6k_sa40.png)|![fashion6k sf40](../img/lv/fashion6k_sf40.png)
+![fashion6k ka40](../img/lv/fashion6k_ka40.png)|![fashion6k kf40](../img/lv/fashion6k_kf40.png)
+
+## Kernel + Symmetrization Results: Perplexity 15
+
+### iris
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![iris ga15](../img/lv/iris_ga15.png)|![iris gf15](../img/lv/iris_gf15.png)
+![iris sa15](../img/lv/iris_sa15.png)|![iris sf15](../img/lv/iris_sf15.png)
+![iris ka15](../img/lv/iris_ka15.png)|![iris kf15](../img/lv/iris_kf15.png)
+
+### s1k
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![s1k ga15](../img/lv/s1k_ga15.png)|![s1k gf15](../img/lv/s1k_gf15.png)
+![s1k sa15](../img/lv/s1k_sa15.png)|![s1k sf15](../img/lv/s1k_sf15.png)
+![s1k ka15](../img/lv/s1k_ka15.png)|![s1k kf15](../img/lv/s1k_kf15.png)
+
+### oli
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![oli ga15](../img/lv/oli_ga15.png)|![oli gf15](../img/lv/oli_gf15.png)
+![oli sa15](../img/lv/oli_sa15.png)|![oli sf15](../img/lv/oli_sf15.png)
+![oli ka15](../img/lv/oli_ka15.png)|![oli kf15](../img/lv/oli_kf15.png)
+
+### frey
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![frey ga15](../img/lv/frey_ga15.png)|![frey gf15](../img/lv/frey_gf15.png)
+![frey sa15](../img/lv/frey_sa15.png)|![frey sf15](../img/lv/frey_sf15.png)
+![frey ka15](../img/lv/frey_ka15.png)|![frey kf15](../img/lv/frey_kf15.png)
+
+### coil20
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![coil20 ga15](../img/lv/coil20_ga15.png)|![coil20 gf15](../img/lv/coil20_gf15.png)
+![coil20 sa15](../img/lv/coil20_sa15.png)|![coil20 sf15](../img/lv/coil20_sf15.png)
+![coil20 ka15](../img/lv/coil20_ka15.png)|![coil20 kf15](../img/lv/coil20_kf15.png)
+
+### mnist6k
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![mnist6k ga15](../img/lv/mnist6k_ga15.png)|![mnist6k gf15](../img/lv/mnist6k_gf15.png)
+![mnist6k sa15](../img/lv/mnist6k_sa15.png)|![mnist6k sf15](../img/lv/mnist6k_sf15.png)
+![mnist6k ka15](../img/lv/mnist6k_ka15.png)|![mnist6k kf15](../img/lv/mnist6k_kf15.png)
+
+### fashion6k
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![fashion6k ga15](../img/lv/fashion6k_ga15.png)|![fashion6k gf15](../img/lv/fashion6k_gf15.png)
+![fashion6k sa15](../img/lv/fashion6k_sa15.png)|![fashion6k sf15](../img/lv/fashion6k_sf15.png)
+![fashion6k ka15](../img/lv/fashion6k_ka15.png)|![fashion6k kf15](../img/lv/fashion6k_kf15.png)
+
+For the most part, the effect of symmetrization is almost impossible to detect
+without peering closely at minor changes. If you look at the `knn` results
+for `frey` with `perplexity = 15`, you'll see that there's a small green/orange
+cluster of points in the middle of the plot, which is off to the left in all
+the others. You know things are bad when you're reduced to noticing that kind
+of thing. A larger change can be seen with `mnist6k` with `perplexity = 40`,
+where the cerise (thank you 
+[name that color](http://chir.ag/projects/name-that-color/)) and green cluster
+in the lower left get entangled with each other when using the fuzzy set union
+symmetrization. Apart from that, symmetrization does not seem like a big deal
+with un-normalized affinities.
+
+Also, it doesn't seem like new behavior in either symmetrization of the input
+kernel emerges when changing from `perplexity = 40` to `perplexity = 15`, so
+I will mainly concentrate on the effect of input kernel with perplexity 40, as
+that lines up with the other LargeVis results on this page.
+
+When looking at input affinities in t-SNE, the smooth knn distances results
+were somewhere between the Gaussian kernel and the knn kernel. Without matrix
+normalization, that no longer seems to be the case. There is now a noticeable
+difference in the amount of repulsion for skd versus gauss (and knn) affinities,
+with the skd results showing noticeably tighter clusters for `iris` and `oli`
+(also in `s1k` where the clusters show a more "peaked" or slightly triangular
+shape), although for `coil20` the knn and skd results are quite similar. However
+what is noticeable for nearly all the plots if you look at the ranges on the
+axes of the plots is that the skd results take up a much smaller extent. This
+would seem indicative of a smaller relative repulsion compared to the other
+kernels.
+
+## Initializing t-UMAP and LargeVis from Largevis
+
+So far we've seen that the smoothed knn distances input affinities lead to more
+compressed results than the typical LargeVis Gaussian kernel for a given value
+of $\gamma$. However we were using quite low values of $\gamma$ suitable for
+creating decent visualization with the Gaussian kernel. Do these results hold
+up when $\gamma = 1$, which is the effective $\gamma$ used in UMAP?
+
+To test this we are going to focus on just `mnist6k` and `fashion6k`, which
+are the largest datasets and the ones which are most obviously badly affected
+by using $\gamma = 1$ without very careful initialization. Also, I am going to
+switch to using `perplexity = 15` now, because I'm now interested in reproducing
+more UMAP-like behavior with LargeVis.
+
+For a given input kernel, we will run an un-normalized LargeVis optimization 
+with `gamma = 1`. This is going to be difficult to get good results, so we will
+also use an `exaggeration_factor = 10`. Also, we're going to set the learning
+rate fairly low, to `eta = 0.001`, because I've noticed that early on in the
+optimization, there are quite large gradients that can lead to initial
+distortions (e.g. one or two outlier points that have been displaced a long
+distance relative to the rest of the data). The visualizations *do* recover, but
+as the local minimum they will end up could be quite far from the initial
+trajectory, which might complicate looking at the final results. To compensate
+for the lowered the learning rate, we'll use `max_iter = 10000`, i.e. ten times
+long as usual.
+
+We will carry out two runs for each dataset, with `input_kernel = "skd"` and 
+`input_kernel = "gauss"` (we won't look at `input_kernel = "knn"` so we have
+less results to sift through, but also because this takes so much longer to
+run). My expectations are:
+
+1. Neither results will look that great.
+1. The `input_kernel = "gauss"` results will look worse than the
+`input_kernel = "skd"` results.
+
+Then we will use the final coordinates from the LargeVis run to initialize
+two new optimizations. The two methods are:
+
+* t-UMAP. With the `skd` kernel initialization, t-UMAP and LargeVis should be
+very, very similar. So as long as the LargeVis optimization was far enough long
+to provide a good initialization, I expect the t-UMAP results to not differ
+very much from the starting point. On the other hand, the `gauss` initialization
+should be a worse initialization for t-UMAP and I would expect to see 
+a larger change.
+* LargeVis again with whatever input kernel parameter was used. Apart from 
+restarting the adaptive optimization parameters this is like running a 20,000
+iteration optimization. This is more of a control run to ensure that 10,000
+iterations was sufficient to get a good initialization for t-UMAP and to track
+any further changes to the layout that would have occurred anyway. Mainly this
+is to account for the scenario where LargeVis with the Gaussian kernel gives a
+bad output, and running t-UMAP on it substantially improves it. Do I expect
+this to happen? No. But if it did, it would leave the question open as to 
+whether LargeVis just needed longer to optimize those coordinates and would
+have got there as well as t-UMAP did.
+
+These will also be run for 10,000 iterations and the same learning rate.
+
+To summarize, there will be two sets of three visualizations each:
+
+1. An initial LargeVis run with `inp_kernel = "gauss"`.
+2. A LargeVis run with `inp_kernel = "skd"` initialized from LargeVis in step 1.
+3. A t-UMAP run initialized from LargeVis in step 1.
+
+Then we will repeat all that but with `inp_kernel = "skd"` in steps 1 and 2.
+Got it? No? Eh, I did my best.
+
+Here's an example of the settings we'll use for the three steps using `mnist6k`
+and `inp_kernel = "gauss"`
+
+```R
+mnist6k_lv1 <- smallvis(mnist6k, eta = 0.001, method=list("largevis", gr_eps = 0.1, normalize = FALSE, inp_kernel = "gauss", symmetrize = "fuzzy", gamma = 1), Y_init = "spca", perplexity = 15, g2tol = 1e-7, min_cost = -Inf, exaggeration_factor = 10, max_iter = 10000, epoch = 100, tol_wait = 2000)
+
+mnist6k_lv2 <- smallvis(mnist6k, eta = 0.001, method=list("largevis", gr_eps = 0.1, normalize = FALSE, inp_kernel = "gauss", symmetrize = "fuzzy", gamma = 1), perplexity = 15, verbose = TRUE, max_iter = 10000, epoch = 100, Y_init = mnist6k_tu2, tol_wait = 2000)
+
+mnist6k_tu3 <- smallvis(mnist6k, eta = 0.001, method=list("tumap", gr_eps = 0.1), perplexity = 15, verbose = TRUE, max_iter = 10000, epoch = 100, Y_init = mnist6k_lv1, tol_wait = 2000)
+```
+
+I use the `tol_weight = 2000` parameter here, which prevents stopping the
+optimization before iteration 2000 (after which the final momentum has kicked in
+for a few hundred iterations). This is to stop the optimizations in steps 2 and
+3 from prematurely converging if the adaptive learning rates were taking a while
+to make progress. Also `gr_eps = 0.1` for all methods. I did some preliminary
+checking to see if this was interfering with accurate gradient values and
+preventing convergence but it didn't seem to be an issue.
+
+Below the results on the left show the Gaussian kernel and results on the right
+show the smooth knn distances kernel. Row 1 is the initial LargeVis result,
+row 2 is the LargeVis result initialized from the first LargeVis result, and
+row 3 is the t-UMAP result initialized from the first LargeVis result.
+
+### mnist6k
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![mnist6k gfg1p15](../img/lv/mnist6k_gfg1p15.png)|![mnist6k sfg1p15](../img/lv/mnist6k_sfg1p15.png)
+![mnist6k lvlvgg](../img/lv/mnist6k_lvlvgg.png)|![mnist6k lvlvgs](../img/lv/mnist6k_lvlvgs.png)
+![mnist6k tulvgg](../img/lv/mnist6k_tulvgg.png)|![mnist6k tulvgs](../img/lv/mnist6k_tulvgs.png)
+
+### fashion6k
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![fashion6k gfg1p15](../img/lv/fashion6k_gfg1p15.png)|![fashion6k sfg1p15](../img/lv/fashion6k_sfg1p15.png)
+![fashion6k lvlvgg](../img/lv/fashion6k_lvlvgg.png)|![fashion6k lvlvgs](../img/lv/fashion6k_lvlvgs.png)
+![fashion6k tulvgg](../img/lv/fashion6k_tulvgg.png)|![fashion6k tulvgs](../img/lv/fashion6k_tulvgs.png)
+
+`mnist6k` results are the most instructive to look at, as the Gaussian kernel
+gives the worst results initially (top left), so any improvement is easier to
+see. First, note that switching to the smooth knn distances with LargeVis (top
+right) does help quite a bit, so that behavior seems to hold up even at higher
+$\gamma$ values. Results are still far from perfect however, with several
+clusters split.
+
+The middle row is from running LargeVis for another 10,000 iterations, to check
+if the top results are converged. And there are not major changes. There is 
+certainly some improvement to the `inp_kernel = "gauss"` results (middle left),
+but still a long way from what we would like to see. The `inp_kernel = "skd"`
+results also improve with some clusters being unsplit. This is important for
+evaluating the t-UMAP results as that means we can't attribute these
+improvements to t-UMAP specifically.
+
+The t-UMAP results are on the bottom row. First, the effect of the smooth knn
+distances kernel on the gaussian kernel input (bottom left) is very noticeable:
+results are much cleaner looking than was achieved by just running LargeVis
+for longer, although the overall arrangement of the visualization is unchanged.
+As expected, the clusters are smaller, tighter and more well-separated.
+
+On the bottom right we see very little difference from the t-UMAP results
+compared to the LargeVis results (center right). If you look very closely you'll
+see that the fine structure within each cluster seems more pronounced: i.e. the
+holes inside each cluster are slightly larger. This can be explained by the
+extra $1 - v_{ij}$ weighting factor that exists in the repulsions for UMAP
+compared to LargeVis: The affinity matrix with smooth knn distances is sparse by
+design so for most pairs of points the repulsion is identical between LargeVis
+and UMAP. However, for close neighbors in the input space, there is a non-zero
+$v_{ij}$ so there is an extra down-weighting of repulsions. This pulls the
+neighbor points closer together, leading to the slightly lower homogeneity
+inside the clusters. The final cost values in the caption on the bottom row
+confirm that initializing t-UMAP from `input_kernel = "skd"` LargeVis results
+not only leads to more pleasant-looking initializations, but a lower cost.
+
+The `fashion6k` results confirm the observations above, albeit in less emphatic
+fashion.
+
+## Conclusions (Again)
+
+When I was looking at using 
+[UMAP input affinities in t-SNE](https://jlmelville.github.io/smallvis/umaptsne.html),
+I concluded that those findings (that nothing made a huge difference)
+wouldn't necessarily transfer to un-normalized methods, especially with regard
+to smooth knn distances. It turns out that this is the case.
+
+1. The use of smooth knn distances in the input affinity means that UMAP
+has a larger effective repulsion than LargeVis with its Gaussian input kernel
+and `gamma = 1`. I haven't tried to quantify what the effective gamma is in
+terms of LargeVis.
+1. t-UMAP results will therefore not resemble LargeVis with `gamma = 1` and 
+won't be quite so hard to optimize.
+1. It's still quite hard to optimize though.
+1. There are lots of things that make optimizing UMAP and LargeVis difficult in
+their exact gradient form: setting the correct `gr_eps` value to avoid division
+by zero, balancing repulsive and attractive interactions, using a good 
+initialization, learning rate. Lots of these considerations are problems for any
+method, including t-SNE, but they are particularly thorny for un-normalized
+methods.
+1. UMAP is actually at a disadvantage over LargeVis when it comes to the exact
+gradient optimization: we don't have a gamma value to modify. An alternative is
+to use t-SNE-style early exaggeration and multiply the input affinities by
+a constant factor, but because the UMAP cost function has a 
+$\log[(1 - v_{ij}) / (1 - w_{ij})]$ in it so you have to be careful how that
+is carried out, e.g. update for the purpose of gradient calculation, but not
+for the cost function calculation and be careful with any early stopping
+criteria that use the cost function.
+1. However you do it, as we have seen, there are limits to how effective a
+one-off boost to the repulsion is with un-normalized methods once $\gamma$
+becomes large: either the boost is too small to give the desired effect, or the
+learning rate has to be made very small to accomodate the very different scales
+of the gradient before and after the exaggeration. A different adaptive learning
+rate method to the t-SNE Delta-Bar-Delta method (or changes to the parameters)
+may be needed, which is a lot of work.
+
 ## Acknowledgement
 
 Dmitry Kobak has been asking me to look at how the `smallvis` version LargeVis
 behaves for ages, as well as asking "don't you think it's odd that t-SNE with
 exaggerations looks so much like UMAP?", so I have him to thank for prodding
-me into looking at this in a bit more detail.
+me into looking at this in a ~~bit~~ lot more detail.
 
 Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
