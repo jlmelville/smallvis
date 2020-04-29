@@ -1230,6 +1230,10 @@ smallvis <- function(X, k = 2, scale = "absmax",
           message(" nf = ", opt$counts$fn, " ng = ", opt$counts$gr,
                   appendLF = FALSE)
         }
+        
+        if (!is.null(old_cost) && cost > old_cost) {
+          message(" !", appendLF = FALSE)
+        }
 
         message()
         utils::flush.console()
