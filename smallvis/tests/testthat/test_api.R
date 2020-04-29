@@ -586,3 +586,28 @@ test_that("t-EE and LargeVis are equivalent (sometimes)", {
                     verbose = FALSE, epoch_callback = NULL)
   expect_equal(restee, reslv)
 })
+
+test_that("init sdev", {
+  set.seed(42)
+  res <- smallvis(iris10, Y_init = "rand", perplexity = 5,
+                  epoch_callback = NULL, verbose = FALSE, max_iter = 0)
+  expect_equal(apply(res, 2, sd), rep(1e-4, 2))
+  res <- smallvis(iris10, Y_init = "spca", perplexity = 5,
+                  epoch_callback = NULL, verbose = FALSE, max_iter = 0)
+  expect_equal(apply(res, 2, sd), rep(1e-4, 2))
+  res <- smallvis(iris10, Y_init = "pca", perplexity = 5, Y_init_sdev = 1e-4,
+                  epoch_callback = NULL, verbose = FALSE, max_iter = 0)
+  expect_equal(apply(res, 2, sd), rep(1e-4, 2))
+  res <- smallvis(iris10, Y_init = "pca", perplexity = 5, Y_init_sdev = 10,
+                  epoch_callback = NULL, verbose = FALSE, max_iter = 0)
+  expect_equal(apply(res, 2, sd), rep(10, 2))
+  res <- smallvis(iris10, Y_init = "spca", perplexity = 5, Y_init_sdev = 10,
+                  epoch_callback = NULL, verbose = FALSE, max_iter = 0)
+  expect_equal(apply(res, 2, sd), rep(10, 2))
+  res <- smallvis(iris10, Y_init = "rand", perplexity = 5, Y_init_sdev = 10,
+                  epoch_callback = NULL, verbose = FALSE, max_iter = 0)
+  expect_equal(apply(res, 2, sd), rep(10, 2))
+  res <- smallvis(iris10, Y_init = "normlap", perplexity = 5, Y_init_sdev = 10,
+                  epoch_callback = NULL, verbose = FALSE, max_iter = 0)
+  expect_equal(apply(res, 2, sd), rep(10, 2))
+})

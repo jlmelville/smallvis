@@ -193,13 +193,15 @@
 #'   \item{A matrix}: which must have dimensions \code{n} by \code{k}, where
 #'   \code{n} is the number of rows in \code{X}.
 #'   \item{\code{"rand"}}: initialize from a Gaussian distribution with mean 0
-#'   and standard deviation 1e-4.
+#'   and standard deviation 1e-4, the default used by t-SNE. The standard 
+#'   deviation can be controlled with \code{Y_init_sdev} (see below).
 #'   \item{\code{"pca"}}: use the first \code{k} scores of the
 #'   PCA: columns are centered, but no scaling beyond that which is applied by
 #'   the \code{scale} parameter is carried out.
 #'   \item{\code{"spca"}}: uses the PCA scores and then scales each score to a
 #'   standard deviation of 1e-4, similar to the method advocated by Kobak and
-#'   Berens, 2018.
+#'   Berens, 2018. The standard deviation can be controlled with
+#'   \code{Y_init_sdev} (see below).
 #'   \item{\code{"laplacian"}}: initialize from Laplacian Eigenmap (Belkin and
 #'   Niyogi, 2002). The affinity matrix used as input is the result of the
 #'   perplexity or smoothed k-nearest neighbor distance calibration. Either
@@ -227,6 +229,21 @@
 #' related to t-SNE (see Carreira-Perpinan, 2010, and Linderman and
 #' Steinerberger, 2017): it may therefore unnecessary to use the
 #' \code{exaggeration_factor} setting.
+#' 
+#' The \code{Y_init_sdev} parameter, if provided, will scale the input
+#' coordinates such that the standard deviation of each dimension is the
+#' provided value. The default is to do no scaling, except for 
+#' \code{Y_init = "spca"} and \code{Y_init = "rand"} where a scaling to a 
+#' standard deviation of \code{1e-4} is used, as in t-SNE initialization.
+#' \code{Y_init = "spca"} is effectively an alias for \code{Y_init = "pca",
+#' Y_init_sdev = 1e-4}.
+#' 
+#' Depending on the embedding method, a particular initialization method may
+#' result in initial coordinates with too small or large inter-point distances,
+#' which can result in too large or small gradients, respectively. In turn this
+#' will lead to difficulties in optimization. Shrinking the initial embedding by
+#' rescaling can help under these circumstances. \code{Y_init= "spca"} is a
+#' good default place to start.
 #'
 #' @section Visualization callback:
 #'
@@ -396,6 +413,9 @@
 #'   or \code{"none"}.
 #' @param Y_init How to initialize the output coordinates. See
 #'  the 'Output initialization' section.
+#' @param Y_init_sdev If non-\code{NULL}, scales each dimension of the
+#'   initialized coordinates (including any user-supplied matrix) to this
+#'   standard deviation. See 'Output initialization' section.
 #' @param perplexity The target perplexity for parameterizing the input
 #'   probabilities. For method \code{"umap"}, controls the neighborhood size
 #'   for parameterizing the smoothed k-nearest neighbor distances. See also the
@@ -806,7 +826,8 @@
 #' \url{https://doi.org/10.1101/331611}
 #'
 #' @export
-smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
+smallvis <- function(X, k = 2, scale = "absmax", 
+                     Y_init = "rand", Y_init_sdev = NULL,
                  perplexity = 30, max_iter = 1000,
                  pca = FALSE, initial_dims = 50,
                  method = "tsne",
@@ -1043,7 +1064,12 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
                           c("rand", "pca", "spca", "laplacian", "normlaplacian"))
 
       if (!is_spectral_init(Y_init)) {
-        Y <- init_out(Y_init, X, n, k, pca_preprocessed = pca,
+        # We now handle scaling coordinates below, so spca is treated like pca
+        non_spectral_init <- Y_init
+        if (non_spectral_init == "spca") {
+          non_spectral_init <- "pca"
+        }
+        Y <- init_out(non_spectral_init, X, n, k, pca_preprocessed = pca,
                       verbose = verbose)
       }
       else {
@@ -1069,6 +1095,13 @@ smallvis <- function(X, k = 2, scale = "absmax", Y_init = "rand",
           Y <- normalized_spectral_init(A, ndim = k)
         }
       }
+    }
+    if (!is.null(Y_init_sdev) || Y_init == "spca" || Y_init == "rand") {
+      if (is.null(Y_init_sdev)) {
+        Y_init_sdev <- 1e-4
+      }
+      tsmessage("Scaling initial coords by ", formatC(Y_init_sdev))
+      Y <- shrink_coords(Y, Y_init_sdev)
     }
   }
 
@@ -1673,29 +1706,23 @@ init_out <- function(Y_init, X, n, ndim, pca_preprocessed, verbose = FALSE) {
   switch(Y_init,
          pca = {
            tsmessage("Initializing from PCA scores")
-           if (pca_preprocessed) {
-             X[, 1:2]
-           }
-           else {
-             pca_scores(X, ncol = ndim, verbose = verbose)
-           }
-         },
-         spca = {
-           tsmessage("Initializing from scaled PCA scores")
-           # If we've already done PCA, we can just take the first two columns
-           if (pca_preprocessed) {
-             scores <- X[, 1:2]
-           }
-           else {
-             scores <- pca_scores(X, ncol = ndim, verbose = verbose)
-           }
-           scale(scores, scale = apply(scores, 2, stats::sd) / 1e-4)
+           pca_init(X, ndim, pca_preprocessed, verbose)
          },
          rand = {
-           tsmessage("Initializing from random Gaussian with sd = 1e-4")
-           matrix(stats::rnorm(ndim * n, sd = 1e-4), n)
+           tsmessage("Initializing from random Gaussian")
+           matrix(stats::rnorm(ndim * n, sd = 1), n)
          }
   )
+}
+
+pca_init <- function(X, ndim, pca_preprocessed, verbose = FALSE) {
+  # If we've already done PCA, we can just take the first two columns
+  if (pca_preprocessed) {
+    X[, 1:2]
+  }
+  else {
+    pca_scores(X, ncol = ndim, verbose = verbose)
+  }
 }
 
 # Laplacian Eigenmap (Belkin & Niyogi, 2002)
@@ -1772,6 +1799,13 @@ normalized_spectral_init <- function(A, ndim = 2, use_RSpectra = TRUE) {
 is_spectral_init <- function(init) {
   tolower(init) %in% c("laplacian", "normlaplacian")
 }
+
+# Rescale embedding so that the standard deviation is the specified value.
+# Default gives initialization like t-SNE, but not random.
+shrink_coords <- function(X, sdev = 1e-4) {
+  scale(X, scale = apply(X, 2, stats::sd) / sdev)
+}
+
 
 # Epoch Functions ---------------------------------------------------------
 

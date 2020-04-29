@@ -9,6 +9,7 @@ smallvis(
   k = 2,
   scale = "absmax",
   Y_init = "rand",
+  Y_init_sdev = NULL,
   perplexity = 30,
   max_iter = 1000,
   pca = FALSE,
@@ -53,6 +54,10 @@ or \code{"none"}.}
 
 \item{Y_init}{How to initialize the output coordinates. See
 the 'Output initialization' section.}
+
+\item{Y_init_sdev}{If non-\code{NULL}, scales each dimension of the
+initialized coordinates (including any user-supplied matrix) to this
+standard deviation. See 'Output initialization' section.}
 
 \item{perplexity}{The target perplexity for parameterizing the input
 probabilities. For method \code{"umap"}, controls the neighborhood size
@@ -465,13 +470,15 @@ to one of the following:
   \item{A matrix}: which must have dimensions \code{n} by \code{k}, where
   \code{n} is the number of rows in \code{X}.
   \item{\code{"rand"}}: initialize from a Gaussian distribution with mean 0
-  and standard deviation 1e-4.
+  and standard deviation 1e-4, the default used by t-SNE. The standard 
+  deviation can be controlled with \code{Y_init_sdev} (see below).
   \item{\code{"pca"}}: use the first \code{k} scores of the
   PCA: columns are centered, but no scaling beyond that which is applied by
   the \code{scale} parameter is carried out.
   \item{\code{"spca"}}: uses the PCA scores and then scales each score to a
   standard deviation of 1e-4, similar to the method advocated by Kobak and
-  Berens, 2018.
+  Berens, 2018. The standard deviation can be controlled with
+  \code{Y_init_sdev} (see below).
   \item{\code{"laplacian"}}: initialize from Laplacian Eigenmap (Belkin and
   Niyogi, 2002). The affinity matrix used as input is the result of the
   perplexity or smoothed k-nearest neighbor distance calibration. Either
@@ -499,6 +506,21 @@ similar to turning off the repulsive interactions in many cost functions
 related to t-SNE (see Carreira-Perpinan, 2010, and Linderman and
 Steinerberger, 2017): it may therefore unnecessary to use the
 \code{exaggeration_factor} setting.
+
+The \code{Y_init_sdev} parameter, if provided, will scale the input
+coordinates such that the standard deviation of each dimension is the
+provided value. The default is to do no scaling, except for 
+\code{Y_init = "spca"} and \code{Y_init = "rand"} where a scaling to a 
+standard deviation of \code{1e-4} is used, as in t-SNE initialization.
+\code{Y_init = "spca"} is effectively an alias for \code{Y_init = "pca",
+Y_init_sdev = 1e-4}.
+
+Depending on the embedding method, a particular initialization method may
+result in initial coordinates with too small or large inter-point distances,
+which can result in too large or small gradients, respectively. In turn this
+will lead to difficulties in optimization. Shrinking the initial embedding by
+rescaling can help under these circumstances. \code{Y_init= "spca"} is a
+good default place to start.
 }
 
 \section{Visualization callback}{
