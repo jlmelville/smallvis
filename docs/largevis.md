@@ -74,7 +74,7 @@ $$
 I have also used the substitution $p_{ij} = v_{ij} / N$. This expression 
 resembles other methods' gradients quite closely:
 
-* [t-distributed Elastic Embedding](https://jlmelville.github.io/smallvis/tee.htm),
+* [t-distributed Elastic Embedding](https://jlmelville.github.io/smallvis/tee.html),
 where the t-EE parameter $\lambda = N\gamma$.
 * if you choose $\gamma = 1/Z$ at each iteration (where $Z = \sum w_{ij}$), you 
 get the t-SNE gradient.
@@ -105,14 +105,15 @@ $$
 and if you set $\gamma = 1$ this now resembles yet another method: the t-UMAP
 variant of UMAP, with the following minor differences:
 
-* the $v_{ij}$ are generated in a different way in t-UMAP, although this doesn't
-make a huge difference.
+* the $v_{ij}$ are generated in a different way in t-UMAP.
 * the repulsive part of the gradient is scaled by $1 - v_{ij}$ in the exact
 gradient version of t-UMAP, but outside the k-nearest neighbors of point $i$,
-$v_{ij}$ is very close to zero, so that isn't a big deal either.
+$v_{ij}$ is very close to zero.
 
 Note that the resemblance between un-normalized LargeVis and t-UMAP does not
-require setting $\epsilon = 1$.
+require setting $\epsilon = 1$. We will look at seeing what the effect of these
+changes is in the section 
+[Turning LargeVis into UMAP](https://jlmelville.github.io/smallvis/largevis.html#turning_largevis_into_umap).
 
 ## How to set $\gamma$
 
@@ -181,220 +182,209 @@ See the [Datasets](https://jlmelville.github.io/smallvis/datasets.html) page.
 
 Here's an example invocation for LargeVis with `iris`.
 
+The choice of `gamma` and `eta` is dependent on whether `normalize = FALSE` or 
+`TRUE`. I find that you will want to scale both depending on the dataset, using
+something in the same order of magnitude as:
+
+* `normalize = TRUE`: `eta = nrow(X) / 10` and `gamma = 10 / (nrow(X) ^ 2)`
+* `normalize = FALSE`: `eta = 0.1` and `gamma = 10 / nrow(X)`
+
+Outside of these ranges I find that it's increasingly hard to get a satisfying
+optimization: early on the optimization the learning rate needs to be quite low
+(e.g. `eta = 0.01` with `normalize = FALSE, gamma = 1`), but it can be too low
+for the optimization to proceed efficiently once the initial re-arrangement of
+the layout has settled down. You will therefore need to run the optimization for
+longer than t-SNE. Even then, in most cases, it's difficult to come up with an
+initialization that works well. If you want to use a larger repulsion, it's
+better to start with a low value of `gamma` and slowly work up to the target
+value, as we shall explore below.
+
 ```R
-res <- smallvis(iris, method = list("largevis", normalize = FALSE, gamma = 0.01, gr_eps = 0.1), perplexity = 40, Y_init = "spca", eta = 0.5, g2tol = 1e-7, min_cost = -Inf)
+res <- smallvis(iris, method = list("largevis", normalize = TRUE, gamma = 10 / (nrow(iris) ^ 2), gr_eps = 0.1), perplexity = 40, Y_init = "spca", eta = nrow(iris) / 10)
+res <- smallvis(iris, method = list("largevis", normalize = FALSE, gamma = 10 / nrow(iris), gr_eps = 0.1), perplexity = 40, Y_init = "spca", eta = 0.1)
+res <- smallvis(iris, method = list("largevis", normalize = TRUE, gamma = 1, gr_eps = 0.1), perplexity = 40, Y_init = "spca", eta = 0.01, max_iter = 10000, epoch = 100)
+res <- smallvis(iris, method = list("largevis", normalize = FALSE, gamma = 1, gr_eps = 0.1), perplexity = 40, Y_init = "spca", eta = 0.01, max_iter = 10000, epoch = 100)
 ```
-
-The choice of `gamma` is dependent on whether `normalize = FALSE` or `TRUE`. If
-`TRUE`, then gamma needs to be scaled down by a factor of $N$ (where $N$ is the 
-number of points in the dataset). Because the suitable range of `gamma` values
-already starts quite small with `normalize = FALSE` (I would look between $1/N$
-and 1), I would suggest sticking with `normalize = FALSE`, even though that
-isn't how the cost function is written in the paper.
-
-On the other hand, if you don't normalize, then the learning rate becomes more
-sensitive to $N$. I suggest starting with something like $100 / N$. For some
-choices of `gamma` and `gr_eps`, the LargeVis cost can be negative (which has
-no particular significance), so you will want to set `min_cost = -Inf` to stop
-the optimization stopping. If you set `normalize = TRUE`, then based on my
-experience with t-EE, then `eta = 100, gr_eps = 1` is an ok choice if you don't 
-want the hassle of setting a data dependent learning rate.
-
-Finally, for other choices of `gamma` and `gr_eps`, although they converge just 
-fine, you may observe that the usual cost change tolerance doesn't trigger. This
-is because the cost function can actually increase by a very very small amount
-(although the formatting of the `error:` when `verbose = TRUE` won't show this).
-This is entirely a numeric issue and not due to an actual divergence (the 
-layout doesn't perceptibly change), and the gradient converges to a small 2-norm 
-as shown by the `||G||2` part of the logging. Set the `g2tol` under these
-circumstances to trigger early stopping due to the gradient 2-norm falling below
-a certain value. This is dataset dependent but values between `1e-5` to `1e-7`
-are probably good, but conservative choices.
 
 ## Raw results
 
-Here are some results using the settings above, and trying out a few 
-difference combinations of whether to normalize, values of `gamma` and `gr_eps`.
-I used a dataset-dependent value of `eta` for all results, even when
-`normalize = TRUE`. I increased `max_iter = 5000` for all the results to take
-into account that the learning rate might not be optimal. 
+The top row shows the effect of setting `gamma = 1` with normalized (left, 
+"norm" in the caption) or un-normalized (right, "un-norm") LargeVis. These were
+run for 10000 iterations due to the requirement of a low value of the learning
+rate. These results are hopefully reasonably converged to give a reasonable
+depiction of how LargeVis ends up with `gamma = 1` using an initialization that
+works well for t-SNE. But it should be noted that a previous version of this
+page used 5000 iterations and got results that weren't very converged. So
+these could end up changing again.
 
-The top left result is normalized LargeVis with `gamma = 1, gr_eps = 0.1`. This
-is quite close to a naive transfer of the SGD settings. On the top right are
-the same settings, but not normalizing. On the bottom left are the un-normalized
-LargeVis results with `gr_eps` reduced to `1e-6`. On the bottom right is
-the un-normalized LargeVis `gr_eps = 1e-6` and a substantially reduced $\gamma$,
-`gamma = 1e-3`, a value I suspect is a reasonable choice for full-gradient
-LargeVis.
+The second row uses a small value for `gamma`, scaled appropriately for whether
+we are normalizing or not: $1/N$ or $1/N^2$, respectively. These were able to
+be run with the typical 1000 iterations.
 
 ### iris
 
 |                             |                           |
 :----------------------------:|:--------------------------:
-![iris lvg1e0.1p](../img/lv/iris_lvg1e0.1p.png)|![iris lvg1e0.1v](../img/lv/iris_lvg1e0.1v.png)
-![iris lvg1e1e_6v](../img/lv/iris_lvg1e1e_6v.png)|![iris lvg1e_31e_6v](../img/lv/iris_lvg1e_31e_6v.png)
-
+![iris lvpg1](../img/lv/iris_lvpg1.png)|![iris lvvg1](../img/lv/iris_lvvg1.png)
+![iris lvpgs](../img/lv/iris_lvpgs.png)|![iris lvvgs](../img/lv/iris_lvvgs.png)
 
 ### s1k
 
 |                             |                           |
 :----------------------------:|:--------------------------:
-![s1k lvg1e0.1p](../img/lv/s1k_lvg1e0.1p.png)|![s1k lvg1e0.1v](../img/lv/s1k_lvg1e0.1v.png)
-![s1k lvg1e1e_6v](../img/lv/s1k_lvg1e1e_6v.png)|![s1k lvg1e_31e_6v](../img/lv/s1k_lvg1e_31e_6v.png)
-
+![s1k lvpg1](../img/lv/s1k_lvpg1.png)|![s1k lvvg1](../img/lv/s1k_lvvg1.png)
+![s1k lvpgs](../img/lv/s1k_lvpgs.png)|![s1k lvvgs](../img/lv/s1k_lvvgs.png)
 
 ### oli
 
 |                             |                           |
 :----------------------------:|:--------------------------:
-![oli lvg1e0.1p](../img/lv/oli_lvg1e0.1p.png)|![oli lvg1e0.1v](../img/lv/oli_lvg1e0.1v.png)
-![oli lvg1e1e_6v](../img/lv/oli_lvg1e1e_6v.png)|![oli lvg1e_31e_6v](../img/lv/oli_lvg1e_31e_6v.png)
-
+![oli lvpg1](../img/lv/oli_lvpg1.png)|![oli lvvg1](../img/lv/oli_lvvg1.png)
+![oli lvpgs](../img/lv/oli_lvpgs.png)|![oli lvvgs](../img/lv/oli_lvvgs.png)
 
 ### frey
 
 |                             |                           |
 :----------------------------:|:--------------------------:
-![frey lvg1e0.1p](../img/lv/frey_lvg1e0.1p.png)|![frey lvg1e0.1v](../img/lv/frey_lvg1e0.1v.png)
-![frey lvg1e1e_6v](../img/lv/frey_lvg1e1e_6v.png)|![frey lvg1e_31e_6v](../img/lv/frey_lvg1e_31e_6v.png)
-
+![frey lvpg1](../img/lv/frey_lvpg1.png)|![frey lvvg1](../img/lv/frey_lvvg1.png)
+![frey lvpgs](../img/lv/frey_lvpgs.png)|![frey lvvgs](../img/lv/frey_lvvgs.png)
 
 ### coil20
 
 |                             |                           |
 :----------------------------:|:--------------------------:
-![coil20 lvg1e0.1p](../img/lv/coil20_lvg1e0.1p.png)|![coil20 lvg1e0.1v](../img/lv/coil20_lvg1e0.1v.png)
-![coil20 lvg1e1e_6v](../img/lv/coil20_lvg1e1e_6v.png)|![coil20 lvg1e_31e_6v](../img/lv/coil20_lvg1e_31e_6v.png)
-
+![coil20 lvpg1](../img/lv/coil20_lvpg1.png)|![coil20 lvvg1](../img/lv/coil20_lvvg1.png)
+![coil20 lvpgs](../img/lv/coil20_lvpgs.png)|![coil20 lvvgs](../img/lv/coil20_lvvgs.png)
 
 ### mnist6k
 
 |                             |                           |
 :----------------------------:|:--------------------------:
-![mnist6k lvg1e0.1p](../img/lv/mnist6k_lvg1e0.1p.png)|![mnist6k lvg1e0.1v](../img/lv/mnist6k_lvg1e0.1v.png)
-![mnist6k lvg1e1e_6v](../img/lv/mnist6k_lvg1e1e_6v.png)|![mnist6k lvg1e_31e_6v](../img/lv/mnist6k_lvg1e_31e_6v.png)
-
+![mnist6k lvpg1](../img/lv/mnist6k_lvpg1.png)|![mnist6k lvvg1](../img/lv/mnist6k_lvvg1.png)
+![mnist6k lvpgs](../img/lv/mnist6k_lvpgs.png)|![mnist6k lvvgs](../img/lv/mnist6k_lvvgs.png)
 
 ### fashion6k
 
 |                             |                           |
 :----------------------------:|:--------------------------:
-![fashion6k lvg1e0.1p](../img/lv/fashion6k_lvg1e0.1p.png)|![fashion6k lvg1e0.1v](../img/lv/fashion6k_lvg1e0.1v.png)
-![fashion6k lvg1e1e_6v](../img/lv/fashion6k_lvg1e1e_6v.png)|![fashion6k lvg1e_31e_6v](../img/lv/fashion6k_lvg1e_31e_6v.png)
+![fashion6k lvpg1](../img/lv/fashion6k_lvpg1.png)|![fashion6k lvvg1](../img/lv/fashion6k_lvvg1.png)
+![fashion6k lvpgs](../img/lv/fashion6k_lvpgs.png)|![fashion6k lvvgs](../img/lv/fashion6k_lvvgs.png)
 
-Obviously `gamma = 1` with normalized LargeVis turns out to be a terrible
-idea. As anticipated, the repulsions are way too high and a circle of fairly 
-uniformly spaced points arises. If we use the un-normalized setting, then we
-get results that are much more intelligible, although which hint at the same
-problems that t-EE had for the larger datasets, which is that starting with
-too high a repulsion leads to problems.
+Obviously, `gamma = 1` with normalized LargeVis gives disastrously 
+over-repulsed results. Results don't look terrible with un-normalized LargeVis
+on the smaller datasets, but things don't look good with `mnist6k` or 
+`fashion6k`. `mnist6k` in particular is a real mess.
 
-Reducing the value of $\epsilon$ by setting `gr_eps = 1e-6` also causes problems
-with `gamma = 1`. All the results are the same as their initialized coordinates,
-although expanded. This isn't unique to the scaled PCA initialization: I tried
-this with random initialization as used by the LargeVis SGD implementation and
-a spectral initialization and the same thing happens.
+Is this just a case of a bad choice of initialization. Probably not because I've
+used a spectral initialization and random initialization and got the same
+results. Nor does changing `gr_eps` affect the results very much, except for
+the worse if you make it too small (results not shown).
 
-The cause of this issue is that the small distances in the initialization,
-combined with the relatively large gamma, leads to exceptionally large
-gradients. This leads to a very large change in the coordinates, which on
-subsequent iterations means which very large distances which causes
-exceptionally small gradients, so nothing happens after the initial explosion.
-
-In the SGD implementation, clipping occurs to prevent too large a gradient.
-`smallvis` does not clip gradients, so to get around this, we have a choice
-between initially using a more dispersed initialization, a larger `gr_eps`, a
-smaller `gamma`, a smaller `eta` or a more sophisticated adaptive step size
-optimization method that is more conservative during initial iterations.
-
-The results at the bottom right show the effect of using a reduced `gamma`, and
-it gives the most pleasing output by far. So it seems to be the case that the
-choice of `gamma` is quite critical to getting good results.
+The second row results with a small `gamma` look better for all the datasets
+and get there with one tenth of the number of iterations.
 
 ## Annealed-$\gamma$ results
 
 Given the similarity of the LargeVis gradient to t-EE, and given that t-EE
-results improve notably if you start with a small value of its $\lambda$
-parameter which entirely analogous to $\gamma$ parameter of LargeVis, we can
-probably expect to see an improvement by doing the same here.
+results with a larger repulsion improve notably if you start with a small value
+of its $\lambda$ parameter which entirely analogous to $\gamma$ parameter of
+LargeVis, we can probably expect to see an improvement by doing the same here.
 
-These runs use the same settings as for the previous results, except that I
-started with $\gamma$ set to a power of 10 closest to $1/N$ (using arguments I
-made on the t-EE page to do with what the initial repulsion in t-SNE is like),
-ran a full optimization with `max_iter = 1000` iterations, then used the final
-coordinates as input to a new run with $\gamma$ set to be ten times larger, and
-repeated until $\gamma = 1$. For the datasets studied here, this involves 3-5
-rounds of optimization, so this doesn't involve more iterations than that used
-in the previous section.
+For these runs, I started with $\gamma$ set to a power of 10 closest to $1/N$
+(using arguments I made on the t-EE page to do with what the initial repulsion
+in t-SNE is like) for un-normalized LargeVis, and the power of 10 closest to
+$1/N$ for normalized LargeVis. Then each run was repeated with `gamma` increased
+by a power of 10 and initializing with the final coordinates from the previous
+run. This was repeated up to and including `gamma = 1`. For un-normalized 
+LargeVis, this involved 3-5 round of optimization, and 4-8 for normalized
+LargeVis.
+
+The total number of iterations allowed was 10000, the same as for the results
+with `gamma = 1` in the previous section. The 10000 iterations were equally
+divided among each `gamma`. If a run finished early, the unused iterations were
+shared amongst the remaining runs equally. Because runs with higher values of
+`gamma` tend to take longer to optimize, this allowed these "spare" iterations
+to be put to good use.
+
+Choosing a good learning rate that works for all values of `gamma` is tricky. 
+For un-normalized LargeVis, `eta = 0.1` worked well. For normalized LargeVis,
+the best value I found was $10/N$.
 
 ### iris
 
 |                             |                           |
 :----------------------------:|:--------------------------:
-![iris lv1e-9](../img/lv/iris_lv1e-9.png)|![iris lv0.001](../img/lv/iris_lv0.001.png)
-![iris lv0.1](../img/lv/iris_lv0.1.png)|![iris lv1](../img/lv/iris_lv1.png)
-
+![iris ag](../img/lv/iris_ag.png)|![iris nag](../img/lv/iris_nag.png)
 
 ### s1k
 
 |                             |                           |
 :----------------------------:|:--------------------------:
-![s1k lv1e-9](../img/lv/s1k_lv1e-9.png)|![s1k lv0.001](../img/lv/s1k_lv0.001.png)
-![s1k lv0.1](../img/lv/s1k_lv0.1.png)|![s1k lv1](../img/lv/s1k_lv1.png)
-
+![s1k ag](../img/lv/s1k_ag.png)|![s1k nag](../img/lv/s1k_nag.png)
 
 ### oli
 
 |                             |                           |
 :----------------------------:|:--------------------------:
-![oli lv1e-9](../img/lv/oli_lv1e-9.png)|![oli lv0.001](../img/lv/oli_lv0.001.png)
-![oli lv0.1](../img/lv/oli_lv0.1.png)|![oli lv1](../img/lv/oli_lv1.png)
-
+![oli ag](../img/lv/oli_ag.png)|![oli nag](../img/lv/oli_nag.png)
 
 ### frey
 
 |                             |                           |
 :----------------------------:|:--------------------------:
-![frey lv1e-9](../img/lv/frey_lv1e-9.png)|![frey lv0.001](../img/lv/frey_lv0.001.png)
-![frey lv0.1](../img/lv/frey_lv0.1.png)|![frey lv1](../img/lv/frey_lv1.png)
-
+![frey ag](../img/lv/frey_ag.png)|![frey nag](../img/lv/frey_nag.png)
 
 ### coil20
 
 |                             |                           |
 :----------------------------:|:--------------------------:
-![coil20 lv1e-9](../img/lv/coil20_lv1e-9.png)|![coil20 lv0.001](../img/lv/coil20_lv0.001.png)
-![coil20 lv0.1](../img/lv/coil20_lv0.1.png)|![coil20 lv1](../img/lv/coil20_lv1.png)
-
+![coil20 ag](../img/lv/coil20_ag.png)|![coil20 nag](../img/lv/coil20_nag.png)
 
 ### mnist6k
 
 |                             |                           |
 :----------------------------:|:--------------------------:
-![mnist6k lv1e-9](../img/lv/mnist6k_lv1e-9.png)|![mnist6k lv0.001](../img/lv/mnist6k_lv0.001.png)
-![mnist6k lv0.1](../img/lv/mnist6k_lv0.1.png)|![mnist6k lv1](../img/lv/mnist6k_lv1.png)
-
+![mnist6k ag](../img/lv/mnist6k_ag.png)|![mnist6k nag](../img/lv/mnist6k_nag.png)
 
 ### fashion6k
 
 |                             |                           |
 :----------------------------:|:--------------------------:
-![fashion6k lv1e-9](../img/lv/fashion6k_lv1e-9.png)|![fashion6k lv0.001](../img/lv/fashion6k_lv0.001.png)
-![fashion6k lv0.1](../img/lv/fashion6k_lv0.1.png)|![fashion6k lv1](../img/lv/fashion6k_lv1.png)
+![fashion6k ag](../img/lv/fashion6k_ag.png)|![fashion6k nag](../img/lv/fashion6k_nag.png)
+
+The un-normalized LargeVis results are obviously massive improvements. The
+normalized LargeVis results are less impressive, but better than what came
+before
+
+Both results are obviously massive improvements, with the normalized LargeVis
+results being particularly impressive compared to what came before. Comparison
+of the final costs confirm the improvement. 
+
+The un-normalized LargeVis results generally converged at all stages, so I am
+fairly confident those are representative. The normalized LargeVis results
+are *still* not fully converged even with 10,000 iterations. 
+
+That issue is exacerbated for normalized LargeVis because it starts at a lower
+value of `gamma` compared to the un-normalized results, but still ends at
+`gamma = 1`, stepping through single powers of ten. Restarting the optimization
+loses any useful information about the curvature that might have built up which
+wastes some of the iterations, and also a large chunk of the optimization at
+each `gamma` seems to involve the initial expansion of the clusters until they
+form what look a lot like Voronoi polyhedra, before the clusters shrink and
+begin to move away. Because it takes a few more values of `gamma` to get to the
+target with normalized LargeVis, there are fewer iterations left over for the
+larger values of `gamma` to use.
+
+I repeated the `coil20` results with the same annealed `gamma` approach, but
+allowing up to 100,000 iterations. Results are indeed improved:
+
+![](../img/lv/coil20_naglong.png)
+
+Due to the extra difficulty of working with normalized LargeVis (at
+least with larger values of `gamma`) most of the results below will use the
+un-normalized version.
 
 
-Visually, things are looking much better. And they are pretty consistent across
-all values of `gr_eps` except for `gr_eps = 1`, where there seems to be more
-effective repulsion or it's just that the gradient gets smaller earlier in the
-optimization and progress halts sooner.
-
-Note that there *is* a difference in the final costs, though, with larger
-values of `gr_eps` causing the costs to be negative. Because you want `gr_eps`
-to only be large enough to avoid division by zero and avoid optimization issues 
-due to large changes in gradient value, I recommend setting `gr_eps = 1e-9` to 
-avoid the potential for negative cost values. Of course, this is only an option
-if you commit to using a small value of `gamma` initially, or you will run into
-the exploding gradients problem we saw earlier.
 
 ## Early Exaggeration
 
@@ -498,8 +488,7 @@ iris_lv <- smallvis(iris, method = list("largevis", normalize = TRUE, gamma = 10
 ```
 
 This uses a data-dependent $\gamma = 10 / N^2$ and learning rate of 
-$\eta = N / 100$, although a fixed $\eta = 100$ works nearly as well for this
-combination of $\epsilon$ and $\gamma$. With the `exaggeration_factor = 10`,
+$\eta = N / 100$. With the `exaggeration_factor = 10`,
 this means that the repulsion weight in the gradient will be $1 / N$ (remember
 that the repulsion weight is $\gamma N$ in the normalized version of LargeVis)
 during early exaggeration, which is approximately the initial t-SNE repulsion
@@ -671,9 +660,17 @@ to use in `smallvis` compared to t-SNE isn't very surprising.
 
 Some general observations are:
 
+* Despite sharing a lot of concepts, an un-normalized method like LargeVis is 
+hard to optimize using the techniques that work with t-SNE.
+* The problem is both with the optimization method (hyper-parameters including
+learning rate) and initialization.
+* For initialization, I've tried increasing the standard deviation of the
+initial coordiantes (whether using PCA, spectral methods or random) to 
+increase the initial inter-point distance and avoid large gradients, but I was
+unable to find a useful setting.
 * The balance of repulsions versus attractions in the t-SNE family of methods
 is critical.
-* Methods which don't start the optimization with attractions hugely domination
+* Methods which don't start the optimization with attractions hugely up-weighted
 will have a hard time producing useful results.
 * t-SNE automatically increases the repulsion as the optimization proceeds, 
 which is why it can produce output with more expanded clusters successfully.
@@ -695,8 +692,9 @@ t-SNE gradient (ignoring a constant scaling of the gradient which can be
 absorbed into the learning rate). This is why t-SNE with late exaggeration looks
 like UMAP and LargeVis.
 * Therefore t-SNE with exaggeration permanently turned on should give you a
-close equivalent to LargeVis or even UMAP visualizations, subject to which
-implementation provides you with the scalability and features you need.
+close equivalent to (the stochastic gradient descent implementations of)
+LargeVis or even UMAP visualizations, subject to which implementation provides
+you with the scalability and features you need.
 
 ## Turning LargeVis into UMAP
 
@@ -951,8 +949,8 @@ long as usual.
 
 We will carry out two runs for each dataset, with `input_kernel = "skd"` and 
 `input_kernel = "gauss"` (we won't look at `input_kernel = "knn"` so we have
-less results to sift through, but also because this takes so much longer to
-run). My expectations are:
+less results to sift through, but also because this current set of experiments
+take so long to complete). My expectations are:
 
 1. Neither results will look that great.
 1. The `input_kernel = "gauss"` results will look worse than the
@@ -1066,6 +1064,24 @@ not only leads to more pleasant-looking initializations, but a lower cost.
 
 The `fashion6k` results confirm the observations above, albeit in less emphatic
 fashion.
+
+### mnist6k perplexity 40
+
+To end this section, here are the `mnist6k` results with `perplexity = 40`:
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![mnist6k gfg1p40](../img/lv/mnist6k_gfg1p40.png)|![mnist6k sfg1p40](../img/lv/mnist6k_sfg1p40.png)
+![mnist6k lvgflvp40](../img/lv/mnist6k_lvgflvp40.png)|![mnist6k lvsflvp40](../img/lv/mnist6k_lvsflvp40.png)
+![mnist6k lvgftup40](../img/lv/mnist6k_lvgftup40.png)|![mnist6k lvsftup40](../img/lv/mnist6k_lvsftup40.png)
+
+These are pretty similar to the `perplexity = 15` results in terms of the size
+and spacing between the clusters, so there doesn't seem to be a large effect
+of perplexity on the overall shape of the embedding. The green, cyan and magenta
+clusters in the middle of the plot are entangled in a different way to the
+`perplexity = 15` results. I looked to see if initializing an extra t-UMAP
+optimization with `perplexity = 15` could un-entangle them, but that is not the
+case.
 
 ## Conclusions (Again)
 
