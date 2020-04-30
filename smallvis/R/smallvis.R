@@ -1100,7 +1100,7 @@ smallvis <- function(X, k = 2, scale = "absmax",
       if (is.null(Y_init_sdev)) {
         Y_init_sdev <- 1e-4
       }
-      tsmessage("Scaling initial coords by ", formatC(Y_init_sdev))
+      tsmessage("Scaling initial coords to sdev = ", formatC(Y_init_sdev))
       Y <- shrink_coords(Y, Y_init_sdev)
     }
   }
