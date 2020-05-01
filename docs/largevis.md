@@ -310,55 +310,56 @@ Choosing a good learning rate that works for all values of `gamma` is tricky.
 For un-normalized LargeVis, `eta = 0.1` worked well. For normalized LargeVis,
 the best value I found was $10/N$.
 
-### iris
+For the results below, I forgot to indicate on the image title whether they
+were for normalized or un-normalized. Sorry. The normalized LargeVis results are
+on the left and the un-normalized on the right (but I will repeat this in the
+section titles)
+
+### iris (left: normalized, right: un-normalized)
 
 |                             |                           |
 :----------------------------:|:--------------------------:
-![iris ag](../img/lv/iris_ag.png)|![iris nag](../img/lv/iris_nag.png)
+![iris nag](../img/lv/iris_nag.png)|![iris ag](../img/lv/iris_ag.png)
 
-### s1k
-
-|                             |                           |
-:----------------------------:|:--------------------------:
-![s1k ag](../img/lv/s1k_ag.png)|![s1k nag](../img/lv/s1k_nag.png)
-
-### oli
+### s1k (left: normalized, right: un-normalized)
 
 |                             |                           |
 :----------------------------:|:--------------------------:
-![oli ag](../img/lv/oli_ag.png)|![oli nag](../img/lv/oli_nag.png)
+![s1k nag](../img/lv/s1k_nag.png)|![s1k ag](../img/lv/s1k_ag.png)
 
-### frey
-
-|                             |                           |
-:----------------------------:|:--------------------------:
-![frey ag](../img/lv/frey_ag.png)|![frey nag](../img/lv/frey_nag.png)
-
-### coil20
+### oli (left: normalized, right: un-normalized)
 
 |                             |                           |
 :----------------------------:|:--------------------------:
-![coil20 ag](../img/lv/coil20_ag.png)|![coil20 nag](../img/lv/coil20_nag.png)
+![oli nag](../img/lv/oli_nag.png)|![oli ag](../img/lv/oli_ag.png)
 
-### mnist6k
-
-|                             |                           |
-:----------------------------:|:--------------------------:
-![mnist6k ag](../img/lv/mnist6k_ag.png)|![mnist6k nag](../img/lv/mnist6k_nag.png)
-
-### fashion6k
+### frey (left: normalized, right: un-normalized)
 
 |                             |                           |
 :----------------------------:|:--------------------------:
-![fashion6k ag](../img/lv/fashion6k_ag.png)|![fashion6k nag](../img/lv/fashion6k_nag.png)
+![frey nag](../img/lv/frey_nag.png)|![frey ag](../img/lv/frey_ag.png)
+
+### coil20 (left: normalized, right: un-normalized)
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![coil20 nag](../img/lv/coil20_nag.png)|![coil20 ag](../img/lv/coil20_ag.png)
+
+### mnist6k (left: normalized, right: un-normalized)
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![mnist6k nag](../img/lv/mnist6k_nag.png)|![mnist6k ag](../img/lv/mnist6k_ag.png)
+
+### fashion6k (left: normalized, right: un-normalized)
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![fashion6k nag](../img/lv/fashion6k_nag.png)|![fashion6k ag](../img/lv/fashion6k_ag.png)
 
 The un-normalized LargeVis results are obviously massive improvements. The
 normalized LargeVis results are less impressive, but better than what came
-before
-
-Both results are obviously massive improvements, with the normalized LargeVis
-results being particularly impressive compared to what came before. Comparison
-of the final costs confirm the improvement. 
+before.
 
 The un-normalized LargeVis results generally converged at all stages, so I am
 fairly confident those are representative. The normalized LargeVis results
@@ -380,11 +381,12 @@ allowing up to 100,000 iterations. Results are indeed improved:
 
 ![](../img/lv/coil20_naglong.png)
 
-Due to the extra difficulty of working with normalized LargeVis (at
-least with larger values of `gamma`) most of the results below will use the
-un-normalized version.
-
-
+There is still less white space between the clusters compared to the
+un-normalized results. While it's obvious the normalized results need further
+optimizing, I can't bring myself to spend any more time on that at the moment,
+so this can stand as evidence of the extra difficult of working with normalized
+LargeVis (at least with larger values of `gamma`). Most of the results below 
+will therefore use the un-normalized version.
 
 ## Early Exaggeration
 
