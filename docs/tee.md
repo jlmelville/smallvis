@@ -527,60 +527,76 @@ starting at `lambda = 0.001` with sPCA initialization, then running at
 progressively higher values of `lambda` using the final configuration of the
 previous run as the initial coordinates for the new run. The values of `lambda`
 I used were `c(0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1)` and I gave each run 
-1000 iterations to remove any convergence issues (so I don't intend this to
-be a particularly practical approach). The results are below:
+1000 iterations to try and remove any convergence issues.
+
+*May 1 2020*: It turns out that 1000 iterations per value of `lambda` isn't
+enough, so I increased the total number of iterations available over all 7
+runs to 50,000. Most datasets don't come close to needing that number, except
+`mnist6k` and `fashion6k`. This is definitely not a practical approach I would
+recommend.
+
+Results with up to 7,000 iterations are on the left. Results with the 50,000
+iterations are on the right.
 
 ### iris
 
 |                             |                           |
 :----------------------------:|:--------------------------:
-![iris lee](../img/tee/iris_lee.png)|
+![iris lee](../img/tee/iris_lee.png)|![iris lee50k](../img/tee/iris_lee50k.png)
 
 ### s1k
 
 |                             |                           |
 :----------------------------:|:--------------------------:
-![s1k lee](../img/tee/s1k_lee.png)|
+![s1k lee](../img/tee/s1k_lee.png)|![s1k lee50k](../img/tee/s1k_lee50k.png)
 
 ### oli
 
 |                             |                           |
 :----------------------------:|:--------------------------:
-![oli lee](../img/tee/oli_lee.png)|
+![oli lee](../img/tee/oli_lee.png)|![oli lee50k](../img/tee/oli_lee50k.png)
 
 ### frey
 
 |                             |                           |
 :----------------------------:|:--------------------------:
-![frey lee](../img/tee/frey_lee.png)|
+![frey lee](../img/tee/frey_lee.png)|![frey lee50k](../img/tee/frey_lee50k.png)
 
 ### coil20
 
 |                             |                           |
 :----------------------------:|:--------------------------:
-![coil20 lee](../img/tee/coil20_lee.png)|
+![coil20 lee](../img/tee/coil20_lee.png)|![coil20 lee50k](../img/tee/coil20_lee50k.png)
 
 ### mnist6k
 
 |                             |                           |
 :----------------------------:|:--------------------------:
-![mnist6k lee](../img/tee/mnist6k_lee.png)|
+![mnist6k lee](../img/tee/mnist6k_lee.png)|![mnist6k lee50k](../img/tee/mnist6k_lee50k.png)
 
 ### fashion6k
 
 |                             |                           |
 :----------------------------:|:--------------------------:
-![fashion6k lee](../img/tee/fashion6k_lee.png)|
+![fashion6k lee](../img/tee/fashion6k_lee.png)|![fashion6k lee50k](../img/tee/fashion6k_lee50k.png)
 
-These are much nicer looking, albeit slightly over-expanded. This *isn't* just
-a case of these plots having longer to optimize: if you start with `lambda = 1`
-for `mnist6k`, for example, after 7000 iterations the result is:
+Both of these are much nicer looking, although the left-hand images, which only
+allow for 7,000 iterations are clearly over-expanded in the case of `mnist6k`
+and `fashion6k`, which means they weren't given long enough to optimize. The
+right hand images, which use up to 50,000 iterations, show results that don't
+look very different from t-SNE (if anything, less expanded).
+
+To prove that starting with a low value of `lambda` is important, here are the
+`mnist6k` results starting from `lambda = 1` directly and using up to 7,000
+iterations (left-hand image) and 50,000 iterations (right-hand image, this one
+converged after 38,100 iterations):
 
 |                             |                           |
 :----------------------------:|:--------------------------:
-![mnist6k 7000 iterations](../img/tee/mnist6k_7k.png)|
+![mnist6k 7000 iterations](../img/tee/mnist6k_7k.png)|![mnist6k 50000 iterations](../img/tee/mnist6k_50k.png)|
 
-Still visually bad and with a higher final cost.
+Still visually bad and with a higher final cost compared to the annealed-lambda
+results in both cases.
 
 Conclusion: Dmitry is correct. Early exaggeration-like settings seem to be
 important for getting good results in t-EE. It should be pointed out here that
@@ -589,5 +605,10 @@ this is exactly the "homotopy method" that is advocated in the
 paper, so I only have myself to blame for not following this established advice.
 I don't know if the connection between early exaggeration in t-SNE and the 
 homotopy method is established elsewhere.
+
+As usual, un-normalized methods prove to be time-consuming to optimize, using
+the initialization and optimization methods that work well for t-SNE. If a
+method has a way to balance attractive and repulsive interactions (as t-EE
+does), difficulty optimizing may be a sign that some re-balancing would help.
 
 Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
