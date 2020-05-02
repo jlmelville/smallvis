@@ -1094,7 +1094,7 @@ wouldn't necessarily transfer to un-normalized methods, especially with regard
 to smooth knn distances. It turns out that this is the case.
 
 1. The use of smooth knn distances in the input affinity means that UMAP
-has a larger effective repulsion than LargeVis with its Gaussian input kernel
+has a smaller effective repulsion than LargeVis with its Gaussian input kernel
 and `gamma = 1`. I haven't tried to quantify what the effective gamma is in
 terms of LargeVis.
 1. t-UMAP results will therefore not resemble LargeVis with `gamma = 1` and 
