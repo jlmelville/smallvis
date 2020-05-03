@@ -1068,6 +1068,24 @@ not only leads to more pleasant-looking initializations, but a lower cost.
 The `fashion6k` results confirm the observations above, albeit in less emphatic
 fashion.
 
+An obvious big difference between the smooth knn distances kernel and the
+Gaussian kernel is the attractive interactions are stronger by a factor of
+$\log_2 PP$ (where $PP$ is the perplexity), which should be the same as reducing
+$\gamma$ by the same amount (e.g. setting approximately `gamma = 0.25`) and then
+increasing the learning rate accordingly:
+
+```R
+mnist6k_lvg <- smallvis(mnist6k, eta = 0.005, method=list("largevis", gr_eps = 0.1, normalize = FALSE, inp_kernel = "gauss", symmetrize = "fuzzy", gamma = 1 / log2(15)), Y_init = "spca", perplexity = 15, g2tol = 1e-7, min_cost = -Inf, exaggeration_factor = 10, max_iter = 10000, epoch = 100, tol_wait = 2000)
+```
+
+![](../img/lv/mnist6k_skdge5.png)
+
+This looks a lot more like the first `skd` result for (top right image for 
+`mnist6k`) than the original `gauss` kernel result (top left), so a difference 
+in effective `gamma` should be considered when comparing LargeVis to UMAP.
+However, the difference in the distribution of the affinities (i.e. Gaussian 
+versus the truncated exponential) doesn't seem to be critical.
+
 ### mnist6k perplexity 40
 
 To end this section, here are the `mnist6k` results with `perplexity = 40`:
@@ -1096,10 +1114,11 @@ to smooth knn distances. It turns out that this is the case.
 
 1. The use of smooth knn distances in the input affinity means that UMAP
 has a smaller effective repulsion than LargeVis with its Gaussian input kernel
-and `gamma = 1`. I haven't tried to quantify what the effective gamma is in
-terms of LargeVis.
-1. t-UMAP results will therefore not resemble LargeVis with `gamma = 1` and 
-won't be quite so hard to optimize.
+and `gamma = 1`. With the default parameters of using 15 nearest neighbors,
+this is equivalent to approximately `gamma = 0.25` in the LargeVis case. 
+1. t-UMAP results will therefore not resemble un-normalized LargeVis with 
+`gamma = 1` (they should be less spread out) and won't be quite so hard to 
+optimize.
 1. It's still quite hard to optimize though.
 1. There are lots of things that make optimizing UMAP and LargeVis difficult in
 their exact gradient form: setting the correct `gr_eps` value to avoid division
