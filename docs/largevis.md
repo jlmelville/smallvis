@@ -292,12 +292,12 @@ LargeVis, we can probably expect to see an improvement by doing the same here.
 
 For these runs, I started with $\gamma$ set to a power of 10 closest to $1/N$
 (using arguments I made on the t-EE page to do with what the initial repulsion
-in t-SNE is like) for un-normalized LargeVis, and the power of 10 closest to
-$1/N$ for normalized LargeVis. Then each run was repeated with `gamma` increased
-by a power of 10 and initializing with the final coordinates from the previous
-run. This was repeated up to and including `gamma = 1`. For un-normalized 
-LargeVis, this involved 3-5 round of optimization, and 4-8 for normalized
-LargeVis.
+in t-SNE is like) for un-normalized LargeVis. For normalized LargeVis, I used
+the power of 10 closest to $1/N^2$. Then each run was repeated with `gamma`
+increased by a power of 10 and initializing with the final coordinates from the
+previous run. This was repeated up to and including `gamma = 1`. For
+un-normalized LargeVis, this involved 3-5 round of optimization, and 4-8 for
+normalized LargeVis.
 
 The total number of iterations allowed was 10000, the same as for the results
 with `gamma = 1` in the previous section. The 10000 iterations were equally
@@ -644,7 +644,7 @@ to be more expansion with the SGD results and the three clusters (black, cyan
 and blue) on the right hand side of the plots are pushed further, similarly to
 the situation with `frey`.
 
-`mnist6k` and `fashion6k` alsoshow a slightly different relative arrangement of
+`mnist6k` and `fashion6k` also show a slightly different relative arrangement of
 clusters. This may be a limitation of the SGD implementation in terms of
 representing the LargeVis cost function as implemented in `smallvis`, but this
 is a mystery I will leave for another time. If it turns out to be due to a bug
@@ -967,23 +967,24 @@ to provide a good initialization, I expect the t-UMAP results to not differ
 very much from the starting point. On the other hand, the `gauss` initialization
 should be a worse initialization for t-UMAP and I would expect to see 
 a larger change.
-* LargeVis again with whatever input kernel parameter was used. Apart from 
-restarting the adaptive optimization parameters this is like running a 20,000
-iteration optimization. This is more of a control run to ensure that 10,000
-iterations was sufficient to get a good initialization for t-UMAP and to track
-any further changes to the layout that would have occurred anyway. Mainly this
-is to account for the scenario where LargeVis with the Gaussian kernel gives a
-bad output, and running t-UMAP on it substantially improves it. Do I expect
-this to happen? No. But if it did, it would leave the question open as to 
-whether LargeVis just needed longer to optimize those coordinates and would
-have got there as well as t-UMAP did.
+* LargeVis again with the same input kernel parameter as in the first LargeVis
+run. Apart from restarting the adaptive optimization parameters this is like
+running a 20,000 iteration optimization. This is more of a control run to ensure
+that 10,000 iterations was sufficient to get a good initialization for t-UMAP
+and to track any further changes to the layout that would have occurred anyway.
+Mainly this is to account for the scenario where LargeVis with the Gaussian
+kernel gives a bad output, and running t-UMAP on it substantially improves it.
+Do I expect this to happen? No. But if it did, it would leave the question open
+as to whether LargeVis just needed longer to optimize those coordinates and
+would have got there as well as t-UMAP did.
 
 These will also be run for 10,000 iterations and the same learning rate.
 
 To summarize, there will be two sets of three visualizations each:
 
 1. An initial LargeVis run with `inp_kernel = "gauss"`.
-2. A LargeVis run with `inp_kernel = "skd"` initialized from LargeVis in step 1.
+2. A LargeVis run with `inp_kernel = "gauss"` initialized from LargeVis in step
+1.
 3. A t-UMAP run initialized from LargeVis in step 1.
 
 Then we will repeat all that but with `inp_kernel = "skd"` in steps 1 and 2.
