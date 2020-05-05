@@ -1721,7 +1721,74 @@ C_{t-EE} = \frac{1}{N} \left[ \sum_{ij}^{N} v_{ij} \log \frac{v_{ij}}{w_{ij}} + 
 </tbody>
 </table>
 <p>For typical t-SNE settings, we see that <span class="math inline">\(N/Z\)</span> attains values between 0.057 to 0.33. Ignoring <code>iris</code> for a moment, the smallest dataset, <code>oli</code>, has the largest <span class="math inline">\(N/Z = 0.33\)</span>, while <code>mnist6k</code> and <code>fashion6k</code> have <span class="math inline">\(N/Z = 0.12\)</span> and <span class="math inline">\(N/Z = 0.09\)</span>, respectively. Intermediate-sized datasets <code>s1k</code>, <code>frey</code> and <code>coil20</code> with <span class="math inline">\(N\)</span> between 1000 and 2000, have intermediate values of <span class="math inline">\(N/Z\)</span> at around 0.2. Unfortunately, <code>iris</code> messes this all up, having the smallest <span class="math inline">\(N/Z\)</span> value despite being the smallest dataset.</p>
-<p>There are some hints here that a knowledge of perplexity and dataset size can find a rough ball-park figure for <span class="math inline">\(\lambda\)</span>, but for the t-EE plots below we’ll show results for multiple <span class="math inline">\(\lambda\)</span> values, with the results here used to establish a sensible set of trial values.</p>
+</div>
+<div id="converged-results" class="section level3">
+<h3>Converged Results</h3>
+<p><em>4 May 2020</em> From the plots above, it’s clear that <span class="math inline">\(N/Z\)</span> values haven’t leveled off by 1000 iterations for larger datasets like <code>mnist6k</code> and <code>fashion6k</code>, and no dataset has converged for the <code>perplexity = 5</code> results. I ran some very long runs with <code>max_iter = 100000</code>, <code>eta = 100</code>, <code>epoch = 100</code>, <code>exaggeration_factor = 4</code>, <code>Y_init = &quot;spca&quot;</code> with <code>perplexity = 40</code> and <code>perplexity = 100</code> to ensure that the final results were converged with the expectation that this would be way more than enough iterations. For <code>perplexity = 5</code>, even 100,000 iterations isn’t enough to fully converge the results: the layout doesn’t really change, it just slowly expands with the cost slowly ticking down every few thousand iterations. I assume that this is caused by the low perplexity failing to capture any longer-range connected structure, so you can always decrease the cost by pushing all the mini clusters away from each other forever, so that non-neighbors get less and less probability assigned to them.</p>
+<p>As an alternative, for a low perplexity case I used <code>perplexity = 15</code> and only <code>max_iter = 10000</code>. This still shows similar issues as <code>perplexity = 5</code>, and doesn’t converge with <code>tol = 1e-7</code>, but runs in a more reasonable time-frame.</p>
+<table>
+<thead>
+<tr class="header">
+<th>dataset</th>
+<th align="right">N</th>
+<th align="right">N / Z (15)</th>
+<th align="right">N / Z (40)</th>
+<th align="right">N / Z (100)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>iris</td>
+<td align="right">150</td>
+<td align="right">2.40</td>
+<td align="right">0.057</td>
+<td align="right">0.016</td>
+</tr>
+<tr class="even">
+<td>s1k</td>
+<td align="right">1000</td>
+<td align="right">2.14</td>
+<td align="right">0.20</td>
+<td align="right">0.035</td>
+</tr>
+<tr class="odd">
+<td>oli</td>
+<td align="right">400</td>
+<td align="right">1.69</td>
+<td align="right">0.33</td>
+<td align="right">0.075</td>
+</tr>
+<tr class="even">
+<td>frey</td>
+<td align="right">1965</td>
+<td align="right">0.89</td>
+<td align="right">0.32</td>
+<td align="right">0.094</td>
+</tr>
+<tr class="odd">
+<td>coil20</td>
+<td align="right">1440</td>
+<td align="right">1.08</td>
+<td align="right">0.31</td>
+<td align="right">0.067</td>
+</tr>
+<tr class="even">
+<td>mnist6k</td>
+<td align="right">6000</td>
+<td align="right">0.68</td>
+<td align="right">0.60</td>
+<td align="right">0.19</td>
+</tr>
+<tr class="odd">
+<td>fashion6k</td>
+<td align="right">6000</td>
+<td align="right">0.63</td>
+<td align="right">0.29</td>
+<td align="right">0.065</td>
+</tr>
+</tbody>
+</table>
+<p>Compared to the table above, <code>frey</code> and <code>coil20</code> were slightly under-converged, but <code>mnist6k</code> and <code>fashion6k</code> change a lot and clearly had a lot more expansion to do. Interestingly, <code>mnist6k</code> and <code>fashion6k</code> have quite similar values of <span class="math inline">\(N/Z\)</span> at low perplexity, but show very different behavior at higher perplexity. While clearly <span class="math inline">\(N/Z\)</span> descreases with increased perplexity for all datasets, the exact behavior seems to be very dataset dependent. For the t-EE plots below we’ll show results for multiple <span class="math inline">\(\lambda\)</span> values, with the results here used to establish a sensible set of trial values.</p>
 </div>
 </div>
 <div id="settings" class="section level2">

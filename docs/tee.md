@@ -247,16 +247,52 @@ with $N$ between 1000 and 2000, have intermediate values of $N/Z$ at around 0.2.
 Unfortunately, `iris` messes this all up, having the smallest $N/Z$ value
 despite being the smallest dataset.
 
-There are some hints here that a knowledge of perplexity and dataset size can
-find a rough ball-park figure for $\lambda$, but for the t-EE plots below we'll
-show results for multiple $\lambda$ values, with the results here used to
+### Converged Results
+
+*4 May 2020* From the plots above, it's clear that $N/Z$ values haven't 
+leveled off by 1000 iterations for larger datasets like `mnist6k` and 
+`fashion6k`, and no dataset has converged for the `perplexity = 5` results. 
+I ran some very long runs with `max_iter = 100000`, `eta = 100`, `epoch = 100`,
+`exaggeration_factor = 4`, `Y_init = "spca"` with `perplexity = 40` and
+`perplexity = 100` to ensure that the final results were converged with the
+expectation that this would be way more than enough iterations. For `perplexity
+= 5`, even 100,000 iterations isn't enough to fully converge the results: the
+layout doesn't really change, it just slowly expands with the cost slowly
+ticking down every few thousand iterations. I assume that this is caused by the
+low perplexity failing to capture any longer-range connected structure, so you
+can always decrease the cost by pushing all the mini clusters away from each
+other forever, so that non-neighbors get less and less probability assigned to
+them.
+
+As an alternative, for a low perplexity case I used `perplexity = 15` and only
+`max_iter = 10000`. This still shows similar issues as `perplexity = 5`, and
+doesn't converge with `tol = 1e-7`, but runs in a more reasonable time-frame. 
+
+
+| dataset  |N     | N / Z (15) | N / Z (40) | N / Z (100) |
+|----------|-----:|-----------:|-----------:|------------:|
+|iris      | 150  | 2.40       | 0.057      | 0.016       |
+|s1k       | 1000 | 2.14       | 0.20       | 0.035       |
+|oli       | 400  | 1.69       | 0.33       | 0.075       |
+|frey      | 1965 | 0.89       | 0.32       | 0.094       |
+|coil20    | 1440 | 1.08       | 0.31       | 0.067       |
+|mnist6k   | 6000 | 0.68       | 0.60       | 0.19        |
+|fashion6k | 6000 | 0.63       | 0.29       | 0.065       |
+
+Compared to the table above, `frey` and `coil20` were slightly under-converged,
+but `mnist6k` and `fashion6k` change a lot and clearly had a lot more expansion
+to do. Interestingly, `mnist6k` and `fashion6k` have quite similar values of 
+$N/Z$ at low perplexity, but show very different behavior at higher perplexity.
+While clearly $N/Z$ descreases with increased perplexity for all datasets, the
+exact behavior seems to be very dataset dependent. For the t-EE plots below
+we'll show results for multiple $\lambda$ values, with the results here used to
 establish a sensible set of trial values.
 
 ## Settings
 
 I was able to use the standard delta-bar-delta settings with t-EE, without
-having to reduce `eta`, the learning rate. Therefore we will use the same settings,
-I tend to use for t-SNE, based off those used in the
+having to reduce `eta`, the learning rate. Therefore we will use the same
+settings, I tend to use for t-SNE, based off those used in the
 [original t-SNE paper](http://www.jmlr.org/papers/v9/vandermaaten08a.html),
 except with scaled PCA initialization rather than random initialization and
 without early exaggeration. As well as looking at `perplexity = 40`, we'll also
