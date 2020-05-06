@@ -634,6 +634,39 @@ converged after 38,100 iterations):
 Still visually bad and with a higher final cost compared to the annealed-lambda
 results in both cases.
 
+### mnist6k as $\lambda$ increases
+
+And to get a sense of how changing `lambda` affects the visualization, here are
+some images of `mnist6k` at the end of each optimization within the homotopy 
+loop, for values of `lambda` between 0.001 and 1, and then with `lambda = 5`
+(initialized from the results of `lambda = 1`) to fill out the space (and to
+see if anything interesting happens when the repulsion is up-weighted).
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![mnist6k l1e-3](../img/tee/mnist6k_l1e-3.png)|![mnist6k l5e-3](../img/tee/mnist6k_l5e-3.png)
+![mnist6k l1e-2](../img/tee/mnist6k_l1e-2.png)|![mnist6k l5e-2](../img/tee/mnist6k_l5e-2.png)
+![mnist6k l1e-1](../img/tee/mnist6k_l1e-1.png)|![mnist6k l5e-1](../img/tee/mnist6k_l5e-1.png)
+![mnist6k l1](../img/tee/mnist6k_l1.png)|![mnist6k l5](../img/tee/mnist6k_l5.png)
+
+In terms of the overall shape of the layout, there's not much happening once
+$\lambda$ increases beyond about 0.01. What *does* happen is that the absolute
+size of the distances between points increases as can be seen by the ranges of
+the axes.
+
+I initialized a t-SNE optimization from the `lambda = 0.05` result. It took a
+very long time to converge (20,500 iterations) and looks exceptionally like the
+t-EE result with `lambda = 0.5`. Its final value of $N/Z = 0.61$ means that it
+effectively got to `lambda = 0.6`, so that's not too surprising. It's also very
+close to the converged $N/Z$ t-SNE result starting from scaled PCA with early
+exaggeration.
+
+Perhaps there are other, more interesting layouts that are available with larger
+`lambda` using a different initialization scheme, but for the results here, it
+looks like you can get more compressed, more UMAP/LargeVis-like results with a
+smaller `lambda`. Above a certain value, you are stuck with something very
+t-SNE-like.
+
 Conclusion: Dmitry is correct. Early exaggeration-like settings seem to be
 important for getting good results in t-EE. It should be pointed out here that
 this is exactly the "homotopy method" that is advocated in the 
@@ -642,7 +675,7 @@ paper, so I only have myself to blame for not following this established advice.
 I don't know if the connection between early exaggeration in t-SNE and the 
 homotopy method is established elsewhere.
 
-As usual, un-normalized methods prove to be time-consuming to optimize, using
+As usual, un-normalized methods prove to be time-consuming to optimize using
 the initialization and optimization methods that work well for t-SNE. If a
 method has a way to balance attractive and repulsive interactions (as t-EE
 does), difficulty optimizing may be a sign that some re-balancing would help.
