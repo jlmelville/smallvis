@@ -258,6 +258,15 @@ If you want to try late exaggeration, my recommendations remain the same:
 set `late_exaggeration_factor = 1.5`, and you probably don't need more than 100 
 iterations.
 
+*May 6 2020*: Dmitry Kobak notes that the late exaggeration protocol described
+in the [FIt-SNE preprint](https://arxiv.org/abs/1712.09005) and replicated here 
+does not appear in its final published form in 
+[Nature Methods](https://doi.org/10.1038/s41592-018-0308-4). A modified protocol
+(called just "exaggeration") was published by Dmitry and Philipp Berens in
+[The art of using t-SNE for single-cell transcriptomics](https://dx.doi.org/10.1038%2Fs41467-019-13056-x)
+and recommends immediately beginning late exaggeration as soon as early
+exaggeration finishes, so you might want to consider that.
+
 ## Acknowledgement
 
 Thank you to Dmitry Kobak, who drew my attention to the similarity between
