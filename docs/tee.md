@@ -667,6 +667,23 @@ looks like you can get more compressed, more UMAP/LargeVis-like results with a
 smaller `lambda`. Above a certain value, you are stuck with something very
 t-SNE-like.
 
+I have looked at increasing `lambda` further to 10, 50 and 100. At this point,
+we start running into two problems: first, the choice of `eta = 100` which works
+for low values of `lambda` is inappropriately small. `eta = 10000` or even 
+`eta = 100000` becomes more useful. Having the learning rate too low doesn't 
+just slow the optimization down, it also prematurely converges because changes
+to the cost function become small even though the data layout is changing so the
+typical `tol = 1e-7` which works for t-SNE needs to be lowered to around `1e-9`.
+The size of the gradient drops by an order of magnitude even when the cost is
+reduced by around only 0.1%, so the `g2tol` tolerance is more reliable here
+(somewhere in the range of `g2tol = 1e-7`). This means that you need to be
+careful about ensuring that layouts with high repulsion (compared to t-SNE) are
+actually at a minimum.
+
+If you do crank up the learning rate for these settings, the results end up
+looking like the ones for lower values of `lambda`, so there doesn't seem to be
+anything to be gained from looking at large values of `lambda` for t-EE.
+
 Conclusion: Dmitry is correct. Early exaggeration-like settings seem to be
 important for getting good results in t-EE. It should be pointed out here that
 this is exactly the "homotopy method" that is advocated in the 
