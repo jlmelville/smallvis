@@ -1740,7 +1740,26 @@ w_{ij} = \frac{1}{1 + \exp \left(d_{ij}^2\right)} \\
 </div>
 <div id="umap-1" class="section level3">
 <h3>UMAP</h3>
-<p>Likewise, here’s one way to express the UMAP gradient in terms of <span class="math inline">\(v_{ij}\)</span> and <span class="math inline">\(w_{ij}\)</span>:</p>
+<p>Here are some equivalent ways to express the UMAP gradient in terms of <span class="math inline">\(v_{ij}\)</span> and <span class="math inline">\(w_{ij}\)</span>, depending on how much simplification you want to do versus comparing its form with other methods.</p>
+<p>Starting with this very straightforward version that combines the <span class="math inline">\(\partial C_{ij} / \partial w_{ij}\)</span> and <span class="math inline">\(\partial w_{ij} / \partial d_{ij}^2\)</span> expressions without much cancellation:</p>
+<p><span class="math display">\[
+\frac{\partial C_{UMAP}}{\partial \mathbf{y_i}}
+= 
+  4\sum_j^N 
+  \left[
+  abd_{ij}^{2\left(b - 1\right)} w_{ij} v_{ij} 
+-
+  abd_{ij}^{2\left(b - 1\right)} w_{ij}^2
+  \frac{
+    1 - v_{ij}
+  }
+  {
+    1 - w_{ij}
+  }
+  \right]
+  \left(\mathbf{y_i - y_j}\right)
+\]</span></p>
+<p>you can start trying to simplify or pulling out <span class="math inline">\(w_{ij}\)</span> terms to give expressions like:</p>
 <p><span class="math display">\[
 \frac{\partial C_{UMAP}}{\partial \mathbf{y_i}}
 = 
@@ -1753,7 +1772,7 @@ w_{ij} = \frac{1}{1 + \exp \left(d_{ij}^2\right)} \\
    b\left(\frac{aw_{ij}}{1 - w_{ij}}\right)^{\frac{1}{b}}
    \left(\mathbf{y_i - y_j}\right)
 \]</span></p>
-<p>or equivalently:</p>
+<p>or:</p>
 <p><span class="math display">\[
 \frac{\partial C_{UMAP}}{\partial \mathbf{y_i}}
 = 
@@ -1766,7 +1785,7 @@ w_{ij} = \frac{1}{1 + \exp \left(d_{ij}^2\right)} \\
    \frac{b}{d_{ij}^2}
    \left(\mathbf{y_i - y_j}\right)
 \]</span></p>
-<p>and even more explicitly:</p>
+<p>or this one which is closest to the way it’s written in the UMAP code:</p>
 <p><span class="math display">\[
 \frac{\partial C_{UMAP}}{\partial \mathbf{y_i}} = 
   4\sum_j^N \left[

@@ -381,8 +381,34 @@ increasing with distance.
 
 ### UMAP
 
-Likewise, here's one way to express the UMAP gradient in terms of $v_{ij}$
-and $w_{ij}$:
+Here are some equivalent ways to express the UMAP gradient in terms of $v_{ij}$
+and $w_{ij}$, depending on how much simplification you want to do versus
+comparing its form with other methods.
+
+Starting with this very straightforward version that combines the
+$\partial C_{ij} / \partial w_{ij}$ and $\partial w_{ij} / \partial d_{ij}^2$
+expressions without much cancellation:
+
+$$
+\frac{\partial C_{UMAP}}{\partial \mathbf{y_i}}
+= 
+  4\sum_j^N 
+  \left[
+  abd_{ij}^{2\left(b - 1\right)} w_{ij} v_{ij} 
+-
+  abd_{ij}^{2\left(b - 1\right)} w_{ij}^2
+  \frac{
+    1 - v_{ij}
+  }
+  {
+    1 - w_{ij}
+  }
+  \right]
+  \left(\mathbf{y_i - y_j}\right)
+$$
+
+you can start trying to simplify or pulling out $w_{ij}$ terms to give 
+expressions like:
 
 $$
 \frac{\partial C_{UMAP}}{\partial \mathbf{y_i}}
@@ -397,7 +423,7 @@ $$
    \left(\mathbf{y_i - y_j}\right)
 $$
 
-or equivalently:
+or:
 
 $$
 \frac{\partial C_{UMAP}}{\partial \mathbf{y_i}}
@@ -412,7 +438,7 @@ $$
    \left(\mathbf{y_i - y_j}\right)
 $$
 
-and even more explicitly:
+or this one which is closest to the way it's written in the UMAP code:
 
 $$
 \frac{\partial C_{UMAP}}{\partial \mathbf{y_i}} = 
