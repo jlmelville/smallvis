@@ -230,7 +230,7 @@ $$
 \left( \mathbf{z_i} - \mathbf{z_j} \right)
 $$
 
-## Cost Function from the Paper
+## NCE Objective Function from the Paper
 
 The paper uses $\mathbf{\theta}$ to represent all the parameters we intend to
 optimize, which is all the $\mathbf{z_i}$ and $Q$.
