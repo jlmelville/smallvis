@@ -1545,8 +1545,7 @@ div.tocify {
 <li>Write out the gradients as they are expressed in the source code, sticking as close as possuble to how it’s done in the code.</li>
 <li>Express the code gradients in a way that using the quantities and symbols used in the paper as much as possible and is easier to compare with other methods.</li>
 <li>Use the NCE objective function given in the paper to derive the gradient.</li>
-<li>Compare the gradient I derive to that in the code.</li>
-<li>Fail to reconcile the two and be very confused.</li>
+<li>Compare the gradient I derive to that in the code and show that they are equivalent, although you have to be a bit careful with how you interpret some of the variables, whose names and definitions are similar to, but not the same as, notation in the paper.</li>
 </ol>
 <div id="input" class="section level2">
 <h2>Input</h2>
@@ -1593,11 +1592,13 @@ q_{ij} = e^{-Q} \hat{q}_{ij}
 <div id="sgd-optimization" class="section level2">
 <h2>SGD Optimization</h2>
 <p>This follows the expressions in the <a href="https://github.com/stat-ml/ncvis">NCVis source code</a>.</p>
-<p>Regardless of whether we are using <span class="math inline">\(\left(i^+, j^+ \right)\)</span> or <span class="math inline">\(\left(i^+, j^- \right)\)</span>, <span class="math inline">\(d_{ij}^2\)</span>, <span class="math inline">\(\hat{q}_{ij}\)</span> and <span class="math inline">\(q_{ij}\)</span> are constructed in the same way as given above. Additionally, the following quantity is calculated in the same way:</p>
+<p>Regardless of whether we are using <span class="math inline">\(\left(i^+, j^+ \right)\)</span> or <span class="math inline">\(\left(i^+, j^- \right)\)</span>, <span class="math inline">\(d_{ij}^2\)</span> and <span class="math inline">\(\hat{q}_{ij}\)</span> are constructed in the same way as given above. Additionally, the following quantity is calculated:</p>
 <p><span class="math display">\[
-w_{ij}^{\prime} = \frac{q_{ij}}{\nu}
+w_{ij}^{\prime} 
+= 
+\frac{e^{-Q^\prime} \hat{q}_{ij}}{\nu}
 \]</span></p>
-<p>where <span class="math inline">\(\nu\)</span> is the noise ratio: the number of negative samples we take for each positive sample. By default this is the same as for UMAP and LargeVis: five negative samples for each positive sample. One change made in the Python wrapper (not discussed in the paper) is to keep the total number of negative samples over the whole optimization constant, but to redistribute <span class="math inline">\(\nu\)</span> so that it is smaller (but not less than one) at the start of the optimization, and larger at the end.</p>
+<p>where <span class="math inline">\(Q^\prime\)</span> is a quantity that is a lot like (but may not be exactly the same as) <span class="math inline">\(Q\)</span>. <span class="math inline">\(\nu\)</span> is the noise ratio: the number of negative samples we take for each positive sample. By default this is the same as for UMAP and LargeVis: five negative samples for each positive sample. One change made in the Python wrapper (not discussed in the paper) is to keep the total number of negative samples over the whole optimization constant, but to redistribute <span class="math inline">\(\nu\)</span> so that it is smaller (but not less than one) at the start of the optimization, and larger at the end.</p>
 <p>At this point, we calculate the quantity <span class="math inline">\(w_{ij}\)</span>. which is dependent on whether we are optimizing for a positive or negative sample.</p>
 <div id="positive-sample-1" class="section level3">
 <h3>Positive Sample</h3>
@@ -1612,21 +1613,21 @@ w_{ij}^+ = \frac{1}{1 + w_{ij}^{\prime}}
 w_{ij}^- = -\frac{1}{1 + \frac{1}{w_{ij}^{\prime}}} = -\frac{w_{ij}^{\prime}}{1 + w_{ij}^{\prime}}
 \]</span></p>
 </div>
-<div id="gradient-for-q" class="section level3">
-<h3>Gradient for <span class="math inline">\(Q\)</span></h3>
+<div id="gradient-for-qprime" class="section level3">
+<h3>Gradient for <span class="math inline">\(Q^\prime\)</span></h3>
 <p><span class="math display">\[
 \nabla J_{Q*} = -w_{ij}^*
 \]</span></p>
 <p>where the <span class="math inline">\(*\)</span> subscript just means <span class="math inline">\(+\)</span> or <span class="math inline">\(-\)</span> depending on whether we are updating using a positive or negative sample.</p>
-<p>Q is updated by gradient ascent using the Q learning rate, <span class="math inline">\(\alpha_Q\)</span>:</p>
+<p><span class="math inline">\(Q^\prime\)</span> is updated by gradient ascent using the <span class="math inline">\(Q\)</span>-learning rate, <span class="math inline">\(\alpha_Q\)</span>:</p>
 <p><span class="math display">\[
-Q \gets Q + \alpha_Q \nabla J_{Q*}
+Q^\prime \gets Q^\prime + \alpha_{Q} \nabla J_{Q*}
 \]</span></p>
 </div>
 <div id="gradient-for-mathbfz_i" class="section level3">
 <h3>Gradient for <span class="math inline">\(\mathbf{z_i}\)</span></h3>
 <p><span class="math display">\[
-k_{ij}^* = 2 w_{ij}^* w_{ij}^{\prime} a b d_{ij}^{2\left(b - 1\right)}
+k_{ij}^* = 2 w_{ij}^* \hat{q}_{ij} a b d_{ij}^{2\left(b - 1\right)}
 \]</span></p>
 <p>Again, the <span class="math inline">\(*\)</span> superscript just means <span class="math inline">\(+\)</span> or <span class="math inline">\(-\)</span> depending on whether we are updating using a positive or negative sample.</p>
 <p>The gradient is then:</p>
@@ -1637,8 +1638,12 @@ k_{ij}^* \left( \mathbf{z_j} - \mathbf{z_i} \right)
 <p>It’s important to note that the displacement is given as <span class="math inline">\(\mathbf{z_j} - \mathbf{z_i}\)</span>, rather than the usual <span class="math inline">\(\mathbf{z_i} - \mathbf{z_j}\)</span>. This changes the sign of the gradient compared to similar methods like UMAP and LargeVis, but you also need to bear in mind that we are doing gradient ascent for NCVis (like LargeVis but unlike UMAP), so there is another sign change in the update if you compare this expression to methods that minimize a cost function by gradient descent.</p>
 <p><span class="math inline">\(\mathbf{z_i}\)</span> is updated by gradient ascent using the <span class="math inline">\(\mathbf{z}\)</span> learning rate <span class="math inline">\(\alpha_{\mathbf{z}}\)</span>:</p>
 <p><span class="math display">\[
-\mathbf{z_i} \gets \mathbf{z_i} + \alpha_{\mathbf{z}} \nabla J_{\mathbf{z}*} \left( \mathbf{z_i} \right) \\
-\mathbf{z_j} \gets \mathbf{z_j} - \alpha_{\mathbf{z}} \nabla J_{\mathbf{z}*} \left( \mathbf{z_i} \right)
+\mathbf{z_i} \gets 
+\mathbf{z_i} + \alpha_{\mathbf{z}} 
+\nabla J_{\mathbf{z}*} \left( \mathbf{z_i} \right) \\
+\mathbf{z_j} \gets
+\mathbf{z_j} - \alpha_{\mathbf{z}} 
+\nabla J_{\mathbf{z}*} \left( \mathbf{z_i} \right)
 \]</span></p>
 <p>Like UMAP and LargeVis there is a clipping step to prevent too large an update, but it is applied to the update rather than the gradient, i.e. to <span class="math inline">\(\alpha_{\mathbf{z}} \nabla J_{\mathbf{z}*}\)</span>, not just <span class="math inline">\(\nabla J_{\mathbf{z}*}\)</span> as in UMAP and LargeVis. The clipping extrema are <span class="math inline">\([-4, 4]\)</span> as in UMAP.</p>
 </div>
@@ -1646,36 +1651,48 @@ k_{ij}^* \left( \mathbf{z_j} - \mathbf{z_i} \right)
 <div id="expanding-w" class="section level2">
 <h2>Expanding <span class="math inline">\(w^*\)</span></h2>
 <p>The expression above have been written to preserve as much as possible how they are expressed in the implementation of NCVis, using the intermediate variables <span class="math inline">\(w^\prime\)</span>, <span class="math inline">\(w^+\)</span> and <span class="math inline">\(w^-\)</span> (in fact there’s just one <code>w</code> variable that gets re-used).</p>
-<p>Now let’s re-express the gradients in terms of the more fundamental quantities <span class="math inline">\(q_{ij}\)</span> and <span class="math inline">\(\nu\)</span>. Also, we’ll use <span class="math inline">\(\mathbf{z_i} - \mathbf{z_j}\)</span> for the displacement in <span class="math inline">\(\nabla J_{\mathbf{z}*}\)</span>.</p>
+<p>Now let’s re-express the gradients, substituting for <span class="math inline">\(w^*\)</span>. I will introduce the <span class="math inline">\(q\)</span>-like definition:</p>
+<p><span class="math display">\[
+q_{ij}^\prime = e^{-Q^\prime} \hat{q}_{ij}
+\]</span></p>
+<p>so that:</p>
+<p><span class="math display">\[
+w_{ij}^\prime = \frac{q_{ij}^\prime}{\nu}
+\]</span></p>
+<p>Also, we’ll use <span class="math inline">\(\mathbf{z_i} - \mathbf{z_j}\)</span> for the displacement in the definition of <span class="math inline">\(\nabla J_{\mathbf{z}*}\)</span>.</p>
 <p><span class="math display">\[
 w_{ij}^+ = \frac{1}{1 + w_{ij}^{\prime}}
 =
-\frac{\nu}{q_{ij} + \nu}
+\frac{\nu}{q_{ij}^\prime + \nu}
 \]</span></p>
 <p><span class="math display">\[
 w_{ij}^- =
 -\frac{w_{ij}^{\prime}}{1 + w_{ij}^{\prime}}
 =
--\frac{q_{ij}}{q_{ij} + \nu}
+-\frac{q_{ij}^\prime}{q_{ij}^\prime + \nu}
 \]</span></p>
 <p>So the gradients are:</p>
 <p><span class="math display">\[
-\nabla J_{Q+} = -\frac{\nu}{q_{ij} + \nu} \\
-\nabla J_{Q-} = \frac{q_{ij}}{q_{ij} + \nu} \\
+\nabla J_{Q+} = -\frac{\nu}{q_{ij}^\prime + \nu} 
+\\
+\nabla J_{Q-} = \frac{q_{ij}^\prime}{q_{ij}^\prime + \nu}
+\\
 \nabla J_{\mathbf{z}+} = 
 -2 a b d_{ij}^{2\left(b - 1\right)} 
-\frac{q_{ij}}{q_{ij} + \nu} 
-\left( \mathbf{z_i} - \mathbf{z_j} \right) \\
+\hat{q}_{ij}
+\frac{\nu}{q_{ij}^\prime + \nu} 
+\left( \mathbf{z_i} - \mathbf{z_j} \right)
+\\
 \nabla J_{\mathbf{z}-} = 
 2 a b d_{ij}^{2\left(b - 1\right)} 
-\frac{q_{ij}}{\nu}
-\frac{q_{ij}}{q_{ij} + \nu} 
+\hat{q}_{ij}
+\frac{q_{ij}^\prime}{q_{ij}^\prime + \nu} 
 \left( \mathbf{z_i} - \mathbf{z_j} \right)
 \]</span></p>
 </div>
 <div id="nce-objective-function-from-the-paper" class="section level2">
 <h2>NCE Objective Function from the Paper</h2>
-<p>The paper uses <span class="math inline">\(\mathbf{\theta}\)</span> to represent all the parameters we intend to optimize, which is all the <span class="math inline">\(\mathbf{z_i}\)</span> and <span class="math inline">\(Q\)</span>.</p>
+<p>The paper uses <span class="math inline">\(\mathbf{\theta}\)</span> to represent all the parameters we intend to optimize, which is the <span class="math inline">\(\mathbf{z}\)</span> vector and the scalar <span class="math inline">\(Q\)</span>.</p>
 <p>The part of the NCE objective applied to positive pairs is:</p>
 <p><span class="math display">\[
 J^+ = \log \frac{p_m \left( \mathbf{x_i}; \mathbf{\theta} \right)}
@@ -1709,11 +1726,11 @@ p_m \left(i, j \right) = q_{ij}
 <p><span class="math display">\[
 p_n = \frac{1}{N - 1} \sum_{k=1}^N p_{ik}
 \]</span></p>
-<p>Instead of having to write <span class="math inline">\(p_n\left(\mathbf{y_i}\right)\)</span>, going forward I am going to use <span class="math inline">\(p_{ij}^-\)</span> to mean <span class="math inline">\(p_n\)</span> evaluated for the negative pair <span class="math inline">\(\left(i^+, j^- \right)\)</span>, i.e.:</p>
+<p>Instead of having to write <span class="math inline">\(p_n\left(\mathbf{y_i}\right)\)</span>, going forward I am going to use <span class="math inline">\(p_{i}^-\)</span> to mean <span class="math inline">\(p_n\)</span> evaluated for the negative pair <span class="math inline">\(\left(i^+, j^- \right)\)</span>, i.e.:</p>
 <p><span class="math display">\[
-p_{ij}^- \equiv p_n\left(i^+, j^- \right)
+p_{i}^- \equiv p_n\left(i^+, j^- \right)
 \]</span></p>
-<p>but it should not be confused with the high dimensional input probabilities <span class="math inline">\(p_{ij}\)</span>, which are in fact the “data” probabilities, usually called <span class="math inline">\(p_d\)</span> in the NCE literature.</p>
+<p>There is only the <span class="math inline">\(i\)</span> subscript because its value is entirely independent of <span class="math inline">\(j\)</span>. <span class="math inline">\(p_{i}^-\)</span> should not be confused with the high dimensional input probabilities <span class="math inline">\(p_{ij}\)</span>, although they are used in the calculation of <span class="math inline">\(p_{i}^-\)</span>. In the typical NCE notation, the <span class="math inline">\(p_{ij}\)</span> values are in fact the “data” probabilities, usually written as <span class="math inline">\(p_d\)</span>.</p>
 </div>
 <div id="sgd-form-of-the-gradient" class="section level2">
 <h2>SGD Form of the Gradient</h2>
@@ -1753,17 +1770,17 @@ e^{-Q}
 \frac{\partial q_{ij}}{\partial d_{ij}^2} = 
 -a b d_{ij}^{2\left( b - 1\right)} \hat{q}_{ij}^2 e^{-Q}
 \]</span></p>
-<p>or</p>
+<p>or:</p>
 <p><span class="math display">\[
 \frac{\partial q_{ij}}{\partial d_{ij}^2} = 
--a b d_{ij}^{2\left( b - 1\right)} \frac{q_{ij}^2} {e^{-Q}}
+-a b d_{ij}^{2\left( b - 1\right)} \hat{q}_{ij} q_{ij}
 \]</span></p>
 <p>So the gradient for <span class="math inline">\(\mathbf{z_i}\)</span> is:</p>
 <p><span class="math display">\[
 \nabla J_{\mathbf{z}} = 
 -2 
 a b d_{ij}^{2\left( b - 1\right)} 
-\frac{q_{ij}^2} {e^{-Q}}
+\hat{q}_{ij} q_{ij}
 \frac{\partial J_{ij}}{\partial q_{ij}} 
 \left(
 \mathbf{z_i} - \mathbf{z_j}
@@ -1791,12 +1808,12 @@ a b d_{ij}^{2\left( b - 1\right)}
 <h3>SGD Update for Positive Sample</h3>
 <p>The contribution to the cost function for a positive pair sample is:</p>
 <p><span class="math display">\[
-J_{ij}^+ = \log \frac{q_{ij}}{q_{ij} + \nu p_{ij}^-}
+J_{ij}^+ = \log \frac{q_{ij}}{q_{ij} + \nu p_{i}^-}
 \]</span></p>
 <p>The derivative with respect to <span class="math inline">\(q_{ij}\)</span> is:</p>
 <p><span class="math display">\[
 \frac{\partial J_{ij}^+}{\partial q_{ij}} =
-\frac{\nu p_{ij}^-}{q_{ij} + \nu p_{ij}^-}
+\frac{\nu p_{i}^-}{q_{ij} + \nu p_{i}^-}
 \frac{1}{q_{ij}}
 \]</span></p>
 <p>So the positive gradients are:</p>
@@ -1804,37 +1821,37 @@ J_{ij}^+ = \log \frac{q_{ij}}{q_{ij} + \nu p_{ij}^-}
 \nabla J_{\mathbf{z+}} =
 -2
 a b d_{ij}^{2\left( b - 1\right)}
-\frac{q_{ij}}{e^{-Q}}
-\frac{\nu p_{ij}^-}{q_{ij} + \nu p_{ij}^-}
+\hat{q}_{ij}
+\frac{\nu p_{i}^-}{q_{ij} + \nu p_{i}^-}
 \left(
 \mathbf{z_i} - \mathbf{z_j}
 \right) \\
 \nabla J_{Q+} =
--\frac{\nu p_{ij}^-}{q_{ij} + \nu p_{ij}^-}
+-\frac{\nu p_{i}^-}{q_{ij} + \nu p_{i}^-}
 \]</span></p>
 </div>
 <div id="sgd-update-for-negative-sample" class="section level3">
 <h3>SGD Update for Negative Sample</h3>
 <p><span class="math display">\[
-J_{ij}^- = \log \frac{\nu p_{ij}^-}{q_{ij} + \nu p_{ij}^-}
+J_{ij}^- = \log \frac{\nu p_{i}^-}{q_{ij} + \nu p_{i}^-}
 \]</span></p>
 <p>The derivative with respect to <span class="math inline">\(q_{ij}\)</span> is:</p>
 <p><span class="math display">\[
 \frac{\partial J_{ij}^-}{\partial q_{ij}} =
--\frac{1}{q_{ij} + \nu p_{ij}^-}
+-\frac{1}{q_{ij} + \nu p_{i}^-}
 \]</span></p>
 <p>So the negative gradients are:</p>
 <p><span class="math display">\[
 \nabla J_{\mathbf{z-}} =
 2 
 a b d_{ij}^{2\left( b - 1\right)}
-\frac{q_{ij}}{e^{-Q}}
-\frac{q_{ij}}{q_{ij} + \nu p_{ij}^-}
+\hat{q}_{ij}
+\frac{q_{ij}}{q_{ij} + \nu p_{i}^-}
 \left(
 \mathbf{z_i} - \mathbf{z_j}
 \right) \\
 \nabla J_{Q-} =
-\frac{q_{ij}}{q_{ij} + \nu p_{ij}^-}
+\frac{q_{ij}}{q_{ij} + \nu p_{i}^-}
 \]</span></p>
 </div>
 </div>
@@ -1844,28 +1861,36 @@ a b d_{ij}^{2\left( b - 1\right)}
 <p>Let’s start with the simpler gradient for <span class="math inline">\(Q\)</span> first.</p>
 <p>Code:</p>
 <p><span class="math display">\[
-\nabla J_{Q+} = -\frac{\nu}{q_{ij} + \nu} \\
-\nabla J_{Q-} = \frac{q_{ij}}{q_{ij} + \nu}
+\nabla J_{Q+} = -\frac{\nu}{q_{ij}^\prime + \nu} 
+\\
+\nabla J_{Q-} = \frac{q_{ij}^\prime}{q_{ij}^\prime + \nu}
 \]</span></p>
 <p>Me:</p>
 <p><span class="math display">\[
 \nabla J_{Q+} =
--\frac{\nu p_{ij}^-}{q_{ij} + \nu p_{ij}^-} \\
+-\frac{\nu p_{i}^-}{q_{ij} + \nu p_{i}^-} \\
 \nabla J_{Q-} =
-\frac{q_{ij}}{q_{ij} + \nu p_{ij}^-}
+\frac{q_{ij}}{q_{ij} + \nu p_{i}^-}
 \]</span></p>
-<p>These line up if we require that <span class="math inline">\(p_{ij}^- = 1\)</span>.</p>
+<p>These line up if we define:</p>
+<p><span class="math display">\[
+q_{ij}^\prime = \frac{q_{ij}}{p_{i}^-}
+\implies q_{ij} = q_{ij}^\prime p_{i}^-
+\]</span></p>
+<p>and then the <span class="math inline">\(p_{i}^-\)</span> values all cancel out.</p>
 <p>Now for the gradient for <span class="math inline">\(\mathbf{z}\)</span>.</p>
 <p>Code:</p>
 <p><span class="math display">\[
 \nabla J_{\mathbf{z}+} = 
 -2 a b d_{ij}^{2\left(b - 1\right)} 
-\frac{q_{ij}}{q_{ij} + \nu} 
-\left( \mathbf{z_i} - \mathbf{z_j} \right) \\
+\hat{q}_{ij}
+\frac{\nu}{q_{ij}^\prime + \nu} 
+\left( \mathbf{z_i} - \mathbf{z_j} \right)
+\\
 \nabla J_{\mathbf{z}-} = 
 2 a b d_{ij}^{2\left(b - 1\right)} 
-\frac{q_{ij}}{\nu}
-\frac{q_{ij}}{q_{ij} + \nu} 
+\hat{q}_{ij}
+\frac{q_{ij}^\prime}{q_{ij}^\prime + \nu} 
 \left( \mathbf{z_i} - \mathbf{z_j} \right)
 \]</span></p>
 <p>Me:</p>
@@ -1873,23 +1898,41 @@ a b d_{ij}^{2\left( b - 1\right)}
 \nabla J_{\mathbf{z+}} =
 -2
 a b d_{ij}^{2\left( b - 1\right)}
-\frac{\nu p_{ij}^-}{e^{-Q}}
-\frac{q_{ij}}{q_{ij} + \nu p_{ij}^-}
-\left(
-\mathbf{z_i} - \mathbf{z_j}
-\right) \\
-\nabla J_{\mathbf{z-}} =
-2 
-a b d_{ij}^{2\left( b - 1\right)}
-\frac{q_{ij}}{e^{-Q}}
-\frac{q_{ij}}{q_{ij} + \nu p_{ij}^-}
+\hat{q}_{ij}
+\frac{\nu p_{i}^-}{q_{ij} + \nu p_{i}^-}
 \left(
 \mathbf{z_i} - \mathbf{z_j}
 \right)
+\\
+\nabla J_{\mathbf{z-}} =
+2 
+a b d_{ij}^{2\left( b - 1\right)}
+\hat{q}_{ij}
+\frac{q_{ij}}{q_{ij} + \nu p_{i}^-}
+\left(
+\mathbf{z_i} - \mathbf{z_j}
+\right) 
 \]</span></p>
-<p>I have made a minor re-arrangement to the “me” expression for <span class="math inline">\(\nabla J_{\mathbf{z+}}\)</span> so the symbols line up better with the code version.</p>
-<p>Even if we set <span class="math inline">\(p_{ij}^- = 1\)</span>, that’s not enough to make these match up. It’s also necessary to set <span class="math inline">\(\nu = e^{-Q}\)</span>.</p>
-<p>None of these requirements make any sense to me. Conclusion: I have done something wrong.</p>
+<p>Again, this all works out if we use the definition for <span class="math inline">\(q_{ij}^\prime\)</span> above.</p>
+<p>What this implies for NCVis implementation is:</p>
+<p><span class="math display">\[
+q_{ij}^\prime
+=
+e^{-Q^\prime} \hat{q}_{ij}
+=
+\frac{1}{p_{i}^-} e^{-Q} \hat{q}_{ij}
+\]</span></p>
+<p>This means that the quantity <span class="math inline">\(Q^\prime\)</span> used in the NCVis source code is:</p>
+<p><span class="math display">\[
+Q^\prime \equiv Q + \log p_{i}^-
+\]</span></p>
+<p>This indicates that after sampling each positive edge, we should correct <span class="math inline">\(Q^\prime\)</span> by subtracting <span class="math inline">\(\log p_{i}^-\)</span> for the just-sampled edge and then adding <span class="math inline">\(\log p_{i}^-\)</span> for the new positive edge.</p>
+<p>Without this correction, we assume that <span class="math inline">\(p_{i}^-\)</span> is a constant. Is this a good assumption? While it is true that the number of non-zero entries in the rows of the k-nearest neighbor adjacency matrix are constant, after symmetrization the number of non-zero entries in the rows of the mutual nearest neighbor adjancency matrix, <span class="math inline">\(V\)</span> (which is normalized to form <span class="math inline">\(P\)</span>) is <em>not</em> constant.</p>
+<p>In a lot of cases, the difference isn’t very large, but for datasets where hubs have formed, those hub nodes will have lots of mutual neighbors, very much larger than <span class="math inline">\(k\)</span>. Conversely, where there are hub nodes there must be anti-hub nodes, nodes which aren’t in the nearest neighbor list of any other node. Their mutual neighbor list is the same size as their neighbor list size, <span class="math inline">\(k\)</span>. The difference between <span class="math inline">\(k\)</span> and the hub mutual neighbor list size can be very skewed and hence the distribution of values of <span class="math inline">\(p_{i}-\)</span> can be very skewed (I have encountered differences of 1-2 orders of magnitude). The fact that we use the <span class="math inline">\(\log p_{i}\)</span> may ameliorate this problem, although it could be entirely removed by storing the <span class="math inline">\(O\left(N\right)\)</span> array of row sums and carrying out the correction which only adds one addition and one substraction in the edge sampling loop.</p>
+</div>
+<div id="acknowledgement" class="section level2">
+<h2>Acknowledgement</h2>
+<p>Thank you Dmitry Kobak for bringing this paper to my attention and helping correct the many mistakes I made while trying to write out the derivation.</p>
 </div>
 
 
