@@ -1650,7 +1650,8 @@ C_{V} -
 {\left(a d_{ij}^2 + 1 \right)^2} = -b a d_{ij}^{2\left( b - 1\right)} w_{ij}^2 
 =
 -\frac{b \left( 1 - w_{ij} \right)}{d_{ij}^2}w_{ij}
-\]</span> The derivative of the cost function with respect to the weights is:</p>
+\]</span></p>
+<p>The derivative of the cost function with respect to the weights is:</p>
 <p><span class="math display">\[
 \frac{\partial C_{UMAP}}{\partial w_{ij}} =
 -\frac{v_{ij}}{w_{ij}} +
@@ -1806,6 +1807,7 @@ w_{ij} = \frac{1}{1 + \exp \left(d_{ij}^2\right)} \\
    \left(\mathbf{y_i - y_j}\right)
 \]</span></p>
 <p>The similarity to LargeVis is (hopefully) much clearer now.</p>
+<p>Recently, a related method <a href="https://arxiv.org/abs/2001.11411">NCVis</a> was introduced. I made some <a href="https://jlmelville.github.io/smallvis/ncvis.html">rudimentary notes</a>.</p>
 <p>Up: <a href="https://jlmelville.github.io/smallvis/">Documentation Home</a>.</p>
 </div>
 </div>

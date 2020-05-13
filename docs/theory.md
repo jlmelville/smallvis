@@ -247,6 +247,7 @@ $$
 =
 -\frac{b \left( 1 - w_{ij} \right)}{d_{ij}^2}w_{ij}
 $$
+
 The derivative of the cost function with respect to the weights is:
 
 $$
@@ -468,5 +469,9 @@ $$
 $$
 
 The similarity to LargeVis is (hopefully) much clearer now.
+
+Recently, a related method [NCVis](https://arxiv.org/abs/2001.11411) was 
+introduced. I made some
+[rudimentary notes](https://jlmelville.github.io/smallvis/ncvis.html).
 
 Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
