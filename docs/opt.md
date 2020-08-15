@@ -32,7 +32,12 @@ specialists in the neural network community.
 Other methods have been used to optimize t-SNE or very similar cost functions: 
 the 
 [NeRV](http://www.jmlr.org/papers/v11/venna10a.html) paper used conjugate 
-gradient, the [JSE paper](https://dx.doi.org/10.1016/j.neucom.2012.12.036) 
+gradient, 
+the
+[Fast Multipole Method (FMM)](http://proceedings.mlr.press/v33/vladymyrov14.html)
+used L-BFGS to optimize
+[elastic embedding (EE) (PDF)](http://faculty.ucmerced.edu/mcarreira-perpinan/papers/icml10.pdf),
+the [JSE paper](https://dx.doi.org/10.1016/j.neucom.2012.12.036) 
 optimizes JSE, NeRV, SNE and t-SNE using gradient descent with a diagonal 
 approximation to the Hessian (similar to the method used in Sammon mapping) and 
 the 
@@ -41,23 +46,43 @@ and
 [multi-scale JSE](https://dx.doi.org/10.1016/j.neucom.2014.12.095) methods use 
 L-BFGS (the latter again employing the diagonal Hessian approximation).
 
-The [Spectral Directions](https://arxiv.org/abs/1206.4646) paper introduced a
-quasi-Newton method using the Hessian based on a sparse approximation to just 
-the attractive part of the t-SNE cost function. On a large dataset, it 
-out-performed L-BFGS and conjugate gradient for optimizing t-SNE and 
-[elastic embedding (PDF)](http://faculty.ucmerced.edu/mcarreira-perpinan/papers/icml10.pdf),
-although it didn't compare the delta-bar-delta method for t-SNE, and only a 
-back-tracking line search was used with L-BFGS. Nor is any early exaggeration 
-used. The JSE and multi-scale JSE papers use a series of optimizations with a 
+The [Spectral Directions](https://arxiv.org/abs/1206.4646) paper (with the same
+authors as the FMM-EE paper) introduced a quasi-Newton method using the Hessian
+based on a sparse approximation to just the attractive part of the t-SNE cost
+function. On a large dataset, it out-performed L-BFGS and conjugate gradient for
+optimizing t-SNE and EE although it didn't compare the delta-bar-delta method
+for t-SNE, and only a back-tracking line search was used with L-BFGS. Nor is any
+early exaggeration used.
+
+The JSE and multi-scale JSE papers use a series of optimizations with a 
 decreasing perplexity (similar techniques are used in the SNE and NeRV 
 papers), so it's possible that other optimization methods do better when the
 input probabilities are modified during the initial iterations, although an
 increased perplexity would seem to have an opposite effect to early exaggeration
-in terms of relative emphasis on short and long distances. Finally, it should
-be noted that the differences between L-BFGS, CG and spectral direction became
-pronounced only when looking at a 20,000-member subset of the MNIST digits
-dataset. The JSE papers, for instance, don't look at datasets larger than
-6,000 items (although also sampled from the MNIST digits).
+in terms of relative emphasis on short and long distances.
+
+It should be noted that in the Spectral Directions paper, the differences
+between L-BFGS, CG and spectral direction became pronounced only when looking at
+a 20,000-member subset of the MNIST digits dataset. The JSE papers, for
+instance, don't look at datasets larger than 6,000 items (although also sampled
+from the MNIST digits). The FMM-EE paper used 60,000 digits from MNIST
+(presumably the training set) but only compared L-BFGS with plain gradient 
+descent.
+
+Yang and co-workers looked at
+[Majorization-Minimization](http://www.jmlr.org/proceedings/papers/v38/yang15a.html)
+for optimizing t-SNE and compared it to L-BFGS, spectral directions and
+momentum-based methods for t-SNE with quite a variety of datasets of different
+sizes (up to N = 130 000). For some datasets they observe sub-optimal embeddings
+(L-BFGS) or outright divergence (spectral directions).
+
+Häkkinen and co-workers described
+[qSNE](https://doi.org/10.1093/bioinformatics/btaa637) which uses L-BFGS
+for its optimization, and get good results with an order of magnitude fewer
+iterations than standard t-SNE, so that even though they use exact t-SNE (i.e.
+not even Barnes-Hut), they were able to apply qSNE to a dataset with N = 
+170 000 with only a couple of hours runtime. They also show that their results
+are pretty insensitive to their choice of Hessian approximation.
 
 `smallvis` can't handle large datasets, so we will also restrict ourselves to
 nothing larger than a 6,000 subset of the MNIST digits. But it certainly would
