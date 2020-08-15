@@ -983,9 +983,8 @@ These will also be run for 10,000 iterations and the same learning rate.
 To summarize, there will be two sets of three visualizations each:
 
 1. An initial LargeVis run with `inp_kernel = "gauss"`.
-2. A LargeVis run with `inp_kernel = "gauss"` initialized from LargeVis in step
-1.
-3. A t-UMAP run initialized from LargeVis in step 1.
+1. A LargeVis run with `inp_kernel = "gauss"` initialized from LargeVis in step 1.
+1. A t-UMAP run initialized from LargeVis in step 1.
 
 Then we will repeat all that but with `inp_kernel = "skd"` in steps 1 and 2.
 Got it? No? Eh, I did my best.
