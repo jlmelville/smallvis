@@ -1551,7 +1551,8 @@ div.tocify {
 <h2>Input</h2>
 <p>The probability matrix <span class="math inline">\(P\)</span> is constructed from the <span class="math inline">\(N\)</span> high-dimensional input data vectors <span class="math inline">\(\mathbf{\hat{z}_{i}}\)</span> using the mutual (approximate) nearest neighbor adjacency matrix and then normalizing so the matrix sums to 1. Specifically:</p>
 <ol style="list-style-type: decimal">
-<li>Create the approximate k-nearest neighbor adjacency matrix, <span class="math inline">\(A\)</span>, using <a href="https://github.com/nmslib/hnswlib">HNSW</a>, i.e. <span class="math inline">\(a_{ij} = 1\)</span> if <span class="math inline">\(j\)</span> is one of the approximate k-nearest neighbors of <span class="math inline">\(i\)</span>. 2. Create the un-normalized symmetric affinity matrix, <span class="math inline">\(V\)</span> from <span class="math inline">\(A\)</span> by setting <span class="math inline">\(v_{ij} = a_{ij} \lor a_{ji}\)</span>, i.e. set <span class="math inline">\(v_{ij} = 1\)</span> if <span class="math inline">\(j\)</span> is a neighbor of <span class="math inline">\(i\)</span> or vice versa, and to 0 otherwise. <span class="math inline">\(V\)</span> is therefore the mutual nearest neighbor adjacency matrix.</li>
+<li>Create the approximate k-nearest neighbor adjacency matrix, <span class="math inline">\(A\)</span>, using <a href="https://github.com/nmslib/hnswlib">HNSW</a>, i.e. <span class="math inline">\(a_{ij} = 1\)</span> if <span class="math inline">\(j\)</span> is one of the approximate k-nearest neighbors of <span class="math inline">\(i\)</span>.</li>
+<li>Create the un-normalized symmetric affinity matrix, <span class="math inline">\(V\)</span> from <span class="math inline">\(A\)</span> by setting <span class="math inline">\(v_{ij} = a_{ij} \lor a_{ji}\)</span>, i.e. set <span class="math inline">\(v_{ij} = 1\)</span> if <span class="math inline">\(j\)</span> is a neighbor of <span class="math inline">\(i\)</span> or vice versa, and to 0 otherwise. <span class="math inline">\(V\)</span> is therefore the mutual nearest neighbor adjacency matrix.</li>
 <li>Create the probability matrix <span class="math inline">\(P\)</span> by matrix normalizing in the usual way of dividing by the grand sum of <span class="math inline">\(V\)</span>: <span class="math inline">\(p_{ij} = v_{ij} / \sum_{i, j} v_{ij}\)</span>.</li>
 </ol>
 </div>
@@ -1985,7 +1986,7 @@ $(document).ready(function ()  {
       theme: "bootstrap3",
       context: '.toc-content',
       hashGenerator: function (text) {
-        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_').toLowerCase();
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
       },
       ignoreSelector: ".toc-ignore",
       scrollTo: 0

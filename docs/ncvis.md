@@ -42,10 +42,10 @@ Specifically:
 
 1. Create the approximate k-nearest neighbor adjacency matrix, $A$, using
 [HNSW](https://github.com/nmslib/hnswlib), i.e. $a_{ij} = 1$ if $j$ is one of
-the approximate k-nearest neighbors of $i$. 2. Create the un-normalized
-symmetric affinity matrix, $V$ from $A$ by setting 
+the approximate k-nearest neighbors of $i$. 
+2. Create the un-normalized symmetric affinity matrix, $V$ from $A$ by setting 
 $v_{ij} = a_{ij} \lor a_{ji}$, i.e. set $v_{ij} = 1$ if $j$ is a neighbor of $i$
-or vice versa, and to 0 otherwise. $V$ is therefore the mutual nearest neighbor 
+or vice versa, and to 0  otherwise. $V$ is therefore the mutual nearest neighbor
 adjacency matrix.
 3. Create the probability matrix $P$ by matrix normalizing in the usual way of
 dividing by the grand sum of $V$: $p_{ij} = v_{ij} / \sum_{i, j} v_{ij}$.
