@@ -920,12 +920,15 @@ true_symmetrize_options <- function() {
 scale_affinities <- function(P, symmetrize = "symmetric", row_normalize = TRUE,
                              normalize = TRUE) {
   # row normalization before anything else
-  if (row_normalize) {
+  if (nnat(row_normalize)) {
     if (symmetrize == "rowsymm") {
       P <- 0.5 * (P + t(P))
       symmetrize <- "none"
     }
     P <- P / rowSums(P)
+  }
+  else if (is.numeric(row_normalize)) {
+    P <- row_normalize * P / rowSums(P)
   }
   
   # Symmetrize
@@ -1009,8 +1012,10 @@ sne_init <- function(cost, X, perplexity, kernel = "gaussian",
                         normalize = normalize)
   cost$P <- P
 
-  tsmessage("Effective perplexity of P approx = ", 
-            formatC(stats::median(perpp(P))))
+  if (is.logical(row_normalize)) {
+    tsmessage("Effective perplexity of P approx = ", 
+              formatC(stats::median(perpp(P))))
+  }
   
   for (r in unique(tolower(ret_extra))) {
     switch(r,

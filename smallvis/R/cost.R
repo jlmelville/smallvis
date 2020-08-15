@@ -128,7 +128,13 @@ stop_exaggerating <- function(cost, exaggeration_factor) {
 
 largevis <- function(perplexity, inp_kernel = "gaussian", 
                      symmetrize = "symmetric", gamma = 1, gr_eps = 0.1, 
-                     normalize = TRUE, eps = 1e-9) {
+                     normalize = TRUE, eps = 1e-9, row_weight = NULL) {
+  if (!is.null(row_weight)) {
+    row_normalize <- row_weight
+  }
+  else {
+    row_normalize <- TRUE
+  }
   eps. <- eps
   lreplace(tsne(perplexity),
      init = function(cost, X, max_iter, eps = eps., verbose = FALSE, ret_extra = c()) {
@@ -136,7 +142,7 @@ largevis <- function(perplexity, inp_kernel = "gaussian",
        cost <- sne_init(cost, X = X, perplexity = perplexity, 
                         symmetrize = symmetrize, kernel = inp_kernel,
                         normalize = normalize, verbose = verbose,
-                        ret_extra = ret_extra)
+                        row_normalize = row_normalize, ret_extra = ret_extra)
        cost$eps <- eps
        cost$greps1 <- gr_eps - 1
        cost
@@ -173,13 +179,21 @@ largevis <- function(perplexity, inp_kernel = "gaussian",
 # UMAP --------------------------------------------------------------------
 
 umap <- function(perplexity, inp_kernel = "skd", symmetrize = "umap",
-                 spread = 1, min_dist = 0.001, gr_eps = 0.1, eps = 1e-9) {
+                 spread = 1, min_dist = 0.001, gr_eps = 0.1, eps = 1e-9,
+                 row_weight = NULL) {
+  if (!is.null(row_weight)) {
+    row_normalize <- row_weight
+  }
+  else {
+    row_normalize <- FALSE
+  }
   eps. <- eps
   lreplace(tsne(perplexity),
     init = function(cost, X, max_iter, eps = eps., verbose = FALSE, ret_extra = c()) {
       symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
                        symmetrize = symmetrize, normalize = FALSE,
+                       row_normalize = row_normalize,
                        verbose = verbose, ret_extra = ret_extra)
       
       cost <- init_ab(cost, spread = spread, min_dist = min_dist, verbose = verbose)
@@ -225,7 +239,13 @@ umap <- function(perplexity, inp_kernel = "skd", symmetrize = "umap",
 
 # UMAP with the output kernel fixed to the t-distribution
 tumap <- function(perplexity, inp_kernel = "skd", symmetrize = "umap", 
-                  gr_eps = 0.1, eps = 1e-9) {
+                  gr_eps = 0.1, eps = 1e-9, row_weight = NULL) {
+  if (!is.null(row_weight)) {
+    row_normalize <- row_weight
+  }
+  else {
+    row_normalize <- FALSE
+  }
   eps. <- eps
   lreplace(umap(perplexity),
     init = function(cost, X, max_iter, eps = eps., verbose = FALSE, ret_extra = c()) {
@@ -234,6 +254,7 @@ tumap <- function(perplexity, inp_kernel = "skd", symmetrize = "umap",
 
       cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
                        symmetrize = symmetrize, normalize = FALSE,
+                       row_normalize = row_normalize,
                        verbose = verbose, ret_extra = ret_extra)
       cost
     },

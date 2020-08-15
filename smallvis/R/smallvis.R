@@ -1234,7 +1234,11 @@ smallvis <- function(X, k = 2, scale = "absmax",
         if (!is.null(old_cost) && cost > old_cost) {
           message(" !", appendLF = FALSE)
         }
-
+        
+        if (!is.null(opt$epoch)) {
+          opt <- opt$epoch(Y, iter, cost, cost_fn, opt)
+        }
+        
         message()
         utils::flush.console()
       }
@@ -2354,8 +2358,10 @@ msp <- function(X, perplexities = NULL, tol = 1e-5,
     res$P <- res$P / length(perplexities)
   }
   
-  tsmessage("Effective perplexity of multiscale P approx = ", 
-            formatC(stats::median(perpp(res$P))))
+  if (is.logical(row_normalize)) {
+    tsmessage("Effective perplexity of multiscale P approx = ", 
+              formatC(stats::median(perpp(res$P))))
+  }
 
   res
 }
@@ -2523,7 +2529,7 @@ reltol <- function(x, y) {
 
 # Check if a value is non-null and true
 nnat <- function(x) {
-  !is.null(x) && x
+  !is.null(x) && is.logical(x) && x
 }
 
 # log vector information
@@ -2603,6 +2609,7 @@ smooth_knn_distances <-
            bandwidth = 1.0,
            tol = 1e-5,
            min_k_dist_scale = 1e-3,
+           cardinality = log2(k),
            verbose = FALSE) {
 
     tsmessage("Commencing smooth kNN distance calibration for k = ", formatC(k))
@@ -2625,7 +2632,7 @@ smooth_knn_distances <-
     }
 
     n <- nrow(nn_dist)
-    target <- log2(k) * bandwidth
+    target <- cardinality * bandwidth
     rho <- rep(0, n)
     sigma <- rep(0, n)
     P <- matrix(0, nrow = n, ncol = n)
