@@ -74,7 +74,14 @@ Yang and co-workers looked at
 for optimizing t-SNE and compared it to L-BFGS, spectral directions and
 momentum-based methods for t-SNE with quite a variety of datasets of different
 sizes (up to N = 130 000). For some datasets they observe sub-optimal embeddings
-(L-BFGS) or outright divergence (spectral directions).
+(L-BFGS) or outright divergence (spectral directions), but usually spectral 
+directions outperforms L-BFGS in terms of the cost at a given amount of CPU
+time. However, their momentum method *also* out-performs L-BFGS, but it's not
+clear how close this is to the DBD method: they describe it as being the
+addition of a momentum term to their gradient descent method, which in turn
+is described as using a line search. Also, they describe the momentum method
+as failing on the COIL-20 dataset due to a learning rate selection problem, but
+the original t-SNE paper has perfectly good results for COIL-20.
 
 Häkkinen and co-workers described
 [qSNE](https://doi.org/10.1093/bioinformatics/btaa637) which uses L-BFGS
