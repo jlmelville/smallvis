@@ -65,7 +65,7 @@ to see [the effect on t-SNE](https://jlmelville.github.io/smallvis/umaptsne.html
 in t-SNE, as suggested in the [FIt-SNE](https://arxiv.org/abs/1712.09005) paper.
 * [Elastic Embedding](https://jlmelville.github.io/smallvis/ee.html) and a 
 [t-Distributed variant](https://jlmelville.github.io/smallvis/tee.html).
-* [Optimizaton: L-BFGS](https://jlmelville.github.io/smallvis/opt.html).
+* [Optimizaton: L-BFGS (and qSNE)](https://jlmelville.github.io/smallvis/opt.html).
 * [Optimizaton: Spectral Direction](https://jlmelville.github.io/smallvis/specd.html).
 * [Optimizaton: Conjugate Gradient](https://jlmelville.github.io/smallvis/cg.html).
 * [Optimizaton: SGD methods](https://jlmelville.github.io/smallvis/sgd.html).

@@ -130,7 +130,7 @@ SPCA without early exaggeration was chosen for simplicity. The
 [initialization](https://jlmelville.github.io/smallvis/init.html) experiments
 suggested there was no particular reason to believe this was a bad choice.
 The DBD results given here aren't exactly the same as those in the 
-initialization experiment, due to various minor code changes since that 
+initialization experiment, due to various minor code changes since then. 
 
 ## Evaluation
 
@@ -325,5 +325,175 @@ probably use the perplexity stepping method to maximize your chances of getting
 a good result. Of course, you can just use the standard delta-bar-delta method
 when it comes to t-SNE. But hopefully these findings also apply to other cost
 functions where DBD doesn't work as well.
+
+## August 16 2020: What about qSNE?
+
+The [qSNE source is available](https://bitbucket.org/anthakki/qsne/src/master/).
+Based on my understanding of that, it does the following by default:
+
+* no scaling of the input.
+* a perplexity of 30 is used.
+* initialization via PCA, then rescaling to standard deviation of 1. You can
+provide your own input via (`-i`).
+* no early exaggeration.
+* L-BFGS uses the ten previous iterates/gradients for its memory. This can be 
+modified with the `-m` option.
+* the line search is a simple Armijo backtracking search, with the constant in
+the Armijo condition test being `c1 = 0.5`, starting at $\alpha = 1$ at each
+iteration, and halving $\alpha$ during backtracking. The value of `c1` can be
+adjusted via the `-L` option.
+* a check on the relative error of the cost is applied at every iteration, with
+a tolerance of 1e-4 (adjustable via the `-t` option). Because the backtracking
+search requires evaluating the cost, there's no extra computational expense to
+doing a tolerance check every iteration. To avoid premature convergence, the
+tolerance check is not applied for the first 15 iterations.
+* if you set "compatibility mode" (`-C`), you get the usual delta-bar-delta
+optimization used in Rtsne, along with early exaggeration and the input is
+scaled. However, the initialization doesn't change.
+
+With mize installed, you can get something close to the qSNE defaults using:
+
+```R
+iris_qsne <- smallvis(iris, Y_init = "pca", Y_init_sdev = 1, 
+           opt = list("l-bfgs", line_search = "backtracking", c1 = 0.5, 
+                    memory = memory, try_newton_step = TRUE,
+                    step_next_init = 1, step_down = 0.5), 
+           epoch = 1, tol = 1e-4, tol_wait = 15, scale = FALSE,
+           perplexity = 30)
+```
+
+qSNE optimization is much faster than smallvis for the datasets considered here
+because although it does not use any approximations, its implementation is
+multi-threaded. However, the PCA-based initialization is not very efficient for
+high-dimensional datasets: on my machine, `oli` with 4 096 features, took nearly
+two minutes to complete, and `coil20` with 16 384 features, took nearly two
+hours. To avoid spending time generating the PCA initializations multiple times, 
+for all the results below, I generated the PCA input for both `qsne` and
+`smallvis` using a separate run of `smallvis` with 0 iterations (`Y_init =
+"pca", Y_init_sdev = 1, max_iter = 0`) and exporting the `smallvis` results to a
+TSV file which can be used as input to `qsne` with the `-i` option. To make sure
+there was no major differences between how `smallvis` generated PCA-based
+initialization and the internal `qsne` initialization, I checked the output of
+`qsne` with `mnist6k` and `fashion6k` using both methods. Coordinates were
+identical in both cases.
+
+In the results below, the images for each dataset are as follows:
+
+* top left: `qsne` with default settings.
+* top right: `qsne` with `-t0` to force 1000 iterations. This is to account for
+the possibility that the default tolerance is too lenient for these datasets,
+and we might see better visualizations with a longer optimization.
+* bottom left: `qsne` with `-C` to use the traditional delta-bar-delta 
+optimization, called `GDM` in the title which is how the `qsne` source code
+refers to it.
+* bottom right: `smallvis` attempting to provide an optimization as close to
+that of default `qsne` as possible.
+
+The number of iterations and the cost are given for all images. For the
+`smallvis` results only, the time taken, and counts of the function (`fn`) and
+gradient (`gr`) evaluations are also provided.
+
+### iris
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![iris qsne](../img/qsne/iris-qsne.png)|![iris qsnet0](../img/qsne/iris-qsnet0.png)
+![iris qsnec](../img/qsne/iris-qsnec.png)|![iris qsnesv](../img/qsne/iris-qsnesv.png)
+
+### s1k
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![s1k qsne](../img/qsne/s1k-qsne.png)|![s1k qsnet0](../img/qsne/s1k-qsnet0.png)
+![s1k qsnec](../img/qsne/s1k-qsnec.png)|![s1k qsnesv](../img/qsne/s1k-qsnesv.png)
+
+### oli
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![oli qsne](../img/qsne/oli-qsne.png)|![oli qsnet0](../img/qsne/oli-qsnet0.png)
+![oli qsnec](../img/qsne/oli-qsnec.png)|![oli qsnesv](../img/qsne/oli-qsnesv.png)
+
+### frey
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![frey qsne](../img/qsne/frey-qsne.png)|![frey qsnet0](../img/qsne/frey-qsnet0.png)
+![frey qsnec](../img/qsne/frey-qsnec.png)|![frey qsnesv](../img/qsne/frey-qsnesv.png)
+
+### coil20
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![coil20 qsne](../img/qsne/coil20-qsne.png)|![coil20 qsnet0](../img/qsne/coil20-qsnet0.png)
+![coil20 qsnec](../img/qsne/coil20-qsnec.png)|![coil20 qsnesv](../img/qsne/coil20-qsnesv.png)
+
+### mnist6k
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![mnist6k qsne](../img/qsne/mnist6k-qsne.png)|![mnist6k qsnet0](../img/qsne/mnist6k-qsnet0.png)
+![mnist6k qsnec](../img/qsne/mnist6k-qsnec.png)|![mnist6k qsnesv](../img/qsne/mnist6k-qsnesv.png)
+
+### fashion6k
+
+|                             |                           |
+:----------------------------:|:--------------------------:
+![fashion6k qsne](../img/qsne/fashion6k-qsne.png)|![fashion6k qsnet0](../img/qsne/fashion6k-qsnet0.png)
+![fashion6k qsnec](../img/qsne/fashion6k-qsnec.png)|![fashion6k qsnesv](../img/qsne/fashion6k-qsnesv.png)
+
+
+Results are very similar between `smallvis` (bottom right) and `qsne` (top
+left): they converge at a similar iteration, the cost values at convergence are
+similar, and visually the results look similar. Unfortunately, the results don't
+look that great: they have all the problems mentioned above, particularly for
+`mnist6k` and `fashion6k`.
+
+The `fashion6k` result in particular has an outlier point. Could it just be that
+the tolerance is too loose for these datasets? Not really. `fashion6k` does
+clean up if it's allowed to run for longer, but the other datasets don't do
+much, i.e. they are pretty well optimized for visualization purposes. For
+`mnist6k` making it optimize for longer has little effect on the result visually, 
+but the distances between points has now increased hugely. Running the
+L-BFGS results for longer number of iterations removes most of its appeal 
+for t-SNE anyway.
+
+Could it be that the initial coordinates aren't great? Probably not. The
+compatibility results (bottom left) use slightly different scaling of the input
+data and early exaggeration, and find results which look pretty much the same,
+except a *much* better result for `mnist6k` is also obtained.
+
+For `iris` and `mnist6k`, I looked at using the more typical standard deviation
+for the initialized coordinates, i.e. `1e-4` instead of `1`, again by exporting
+PCA results from `smallvis`. In both cases, `qsne` was unable to make any
+progress at all, and the optimization terminates after 15 iterations with the
+cost function unchanged. With the compatibility options set, optimization 
+proceeded almost identically as when the coordinates were initialized with
+a standard devation of 1.
+
+Finally, does the use of the Armijo line search cause issues for L-BFGS, when
+a full Wolfe line search is usually recommended? I experimented with modifying
+the `qsne`-like settings in `smallvis` to use a Wolfe line search. For every 
+dataset, on the first iteration, a very large value of $\alpha$ is chosen
+(greater than ten), but subsequent iterations are always 1 or smaller.
+Restricting the maximum value of $\alpha$ to 1-10 doesn't have much effect on
+the results and they aren't noticeably different (or better) than those that
+use the Armijo line search. However, whe using a Wolfe line search, the
+coordinates were able to be initialized from the smaller standard deviation
+coordinates, and you can use early exaggeration, although in that case you need
+to allow the maximum $\alpha$ to be as large as it wants, as otherwise the
+optimization seems unable to adapt when the exaggeration is turned off.
+
+The `qsne` results independently confirm my own findings with L-BFGS: you
+*might* be able to get a result more quickly than using delta-bar-delta, but
+it's not necessarily a huge time saving and based on my experience with
+`mnist6k` in particular, the results can be mediocre, to put it mildly.
+
+If for some reason Barnes-Hut t-SNE or FIt-SNE doesn't work for your needs and
+you are looking for fast non-approximate t-SNE results, then `qsne` seems to be
+a good choice. However, based on these results, I wouldn't use the L-BFGS
+optimizer and would recommend sticking with the "compatibility" mode, i.e. use
+the `-C` option. I would also be wary of using the qSNE default initialization,
+especially if you have high-dimensional data.
 
 Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
