@@ -1118,6 +1118,7 @@ smallvis <- function(X, k = 2, scale = "absmax",
       names(cost) <- 0
       itercosts <- c(itercosts, cost)
     }
+    cost_fn <- cost_clear(cost_fn)
   }
 
   # Display initialization
