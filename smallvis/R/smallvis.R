@@ -1231,7 +1231,7 @@ smallvis <- function(X, k = 2, scale = "absmax",
           message(" nf = ", opt$counts$fn, " ng = ", opt$counts$gr,
                   appendLF = FALSE)
         }
-        
+
         if (!is.null(old_cost) && cost > old_cost) {
           message(" !", appendLF = FALSE)
         }
@@ -1350,11 +1350,10 @@ smallvis <- function(X, k = 2, scale = "absmax",
   
   # Recenter before output
   Y <- sweep(Y, 2, colMeans(Y))
-  
   res <- ret_value(Y, ret_extra, method, X, scale, Y_init, iter, start_time,
             cost_fn = cost_fn, opt_res$G,
             perplexity, itercosts,
-            stop_lying_iter, start_late_lying_iter, opt_list,
+            stop_lying_iter, start_late_lying_iter, opt_list, opt,
             exaggeration_factor, late_exaggeration_factor,
             optionals = ret_optionals,
             pca = ifelse(pca && !whiten, initial_dims, 0),
@@ -1874,7 +1873,7 @@ ret_value <- function(Y, ret_extra, method, X, scale, Y_init, iter, start_time =
                       perplexity = NULL, pca = 0, whiten = 0,
                       itercosts = NULL,
                       stop_lying_iter = NULL, start_late_lying_iter = NULL,
-                      opt = NULL,
+                      opt_input = NULL, opt_res = NULL,
                       exaggeration_factor = 1, late_exaggeration_factor = 1,
                       optionals = c()) {
   attr(Y, "dimnames") <- NULL
@@ -1918,9 +1917,13 @@ ret_value <- function(Y, ret_extra, method, X, scale, Y_init, iter, start_time =
     }
     res$costs <- cost_fn$pcost
 
-    if (!is.null(opt)) {
-      res$opt <- opt
+    if (!is.null(opt_input)) {
+      res$opt <- opt_input
+      if (!is.null(opt_res$counts)) {
+        res$opt$counts <- opt_res$counts
+      }
     }
+    
 
     # Don't report exaggeration settings if they didn't do anything
     if (exaggeration_factor == 1 || late_exaggeration_factor == 1) {
