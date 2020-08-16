@@ -1232,6 +1232,14 @@ smallvis <- function(X, k = 2, scale = "absmax",
                   appendLF = FALSE)
         }
 
+        # special treatment for mize innards
+        if (!is.null(opt$stages$gradient_descent$step_size$value)) {
+          opt$stages$gradient_descent$step_size$value
+          message(" alpha = ", 
+                  formatC(opt$stages$gradient_descent$step_size$value), 
+                  appendLF = FALSE)
+        }
+        
         if (!is.null(old_cost) && cost > old_cost) {
           message(" !", appendLF = FALSE)
         }
