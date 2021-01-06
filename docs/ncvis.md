@@ -9,7 +9,7 @@ output:
       collapsed: false
 ---
 
-[NCVis](https://arxiv.org/abs/2001.11411) uses Noice Contrastive Estimation
+[NCVis](https://arxiv.org/abs/2001.11411) uses Noise Contrastive Estimation
 (NCE) to create a LargeVis/UMAP-like visualization method. It is interesting
 theoretically because it demonstrates the optimization of what looks like an
 un-normalized LargeVis-like method is actually a normalized method in disguise,
