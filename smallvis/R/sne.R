@@ -346,7 +346,7 @@ wtsne <- function(perplexity, inp_kernel = "gaussian",
       # P matrix degree centrality: column sums
       deg <- cost$pdeg
       if (verbose) {
-        summarize(deg, "deg")
+        summarize(deg, "deg", verbose = verbose)
       }
       cost$M <- outer(deg, deg)
       cost$invM <- 1 / cost$M
@@ -388,7 +388,7 @@ wssne <- function(perplexity, inp_kernel = "gaussian",
        # P matrix degree centrality: column sums
        deg <- cost$pdeg
        if (verbose) {
-         summarize(deg, "deg")
+         summarize(deg, "deg", verbose = verbose)
        }
        cost$M <- outer(deg, deg)
        cost$invM <- 1 / cost$M
@@ -997,10 +997,8 @@ sne_init <- function(cost, X, perplexity, kernel = "gaussian",
     if (!is.numeric(perplexity)) {
       stop("Unknown perplexity method, '", perplexity[[1]], "'")
     }
-    if (verbose) {
-      tsmessage("Commencing calibration for perplexity = ",
+    tsmessage("Commencing calibration for perplexity = ",
                 format_perps(perplexity))
-    }
     x2ares <- x2aff(X, perplexity, tol = 1e-5, kernel = kernel,
                       verbose = verbose)
     P <- x2ares$W

@@ -2203,8 +2203,8 @@ x2aff <- function(X, perplexity = 15, tol = 1e-5, kernel = "gauss",
   }
 
   if (verbose) {
-    summarize(sigma, "sigma summary")
-    summarize(intd, "Dint")
+    summarize(sigma, "sigma summary", verbose = verbose)
+    summarize(intd, "Dint", verbose = verbose)
   }
   list(W = W, beta = beta, dint = intd)
 }
@@ -2545,7 +2545,7 @@ nnat <- function(x) {
 }
 
 # log vector information
-summarize <- function(X, msg = "") {
+summarize <- function(X, msg = "", verbose = FALSE) {
   summary_X <- summary(X, digits = max(3, getOption("digits") - 3))
   tsmessage(msg, ": ", paste(names(summary_X), ":", summary_X, "|",
                              collapse = ""))
@@ -2724,7 +2724,7 @@ smooth_knn_distances <-
     diag(P) <- 0
 
     if (verbose) {
-      summarize(sigma, "sigma summary")
+      summarize(sigma, "sigma summary", verbose = verbose)
     }
     list(sigma = sigma, rho = rho, P = P)
   }
