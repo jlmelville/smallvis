@@ -993,6 +993,11 @@ sne_init <- function(cost, X, perplexity, kernel = "gaussian",
     cost$P <- mspres$P
     return(cost)
   }
+  else if (tolower(kernel) == "sigma") {
+    tsmessage("Using fixed sigma = ", formatC(perplexity))
+    x2ares <- x2aff_sigma(X, sigma = perplexity, verbose = verbose)
+    P <- x2ares$W
+  }
   else {
     if (!is.numeric(perplexity)) {
       stop("Unknown perplexity method, '", perplexity[[1]], "'")
