@@ -2232,6 +2232,25 @@ shannon <- function(D2, beta) {
   )
 }
 
+x2aff_sigma <- function(X, sigma = 1e-3, verbose = FALSE) {
+  x_is_dist <- methods::is(X, "dist")
+  if (x_is_dist) {
+    D <- X
+
+    D <- as.matrix(D)
+    D <- D * D
+  }
+  else {
+    D <- safe_dist2(X)
+  }
+  beta <- 1 / (sigma * sigma)
+  sres <- shannon(D, beta)
+  W <- sres$W
+  diag(W) <- 0
+  
+  list(W = W, beta = beta)
+}
+
 # Create a symmetrized distance matrix based on the k-nearest neighbors
 # Non-neighbor distances are set to Inf
 knndist <- function(X, k) {
