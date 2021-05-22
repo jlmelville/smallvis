@@ -30,11 +30,11 @@ Now let's represent it as a fully-connected undirected graph, where each object
 in the dataset is a vertex, and the strength of the connection between each
 vertex is given by a weighted edge.
 
-The graph is represented as a matrix, $W$: an $N$ x $N$ matrix of edge weights 
-(or "similarities" or "affinities": you may also see the matrix written as $A$), 
-where if $w_{ij}$ is large, that meansobject $i$ and $j$ are considered similar.
-$W$ is sometimes also called a kernel matrix and the function that generated the
-similarities as a kernel.
+The graph is represented as a matrix, $W$: an $N$ x $N$ matrix of edge weights
+(or "similarities" or "affinities": you may also see the matrix written as $A$),
+where if $w_{ij}$ is large, that means object $i$ and $j$ are considered
+similar. $W$ is sometimes also called a kernel matrix and the function that
+generated the similarities as a kernel.
 
 It doesn't particularly matter for this discussion what the kernel function is.
 Let's just say it's a Gaussian function of the Euclidean distances (which it
@@ -132,7 +132,7 @@ eigenvalues.
 ### Eigenvalues
 
 For Laplacians, the the smallest eigenvalue is 0. For the normalized Laplacians
-$L_{sym}$ and $L_{rw}$, the maximum value an eigenvalue can attain in 2.
+$L_{sym}$ and $L_{rw}$, the maximum value an eigenvalue can attain is 2.
 
 ## Laplacian Eigenmaps
 
@@ -159,13 +159,14 @@ So it turns out that the standard eigenvalue problem with $L_{rw}$ will produce
 the same results as the generalized eigenvalue problem with $L$ and $D$. A
 non-generalized eigenvalue problem is preferable to the generalized problem, at
 least in R, because generalized problems require installing the CRAN package
-`geigen`. You could even use the eigenvectors of $P$, although you have to bear
-in mind that the eigenvalues of $P$ differ from $L_{rw}$ although in that case
-the order of the eigenvectors are reversed, i.e. you want those associated with
-the *largest* eigenvalues, ignoring the top eigenvector (which is the constant
-eigenvector). $P$ might even be preferable because it's ever-so-slightly less
-work to calculate than $L_{rw}$. We'll revisit the relationship between $L_{rw}$
-and $P$ when we talk about diffusion maps.
+[`geigen`](https://cran.r-project.org/package=geigen). You could even use the
+eigenvectors of $P$, although you have to bear in mind that the eigenvalues of
+$P$ differ from $L_{rw}$ although in that case the order of the eigenvectors are
+reversed, i.e. you want those associated with the *largest* eigenvalues,
+ignoring the top eigenvector (which is the constant eigenvector). $P$ might even
+be preferable because it's ever-so-slightly less work to calculate than
+$L_{rw}$. We'll revisit the relationship between $L_{rw}$ and $P$ when we talk
+about diffusion maps.
 
 ### Output
 
@@ -205,14 +206,14 @@ $L_{sym}$. This version requires an additional row normalization step of the
 output matrix, $Y$, before you can do clustering: normalize each row so the
 each row sums to one (unit norm normalization).
 
-After some additional theoretical discussions, von Luxburg concludes that 
+After some additional theoretical discussions, von Luxburg concludes that
 clustering on the un-normalized graph Laplacian has some undesirable properties,
 so you definitely want to use one of the normalized Laplacians for clustering.
-Of the two normalized Laplacians, the Shi-Malik approach (once cast in terms 
-of using $L_{rw}$) is the least effort. I would a slight downside to $L_{rw}$
-is that unlike $L$ and $L_{sym}$, it is not symmetric, and symmetric matrices
-usually have access to slightly more methods (or more efficient methods) for 
-solving the eigenproblem.
+Of the two normalized Laplacians, the Shi-Malik approach (once cast in terms of
+using $L_{rw}$) is the least effort. A slight downside to $L_{rw}$ is that
+unlike $L$ and $L_{sym}$, it is not symmetric, and symmetric matrices usually
+have access to slightly more methods (or more efficient methods) for solving the
+eigenproblem.
 
 Conclusion: use $L_{rw}$ (Laplacian Eigenmaps).
 
@@ -247,7 +248,7 @@ where $v_N$ is the uninteresting top eigenvector of all 1s (and $\mu_N = 1$).
 
 Where does the diffusion come in? $P$ can also be thought of as a transition
 matrix of a Markov chain: a large $p_{ij}$ means that $i$ has a high probability
-oftransitioning to $j$. And because you can evaluate the probabilities at time
+of transitioning to $j$. And because you can evaluate the probabilities at time
 step $t$ by creating the iterated matrix $P^{t}$, you can get a sense of the
 geometry of the data at different scales by seeing how the probability changes
 over time. And there's not even that much extra work to do: the eigenvectors of
@@ -294,7 +295,7 @@ $$d^{\left( \alpha \right)}_{ii} = \sum_{j} w^{\left(\alpha\right)}_{ij}$$
 
 $$P^{\left( \alpha \right)} = D^{\left( \alpha \right)-1} W^{\left( \alpha \right)}$$ 
 
-* Generate the diffusion map using $P^\left( \alpha \right)$, and scaling the 
+* Generate the diffusion map using $P^\left( \alpha \right)$, and scale the 
 eigenvectors with the eigenvalues as described above.
 
 It's particularly lamentable that you have to deal with reading both 
@@ -311,7 +312,7 @@ get Fokker-Planck diffusion.
 ## Further Reading
 
 I try to link to official DOI URLs and the like where possible, and not post
-links to copyright-busting PDFs. The tutorials and reports by Von Luxburg,
+links to copyright-busting PDFs. The tutorials and reports by von Luxburg,
 Horaud, and Socher are good places to start.
 
 * The connection between t-SNE and spectral clustering is discussed in detail 
