@@ -23,7 +23,7 @@ Below I will:
 1. Discuss the nuts and bolts of the implementation according to the 
 [source code](https://github.com/stat-ml/ncvis).
 2. Write out the gradients as they are expressed in the source code, sticking
-as close as possuble to how it's done in the code.
+as close as possible to how it's done in the code.
 3. Express the code gradients in a way that using the quantities and symbols
 used in the paper as much as possible and is easier to compare with other
 methods.
