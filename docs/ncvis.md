@@ -587,7 +587,7 @@ adding $\log p_{i}^-$ for the new positive edge.
 Without this correction, we assume that $p_{i}^-$ is a constant. Is this a good
 assumption? While it is true that the number of non-zero entries in the rows of
 the k-nearest neighbor adjacency matrix are constant, after symmetrization the
-number of non-zero entries in the rows of the mutual nearest neighbor adjancency
+number of non-zero entries in the rows of the mutual nearest neighbor adjacency
 matrix, $V$ (which is normalized to form $P$) is *not* constant.
 
 In a lot of cases, the difference isn't very large, but for datasets where hubs
@@ -600,10 +600,17 @@ and hence the distribution of values of $p_{i}-$ can be very skewed (I have
 encountered differences of 1-2 orders of magnitude). The fact that we use the
 $\log p_{i}$ may ameliorate this problem, although it could be entirely removed
 by storing the $O\left(N\right)$ array of row sums and carrying out the 
-correction which only adds one addition and one substraction in the edge 
+correction which only adds one addition and one subtraction in the edge 
 sampling loop.
 
 ## Acknowledgement
 
 Thank you Dmitry Kobak for bringing this paper to my attention and helping
 correct the many mistakes I made while trying to write out the derivation.
+
+## See Also
+
+*15 November 2021*: If you like this sort of thing (and I am talking only to
+myself here), you may be interested in my discussion of
+[PaCMAP](https://jlmelville.github.io/smallvis/pacmap.html).
+

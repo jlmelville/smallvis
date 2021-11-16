@@ -227,8 +227,8 @@ decayed from 1000 to 3.
 Neither the $a$ or $b$ parameters of the cost function can be modified by the
 user in the PaCMAP implementation. The number of iterations can be changed, but
 the first 200 iterations always use the same weights and schedule, so if you set
-`num_iters = 950`, this means the third stage of the optimization schedule will
-last for 750 iterations, rather than doubling the duration of all three stages
+`num_iters = 900`, this means the third stage of the optimization schedule will
+last for 700 iterations, rather than doubling the duration of all three stages
 proportionally.
 
 ## Uniform Near Pair Weights
@@ -256,13 +256,14 @@ is already low-dimensional), the data is range-scaled and then centered.
 The Truncated SVD used in scikit-learn seems to use the same method by 
 [Halko and co-workers](https://arxiv.org/abs/0909.4061) as used in
 [irlba](https://cran.r-project.org/package=irlba)'s `svdr` function and cited by
-the [rsvd](https://cran.r-project.org/package=rsvd) (see also the 
+the [rsvd package](https://cran.r-project.org/package=rsvd) (see also the 
 [github](https://github.com/erichson/rSVD) and
 [JSS publication](https://arxiv.org/abs/1608.02148)), but the scikit-learn
 version is noticeably faster than either (even after installing OpenBLAS for 
 faster linear algebra routines on Linux). Results for the later dimensions are
-not the same so there may be an accuracy/speed trade off to be investigated on
-the R side.
+not the same between TruncatedSVD in Python and irlba, rsvd or even the unrelated
+[bigstatsr](https://cran.r-project.org/package=bigstatsr) package so there may
+be an accuracy/speed trade off to be investigated on the R side.
 
 ## Nearest Neighbors
 
@@ -308,7 +309,7 @@ the mid-near section below).
 The closest `n_neighbors` of each point are not actually used. Instead the
 `n_neighbors` closest points in terms of a "generalized" squared distance,
 originally proposed by
-[Zelnik-Manor and Perona](https://papers.nips.cc/paper/2004/hash/40173ea48d9567f1f393b20c855bb40b-Abstract.html)
+[Zelnik-Manor and Perona](https://papers.nips.cc/paper/2004/hash/40173ea48d9567f1f393b20c855bb40b-Abstract.html),
 is used:
 
 $$
@@ -360,7 +361,8 @@ set of far pairs. PaCMAP samples both the mid-near and far pairs once before
 the optimization begins and re-uses them at each epoch. This saves on repeated
 random number generation, at the cost of increased memory usage for storing
 the indices of the pairs. With default settings we can expect an extra storage
-cost of $2.5 n_{nbrs}$.
+cost of $2.5 * N * n_{nbrs}$, which technically would make PaCMAP's memory costs
+scale as $O(N \log N)$.
 
 ## Output Initialization
 
@@ -395,3 +397,8 @@ approach to negative sampling was used. On the other hand, presumably this cost
 function has a higher bias. And the variance issue may still bite you if you
 try to compare different costs between different runs with different random
 number seeds.
+
+## See Also
+
+Some notes on the related method
+[NCVis](https://jlmelville.github.io/smallvis/ncvis.html).

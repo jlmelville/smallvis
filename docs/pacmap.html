@@ -415,7 +415,7 @@ pacmap_kd &lt;- function(dij, a = 1, b = 1) {
 </tbody>
 </table>
 <p>I have kept the <code>further</code> weight column for consistency with the paper even though as you can see, far pair weights are always 1. For the mid-near pairs during the first 100 iterations, <code>1000 -&gt; 3</code> means the weight is linearly decayed from 1000 to 3.</p>
-<p>Neither the <span class="math inline">\(a\)</span> or <span class="math inline">\(b\)</span> parameters of the cost function can be modified by the user in the PaCMAP implementation. The number of iterations can be changed, but the first 200 iterations always use the same weights and schedule, so if you set <code>num_iters = 950</code>, this means the third stage of the optimization schedule will last for 750 iterations, rather than doubling the duration of all three stages proportionally.</p>
+<p>Neither the <span class="math inline">\(a\)</span> or <span class="math inline">\(b\)</span> parameters of the cost function can be modified by the user in the PaCMAP implementation. The number of iterations can be changed, but the first 200 iterations always use the same weights and schedule, so if you set <code>num_iters = 900</code>, this means the third stage of the optimization schedule will last for 700 iterations, rather than doubling the duration of all three stages proportionally.</p>
 </div>
 <div id="uniform-near-pair-weights" class="section level2">
 <h2>Uniform Near Pair Weights</h2>
@@ -425,7 +425,7 @@ pacmap_kd &lt;- function(dij, a = 1, b = 1) {
 <div id="input-preprocessing" class="section level2">
 <h2>Input Preprocessing</h2>
 <p>By default, if the input dimensionality <span class="math inline">\(d &gt; 100\)</span> then the data is centered (but not scaled) and PCA is applied via the scikit-learn <a href="https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.TruncatedSVD.html">TruncatedSVD</a> to reduce the input dimensionality to 100. If PCA is not asked for (or the data is already low-dimensional), the data is range-scaled and then centered.</p>
-<p>The Truncated SVD used in scikit-learn seems to use the same method by <a href="https://arxiv.org/abs/0909.4061">Halko and co-workers</a> as used in <a href="https://cran.r-project.org/package=irlba">irlba</a>’s <code>svdr</code> function and cited by the <a href="https://cran.r-project.org/package=rsvd">rsvd</a> (see also the <a href="https://github.com/erichson/rSVD">github</a> and <a href="https://arxiv.org/abs/1608.02148">JSS publication</a>), but the scikit-learn version is noticeably faster than either (even after installing OpenBLAS for faster linear algebra routines on Linux). Results for the later dimensions are not the same so there may be an accuracy/speed trade off to be investigated on the R side.</p>
+<p>The Truncated SVD used in scikit-learn seems to use the same method by <a href="https://arxiv.org/abs/0909.4061">Halko and co-workers</a> as used in <a href="https://cran.r-project.org/package=irlba">irlba</a>’s <code>svdr</code> function and cited by the <a href="https://cran.r-project.org/package=rsvd">rsvd package</a> (see also the <a href="https://github.com/erichson/rSVD">github</a> and <a href="https://arxiv.org/abs/1608.02148">JSS publication</a>), but the scikit-learn version is noticeably faster than either (even after installing OpenBLAS for faster linear algebra routines on Linux). Results for the later dimensions are not the same between TruncatedSVD in Python and irlba, rsvd or even the unrelated <a href="https://cran.r-project.org/package=bigstatsr">bigstatsr</a> package so there may be an accuracy/speed trade off to be investigated on the R side.</p>
 </div>
 <div id="nearest-neighbors" class="section level2">
 <h2>Nearest Neighbors</h2>
@@ -481,7 +481,7 @@ n_{nbrs} = \left \lfloor 10 + 15 \left(\log_{10}n - 4\right) \right \rceil
 </div>
 <div id="scaled-distances" class="section level3">
 <h3>Scaled Distances</h3>
-<p>The closest <code>n_neighbors</code> of each point are not actually used. Instead the <code>n_neighbors</code> closest points in terms of a “generalized” squared distance, originally proposed by <a href="https://papers.nips.cc/paper/2004/hash/40173ea48d9567f1f393b20c855bb40b-Abstract.html">Zelnik-Manor and Perona</a> is used:</p>
+<p>The closest <code>n_neighbors</code> of each point are not actually used. Instead the <code>n_neighbors</code> closest points in terms of a “generalized” squared distance, originally proposed by <a href="https://papers.nips.cc/paper/2004/hash/40173ea48d9567f1f393b20c855bb40b-Abstract.html">Zelnik-Manor and Perona</a>, is used:</p>
 <p><span class="math display">\[
 d_{ij}^{2,select} = \frac{r_{ij}^2}{\sigma_i \sigma_j}
 \]</span></p>
@@ -503,7 +503,7 @@ d_{ij}^{2,select} = \frac{r_{ij}^2}{\sigma_i \sigma_j}
 </div>
 <div id="neighbors-are-sampled-once-and-re-used" class="section level2">
 <h2>Neighbors are Sampled Once and Re-used</h2>
-<p>In UMAP and LargeVis, the “negative” sampling (same as “far pairs” here) is repeated during each epoch, so a given point <span class="math inline">\(i\)</span> always gets an entirely new set of far pairs. PaCMAP samples both the mid-near and far pairs once before the optimization begins and re-uses them at each epoch. This saves on repeated random number generation, at the cost of increased memory usage for storing the indices of the pairs. With default settings we can expect an extra storage cost of <span class="math inline">\(2.5 n_{nbrs}\)</span>.</p>
+<p>In UMAP and LargeVis, the “negative” sampling (same as “far pairs” here) is repeated during each epoch, so a given point <span class="math inline">\(i\)</span> always gets an entirely new set of far pairs. PaCMAP samples both the mid-near and far pairs once before the optimization begins and re-uses them at each epoch. This saves on repeated random number generation, at the cost of increased memory usage for storing the indices of the pairs. With default settings we can expect an extra storage cost of <span class="math inline">\(2.5 * N * n_{nbrs}\)</span>, which technically would make PaCMAP’s memory costs scale as <span class="math inline">\(O(N \log N)\)</span>.</p>
 </div>
 <div id="output-initialization" class="section level2">
 <h2>Output Initialization</h2>
@@ -517,6 +517,10 @@ d_{ij}^{2,select} = \frac{r_{ij}^2}{\sigma_i \sigma_j}
 <div id="pacmap-reports-its-stochastic-cost" class="section level2">
 <h2>PaCMAP reports its Stochastic Cost</h2>
 <p>As can be seen in the consideration of the gradients, the per-point PaCMAP loss can be easily calculated using values needed for the gradient. PaCMAP stores the loss at the end of the gradient vector and can report it at different stages during the optimization. Because the negative pairs are constant for the entire optimization, we might expect there to be less variance than if a UMAP-style approach to negative sampling was used. On the other hand, presumably this cost function has a higher bias. And the variance issue may still bite you if you try to compare different costs between different runs with different random number seeds.</p>
+</div>
+<div id="see-also" class="section level2">
+<h2>See Also</h2>
+<p>Some notes on the related method <a href="https://jlmelville.github.io/smallvis/ncvis.html">NCVis</a>.</p>
 </div>
 
 
