@@ -265,6 +265,24 @@ not the same between TruncatedSVD in Python and irlba, rsvd or even the unrelate
 [bigstatsr](https://cran.r-project.org/package=bigstatsr) package so there may
 be an accuracy/speed trade off to be investigated on the R side.
 
+*16 November 2021* I have confirmed something along these lines for the 
+`macosko2015` dataset (of dimensions `44808 x 3000`). For centered but unscaled
+data, extracting 100 components explains around 37% of the variance, so
+differences in results aren't due to numerical issues that arise when all the
+variance in a dataset has been extracted and the last few columns are just
+creative ways of expressing a vector that should be full of zeros. The
+`TruncatedSVD` (in version 1.0 of scikit-learn) with default parameters produces
+columns which are substantially less orthogonal than those produced by the R
+packages mentioned above. After normalizing the columns, the dot products of
+successive columns are fairly uniform across all 100 columns for all the R
+methods, in the region of $10^{-14}$ to $10^{-16}$. For `TruncatedSVD`, the
+columns start at a comparable level of orthogonality but quickly become less
+orthogonal. The dot product of the tenth and eleventh column is around $10^{-7}$
+and for the last ten columns the dot products are in the region of $10^{-4}$ to
+$10^{-5}$. This suggests that for the purposes of approximate nearest neighbor
+search, initial dimensionality reduction via SVD may be able to use
+substantially looser tolerances than the defaults used in many R packages.
+
 ## Nearest Neighbors
 
 The number of nearest neighbors is scaled according to dataset size. For 
