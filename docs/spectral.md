@@ -129,6 +129,14 @@ I will also borrow the nomenclature of von Luxburg which refers to the "first"
 $k$ eigenvectors as being the eigenvectors associated with the $k$ *smallest*
 eigenvalues.
 
+### "Top" Eigenvectors
+
+I should mention that you will see discussion of "top" eigenvectors sometimes,
+which refers to the eigenvectors associated with the largest eigenvalues in
+every place I have seen it. Usually this nomenclature is seen in the context of
+SVD, especially when used for PCA, rather than spectral methods. I will *not*
+use this anywhere in this document.
+
 ### Eigenvalues
 
 For Laplacians, the the smallest eigenvalue is 0. For the normalized Laplacians
@@ -161,12 +169,12 @@ non-generalized eigenvalue problem is preferable to the generalized problem, at
 least in R, because generalized problems require installing the CRAN package
 [`geigen`](https://cran.r-project.org/package=geigen). You could even use the
 eigenvectors of $P$, although you have to bear in mind that the eigenvalues of
-$P$ differ from $L_{rw}$ although in that case the order of the eigenvectors are
-reversed, i.e. you want those associated with the *largest* eigenvalues,
-ignoring the top eigenvector (which is the constant eigenvector). $P$ might even
-be preferable because it's ever-so-slightly less work to calculate than
-$L_{rw}$. We'll revisit the relationship between $L_{rw}$ and $P$ when we talk
-about diffusion maps.
+$P$ differ from $L_{rw}$. Compared to $L_{rw}$, when using $P$ the order of the
+eigenvectors are reversed, i.e. you want those associated with the *largest*
+eigenvalues, ignoring the top eigenvector (which is the constant eigenvector).
+$P$ might even be preferable because it's ever-so-slightly less work to
+calculate than $L_{rw}$. We'll revisit the relationship between $L_{rw}$ and $P$
+when we talk about diffusion maps.
 
 ### Output
 
@@ -280,11 +288,11 @@ is truly unfortunate.
 
 The full procedure is something like:
 
-* Form $W$ as usual.
+* Form $W$ and $D$ as usual.
 * Specify $\alpha$, the anisotropic diffusion parameter, a value between 0 and 1.
 * Normalize $W$ according to $\alpha$:
 
-$$W^{\left( \alpha \right)} = D^{-1/\alpha} W D^{-1/\alpha}$$
+$$W^{\left( \alpha \right)} = D^{-\alpha} W D^{-\alpha}$$
 
 * Form a new diagonal degree matrix, $D^{\left( \alpha \right)}$, based on the new kernel matrix,
 $W^{\left( \alpha \right)}$:
@@ -300,7 +308,7 @@ eigenvectors with the eigenvalues as described above.
 
 It's particularly lamentable that you have to deal with reading both 
 $D^{\left( \alpha \right)-1}$ (the inverse of the diagonal matrix 
-$D^{\left( \alpha \right)})$ *and* the entirely different $D^{-1/\alpha}$ 
+$D^{\left( \alpha \right)})$ *and* the entirely different $D^{-\alpha}$ 
 (invert the diagonal matrix $D$, then raise the resulting diagonal values to 
 the power of $\alpha$).
 
@@ -315,14 +323,15 @@ I try to link to official DOI URLs and the like where possible, and not post
 links to copyright-busting PDFs. The tutorials and reports by von Luxburg,
 Horaud, and Socher are good places to start.
 
-* The connection between t-SNE and spectral clustering is discussed in detail 
-[Clustering with t-SNE, provably](https://arxiv.org/abs/1706.02582), but the
-earliest example of a mention of t-SNE with a spectral method (Laplacian 
-Eigenmaps) I've come across (not that I've looked that hard) is in
-[The Elastic Embedding Algorithm for Dimensionality Reduction (PDF)](http://faculty.ucmerced.edu/mcarreira-perpinan/papers/icml10.pdf).
-That paper also mentions that Diffusion Maps use normalized affinities (i.e. 
-t-SNE like normalization to probabilities), but I haven't seen this point
-made elsewhere.
+* The connection between t-SNE and spectral clustering is discussed in detail in
+[Clustering with t-SNE, provably](https://arxiv.org/abs/1706.02582).
+
+* Although I haven't looked very hard, the earliest example of a mention of
+t-SNE with a spectral method I'm aware of is in
+[The Elastic Embedding Algorithm for Dimensionality Reduction (PDF)](http://faculty.ucmerced.edu/mcarreira-perpinan/papers/icml10.pdf),
+which draws a connection between t-SNE and Laplacian Eigenmaps. That paper also
+mentions that Diffusion Maps use normalized affinities (i.e. t-SNE-like
+normalization to probabilities), but I haven't seen this point made elsewhere.
 
 * For more on the properties of the heat kernel, see e.g. 
 [Sun and co-workers](https://doi.org/10.1111/j.1467-8659.2009.01515.x) or
@@ -351,7 +360,7 @@ justify the now-ubiquitous use of a Gaussian kernel for at least the input
 affinities.
 
 * The [wikipedia page on Diffusion Maps](https://en.wikipedia.org/wiki/Diffusion_map) 
-has one of the clearer statements of the procedure including the diffusion 
+has one of the clearer statements of the algorithm which includes the diffusion 
 parameter, but confusingly redefines the matrix it's called $W$ as $L$, even 
 though it was already using $L$ for an entirely different purpose.
 
