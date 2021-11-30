@@ -113,29 +113,35 @@ $P$ is row-normalized (i.e. all rows add up to 1).
 
 ## Eigenvectors
 
+As the "spectral" bit indicates, a lot of eigenvectors are going to be mentioned
+below. Usually the eigenvectors are sorted according to the associated
+eigenvalues.
+
 ### Smallest and Largest
 
-As the "spectral" bit indicates, a lot of eigenvectors are going to be mentioned
-below. When I talk about "largest" and "smallest" eigenvectors, I am referring
+When I talk about "largest" and "smallest" eigenvectors, I am referring
 to the eigenvectors associated with the largest and smallest eigenvalues,
 respectively. The eigenvalues of interest are all non-negative and real, so
 there shouldn't be any ambiguity about whether I mean a big negative or positive
 eigenvalue (none of them are negative except close to zero due to numerical 
 issues).
 
+### "Top" Eigenvectors
+
+The "top" eigenvectors also means the eigenvectors associated with the largest
+eigenvalues. This is commonly found in discussions of singular value
+decomposition, especially when used as part of principal component analysis, but
+can also find its way into discussions of spectral clustering and graph
+laplacians. The "top" eigenvector is sometimes referred to as the "dominant"
+eigenvector.
+
 ### "First" Eigenvectors
 
 I will also borrow the nomenclature of von Luxburg which refers to the "first"
 $k$ eigenvectors as being the eigenvectors associated with the $k$ *smallest*
-eigenvalues.
-
-### "Top" Eigenvectors
-
-I should mention that you will see discussion of "top" eigenvectors sometimes,
-which refers to the eigenvectors associated with the largest eigenvalues in
-every place I have seen it. Usually this nomenclature is seen in the context of
-SVD, especially when used for PCA, rather than spectral methods. I will *not*
-use this anywhere in this document.
+eigenvalues. There is a bit of a clash of naming here, as you might think that
+"top" and "first" eigenvectors refer to the same thing, but they don't. In fact
+they have opposite meanings. Great.
 
 ### Eigenvalues
 
