@@ -217,8 +217,8 @@ we know that it is equivalent to computing the first $k$ eigenvectors of
 $L_{rw}$ (hence justifying the term "normalized").
 3. Normalized (Ng, Jordan and Weiss): compute the first $k$ eigenvectors of
 $L_{sym}$. This version requires an additional row normalization step of the
-output matrix, $Y$, before you can do clustering: normalize each row so the
-each row sums to one (unit norm normalization).
+output matrix, $Y$, before you can do clustering: normalize the rows so each row
+sums to one (unit norm normalization).
 
 After some additional theoretical discussions, von Luxburg concludes that
 clustering on the un-normalized graph Laplacian has some undesirable properties,
