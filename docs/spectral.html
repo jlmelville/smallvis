@@ -251,6 +251,7 @@ div.tocify {
 
 
 <p>Up: <a href="https://jlmelville.github.io/smallvis/">Documentation Home</a>.</p>
+<p>Originally written in December 2017, with some minor corrections and typos over the years. Some substantial new additions were added in December 2021 (these are called out in the text).</p>
 <p>Spectral methods are only tangentially related to <code>smallvis</code>, in that a spectral method is available for initialization (<code>Y_init = &quot;laplacian&quot;</code> or <code>Y_init = &quot;normlaplacian&quot;</code>) and that the attractive part of most of the cost functions approximates a spectral method. Various methods are related to each other, but the nomenclature is not always consistent between papers, and a lot of the more accessible material seems to be a bit unclear, so I need something brief to remind myself without having to work it all out over and over again every time. So it’s going here.</p>
 <p>This page is just to remind me of the definitions of matrices and the algorithmic procedures, not anything to do with theoretical properties. For that, see the further reading section.</p>
 <div id="the-usual-preliminaries" class="section level2">
@@ -268,8 +269,8 @@ div.tocify {
 <li>Contain all non-negative values (i.e. positive semi-definite).</li>
 </ul>
 <p>If <span class="math inline">\(N\)</span> is large then it is usual to sparsify <span class="math inline">\(W\)</span> by only keeping the <span class="math inline">\(k\)</span>-largest values in each column. This creates the k-nearest neighbor similarity graph, which must then be resymmetrized (e.g. by adding the self-transpose).</p>
-<p>Also, it’s common for the diagonal of <span class="math inline">\(W\)</span> to be all zeros.</p>
-<p>If your data is naturally a graph, then you skip all of the above, you already have the data you need to create <span class="math inline">\(W\)</span>.</p>
+<p>If your data is naturally a graph, then you skip all of the above, you already have the data you need to create <span class="math inline">\(W\)</span>, which is now an adjacency matrix. It’s likely that in that case <span class="math inline">\(W\)</span> is a sparse matrix, but that doesn’t matter for anything that follows.</p>
+<p>If your <span class="math inline">\(W\)</span> matrix is derived from a graph and you don’t have loops (i.e. no edges from a node to itself), then the diagonal of <span class="math inline">\(W\)</span> will be all zeros. Kernel matrices usually have ones on the diagonal (an obvious consequence of a Gaussian kernel). What ends up on the diagonal doesn’t affect the relationship between the different graph Laplacians but can affect the numerical values themselves.</p>
 </div>
 <div id="the-degree-matrix" class="section level2">
 <h2>The Degree Matrix</h2>
@@ -283,23 +284,29 @@ div.tocify {
 <h3>Unnormalized Graph Laplacian</h3>
 <p><span class="math display">\[L = D - W\]</span></p>
 <p>Also referred to as the <em>combinatorial</em> graph Laplacian by Tremblay and Loukas.</p>
+<p>This is the one graph Laplacian in this document which is unaffected by the values on the diagonal.</p>
 </div>
 <div id="symmetrized-normalized-laplacian" class="section level3">
 <h3>Symmetrized Normalized Laplacian</h3>
 <p><span class="math display">\[L_{sym} = D^{-1/2} L D^{-1/2} = I - D^{-1/2} W D^{-1/2}\]</span></p>
 <p>also sometimes called just the <em>normalized</em> Laplacian and referred to by the nomenclature <span class="math inline">\(L_{n}\)</span>, but see below for another normalized Laplacian, which makes this naming ambiguous.</p>
+<p><span class="math inline">\(D^{-1/2} W D^{-1/2}\)</span> is sometimes called the (symmetrized) normalized adjacency matrix.</p>
 </div>
 <div id="random-walk-normalized-laplacian" class="section level3">
 <h3>Random Walk Normalized Laplacian</h3>
 <p><span class="math display">\[L_{rw} = D^{-1} L = I - D^{-1} W\]</span></p>
-<p>von Luxburg notes that this is <em>also</em> sometimes referred to as the normalized Laplacian, so it’s best to use the longer names von Luxburg uses to avoid confusion.</p>
+<p>von Luxburg notes that this is <em>also</em> sometimes referred to as the normalized Laplacian, so it’s best to use the longer names von Luxburg uses to avoid confusion. And yes, <span class="math inline">\(D^{-1} W\)</span> is <em>also</em> sometimes referred to as a normalized adjacency matrix.</p>
 </div>
 <div id="random-walk-transition-matrix" class="section level3">
 <h3>Random Walk Transition Matrix</h3>
+<p>People really like giving <span class="math inline">\(D^{-1} W\)</span> lots of different names:</p>
 <p><span class="math display">\[P = D^{-1} W\]</span></p>
 <p>Also called the <em>Diffusion Operator</em> in Socher’s report. This also means you can write the Random Walk Normalized Laplacian as:</p>
 <p><span class="math display">\[L_{rw} = I - P\]</span></p>
 <p><span class="math inline">\(P\)</span> is row-normalized (i.e. all rows add up to 1).</p>
+<p>It’s also pretty easy to see that:</p>
+<p><span class="math display">\[L_{sym} = I - D^{1/2} P D^{-1/2}\]</span></p>
+<p>The matrix <span class="math inline">\(P_{sym} = D^{1/2} P D^{-1/2}\)</span> shows up in the discussion of diffusion maps. The doesn’t seem to be a fixed name or symbol for it, so I will go with <span class="math inline">\(P_{sym}\)</span> here in analogy with <span class="math inline">\(L_{sym}\)</span> to indicate it’s a symmetrized version of <span class="math inline">\(P\)</span>.</p>
 </div>
 </div>
 <div id="eigenvectors" class="section level2">
@@ -319,8 +326,20 @@ div.tocify {
 </div>
 <div id="eigenvalues" class="section level3">
 <h3>Eigenvalues</h3>
-<p>For Laplacians, the the smallest eigenvalue is 0. For the normalized Laplacians <span class="math inline">\(L_{sym}\)</span> and <span class="math inline">\(L_{rw}\)</span>, the maximum value an eigenvalue can attain is 2.</p>
+<p>Both versions of the normalized adjacency matrix <span class="math inline">\(D^{-1} W\)</span> and <span class="math inline">\(D^{-1/2} W D^{-1/2}\)</span>, have eigenvalues that vary between -1 and 1.</p>
+<p>For graph Laplacians, the the smallest eigenvalue is 0. For the normalized Laplacians <span class="math inline">\(L_{sym}\)</span> and <span class="math inline">\(L_{rw}\)</span>, the maximum value an eigenvalue can attain is 2.</p>
 </div>
+</div>
+<div id="connections-between-laplacian-eigenvectors" class="section level2">
+<h2>Connections Between Laplacian Eigenvectors</h2>
+<p><em>December 8 2021</em> While I have made a few typo corrections and clarifications since originally writing this, I am calling out this brief section because it adds some relationships that may be of practical interest: it’s better to choose the Laplacian format and spectral decomposition method that meets your robustness and speed needs, and then convert the result into what you want. You probably aren’t writing the software to do the linear algebra yourself so having flexibility over the choice of package you use for that can be very helpful.</p>
+<p>The eigenvalues of <span class="math inline">\(L_{sym}\)</span> and <span class="math inline">\(L_{rw}\)</span> are the same. So if you just need the eigenvalues it doesn’t matter which of those Laplacians you use. We can therefore refer to <span class="math inline">\(\lambda_i\)</span> as the ith eigenvalue in most cases of interest without having to worry about which of the two Laplacians we are referring to.</p>
+<p>The eigenvectors are also related. If <span class="math inline">\(v_{rw}\)</span> is an eigenvector of <span class="math inline">\(L_{rw}\)</span> and <span class="math inline">\(v_{sym}\)</span> is an eigenvector of <span class="math inline">\(L_{sym}\)</span>, then:</p>
+<p><span class="math display">\[v_{rw} = D^{-1/2} v_{sym}\]</span></p>
+<p>As a spoiler for later, the eigenvectors of <span class="math inline">\(P\)</span> are the same as <span class="math inline">\(L_{rw}\)</span> but after sorting, they are in reverse order, because the eigenvalues of <span class="math inline">\(P\)</span> are equal to <span class="math inline">\(1 - \lambda\)</span>.</p>
+<p>Further, <span class="math inline">\(P\)</span> and <span class="math inline">\(P_{sym}\)</span> have the same eigenvalues and the relationship between eigenvectors is the same as that between <span class="math inline">\(L_{rw}\)</span> and <span class="math inline">\(L_{sym}\)</span>:</p>
+<p><span class="math display">\[v_{P} = D^{-1/2} v_{Psym}\]</span></p>
+<p>I mainly discuss the eigenvectors of <span class="math inline">\(L_{rw}\)</span> below as these are most closely related to Laplacian Eigenmaps and Diffusion Maps. Assume if you see reference to a vector <span class="math inline">\(v\)</span> without any subscript that this refers to the eigenvector of <span class="math inline">\(L_{rw}\)</span>.</p>
 </div>
 <div id="laplacian-eigenmaps" class="section level2">
 <h2>Laplacian Eigenmaps</h2>
@@ -338,7 +357,7 @@ L_{rw} v = \lambda v
 <p>So it turns out that the standard eigenvalue problem with <span class="math inline">\(L_{rw}\)</span> will produce the same results as the generalized eigenvalue problem with <span class="math inline">\(L\)</span> and <span class="math inline">\(D\)</span>. A non-generalized eigenvalue problem is preferable to the generalized problem, at least in R, because generalized problems require installing the CRAN package <a href="https://cran.r-project.org/package=geigen"><code>geigen</code></a>. You could even use the eigenvectors of <span class="math inline">\(P\)</span>, although you have to bear in mind that the eigenvalues of <span class="math inline">\(P\)</span> differ from <span class="math inline">\(L_{rw}\)</span>. Compared to <span class="math inline">\(L_{rw}\)</span>, when using <span class="math inline">\(P\)</span> the order of the eigenvectors are reversed, i.e. you want those associated with the <em>largest</em> eigenvalues, ignoring the top eigenvector (which is the constant eigenvector). <span class="math inline">\(P\)</span> might even be preferable because it’s ever-so-slightly less work to calculate than <span class="math inline">\(L_{rw}\)</span>. We’ll revisit the relationship between <span class="math inline">\(L_{rw}\)</span> and <span class="math inline">\(P\)</span> when we talk about diffusion maps.</p>
 <div id="output" class="section level3">
 <h3>Output</h3>
-<p>Now that you have <span class="math inline">\(k\)</span> eigenvectors, stack them columnwise to form an <span class="math inline">\(N\)</span> x <span class="math inline">\(k\)</span> matrix (let’s call it <span class="math inline">\(Y\)</span>):</p>
+<p>Now that you have <span class="math inline">\(k\)</span> eigenvectors, stack them columnwise to form an <span class="math inline">\(N\)</span> x <span class="math inline">\(k\)</span> matrix. I’ll label it <span class="math inline">\(Y\)</span>.</p>
 <p><span class="math display">\[Y = \left[v_2 | v_3 | \dots v_k \right]\]</span></p>
 <p>where, as noted above, we are not using the uninformative smallest eigenvector, <span class="math inline">\(v_1\)</span>. The rows of that matrix are the coordinates of the graph vertices in the reduced dimension, i.e. the ith row of the 2D Laplacian Eigenmap representing vertex i would be:</p>
 <p><span class="math display">\[y_i = \left(v_{i,2}, v_{i,3} \right)\]</span></p>
@@ -357,7 +376,7 @@ L_{rw} v = \lambda v
 <li>Normalized (Ng, Jordan and Weiss): compute the first <span class="math inline">\(k\)</span> eigenvectors of <span class="math inline">\(L_{sym}\)</span>. This version requires an additional row normalization step of the output matrix, <span class="math inline">\(Y\)</span>, before you can do clustering: normalize the rows so each row sums to one (unit norm normalization).</li>
 </ol>
 <p>After some additional theoretical discussions, von Luxburg concludes that clustering on the un-normalized graph Laplacian has some undesirable properties, so you definitely want to use one of the normalized Laplacians for clustering. Of the two normalized Laplacians, the Shi-Malik approach (once cast in terms of using <span class="math inline">\(L_{rw}\)</span>) is the least effort. A slight downside to <span class="math inline">\(L_{rw}\)</span> is that unlike <span class="math inline">\(L\)</span> and <span class="math inline">\(L_{sym}\)</span>, it is not symmetric, and symmetric matrices usually have access to slightly more methods (or more efficient methods) for solving the eigenproblem.</p>
-<p>Conclusion: use <span class="math inline">\(L_{rw}\)</span> (Laplacian Eigenmaps).</p>
+<p>Conclusion: use <span class="math inline">\(L_{rw}\)</span> (Laplacian Eigenmaps). <em>December 8 2021</em> Probably I should have said: use the <em>eigenvectors</em> of <span class="math inline">\(L_{rw}\)</span>, but given the straightforward conversion between the eigenvectors of <span class="math inline">\(L_{sym}\)</span> and those of <span class="math inline">\(L_{rw}\)</span>, you don’t need to form <span class="math inline">\(L_{rw}\)</span> directly for computational purposes. In fact, see the ‘Using Truncated SVD’ section below for why you might want to operate on a matrix related to <span class="math inline">\(L_{sym}\)</span> instead of <span class="math inline">\(L_{rw}\)</span>.</p>
 </div>
 <div id="diffusion-maps" class="section level2">
 <h2>Diffusion Maps</h2>
@@ -365,8 +384,22 @@ L_{rw} v = \lambda v
 <p><span class="math display">\[P v = \mu v\]</span></p>
 <p>The eigenvectors are the same whether you use <span class="math inline">\(L_{rw}\)</span> or <span class="math inline">\(P\)</span>, but the eigenvalues are different, so I am using <span class="math inline">\(\mu\)</span> instead of <span class="math inline">\(\lambda\)</span> to differentiate them from the eigenvalues associated with Laplacian Eigenmaps and the usual spectral clustering algorithms. As it happens, the eigenvalues are related by:</p>
 <p><span class="math display">\[\mu = 1 - \lambda\]</span></p>
-<p>This does have a book-keeping consequence because we order the eigenvectors by eigenvalue. In diffusion maps, you keep the <em>top</em> eigenvectors ignoring the very top eigenvector. Because of the relationship between <span class="math inline">\(L_{rw}\)</span> and <span class="math inline">\(P\)</span>, it turns out that you still end up using the same eigenvectors for diffusion maps as you do for Laplacian Eigenmaps, just the ordering is reversed.</p>
-<p>Additionally, in a diffusion map the eigenvalues are used to scale the eigenvectors when forming the <span class="math inline">\(Y\)</span> matrix. For example, here’s what one row of <span class="math inline">\(Y\)</span> would look like in the simplest 2D diffusion map case:</p>
+<p>This does have a book-keeping consequence because we order the eigenvectors by eigenvalue. In diffusion maps, you keep the <em>top</em> eigenvectors, discarding ignoring the very top eigenvector which is constant (and has an eigenvalue of 1).</p>
+<p>Because of the relationship between <span class="math inline">\(L_{rw}\)</span> and <span class="math inline">\(P\)</span>, it turns out that you still end up using the same eigenvectors for diffusion maps as you do for Laplacian Eigenmaps, just the ordering is reversed.</p>
+<div id="book-keeper-beware" class="section level3">
+<h3>Book-keeper Beware!</h3>
+<p><em>December 8 2021</em> There is a nuance to the book-keeping I just described that isn’t spelled out directly in most discussions of diffusion maps. It might be obvious to you dear reader, but I admit it took me four years to spot it. There is a (potential) clash between mathematical convention and the practicalities of creating a diffusion map via spectral decomposition of <span class="math inline">\(P\)</span>.</p>
+<p>In mathematical discussions of the properties of eigenvalues, the <em>absolute</em> values of eigenvalues are often what’s of interest. This means if you ask for the largest eigenvalues for a matrix, you can get back the largest negative as well as positive eigenvalues.</p>
+<p>This is of no relevance when ordering the eigenvectors of graph Laplacians: as mentioned in the “Eigenvalues” section above, the range of <span class="math inline">\(\lambda\)</span> for <span class="math inline">\(L_{rw}\)</span> is 0 to 2. No negative eigenvalues can be involved (except numerically close to zero). However, the story is different for the random walk matrices. The range of the equivalent eigenvalues (<span class="math inline">\(\mu\)</span>) is between 1 and -1.</p>
+<p>This means that you should be careful when using spectral decomposition libraries and check the order of returned eigenvalues. For example, both R’s built-in <code>eigen</code> function and the <code>eigs</code> function in <a href="https://cran.r-project.org/web/packages/RSpectra/index.html">RSpectra</a> (the latter used in the diffusion map package <a href="https://github.com/theislab/destiny">destiny</a>), return the eigenvectors ordered by absolute value by default. The same is true for the <code>eigs</code> function in the Python package <a href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.linalg.eigs.html">scipy</a>.</p>
+<p>Therefore, unless you go out of your way to specify the order in which to return the eigenvectors of <span class="math inline">\(P\)</span>, the largest eigenvectors of <span class="math inline">\(P\)</span> are not necessarily going to be the same as the smallest eigenvectors of <span class="math inline">\(L_{rw}\)</span>.</p>
+<p>I looked at a couple of implementations of diffusion maps (for example, a <a href="https://gist.github.com/rahulrajpl/36a5724d0c261b915292182b1d741393">gist by Rahul Raj</a>, the <a href="https://github.com/DiffusionMapsAcademics/pyDiffMap">pyDiffMap</a> package) and the ordering of the eigenvectors seems to be consistent with using <span class="math inline">\(L_{rw}\)</span>, i.e. they take into account the sign of the eigenvalues, or shift the <span class="math inline">\(P\)</span> matrix to avoid the eigenvalues changing sign.</p>
+<p>The diffusion map literature doesn’t really get into any details about ordering the eigenvectors (or specifically what “largest” means), but diffusion maps are usually positioned in these papers as being a generalization or extension of spectral methods on graph Laplacians, so following the same ordering would make sense there. Muddying the waters a bit for me is this <a href="https://arxiv.org/abs/math/0506090">early paper on diffusion maps</a> which says the eigenvalues of <span class="math inline">\(P\)</span> (called <span class="math inline">\(M\)</span> in the paper) “form a non-increasing sequence of non-negative numbers”, which confuses me: while if that was true it would remove the ambiguity of ordering the eigenvalues, it doesn’t seem to be true. I must be missing something there.</p>
+<p>Anyway, I am fairly sure that the eigenvectors you use in diffusion maps are the same ones you use with Laplacian Eigenmaps, but let’s hold onto the possibility that I am wrong about that and you should actually order the eigenvectors based on the largest magnitude of the eigenvalues of <span class="math inline">\(P\)</span>, which would be an interesting departure from the Laplacian Eigenmap approach.</p>
+</div>
+<div id="scaling-the-eigenvectors" class="section level3">
+<h3>Scaling the Eigenvectors</h3>
+<p>However the eigenvectors are ordered, once you have them, the eigenvalues are used to scale the eigenvectors when forming the <span class="math inline">\(Y\)</span> matrix. For example, here’s what one row of <span class="math inline">\(Y\)</span> would look like in the simplest 2D diffusion map case:</p>
 <p><span class="math display">\[y_i = \left(\mu_{N-1} v_{i,N-1}, \mu_{N-2} v_{i,N-2} \right)\]</span></p>
 <p>where <span class="math inline">\(v_N\)</span> is the uninteresting top eigenvector of all 1s (and <span class="math inline">\(\mu_N = 1\)</span>).</p>
 <p>Where does the diffusion come in? <span class="math inline">\(P\)</span> can also be thought of as a transition matrix of a Markov chain: a large <span class="math inline">\(p_{ij}\)</span> means that <span class="math inline">\(i\)</span> has a high probability of transitioning to <span class="math inline">\(j\)</span>. And because you can evaluate the probabilities at time step <span class="math inline">\(t\)</span> by creating the iterated matrix <span class="math inline">\(P^{t}\)</span>, you can get a sense of the geometry of the data at different scales by seeing how the probability changes over time. And there’s not even that much extra work to do: the eigenvectors of the iterated matrix are the same as the original matrix <span class="math inline">\(P\)</span>, and the eigenvalues are given by <span class="math inline">\(\mu^{t}\)</span>.</p>
@@ -375,9 +408,11 @@ L_{rw} v = \lambda v
 <p>where <span class="math inline">\(N\)</span> is the total number of eigenvalues. If you want an even more obvious connection to Laplacian Eigenmaps (and slightly clearer notation):</p>
 <p><span class="math display">\[y_i = \left[\left(1 - \lambda_{2}\right)^{t} v_{i,2}, \left(1 - \lambda_{3}\right)^{t} v_{i,3}\right]\]</span></p>
 <p>Because the values of <span class="math inline">\(\lambda\)</span> are in increasing order, this makes it easier to see that the effect of <span class="math inline">\(t\)</span> is to relatively upweight the contribution of later eigenvectors in determining the distance between points on the map.</p>
+</div>
 <div id="anisotropic-diffusion" class="section level3">
 <h3>Anisotropic Diffusion</h3>
 <p>So Diffusion Maps are just like Laplacian Eigenmaps but with some slight stretching of the axes. Big deal! Actually, there’s a bit more to them than that. You can also define different diffusion operators. At this point, sadly, I’ve never actually seen the procedure written down unambiguously. Both the Socher report and Wikipedia page seem to leave out some steps. Here’s my attempt. I’ll try and stick with the notation I’ve seen used elsewhere, which is truly unfortunate.</p>
+<p><em>December 8 2021</em> The <a href="https://github.com/DiffusionMapsAcademics/pyDiffMap">pyDiffMap</a> package seems to carry out a procedure very close to what follows, so this should be reasonably reliable.</p>
 <p>The full procedure is something like:</p>
 <ul>
 <li>Form <span class="math inline">\(W\)</span> and <span class="math inline">\(D\)</span> as usual.</li>
@@ -390,7 +425,7 @@ L_{rw} v = \lambda v
 </ul>
 <p><span class="math display">\[d^{\left( \alpha \right)}_{ii} = \sum_{j} w^{\left(\alpha\right)}_{ij}\]</span></p>
 <ul>
-<li>Form a new diffusion operator:</li>
+<li>Form a new diffusion operator using the new kernel matrix and the inverse of the new degree matrix (notation is not great here):</li>
 </ul>
 <p><span class="math display">\[P^{\left( \alpha \right)} = D^{\left( \alpha \right)-1} W^{\left( \alpha \right)}\]</span></p>
 <ul>
@@ -398,6 +433,43 @@ L_{rw} v = \lambda v
 </ul>
 <p>It’s particularly lamentable that you have to deal with reading both <span class="math inline">\(D^{\left( \alpha \right)-1}\)</span> (the inverse of the diagonal matrix <span class="math inline">\(D^{\left( \alpha \right)})\)</span> <em>and</em> the entirely different <span class="math inline">\(D^{-\alpha}\)</span> (invert the diagonal matrix <span class="math inline">\(D\)</span>, then raise the resulting diagonal values to the power of <span class="math inline">\(\alpha\)</span>).</p>
 <p>When <span class="math inline">\(\alpha = 0\)</span>, you get back the diffusion map based on the random walk-style diffusion operator (and Laplacian Eigenmaps). For <span class="math inline">\(\alpha = 1\)</span>, the diffusion operator approximates the Laplace-Beltrami operator and for <span class="math inline">\(\alpha = 0.5\)</span>, you get Fokker-Planck diffusion.</p>
+</div>
+</div>
+<div id="using-truncated-svd" class="section level2">
+<h2>Using Truncated SVD</h2>
+<p><em>December 8 2021</em>. For symmetric graph Laplacians, it should be possible to use a truncated SVD to get the eigenvectors and eigenvalues. In terms of packages and routines available, it’s always seemed to me that there are a lot more options for SVD than for eigenvalue problems.</p>
+<p>For this approach to be feasible for large matrices, you still need access to both a truncated SVD routine (i.e. one that doesn’t need to calculate all the singular vectors at once) and one that works with sparse matrices. It’s likely you won’t want to code all that up from scratch. And it’s probably not going to be as fast in all cases as a dedicated eigenvalue library.</p>
+<p>But if you find yourself in a situation where you do have access to fast SVD routines, but not to eigenvalue problem solvers, this might be worth considering.</p>
+<div id="connection-between-svd-and-spectral-decomposition" class="section level3">
+<h3>Connection Between SVD and Spectral Decomposition</h3>
+<p>For a symmetric real matrices like <span class="math inline">\(W\)</span> and <span class="math inline">\(L_{sym}\)</span>, the complete set of singular vectors and the complete set of eigenvectors are the same. Also, the singular values and the <em>absolute</em> values of the eigenvalues coincide.</p>
+<p>Can we use this to our advantage? To a certain extent, yes. If we are able to do a full SVD on <span class="math inline">\(L_{sym}\)</span>, we can replace the spectral decomposition. However, as we want the smallest eigenvectors of <span class="math inline">\(L_{sym}\)</span>, the equivalent singular vectors of the SVD are the bottom singular vectors. Therefore we need to do a full SVD and that gets more and more computationally demanding the size of <span class="math inline">\(L_{sym}\)</span> grows.</p>
+<p>What would be a lot more preferable would be if we could use the top singular vectors rather than the bottom singular vectors. Then we can make use of truncated SVD approaches like <a href="https://cran.r-project.org/package=irlba">irlba</a> which run in far less time and memory and hence scale to larger matrices.</p>
+<p>Something like the <span class="math inline">\(P\)</span> matrix would be ideal because we want the top eigenvalues from that matrix. A couple of minor problems to overcome though:</p>
+<ol style="list-style-type: decimal">
+<li><span class="math inline">\(P\)</span> isn’t symmetric, an obvious deal-breaker. However, <span class="math inline">\(P_{sym}\)</span> <em>is</em> symmetric, has the same eigenvalues and it’s easy to convert the eigenvectors.</li>
+<li>The eigenvalues of <span class="math inline">\(P\)</span> and <span class="math inline">\(P_{sym}\)</span> range from -1 to 1. This is a slightly subtler problem. Singular values are always positive, i.e. we lose track of the sign of the eigenvalues and only get their magnitudes through SVD. Unfortunately, this ruins the ordering of the singular vectors. For <span class="math inline">\(P\)</span>, when we say we need the largest eigenvectors, we means the most positive. We can get around that by taking advantage of the fact that shifting a matrix by <span class="math inline">\(\alpha I\)</span> shifts the eigenvalues by <span class="math inline">\(\alpha\)</span>, i.e. the eigenvalues of <span class="math inline">\(\alpha I + P\)</span> are <span class="math inline">\(\alpha + \mu\)</span>. So running SVD on <span class="math inline">\(I + P_{sym}\)</span> would safely move the eigenvalues back into the range of 0-2.</li>
+</ol>
+</div>
+<div id="a-truncated-svd-recipe" class="section level3">
+<h3>A Truncated SVD recipe</h3>
+<p>Here’s a possible procedure for calculating a Laplacian Eigenmap via truncated SVD:</p>
+<ol style="list-style-type: decimal">
+<li>Form <span class="math inline">\(W\)</span> and <span class="math inline">\(D\)</span>.</li>
+<li>Form the symmetric matrix <span class="math inline">\(I + D^{-1/2} W D^{-1/2} = I + P_{sym}\)</span>.</li>
+<li>Via truncated SVD find the first <span class="math inline">\(k + 1\)</span> singular vectors.
+<ul>
+<li>The top singular vectors correspond to the smallest eigenvectors of <span class="math inline">\(L_{sym}\)</span>.</li>
+<li>The kth singular vector is the same as the kth smallest eigenvector.</li>
+<li>The kth smallest eigenvalue <span class="math inline">\(\lambda_k\)</span> and the kth singular values, <span class="math inline">\(d_k\)</span> are related by <span class="math inline">\(\lambda_{k} = 2 - d_{k}\)</span>.</li>
+<li>Just like with the eigenvectors, the first singular vector is constant.</li>
+</ul></li>
+<li>If you want the eigenvectors of <span class="math inline">\(L_{rw}\)</span>, convert in the normal way, i.e.  <span class="math inline">\(v_{rw} = D^{-1/2} v_{sym}\)</span>.</li>
+</ol>
+<p>Is this actually worth considering, especially given that none of the diffusion map packages I looked at in R or Python use SVD directly?</p>
+<p>When comparing this approach using <a href="https://cran.r-project.org/package=irlba">irlba</a> versus getting the eigenvalues more directly via <a href="https://cran.r-project.org/package=RSpectra">RSpectra</a>, I didn’t notice any slowdown. However this was in the context of initializing a <a href="https://github.com/lmcinnes/umap">UMAP</a> embedding in the R package <a href="https://cran.r-project.org/package=uwot">uwot</a> which I maintain, and the spectral decomposition was not a noticeable computational bottleneck in the first place. The main advantage for me would be that <code>uwot</code> already uses <code>irlba</code> for PCA in various places, so I would be able to remove <code>RSpectra</code> as a dependency. This is a decision that has already been reached independently in <a href="https://github.com/LTLA/umappp/pull/4">umappp</a> (another UMAP implementation, this one in C++).</p>
+<p>I was able to find one dataset where the truncated SVD approach was slower than using <code>RSpectra</code>: embedding a 1D line from a 3D to 2D: i.e. a dataset with 3 columns: one increasing in value from <code>1</code> to <code>N</code>, the other two columns being all zero. <code>irlba</code> was much slower in this case. This experiment was inspired by a <a href="https://github.com/lmcinnes/umap/issues/360">bug report in the UMAP project</a>, but may not be representative of real-world data.</p>
+<p>There could be some more advanced uses of spectral clustering where SVD is the best choice. For example, in 2001 Inderjit Dhillon published a paper on <a href="https://dl.acm.org/doi/10.1145/502512.502550">bipartite spectral graph clustering</a>, where SVD can be applied to a smaller matrix than would be needed if solving a generalized eigenvalue problem directly (the difference in matrix size doesn’t seem that big, though).</p>
 </div>
 </div>
 <div id="further-reading" class="section level2">
@@ -408,16 +480,19 @@ L_{rw} v = \lambda v
 <li><p>Although I haven’t looked very hard, the earliest example of a mention of t-SNE with a spectral method I’m aware of is in <a href="http://faculty.ucmerced.edu/mcarreira-perpinan/papers/icml10.pdf">The Elastic Embedding Algorithm for Dimensionality Reduction (PDF)</a>, which draws a connection between t-SNE and Laplacian Eigenmaps. That paper also mentions that Diffusion Maps use normalized affinities (i.e. t-SNE-like normalization to probabilities), but I haven’t seen this point made elsewhere.</p></li>
 <li><p>For more on the properties of the heat kernel, see e.g.  <a href="https://doi.org/10.1111/j.1467-8659.2009.01515.x">Sun and co-workers</a> or <a href="https://www.forskningsdatabasen.dk/en/catalog/2491832216">Tsitsulin and co-workers</a>.</p></li>
 <li><p>Von Luxburg’s <a href="https://arxiv.org/abs/0711.0189">A Tutorial on Spectral Clustering</a> collects a lot of material on the definitions of graph Laplacians and the relationship of eigenvalues and eigenvectors. Doesn’t get into Diffusion Maps, though.</p></li>
-<li><p>Radu Horaud’s <a href="https://csustan.csustan.edu/~tom/Lecture-Notes/Clustering/GraphLaplacian-tutorial.pdf">Graph Laplacian tutorial (PDF)</a> also covers some of the ground of the Von Luxburg tutorial.</p></li>
+<li><p>Radu Horaud’s <a href="https://csustan.csustan.edu/~tom/Lecture-Notes/Clustering/GraphLaplacian-tutorial.pdf">Graph Laplacian tutorial (PDF)</a> also covers some of the ground of the Von Luxburg tutorial and expresses the relationship between the eigenvectors of <span class="math inline">\(L_{sym}\)</span> and <span class="math inline">\(L_{rw}\)</span>.</p></li>
 <li><p>Another <a href="https://arxiv.org/abs/1901.10204">review on spectral clustering</a> by Tremblay and Loukas.</p></li>
 <li><p>The <a href="https://cs.nyu.edu/~roweis/lle/">Locally Linear Embedding</a> method turns out to be related to Laplacian Eigenmaps. A wonderfully practical tutorial, packed with R code is given in <a href="http://www.stat.cmu.edu/~cshalizi/350/lectures/14/lecture-14.pdf">Cosma Shalizi’s lecture (PDF)</a></p></li>
 <li><p>The <a href="https://doi.org/10.1162/089976603321780317">Laplacian Eigenmap</a> paper is quite readable and demonstrates the connection with LLE. It also attempts to justify the now-ubiquitous use of a Gaussian kernel for at least the input affinities.</p></li>
 <li><p>The <a href="https://en.wikipedia.org/wiki/Diffusion_map">wikipedia page on Diffusion Maps</a> has one of the clearer statements of the algorithm which includes the diffusion parameter, but confusingly redefines the matrix it’s called <span class="math inline">\(W\)</span> as <span class="math inline">\(L\)</span>, even though it was already using <span class="math inline">\(L\)</span> for an entirely different purpose.</p></li>
-<li><p>Richard Socher’s report on <a href="http://www.socher.org/uploads/Main/DiffusionMapsSeminarReport_RichardSocher.pdf">Diffusion Maps (PDF)</a> is a very good place to start on all this, but tragically I think there are some missingly symbols in the description of the algorithm.</p></li>
+<li><p>Richard Socher’s report “Manifold Learning and Dimensionality Reduction with Diffusion Maps” on <a href="http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.162.3118">Diffusion Maps (PDF)</a> is a very good place to start on all this, but tragically I think there are some missingly symbols in the description of the algorithm.</p></li>
 <li><p>The <a href="http://www.pnas.org/content/102/21/7426.long">first PNAS paper on Diffusion Maps</a> is where you should go for the definitive statement on the method, but for someone with my level of mathematical sophistication (i.e. close to zero) it’s very hard going.</p></li>
+<li><p>An <a href="https://doi.org/10.1016/j.acha.2006.04.006">easier-going diffusion maps paper</a> by Coifman and Lafon, which explicitly positions diffusion maps as a generalization of ideas expressed in Laplacian eigenmaps.</p></li>
+<li><p>An <a href="https://inside.mines.edu/~whereman/papers/delaPorte-Herbst-Hereman-vanderWalt-PRASA-2008.pdf">introduction to diffusion maps (PDF)</a> which has a fairly clear appendix laying out the definition and properties of <span class="math inline">\(P_{sym}\)</span>.</p></li>
 <li><p>The <a href="https://doi.org/10.1109/34.868688">Shi and Malik</a> paper on spectral clustering.</p></li>
 <li><p>The <a href="https://papers.nips.cc/paper/2092-on-spectral-clustering-analysis-and-an-algorithm">Ng, Jordan and Weiss</a> spectral clustering paper.</p></li>
 <li><p>A nice <a href="https://dominikschmidt.xyz/spectral-clustering-exp/">visual tool</a> for spectral clustering.</p></li>
+<li><p>There is a longer version of Inderjit Dhillon’s paper on bipartite spectral graph clustering published as a technical report (TR-01-05), but it’s only available from The University of Texas at Austin via FTP: <a href="ftp://ftp.cs.utexas.edu/pub/techreports/tr01-05.pdf" class="uri">ftp://ftp.cs.utexas.edu/pub/techreports/tr01-05.pdf</a>. This is no longer a very web-browser friendly protocol, so have fun scrounging around for a more conveniently hosted version.</p></li>
 </ul>
 </div>
 <div id="some-code" class="section level2">
