@@ -178,7 +178,10 @@ $D^{-1/2} W D^{-1/2}$, have eigenvalues that vary between -1 and 1.
 
 For graph Laplacians, the the smallest eigenvalue is 0. For the normalized
 Laplacians $L_{sym}$ and $L_{rw}$, the maximum value an eigenvalue can attain is
-2.
+2. *December 9 2021* For proof, see 
+[Spectral Graph Theory](http://www.math.ucsd.edu/~fan/research/revised.html), 
+Part 5 of Lemma 1.7 in Section 1.3, 'Basic facts about the spectrum of a graph'.
+At the time I write this, chapter 1 is freely available at the link above.
 
 ## Connections Between Laplacian Eigenvectors
 
@@ -561,6 +564,11 @@ seem that big, though).
 I try to link to official DOI URLs and the like where possible, and not post
 links to copyright-busting PDFs. The tutorials and reports by von Luxburg,
 Horaud, and Socher are good places to start.
+
+* The main reference on the properties of graph Laplacians is the monograph 
+[Spectral Graph Theory](http://www.math.ucsd.edu/~fan/research/revised.html)
+by Fan Chung. The actual amount of the book I have read can be rounded down
+to 0 though.
 
 * The connection between t-SNE and spectral clustering is discussed in detail in
 [Clustering with t-SNE, provably](https://arxiv.org/abs/1706.02582).

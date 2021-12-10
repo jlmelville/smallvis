@@ -327,7 +327,7 @@ div.tocify {
 <div id="eigenvalues" class="section level3">
 <h3>Eigenvalues</h3>
 <p>Both versions of the normalized adjacency matrix <span class="math inline">\(D^{-1} W\)</span> and <span class="math inline">\(D^{-1/2} W D^{-1/2}\)</span>, have eigenvalues that vary between -1 and 1.</p>
-<p>For graph Laplacians, the the smallest eigenvalue is 0. For the normalized Laplacians <span class="math inline">\(L_{sym}\)</span> and <span class="math inline">\(L_{rw}\)</span>, the maximum value an eigenvalue can attain is 2.</p>
+<p>For graph Laplacians, the the smallest eigenvalue is 0. For the normalized Laplacians <span class="math inline">\(L_{sym}\)</span> and <span class="math inline">\(L_{rw}\)</span>, the maximum value an eigenvalue can attain is 2. <em>December 9 2021</em> For proof, see <a href="http://www.math.ucsd.edu/~fan/research/revised.html">Spectral Graph Theory</a>, Part 5 of Lemma 1.7 in Section 1.3, ‘Basic facts about the spectrum of a graph’. At the time I write this, chapter 1 is freely available at the link above.</p>
 </div>
 </div>
 <div id="connections-between-laplacian-eigenvectors" class="section level2">
@@ -476,6 +476,7 @@ L_{rw} v = \lambda v
 <h2>Further Reading</h2>
 <p>I try to link to official DOI URLs and the like where possible, and not post links to copyright-busting PDFs. The tutorials and reports by von Luxburg, Horaud, and Socher are good places to start.</p>
 <ul>
+<li><p>The main reference on the properties of graph Laplacians is the monograph <a href="http://www.math.ucsd.edu/~fan/research/revised.html">Spectral Graph Theory</a> by Fan Chung. The actual amount of the book I have read can be rounded down to 0 though.</p></li>
 <li><p>The connection between t-SNE and spectral clustering is discussed in detail in <a href="https://arxiv.org/abs/1706.02582">Clustering with t-SNE, provably</a>.</p></li>
 <li><p>Although I haven’t looked very hard, the earliest example of a mention of t-SNE with a spectral method I’m aware of is in <a href="http://faculty.ucmerced.edu/mcarreira-perpinan/papers/icml10.pdf">The Elastic Embedding Algorithm for Dimensionality Reduction (PDF)</a>, which draws a connection between t-SNE and Laplacian Eigenmaps. That paper also mentions that Diffusion Maps use normalized affinities (i.e. t-SNE-like normalization to probabilities), but I haven’t seen this point made elsewhere.</p></li>
 <li><p>For more on the properties of the heat kernel, see e.g.  <a href="https://doi.org/10.1111/j.1467-8659.2009.01515.x">Sun and co-workers</a> or <a href="https://www.forskningsdatabasen.dk/en/catalog/2491832216">Tsitsulin and co-workers</a>.</p></li>
