@@ -73,6 +73,15 @@ edges from a node to itself), then the diagonal of $W$ will be all zeros. Kernel
 matrices usually have ones on the diagonal (an obvious consequence of a Gaussian
 kernel). What ends up on the diagonal doesn't affect the relationship between 
 the different graph Laplacians but can affect the numerical values themselves.
+*December 10 2021*: I recently stumbled upon an example of where this difference
+lead to some confusion for me. The 
+[sklearn's SpectralEmbedding class](https://scikit-learn.org/stable/modules/generated/sklearn.manifold.SpectralEmbedding.html)
+generates an affinity matrix (i.e. the diagonal contains all 1s), but to
+create the graph Laplacian derived from that affinity matrix, uses
+[scipy's csgraph.laplacian function](https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.csgraph.laplacian.html).
+This returns a symmetrized normalized graph Laplacian (see below) calculated
+under the assumption that there are all zeros on the diagonal. This doesn't have
+an enormous numerical effect on the output, but caused me some bewilderment.
 
 ## The Degree Matrix
 
@@ -178,7 +187,7 @@ $D^{-1/2} W D^{-1/2}$, have eigenvalues that vary between -1 and 1.
 
 For graph Laplacians, the the smallest eigenvalue is 0. For the normalized
 Laplacians $L_{sym}$ and $L_{rw}$, the maximum value an eigenvalue can attain is
-2. *December 9 2021* For proof, see 
+2. *December 9 2021*: For proof, see 
 [Spectral Graph Theory](http://www.math.ucsd.edu/~fan/research/revised.html), 
 Part 5 of Lemma 1.7 in Section 1.3, 'Basic facts about the spectrum of a graph'.
 At the time I write this, chapter 1 is freely available at the link above.
@@ -216,6 +225,17 @@ I mainly discuss the eigenvectors of $L_{rw}$ below as these are most closely
 related to Laplacian Eigenmaps and Diffusion Maps. Assume if you see reference
 to a vector $v$ without any subscript that this refers to the eigenvector of 
 $L_{rw}$.
+
+### Scaling the Eigenvectors
+
+Eigenvectors aren't defined to have any particular length. Different software 
+will return the eigenvectors with different lengths, so you will need to make
+a decision about their length. The Laplacian Eigenmaps literature often refers
+to the smallest eigenvectors as a vector of 1s, so you could do that. The actual
+length will then depend on the dimensions of your matrices. The other obvious
+choice is to scale all the vectors to unit length. Forgetting to scale 
+eigenvector output has been a common cause of temporary panic and wild goose 
+chasing on my part when writing this document.
 
 ## Laplacian Eigenmaps
 

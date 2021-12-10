@@ -270,7 +270,7 @@ div.tocify {
 </ul>
 <p>If <span class="math inline">\(N\)</span> is large then it is usual to sparsify <span class="math inline">\(W\)</span> by only keeping the <span class="math inline">\(k\)</span>-largest values in each column. This creates the k-nearest neighbor similarity graph, which must then be resymmetrized (e.g. by adding the self-transpose).</p>
 <p>If your data is naturally a graph, then you skip all of the above, you already have the data you need to create <span class="math inline">\(W\)</span>, which is now an adjacency matrix. It’s likely that in that case <span class="math inline">\(W\)</span> is a sparse matrix, but that doesn’t matter for anything that follows.</p>
-<p>If your <span class="math inline">\(W\)</span> matrix is derived from a graph and you don’t have loops (i.e. no edges from a node to itself), then the diagonal of <span class="math inline">\(W\)</span> will be all zeros. Kernel matrices usually have ones on the diagonal (an obvious consequence of a Gaussian kernel). What ends up on the diagonal doesn’t affect the relationship between the different graph Laplacians but can affect the numerical values themselves.</p>
+<p>If your <span class="math inline">\(W\)</span> matrix is derived from a graph and you don’t have loops (i.e. no edges from a node to itself), then the diagonal of <span class="math inline">\(W\)</span> will be all zeros. Kernel matrices usually have ones on the diagonal (an obvious consequence of a Gaussian kernel). What ends up on the diagonal doesn’t affect the relationship between the different graph Laplacians but can affect the numerical values themselves. <em>December 10 2021</em>: I recently stumbled upon an example of where this difference lead to some confusion for me. The <a href="https://scikit-learn.org/stable/modules/generated/sklearn.manifold.SpectralEmbedding.html">sklearn’s SpectralEmbedding class</a> generates an affinity matrix (i.e. the diagonal contains all 1s), but to create the graph Laplacian derived from that affinity matrix, uses <a href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.csgraph.laplacian.html">scipy’s csgraph.laplacian function</a>. This returns a symmetrized normalized graph Laplacian (see below) calculated under the assumption that there are all zeros on the diagonal. This doesn’t have an enormous numerical effect on the output, but caused me some bewilderment.</p>
 </div>
 <div id="the-degree-matrix" class="section level2">
 <h2>The Degree Matrix</h2>
@@ -327,7 +327,7 @@ div.tocify {
 <div id="eigenvalues" class="section level3">
 <h3>Eigenvalues</h3>
 <p>Both versions of the normalized adjacency matrix <span class="math inline">\(D^{-1} W\)</span> and <span class="math inline">\(D^{-1/2} W D^{-1/2}\)</span>, have eigenvalues that vary between -1 and 1.</p>
-<p>For graph Laplacians, the the smallest eigenvalue is 0. For the normalized Laplacians <span class="math inline">\(L_{sym}\)</span> and <span class="math inline">\(L_{rw}\)</span>, the maximum value an eigenvalue can attain is 2. <em>December 9 2021</em> For proof, see <a href="http://www.math.ucsd.edu/~fan/research/revised.html">Spectral Graph Theory</a>, Part 5 of Lemma 1.7 in Section 1.3, ‘Basic facts about the spectrum of a graph’. At the time I write this, chapter 1 is freely available at the link above.</p>
+<p>For graph Laplacians, the the smallest eigenvalue is 0. For the normalized Laplacians <span class="math inline">\(L_{sym}\)</span> and <span class="math inline">\(L_{rw}\)</span>, the maximum value an eigenvalue can attain is 2. <em>December 9 2021</em>: For proof, see <a href="http://www.math.ucsd.edu/~fan/research/revised.html">Spectral Graph Theory</a>, Part 5 of Lemma 1.7 in Section 1.3, ‘Basic facts about the spectrum of a graph’. At the time I write this, chapter 1 is freely available at the link above.</p>
 </div>
 </div>
 <div id="connections-between-laplacian-eigenvectors" class="section level2">
@@ -340,6 +340,10 @@ div.tocify {
 <p>Further, <span class="math inline">\(P\)</span> and <span class="math inline">\(P_{sym}\)</span> have the same eigenvalues and the relationship between eigenvectors is the same as that between <span class="math inline">\(L_{rw}\)</span> and <span class="math inline">\(L_{sym}\)</span>:</p>
 <p><span class="math display">\[v_{P} = D^{-1/2} v_{Psym}\]</span></p>
 <p>I mainly discuss the eigenvectors of <span class="math inline">\(L_{rw}\)</span> below as these are most closely related to Laplacian Eigenmaps and Diffusion Maps. Assume if you see reference to a vector <span class="math inline">\(v\)</span> without any subscript that this refers to the eigenvector of <span class="math inline">\(L_{rw}\)</span>.</p>
+<div id="scaling-the-eigenvectors" class="section level3">
+<h3>Scaling the Eigenvectors</h3>
+<p>Eigenvectors aren’t defined to have any particular length. Different software will return the eigenvectors with different lengths, so you will need to make a decision about their length. The Laplacian Eigenmaps literature often refers to the smallest eigenvectors as a vector of 1s, so you could do that. The actual length will then depend on the dimensions of your matrices. The other obvious choice is to scale all the vectors to unit length. Forgetting to scale eigenvector output has been a common cause of temporary panic and wild goose chasing on my part when writing this document.</p>
+</div>
 </div>
 <div id="laplacian-eigenmaps" class="section level2">
 <h2>Laplacian Eigenmaps</h2>
@@ -397,7 +401,7 @@ L_{rw} v = \lambda v
 <p>The diffusion map literature doesn’t really get into any details about ordering the eigenvectors (or specifically what “largest” means), but diffusion maps are usually positioned in these papers as being a generalization or extension of spectral methods on graph Laplacians, so following the same ordering would make sense there. Muddying the waters a bit for me is this <a href="https://arxiv.org/abs/math/0506090">early paper on diffusion maps</a> which says the eigenvalues of <span class="math inline">\(P\)</span> (called <span class="math inline">\(M\)</span> in the paper) “form a non-increasing sequence of non-negative numbers”, which confuses me: while if that was true it would remove the ambiguity of ordering the eigenvalues, it doesn’t seem to be true. I must be missing something there.</p>
 <p>Anyway, I am fairly sure that the eigenvectors you use in diffusion maps are the same ones you use with Laplacian Eigenmaps, but let’s hold onto the possibility that I am wrong about that and you should actually order the eigenvectors based on the largest magnitude of the eigenvalues of <span class="math inline">\(P\)</span>, which would be an interesting departure from the Laplacian Eigenmap approach.</p>
 </div>
-<div id="scaling-the-eigenvectors" class="section level3">
+<div id="scaling-the-eigenvectors-1" class="section level3">
 <h3>Scaling the Eigenvectors</h3>
 <p>However the eigenvectors are ordered, once you have them, the eigenvalues are used to scale the eigenvectors when forming the <span class="math inline">\(Y\)</span> matrix. For example, here’s what one row of <span class="math inline">\(Y\)</span> would look like in the simplest 2D diffusion map case:</p>
 <p><span class="math display">\[y_i = \left(\mu_{N-1} v_{i,N-1}, \mu_{N-2} v_{i,N-2} \right)\]</span></p>
