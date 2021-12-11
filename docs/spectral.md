@@ -19,8 +19,8 @@ method is available for initialization (`Y_init = "laplacian"` or
 functions approximates a spectral method. Various methods are related to each
 other, but the nomenclature is not always consistent between papers, and a lot
 of the more accessible material seems to be a bit unclear, so I need something
-brief to remind myself without having to work it all out over and over again
-every time. So it's going here.
+brief(ish) to remind myself without having to work it all out over and over
+again every time. So it's going here.
 
 This page is just to remind me of the definitions of matrices and the 
 algorithmic procedures, not anything to do with theoretical properties. For
@@ -68,11 +68,14 @@ have the data you need to create $W$, which is now an adjacency matrix. It's
 likely that in that case $W$ is a sparse matrix, but that doesn't matter for
 anything that follows.
 
+### Dealing with the Diagonal
+
 If your $W$ matrix is derived from a graph and you don't have loops (i.e. no
 edges from a node to itself), then the diagonal of $W$ will be all zeros. Kernel
 matrices usually have ones on the diagonal (an obvious consequence of a Gaussian
 kernel). What ends up on the diagonal doesn't affect the relationship between 
 the different graph Laplacians but can affect the numerical values themselves.
+
 *December 10 2021*: I recently stumbled upon an example of where this difference
 lead to some confusion for me. The 
 [sklearn's SpectralEmbedding class](https://scikit-learn.org/stable/modules/generated/sklearn.manifold.SpectralEmbedding.html)
@@ -82,6 +85,14 @@ create the graph Laplacian derived from that affinity matrix, uses
 This returns a symmetrized normalized graph Laplacian (see below) calculated
 under the assumption that there are all zeros on the diagonal. This doesn't have
 an enormous numerical effect on the output, but caused me some bewilderment.
+
+*December 11 2021*: I just noticed that the spectral clustering method of Ng,
+Jordan and Weiss explicitly calls for setting the diagonal of the affinity
+matrix to zero. The Shi and Malik spectral clustering paper does not mention
+this (and the weight heat map figures in their paper suggest the diagonals are
+all 1s). I'm pretty sure that the diffusion map literature doesn't mention
+doing anything special to the diagonal of the affinity matrix either. So I
+can't give you any specific advice here. It's probably not very important.
 
 ## The Degree Matrix
 
@@ -298,14 +309,16 @@ involve forming a Laplacian matrix, calculating some eigenvectors, and the
 forming the reduced-dimension matrix $Y$ from column-stacking the eigenvectors.
 
 1. Un-normalized: compute the first $k$ eigenvectors of $L$.
-2. Normalized (Shi and Malik): compute the first $k$ *generalized* eigenvectors
-of $L$. This is just what Laplacian Eigenmaps do, so from the above discussion
-we know that it is equivalent to computing the first $k$ eigenvectors of 
-$L_{rw}$ (hence justifying the term "normalized").
-3. Normalized (Ng, Jordan and Weiss): compute the first $k$ eigenvectors of
-$L_{sym}$. This version requires an additional row normalization step of the
-output matrix, $Y$, before you can do clustering: normalize the rows so each row
-sums to one (unit norm normalization).
+2. Normalized ([Shi and Malik](https://ieeexplore.ieee.org/document/868688)): 
+compute the first $k$ *generalized* eigenvectors of $L$. This is just what
+Laplacian Eigenmaps do, so from the above discussion we know that it is
+equivalent to computing the first $k$ eigenvectors of $L_{rw}$ (hence justifying
+the term "normalized").
+3. Normalized ([Ng, Jordan and Weiss](https://papers.nips.cc/paper/2001/hash/801272ee79cfde7fa5960571fee36b9b-Abstract.html)):
+compute the first $k$ eigenvectors of $L_{sym}$. This version requires an
+additional row normalization step of the output matrix, $Y$, before you can do
+clustering: normalize the rows so each row sums to one (unit norm
+normalization).
 
 After some additional theoretical discussions, von Luxburg concludes that
 clustering on the un-normalized graph Laplacian has some undesirable properties,
@@ -467,10 +480,25 @@ $$d^{\left( \alpha \right)}_{ii} = \sum_{j} w^{\left(\alpha\right)}_{ij}$$
 * Form a new diffusion operator using the new kernel matrix and the inverse of
 the new degree matrix (notation is not great here):
 
-$$P^{\left( \alpha \right)} = D^{\left( \alpha \right)-1} W^{\left( \alpha \right)}$$ 
+$$P^{\left( \alpha \right)} = D^{\left( \alpha \right)-1} W^{\left( \alpha \right)}$$
 
 * Generate the diffusion map using $P^\left( \alpha \right)$, and scale the 
-eigenvectors with the eigenvalues as described above.
+eigenvectors with the eigenvalues as described above. 
+
+* If you want to use a symmetrized version of $P^{\left( \alpha \right)}$, then
+form:
+
+$$P^{\left( \alpha \right)}_{sym} = D^{1/2} P^{\left( \alpha \right)} D^{-1/2} $$
+
+and remember to convert the the eigenvectors back via:
+
+$$v_{P\left(\alpha\right)} = D^{-1/2} v_{P\left(\alpha\right)sym}$$
+
+As far as I can tell, you could also define 
+$P^{\left( \alpha \right)}_{sym} = D^{\left(\alpha\right)1/2} P^{\left( \alpha \right)} D^{\left(\alpha\right)-1/2}$,
+as long as you remember to convert back by
+$v_{P\left(\alpha\right)} = D^{\left(\alpha\right)-1/2} v_{P\left(\alpha\right)sym}$,
+so you could just choose whichever is most computationally convenient to you.
 
 It's particularly lamentable that you have to deal with reading both 
 $D^{\left( \alpha \right)-1}$ (the inverse of the diagonal matrix 
@@ -510,13 +538,13 @@ Can we use this to our advantage? To a certain extent, yes. If we are able to do
 a full SVD on $L_{sym}$, we can replace the spectral decomposition. However, as
 we want the smallest eigenvectors of $L_{sym}$, the equivalent singular vectors
 of the SVD are the bottom singular vectors. Therefore we need to do a full SVD
-and that gets more and more computationally demanding the size of $L_{sym}$
+and that gets more and more computationally demanding as the size of $L_{sym}$
 grows.
 
-What would be a lot more preferable would be if we could use the top singular
-vectors rather than the bottom singular vectors. Then we can make use of 
-truncated SVD approaches like [irlba](https://cran.r-project.org/package=irlba)
-which run in far less time and memory and hence scale to larger matrices.
+It would be preferable to use the top singular vectors rather than the bottom
+singular vectors. Then we can make use of truncated SVD approaches like
+[irlba](https://cran.r-project.org/package=irlba) which run in far less time and
+memory and hence scale to larger matrices.
 
 Something like the $P$ matrix would be ideal because we want the top
 eigenvalues from that matrix. A couple of minor problems to overcome though:
@@ -527,27 +555,45 @@ symmetric, has the same eigenvalues and it's easy to convert the eigenvectors.
 subtler problem. Singular values are always positive, i.e. we lose track of the
 sign of the eigenvalues and only get their magnitudes through SVD.
 Unfortunately, this ruins the ordering of the singular vectors. For $P$, when we
-say we need the largest eigenvectors, we means the most positive. We can get
+say we need the largest eigenvectors, we mean the most positive. We can get
 around that by taking advantage of the fact that shifting a matrix by $\alpha I$
-shifts the eigenvalues by $\alpha$, i.e. the eigenvalues of $\alpha I + P$
-are $\alpha + \mu$. So running SVD on $I + P_{sym}$ would safely move the 
-eigenvalues back into the range of 0-2.
+($\alpha$ being a scalar value) shifts the eigenvalues by $\alpha$.
+The eigenvalues of $\alpha I + P$ are therefore $\alpha + \mu$. Picking 
+$\alpha=1$ means the eigenvalues of $I + P_{sym}$ are in the range of 0-2, which
+is safe for us to run SVD on.
+1. Ordering the vectors is now very confusing: for graph Laplacians, we were
+talking about the $k$th eigenvector as that associated with the $k$th *smallest*
+eigenvalue, but when using $P$, it's actually the $k$th *largest* eigenvalue.
+And now we have brought SVD into the mix where the singular vectors are ordered
+by decreasing singular value: the $k$th singular vector is that associated with
+the $k$th *largest* singular value.
 
 ### A Truncated SVD recipe
 
-Here's a possible procedure for calculating a Laplacian Eigenmap via truncated
-SVD:
+Here's a procedure for calculating eigenvectors I've talked about here via
+truncated SVD. As noted above, indexing can get confusing, but it *is*
+consistent in the sense that if you stick with the convention of ordering
+eigenvectors from smallest to largest, and ordering singular vectors from
+largest to smallest, the $k$th eigenvector and $k$th singular vector are the
+same (and the eigenvalues and singular values are converted easily).
 
 1. Form $W$ and $D$.
-1. Form the symmetric matrix $I + D^{-1/2} W D^{-1/2} = I + P_{sym}$.
+    * If you want a diffusion map, form $W^{\left( \alpha \right)}$ and
+    $D^{\left( \alpha \right) - 1}$.
+1. Form the symmetric matrix $I + D^{-1/2} W D^{-1/2} = I + P_{sym}$, or
+$I + P^{\left(\alpha\right)}_{sym}$ for diffusion maps.
 1. Via truncated SVD find the first $k + 1$ singular vectors.
-    * The top singular vectors correspond to the smallest eigenvectors of $L_{sym}$.
-    * The kth singular vector is the same as the kth smallest eigenvector.
-    * The kth smallest eigenvalue $\lambda_k$ and the kth singular values, $d_k$
-    are related by $\lambda_{k} = 2 - d_{k}$.
-    * Just like with the eigenvectors, the first singular vector is constant.
+    * The top singular vectors correspond to the smallest eigenvectors of 
+    $L_{sym}$.
+    * To put it another way: the kth *largest* singular vector is the same as
+    the kth *smallest* eigenvector. 
+    * The kth *smallest* eigenvalue $\lambda_k$ and the kth *largest* singular
+    value, $d_k$ are related by $\lambda_{k} = 2 - d_{k}$.
+    * Just as the case with the *smallest* eigenvector, the singular vector
+    associated with the *largest* singular value is constant.
 1. If you want the eigenvectors of $L_{rw}$, convert in the normal way, i.e. 
 $v_{rw} = D^{-1/2} v_{sym}$.
+1. The diffusion map eigenvalues are $\mu_{k} = 1 - \lambda_{k} = d_{k} - 1$.
 
 Is this actually worth considering, especially given that none of the diffusion
 map packages I looked at in R or Python use SVD directly?
@@ -557,13 +603,13 @@ versus getting the eigenvalues more directly via
 [RSpectra](https://cran.r-project.org/package=RSpectra), I didn't
 notice any slowdown. However this was in the context of initializing a 
 [UMAP](https://github.com/lmcinnes/umap) embedding in the R package 
-[uwot](https://cran.r-project.org/package=uwot)
-which I maintain, and the spectral decomposition was not a noticeable
-computational bottleneck in the first place. The main advantage for me would be
-that `uwot` already uses `irlba` for PCA in various places, so I would be able
-to remove `RSpectra` as a dependency. This is a decision that has already been
-reached independently in [umappp](https://github.com/LTLA/umappp/pull/4) 
-(another UMAP implementation, this one in C++).
+[uwot](https://cran.r-project.org/package=uwot), and the spectral decomposition
+was not a noticeable computational bottleneck in the first place. The main
+advantage for me would be that `uwot` already uses `irlba` for PCA in various
+places, so I would be able to remove `RSpectra` as a dependency. This is a
+decision that has already been reached independently in
+[umappp](https://github.com/LTLA/umappp/pull/4) (another UMAP implementation,
+this one in C++).
 
 I was able to find one dataset where the truncated SVD approach was slower
 than using `RSpectra`: embedding a 1D line from a 3D to 2D: i.e. a dataset with
@@ -635,7 +681,7 @@ though it was already using $L$ for an entirely different purpose.
 * Richard Socher's report "Manifold Learning and Dimensionality Reduction with
 Diffusion Maps" on [Diffusion Maps (PDF)](http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.162.3118)
 is a very good place to start on all this, but tragically I think there are
-some missingly symbols in the description of the algorithm.
+some missing symbols in the description of the algorithm.
 
 * The [first PNAS paper on Diffusion Maps](http://www.pnas.org/content/102/21/7426.long)
 is where you should go for the definitive statement on the method, but for 
