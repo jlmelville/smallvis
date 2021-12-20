@@ -7,6 +7,8 @@ output:
     toc: true
     toc_float:
       collapsed: false
+editor_options: 
+  chunk_output_type: inline
 ---
 
 PaCMAP (Pairwise Controlled Manifold Approximation:
@@ -128,6 +130,25 @@ $$
 -2\frac{w_{ij}^2}{\left(1 + w_{ij}\right)^2} \left(\mathbf{y_i} - \mathbf{y_j}\right)
 $$
 
+(if you wanted to include an $a$ and $b$ in the repulsive contribution, the form
+of the gradient would look identical to the attractive interaction, but with a
+difference in sign).
+
+### Comparison with UMAP
+
+The equivalent gradients for UMAP are:
+
+$$
+\begin{aligned}
+& \frac{\partial C_{UMAP}^+}{\partial{\mathbf{y_i}}} = 2 w_{ij} \left(\mathbf{y_i} - \mathbf{y_j}\right) \\
+& \frac{\partial C_{UMAP}^-}{\partial{\mathbf{y_i}}} =
+-2\frac{w_{ij}^2}{1 - w_{ij}} \left(\mathbf{y_i} - \mathbf{y_j}\right)
+\end{aligned}
+$$
+
+I have made a simplifying assumption in the case of UMAP that the sampling of
+positive edges is uniform and the output weight function parameters are set so
+they match that of PaCMAP.
 
 ### Paper/Code form
 
@@ -230,6 +251,86 @@ the first 200 iterations always use the same weights and schedule, so if you set
 `num_iters = 900`, this means the third stage of the optimization schedule will
 last for 700 iterations, rather than doubling the duration of all three stages
 proportionally.
+
+## Force Constant Plots
+
+To help compare with UMAP, I have plotted the attractive and repulsive "force
+constants", $k_{attr}$ and $k_{rep}$, over the range of $w_{ij}$. The force
+constant is the bit of the gradient that isn't the 
+$\left(\mathbf{y_i} - \mathbf{y_j}\right)$ part, i.e. if you consider the
+layout to be about finding an equilibrium of points attached to springs, this is
+the stiffness of the spring between two points. Alternatively, consider this a
+gradient plot, given a fixed displacement of 
+$\left(\mathbf{y_i} - \mathbf{y_j}\right) = 1$.
+
+First, the attractive interactions of near neighbors:
+
+![Attractive Forces](../img/pacmap/pacmap-near.png)
+
+The blue line is UMAP with default settings. The red line is UMAP with the
+output function chosen to give the same $w_{ij}$ values as PaCMAP. This version
+of UMAP I will refer to as t-UMAP as it shares the same output weights as t-SNE
+as well as PaCMAP. The green line is PaCMAP with $a = w_{NB} = 1$, which occurs
+during the final part of the optimization, and the yellow is with 
+$a = w_{NB} = 3$, which occurs during the middle part of the optimization. The 
+UMAP forces are not only much higher, at least for the default settings, the
+attractive forces rapidly accelerate in magnitude for high $w$ (i.e. neighboring
+points in the embedding which are supposed to be close). For t-UMAP, the
+relationship between $w_{ij}$ and $k_{attr}$ is linear. For PaCMAP, there is a
+much more gentle increase in force as $w_{ij}$ increases, and the rate of change
+decreases rather than increases. For PaCMAP, a $w_{ij} >= 0.62$ feels at least
+90% of the maximum attractive force whereas for UMAP, $w_{ij} >= 0.96$. To be
+pedantic, if we take into account UMAP's gradient clipping, it's actually
+$w_{ij} >= 0.92$, but the overall message stays the same.
+
+We'll come back to the mid-pairs after we have looked at the repulsive forces:
+
+![Repulsive Forces](../img/pacmap/pacmap-far.png)
+
+The colors are the same as in the previous plot: blue for UMAP, red for t-UMAP
+and green for PaCMAP (there is only ever one weighting for the repulsive force).
+It's hard to put the full range of forces for these methods in one plot, so I
+have zoomed in on the top portion of the plot. There is a very similar pattern
+as with the attractive forces: UMAP repulsions steeply increase as non-similar
+items get close together in the embedding. Nothing very interesting happens
+in the rest of the UMAP curves that aren't shown here. Note that the repulsive
+gradient in UMAP requires a small positive value to prevent division by zero
+at very high $w_{ij}$, so repulsions can get very large and negative. The UMAP
+implementation clips the gradient so it doesn't exceed `4`: this is the total
+gradient, not just the force constant, but that also puts an upper bound on the
+effective force constant as `4`. PaCMAP on the other hand has no singularities
+in its repulsion, (the maximum repulsion is `0.5`) and so no need need for
+gradient clipping. It also doesn't show an acceleration in repulsion at high
+$w_{ij}$.
+
+Finally, let's look at the mid pair attractions, a PaCMAP-only feature:
+
+![Mid Pair Attractive Forces](../img/pacmap/pacmap-mid.png)
+
+This plot doesn't have any contributions from UMAP. The yellow, green and grey
+lines are the attractive interactions from the "near" pairs with 
+$a = w_{NB} = 3$, $a = w_{NB} = 2$ and $a = w_{NB} = 1$ respectively. The green
+and yellow lines are the same as those from the first plot. The mid near forces
+are the cyan line with $w_{MN} = 1000$, which is the value at which the
+optimization starts, and purple with $w_{MN} = 3$, the value at the end of the
+first part of the optimization, the force constant being linear scaled in
+between. The grey line is the force constant that applies to the near pairs over
+the same part of the optimization. The force constant is effectively uniform
+over the entire range of $w_{ij}$ and by the end of the first part of the
+optimization, $k_{attr} \approx 0.0006$ and never increases thereafter, so it
+doesn't seem like it plays a major organizing role after the first 100
+iterations.
+
+Overall, this seems to point to why UMAP can "tear" manifolds or promote
+clustering vs PaCMAP: forces (attractive or repulsive) which are much higher
+at high $w_{ij}$. Based on my experiments with the weighting parameters of
+the UMAP output weight function, I don't think it's possible to generate curves
+which look like that of PaCMAP (the t-UMAP curve is the best you can do).
+
+## No Gradient Clipping
+
+I discussed this in the section above, but it's worth calling out as another
+point of difference with UMAP: the PaCMAP gradients don't require clipping.
 
 ## Uniform Near Pair Weights
 
@@ -388,7 +489,7 @@ The default initialization uses PCA. The resulting coordinates are all shrunk
 by a factor of `0.01`. Alternatively a random initialization is available using
 the standard t-SNE initialization of random normal variables with a standard
 deviation of `1e-4`. If a user-supplied matrix is provided, the coordinates
-are centered and then shrunk by a factor of `0.0001`.
+are centered and then shrunk by a factor of `1e-4`.
 
 ## Optimization
 
@@ -420,3 +521,96 @@ number seeds.
 
 Some notes on the related method
 [NCVis](https://jlmelville.github.io/smallvis/ncvis.html).
+
+## R Code for Plots
+
+```R
+# generate force constants over a range of w
+pacmap_k <- function(a = 1, b = 10, n = 100, max_w = 0.99) {
+  w <- (1:n) / n
+  w <- w[w < max_w]
+  ka <- (2 * a * b * w * w) / ((1 + b * w) ^ 2)
+  kr <- (-2 * w * w) / ((1 + w) ^ 2)
+  list(attr = ka, rep = kr, w = w)
+}
+
+umap_k <- function(a = 1.577, b = 0.895, n = 100, eps = 1e-3, max_w = 0.99) {
+  w <- (1:n) / n
+  w <- w[w < max_w]
+  d2 <- ((1 - w) / (a * w)) ^ (1 / b)
+  d2b1 <- d2 ^ (b - 1)
+
+  ka <- 2 * a * b * d2b1 * w
+  kr <- (-2 * b * w) / (eps + d2)
+  list(attr = ka, rep = kr, w = w)
+}
+
+uk <- umap_k()
+tk <- umap_k(a = 1, b = 1)
+pk <- pacmap_k()
+pk3 <- pacmap_k(a = 3)
+
+# Colors from:
+# inlmisc::GetColors(7, scheme = "bright")
+
+lwd <- 2
+plot(
+  uk$w,
+  uk$attr,
+  type = "l",
+  xlab = "w",
+  ylab = "k-attr",
+  main = "Near Pairs Attractive Force",
+  sub = "blue: UMAP, red: t-UMAP, green: PaCMAP wNB=1, yellow: PaCMAP wNB=3",
+  cex.sub = 0.75,
+  lwd = lwd,
+  col = "#4477AA"
+)
+lines(uk$w, tk$attr, col = "#EE6677", lwd = lwd)
+lines(uk$w, pk$attr, col = "#228833", lwd = lwd)
+lines(uk$w, pk3$attr, col = "#CCBB44", lwd = lwd)
+
+plot(
+  uk$w,
+  uk$rep,
+  type = "l",
+  xlab = "w",
+  ylab = "k-rep",
+  main = "Far Pairs Repulsive Force",
+  sub = "blue: UMAP, red: t-UMAP, green: PaCMAP",
+  cex.sub = 0.75,
+  lwd = lwd,
+  col = "#4477AA",
+  ylim = c(-2, 0)
+)
+lines(uk$w, tk$rep, col = "#EE6677", lwd = lwd)
+lines(uk$w, pk$rep, col = "#228833", lwd = lwd)
+
+pk2 <- pacmap_k(a = 2)
+pkm0 <- pacmap_k(a = 1000, b = 10000)
+pkm100 <- pacmap_k(a = 3, b = 10000)
+plot(
+  uk$w,
+  pk3$attr,
+  type = "l",
+  xlab = "w",
+  ylab = "k-attr",
+  main = "PaCMAP Attractive Force",
+  sub = "yellow: wNB = 3, grey: wNB = 2, green: wNB = 1, cyan: wMN = 1000, purple: wMN = 3",
+  cex.sub = 0.75,
+  lwd = lwd,
+  col = "#CCBB44"
+)
+lines(uk$w, pk$attr, col = "#228833", lwd = lwd)
+lines(uk$w, pk2$attr, col = "#BBBBBB", lwd = lwd)
+lines(uk$w, pkm0$attr, col = "#66CCEE", lwd = lwd)
+lines(uk$w, pkm100$attr, col = "#AA3377", lwd = lwd)
+```
+
+## Changelog
+
+* November 14 2021
+    * Created document.
+* December 19 2021
+    * Add equations for UMAP gradient.
+    * Add plots of sample attractive and negative force constants.
