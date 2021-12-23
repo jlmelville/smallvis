@@ -517,6 +517,162 @@ function has a higher bias. And the variance issue may still bite you if you
 try to compare different costs between different runs with different random
 number seeds.
 
+## Pairwise Distance Comparison
+
+To get a feel for the effect of the different neighbor calculations, here are
+some histograms of pairwise distances for different sets of neighbors across
+a variety of datasets. The different sets of neighbors are labelled as:
+
+* `15`: The 15 nearest neighbors. Actually it's only the 14 nearest neighbors
+because I omit the first nearest neighbor of each item which is always itself.
+These are the exact nearest neighbors, not the result of an approximate nearest
+neighbor calculation. This is the UMAP default value.
+* `15s`: The 15 nearest neighbors using the scaled distances. These are selected
+from the exact nearest 65 neighbors, as would be done in PaCMAP (i.e.
+`n_neighbors + 50`).
+* `150`: The 150 exact nearest neighbors. This is an order of magnitude higher
+than the UMAP default, and would be the upper limit to the usual nearest
+neighbor calculation in t-SNE, where often 3 * perplexity is used, and
+perplexity is rarely set higher than 50.
+* `mid near`: The mid near pairs, calculated as described above. Default in
+PaCMAP is to calculate as many mid near pairs as `0.5 * n_neighbors`, but I have
+calculated it using 15 mid near pairs for consistency (there is no effect on the
+shape of the distribution of distances).
+* `random`: 15 random neighbors.
+
+For each of these set of neighbors, a histogram was generated of the distances.
+I used the Euclidean distance in all cases. Overlaying all these histograms on
+top of each other is way too confusing, so I have generated them using the same
+break points on separate plots. Each column in the table below is one dataset,
+so by looking down a column you can see how the pair-wise distance distribution
+changes. I would expect the distances to increase as you look down the column.
+
+The datasets are mostly discussed on the [uwot
+examples](https://jlmelville.github.io/uwot/umap-examples.html) except for the
+Mammoth dataset, which is used in the PaCMAP paper (for more info on that, see
+[Understanding UMAP](https://pair-code.github.io/understanding-umap/) and the
+links therein). The actual shape of the distributions of distances per dataset
+is less relevant here than looking for overall trends.
+
+First set is three smaller datasets either in dimensionality or number of items.
+The `mammoth` dataset has 10,000 points and 3 features (X, Y, Z coordinates).
+`coil20` is a set of 20 objects in 72 poses each (so 1440 items altogether) and
+16384 features (pixels). `frey` is a set of 1965 video stills of Brendan Frey's
+face with 560 features (again, pixels).
+
+| mammoth | coil20 | frey |
+|:----:|:----:|:-----:
+![mammoth 15](../img/pacmap/mammoth15.png)|![coil20 15](../img/pacmap/coil2015.png)|![frey 15](../img/pacmap/frey15.png)
+![mammoth 15s](../img/pacmap/mammoth15s.png)|![coil20 15s](../img/pacmap/coil2015s.png)|![frey 15s](../img/pacmap/frey15s.png)
+![mammoth 150](../img/pacmap/mammoth150.png)|![coil20 150](../img/pacmap/coil20150.png)|![frey 150](../img/pacmap/frey150.png)
+![mammoth mid](../img/pacmap/mammothmid.png)|![coil20 mid](../img/pacmap/coil20mid.png)|![frey mid](../img/pacmap/freymid.png)
+![mammoth rand](../img/pacmap/mammothrand.png)|![coil20 rand](../img/pacmap/coil20rand.png)|![frey rand](../img/pacmap/freyrand.png)
+
+The next three datasets are of identical dimensions: 70000 images, with 784
+features (pixels). `mnist` are handwritten digits, `fashion` are images of items
+of clothing, `kuzushiji` is handwritten Japanese characters.
+
+| mnist | fashion | kuzushiji |
+|:----:|:----:|:-----:
+![mnist 15](../img/pacmap/mnist15.png)|![fashion 15](../img/pacmap/fashion15.png)|![kuzushiji 15](../img/pacmap/kuzushiji15.png)
+![mnist 15s](../img/pacmap/mnist15s.png)|![fashion 15s](../img/pacmap/fashion15s.png)|![kuzushiji 15s](../img/pacmap/kuzushiji15s.png)
+![mnist 150](../img/pacmap/mnist150.png)|![fashion 150](../img/pacmap/fashion150.png)|![kuzushiji 150](../img/pacmap/kuzushiji150.png)
+![mnist mid](../img/pacmap/mnistmid.png)|![fashion mid](../img/pacmap/fashionmid.png)|![kuzushiji mid](../img/pacmap/kuzushijimid.png)
+![mnist rand](../img/pacmap/mnistrand.png)|![fashion rand](../img/pacmap/fashionrand.png)|![kuzushiji rand](../img/pacmap/kuzushijirand.png)
+
+The last three datasets are: `cifar10`, which contains 60000 images
+and 1024 features. `macosko2015` is an RNA-seq dataset with 44808 items and
+3000 features. This dataset has a very high hubness (i.e. there is one item
+which is the near neighbor of a large proportion of the dataset). `tasic2018`
+is another RNA-seq dataset with 23822 items and 3000 features. `cifar10` 
+and `tasic2018` have a lower hubness `macosko2015`, but still higher than 
+`mnist`, `fashion`, and `kuzushiji`.
+
+| cifar10 | macosko2015 | tasic2018 |
+|:----:|:----:|:-----:
+![cifar10 15](../img/pacmap/cifar1015.png)|![macosko2015 15](../img/pacmap/macosko201515.png)|![tasic2018 15](../img/pacmap/tasic201815.png)
+![cifar10 15s](../img/pacmap/cifar1015s.png)|![macosko2015 15s](../img/pacmap/macosko201515s.png)|![tasic2018 15s](../img/pacmap/tasic201815s.png)
+![cifar10 150](../img/pacmap/cifar10150.png)|![macosko2015 150](../img/pacmap/macosko2015150.png)|![tasic2018 150](../img/pacmap/tasic2018150.png)
+![cifar10 mid](../img/pacmap/cifar10mid.png)|![macosko2015 mid](../img/pacmap/macosko2015mid.png)|![tasic2018 mid](../img/pacmap/tasic2018mid.png)
+![cifar10 rand](../img/pacmap/cifar10rand.png)|![macosko2015 rand](../img/pacmap/macosko2015rand.png)|![tasic2018 rand](../img/pacmap/tasic2018rand.png)
+
+My observations on this are:
+
+* You have to look quite hard at the `15` and `15s` distributions to see any
+effect of using scaled neighbors, but that's not hugely surprising: at the most
+extreme, the procedure would select neighbors 51-65, and for `mammoth` data,
+that distribution is over quite a small range of the possible distances so you
+wouldn't be able to see much detail there anyway. But this is not the case for
+most of the datasets though: distance concentration quickly kicks in (i.e. in
+high dimensions, the difference between a close and a far distance shrinks). 
+* Going from 15 nearest neighbors to 150 nearest neighbors makes little
+difference in terms of the distribution.
+* The mid-near distributions are noticeably different from the nearest neighbor
+distributions. I think it would be reasonable to ask the question "instead of
+this mid-near business, can't we just use more nearest neighbors?". I think the
+answer here says no.
+* The mid-near distributions are quite similar to the random distributions. This
+is hardly surprising given how they are constructed. For most datasets, the
+difference in distribution is pretty subtle though, due to distance
+concentration. I would be interested to see whether you could get away with a
+uniform random sample of distances and get the same effect as the mid-near
+pairs. This might make it easier to introduce PaCMAP ideas into existing UMAP
+code bases because you could use the random negative sampling phase as a source
+of pairs to use with the mid-near attractive forces.
+
+The `macosko2015` dataset, which I said was most affected by hubness shows the
+least difference between the `15` distances and the `rand`. It's quite striking
+how little the distribution changes. Unlike every other dataset I've worked with
+this is the one that shows the biggest effect of a PCA pre-processing step. In
+most cases, it's assumed that running PCA is a way to speed up nearest neighbor
+distance calculations by reducing the input dimensionality, but with
+`macosko2015`, the UMAP output is affected substantially. The PCA step produces
+a much better separation of clusters. Personally, while it works out well for
+that dataset, I also find it a bit worrying that a pre-processing step can do
+that.
+
+As applying PCA is the default action in PaCMAP, below I regenerated some of the
+distributions where PCA was applied to reduce the data to 100 dimensions before
+doing the nearest neighbor search or random distance calculations. The table
+contains four rows: The non-PCA results for the `15s` results and then PCA
+results below. Then I show the `mid near` distributions without PCA and then
+after applying PCA. The non-PCA results are repeated from the tables above. The
+trends are the same for `15`, `150` and `rand` so there's no point showing
+those. Also, `mammoth` isn't included because it only had 3 dimensions in the
+first place.
+
+### Effect of PCA
+
+| coil20 | frey |
+|:----:|:-----:
+![coil20 15s](../img/pacmap/coil2015s.png)|![frey 15s](../img/pacmap/frey15s.png)
+![coil20pca100 15s](../img/pacmap/coil20pca10015s.png)|![freypca100 15s](../img/pacmap/freypca10015s.png)
+![coil20 mid](../img/pacmap/coil20mid.png)|![frey mid](../img/pacmap/freymid.png)
+![coil20pca100 mid](../img/pacmap/coil20pca100mid.png)|![freypca100 mid](../img/pacmap/freypca100mid.png)
+
+| mnist | fashion | kuzushiji |
+|:----:|:----:|:-----:
+![mnist 15s](../img/pacmap/mnist15s.png)|![fashion 15s](../img/pacmap/fashion15s.png)|![kuzushiji 15s](../img/pacmap/kuzushiji15s.png)
+![mnistpca100 15s](../img/pacmap/mnistpca10015s.png)|![fashionpca100 15s](../img/pacmap/fashionpca10015s.png)|![kuzushijipca100 15s](../img/pacmap/kuzushijipca10015s.png)
+![mnist mid](../img/pacmap/mnistmid.png)|![fashion mid](../img/pacmap/fashionmid.png)|![kuzushiji mid](../img/pacmap/kuzushijimid.png)
+![mnistpca100 mid](../img/pacmap/mnistpca100mid.png)|![fashionpca100 mid](../img/pacmap/fashionpca100mid.png)|![kuzushijipca100 mid](../img/pacmap/kuzushijipca100mid.png)
+
+| cifar10 | macosko2015 | tasic2018 |
+|:----:|:----:|:-----:
+![cifar10 15s](../img/pacmap/cifar1015s.png)|![macosko2015 15s](../img/pacmap/macosko201515s.png)|![tasic2018 15s](../img/pacmap/tasic201815s.png)
+![cifar10pca100 15s](../img/pacmap/cifar10pca10015s.png)|![macosko2015pca100 15s](../img/pacmap/macosko2015pca10015s.png)|![tasic2018pca100 15s](../img/pacmap/tasic2018pca10015s.png)
+![cifar10 mid](../img/pacmap/cifar10mid.png)|![macosko2015 mid](../img/pacmap/macosko2015mid.png)|![tasic2018 mid](../img/pacmap/tasic2018mid.png)
+![cifar10pca100 mid](../img/pacmap/cifar10pca100mid.png)|![macosko2015pca100 mid](../img/pacmap/macosko2015pca100mid.png)|![tasic2018pca100 mid](../img/pacmap/tasic2018pca100mid.png)
+
+`macosko2015` does indeed show a pretty dramatic change in its distribution,
+particularly its nearest neighbors. `tasic2018` also seems to show this. Could
+just be coincidence that those are both RNA-seq datasets, but probably a look at
+how such datasets are normalized or otherwise pre-processed might be in order.
+For the other datasets, PCA doesn't seem to distort the distributions as much.
+However, as they are all image datasets, that doesn't necessarily mean that
+there aren't problems lurking. Memo to self: find some non-image datasets, e.g.
+the 20 Newsgroup dataset (available in the PaCMAP repo) for text categorization.
+
 ## See Also
 
 Some notes on the related method
@@ -609,8 +765,12 @@ lines(uk$w, pkm100$attr, col = "#AA3377", lwd = lwd)
 
 ## Changelog
 
+* December 23 2021
+  * Add nearest neighbor histograms.
+* December 19 2021
+  * Add equations for UMAP gradient.
+  * Add plots of sample attractive and negative force constants.
+* November 16 2021
+  * Added some comments on the Truncated SVD implementation.
 * November 14 2021
     * Created document.
-* December 19 2021
-    * Add equations for UMAP gradient.
-    * Add plots of sample attractive and negative force constants.
