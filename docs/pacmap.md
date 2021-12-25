@@ -549,24 +549,38 @@ changes. I would expect the distances to increase as you look down the column.
 
 The datasets are mostly discussed on the [uwot
 examples](https://jlmelville.github.io/uwot/umap-examples.html) except for the
-Mammoth dataset, which is used in the PaCMAP paper (for more info on that, see
-[Understanding UMAP](https://pair-code.github.io/understanding-umap/) and the
-links therein). The actual shape of the distributions of distances per dataset
-is less relevant here than looking for overall trends.
+first three which are discussed in the PaCMAP paper. is less relevant here than
+looking for overall trends.
 
-First set is three smaller datasets either in dimensionality or number of items.
-The `mammoth` dataset has 10,000 points and 3 features (X, Y, Z coordinates).
-`coil20` is a set of 20 objects in 72 poses each (so 1440 items altogether) and
-16384 features (pixels). `frey` is a set of 1965 video stills of Brendan Frey's
-face with 560 features (again, pixels).
+The first three are low-dimensional (2 or 3 dimensions) quite highly structured
+datasets. The `mammoth` dataset has 10,000 points and 3 features (X, Y, Z
+coordinates: it's a 3D model of a mammoth). `sch10k` is the s-curve with a hole
+also with 10,000 points and X, Y, Z coordinates. This is an S-shaped curve which
+has a circular hole right in the middle (in the middle of the 'S'). The
+`curve2d` is a 2D polynomial (1,450 points).
 
-| mammoth | coil20 | frey |
+| mammoth | sch10k | curve2d |
 |:----:|:----:|:-----:
-![mammoth 15](../img/pacmap/mammoth15.png)|![coil20 15](../img/pacmap/coil2015.png)|![frey 15](../img/pacmap/frey15.png)
-![mammoth 15s](../img/pacmap/mammoth15s.png)|![coil20 15s](../img/pacmap/coil2015s.png)|![frey 15s](../img/pacmap/frey15s.png)
-![mammoth 150](../img/pacmap/mammoth150.png)|![coil20 150](../img/pacmap/coil20150.png)|![frey 150](../img/pacmap/frey150.png)
-![mammoth mid](../img/pacmap/mammothmid.png)|![coil20 mid](../img/pacmap/coil20mid.png)|![frey mid](../img/pacmap/freymid.png)
-![mammoth rand](../img/pacmap/mammothrand.png)|![coil20 rand](../img/pacmap/coil20rand.png)|![frey rand](../img/pacmap/freyrand.png)
+![mammoth 15](../img/pacmap/mammoth15.png)|![sch10k 15](../img/pacmap/sch10k15.png)|![curve2d 15](../img/pacmap/curve2d15.png)
+![mammoth 15s](../img/pacmap/mammoth15s.png)|![sch10k 15s](../img/pacmap/sch10k15s.png)|![curve2d 15s](../img/pacmap/curve2d15s.png)
+![mammoth 150](../img/pacmap/mammoth150.png)|![sch10k 150](../img/pacmap/sch10k150.png)|![curve2d 150](../img/pacmap/curve2d150.png)
+![mammoth mid](../img/pacmap/mammothmid.png)|![sch10k mid](../img/pacmap/sch10kmid.png)|![curve2d mid](../img/pacmap/curve2dmid.png)
+![mammoth rand](../img/pacmap/mammothrand.png)|![sch10k rand](../img/pacmap/sch10krand.png)|![curve2d rand](../img/pacmap/curve2drand.png)
+
+The next three datasets are all image datasets. They are fairly small in terms
+of number of objects, but are quite high dimensional (features are pixels).
+`coil20` is a set of 20 objects in 72 poses each (so 1440 items altogether) and
+16384 features. `frey` is a set of 1965 video stills of Brendan Frey's face with
+560 features. `oli` is the Olivetti faces (40 faces, 10 images each) with 4096
+features.
+
+| coil20 | frey | oli |
+|:----:|:----:|:-----:
+![coil20 15](../img/pacmap/coil2015.png)|![frey 15](../img/pacmap/frey15.png)|![oli 15](../img/pacmap/oli15.png)
+![coil20 15s](../img/pacmap/coil2015s.png)|![frey 15s](../img/pacmap/frey15s.png)|![oli 15s](../img/pacmap/oli15s.png)
+![coil20 150](../img/pacmap/coil20150.png)|![frey 150](../img/pacmap/frey150.png)|![oli 150](../img/pacmap/oli150.png)
+![coil20 mid](../img/pacmap/coil20mid.png)|![frey mid](../img/pacmap/freymid.png)|![oli mid](../img/pacmap/olimid.png)
+![coil20 rand](../img/pacmap/coil20rand.png)|![frey rand](../img/pacmap/freyrand.png)|![oli rand](../img/pacmap/olirand.png)
 
 The next three datasets are of identical dimensions: 70000 images, with 784
 features (pixels). `mnist` are handwritten digits, `fashion` are images of items
@@ -638,17 +652,17 @@ contains four rows: The non-PCA results for the `15s` results and then PCA
 results below. Then I show the `mid near` distributions without PCA and then
 after applying PCA. The non-PCA results are repeated from the tables above. The
 trends are the same for `15`, `150` and `rand` so there's no point showing
-those. Also, `mammoth` isn't included because it only had 3 dimensions in the
-first place.
+those. Also, the first three datasets above aren't included, because they
+already only had 2 or 3 features in them.
 
 ### Effect of PCA
 
-| coil20 | frey |
-|:----:|:-----:
-![coil20 15s](../img/pacmap/coil2015s.png)|![frey 15s](../img/pacmap/frey15s.png)
-![coil20pca100 15s](../img/pacmap/coil20pca10015s.png)|![freypca100 15s](../img/pacmap/freypca10015s.png)
-![coil20 mid](../img/pacmap/coil20mid.png)|![frey mid](../img/pacmap/freymid.png)
-![coil20pca100 mid](../img/pacmap/coil20pca100mid.png)|![freypca100 mid](../img/pacmap/freypca100mid.png)
+| coil20 | frey | oli |
+|:----:|:----:|:-----:
+![coil20 15s](../img/pacmap/coil2015s.png)|![frey 15s](../img/pacmap/frey15s.png)|![oli 15s](../img/pacmap/oli15s.png)
+![coil20 pca10015s](../img/pacmap/coil20pca10015s.png)|![frey pca10015s](../img/pacmap/freypca10015s.png)|![oli pca10015s](../img/pacmap/olipca10015s.png)
+![coil20 mid](../img/pacmap/coil20mid.png)|![frey mid](../img/pacmap/freymid.png)|![oli mid](../img/pacmap/olimid.png)
+![coil20 pca100mid](../img/pacmap/coil20pca100mid.png)|![frey pca100mid](../img/pacmap/freypca100mid.png)|![oli pca100mid](../img/pacmap/olipca100mid.png)
 
 | mnist | fashion | kuzushiji |
 |:----:|:----:|:-----:
@@ -765,6 +779,8 @@ lines(uk$w, pkm100$attr, col = "#AA3377", lwd = lwd)
 
 ## Changelog
 
+* December 24 2021
+  * Add some more datasets for the nearest neighbor histograms.
 * December 23 2021
   * Add nearest neighbor histograms.
 * December 19 2021
