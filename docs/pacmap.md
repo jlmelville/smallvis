@@ -686,6 +686,82 @@ For the other datasets, PCA doesn't seem to distort the distributions as much.
 However, as they are all image datasets, that doesn't necessarily mean that
 there aren't problems lurking. Memo to self: find some non-image datasets, e.g.
 the 20 Newsgroup dataset (available in the PaCMAP repo) for text categorization.
+`macosko2015` does indeed show a pretty dramatic change in its distribution,
+particularly its nearest neighbors. `tasic2018` also seems to show this. Could
+just be coincidence that those are both RNA-seq datasets, but probably a look at
+how such datasets are normalized or otherwise pre-processed might be in order.
+For the other datasets, PCA doesn't seem to distort the distributions as much.
+However, as they are all image datasets, that doesn't necessarily mean that
+there aren't problems lurking. Memo to self: find some non-image datasets, e.g.
+the 20 Newsgroup dataset (available in the PaCMAP repo) for text categorization.
+
+## 20NG
+
+*December 25 2021*: I followed up on my memo to myself and have now looked at
+the [20 Newsgroups](http://qwone.com/~jason/20Newsgroups/) dataset aka `20NG`,
+but I will refer to it as `ng20` because variables which begin with a digit are
+difficult or impossible to work with in most programming languages.
+
+Currently, the PaCMAP repo has [20NG data](https://github.com/YingfanWang/PaCMAP/blob/f309fb8faef55a80e819ab91c8f81ac7d3937d9a/data/20NG.npy)
+available, but this is a dense numpy matrix with 100 features, so presumably it
+has already been reduced down by the Truncated SVD. As I want to compare this
+with a higher rank decomposition, I processed the 20NG data from scratch.
+The 20NG dataset is sparse, and PaCMAP does not support sparse input data (Annoy
+does not support sparse distance calculations), so some kind of pre-processing
+of the data to produce a dense matrix is required.
+
+I took the dataset preparation from this [UMAP
+example](https://umap-learn.readthedocs.io/en/latest/sparse.html#a-text-analysis-example)
+(note that UMAP can work on sparse inputs directly because it uses
+[pynndescent](https://github.com/lmcinnes/pynndescent/) to find nearest neighbors).
+The simple procedure I followed was:
+
+```python
+import sklearn.datasets
+import sklearn.feature_extraction.text
+from sklearn.decomposition import TruncatedSVD
+
+ng20v =  sklearn.datasets.fetch_20newsgroups_vectorized(subset="all")
+ng20tfidf = sklearn.feature_extraction.text.TfidfTransformer(norm="l2").fit_transform(ng20v.data)
+
+svd = TruncatedSVD(3000)
+ng20tfidf_svd3000 = svd.fit_transform(ng20tfidf)
+```
+
+For the data here, I used L2 normalization because L1 (as used in the UMAP
+example) results in some documents having very few near neighbors, which leads
+to most of the histograms being squashed to the left side of the plots due to a
+small number of large distances. The L2 normalization also gives distance
+distributions and UMAP and PaCMAP embeddings which are closer to the results I
+get when using the PaCMAP data. So I am sticking with L2 normalization for
+consistency and legibility (but I have no opinion on whether the L1 or L2
+normalization is "better" for this dataset).
+
+As noted above in the "Input Preprocessing" section, I have some doubts that the
+default settings for Truncated SVD in sklearn always produces the truncated SVD.
+However, for this data it did a fine job: the dot products of each column with
+the next column was always below $10^{-14}$, which is good enough for me. I also
+tried with [irlba](http://bwlewis.github.io/irlba/) in R, but on this occasion
+it was irlba that had trouble converging with its default parameters. In terms
+of the distributions for the 100 and 3000 dimension distances, results seemed
+very comparable, so I am sticking with the Python TruncatedSVD results below.
+
+Below is a comparison of the distance distributions using 3000 columns vs 100.
+
+| ng20 15s | ng20 mid |
+|:----:|:---:
+![ng20 15s](../img/pacmap/ng2015s.png)|![ng20 mid](../img/pacmap/ng20mid.png)
+![ng20pca100 15s](../img/pacmap/ng20pca10015s.png)|![ng20pca100 mid](../img/pacmap/ng20pca100mid.png)
+
+Again, there is a noticeable shift in the distributions. The point here isn't
+whether keeping 3000 columns vs 100 columns results in better embeddings (the
+100D result actually seems better and you would probably use the cosine metric
+instead of Euclidean for this dataset), but that the distributions of distances
+is noticeably shifted for some datasets, which is something to be aware of. If
+you only look at the MNIST digits for example, you *won't* see this shift which
+might lull you into believing that reducing dimensionality to 100 PCs gives you
+a speed increase for the nearest neighbor search with no other downstream
+effects.
 
 ## See Also
 
@@ -779,6 +855,8 @@ lines(uk$w, pkm100$attr, col = "#AA3377", lwd = lwd)
 
 ## Changelog
 
+* December 25 2021
+  * Add the 20NG dataset to the analysis of the effect of PCA.
 * December 24 2021
   * Add some more datasets for the nearest neighbor histograms.
 * December 23 2021
