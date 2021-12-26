@@ -632,7 +632,17 @@ concentration. I would be interested to see whether you could get away with a
 uniform random sample of distances and get the same effect as the mid-near
 pairs. This might make it easier to introduce PaCMAP ideas into existing UMAP
 code bases because you could use the random negative sampling phase as a source
-of pairs to use with the mid-near attractive forces.
+of pairs to use with the mid-near attractive forces. *December 25 2021*: on
+reflection that would mean that you were really just picking points at random
+and deciding some should be brought together and some should be pushed apart,
+which wouldn't necessarily be good for global structure. So it might be that the
+effect of mid-near pairs is more to bring the points into an area where the near
+pair attractive forces can be effective, and this is the source of PaCMAP's
+better robustness to initialization. The balance of the mid-near attractive
+force versus the far pair repulsion would be an additional factor on top of the
+relative balance introduced by the ratio of the different types of pairs. The
+latter is tested in the PaCMAP paper and too many mid-near pairs does seem
+to be deleterious.
 
 The `macosko2015` dataset, which I said was most affected by hubness shows the
 least difference between the `15` distances and the `rand`. It's quite striking
@@ -695,7 +705,7 @@ However, as they are all image datasets, that doesn't necessarily mean that
 there aren't problems lurking. Memo to self: find some non-image datasets, e.g.
 the 20 Newsgroup dataset (available in the PaCMAP repo) for text categorization.
 
-## 20NG
+### 20NG
 
 *December 25 2021*: I followed up on my memo to myself and have now looked at
 the [20 Newsgroups](http://qwone.com/~jason/20Newsgroups/) dataset aka `20NG`,
@@ -762,6 +772,145 @@ you only look at the MNIST digits for example, you *won't* see this shift which
 might lull you into believing that reducing dimensionality to 100 PCs gives you
 a speed increase for the nearest neighbor search with no other downstream
 effects.
+
+## Quantifying the effect of PCA and scaled distances
+
+Here is an attempt to quantify how PCA and the scaled distances affects the
+nearest neighbors, using overlap of different nearest neighbors lists and the
+hubness of the dataset.
+
+### Overlap with exact nearest neighbors
+
+In the table below I list the mean overlap for each dataset between different
+neighbor lists, i.e. for each item in a dataset, I calculate the overlap of
+two different neighbor lists, and then scale by the length of the list, so
+that an overlap of 0 means there no neighbors in common, and 1 means the neighbor
+lists are identical. In the table below, the average over all items in each
+dataset is reported.
+
+The first column is for the exact 15 nearest neighbors vs the exact 15 nearest
+neighbors found after applying PCA and reducing to 100 dimensions. These
+neighbors aren't used directly in PaCMAP but are used in UMAP. If PCA is mainly
+acting as a way to reduce the initial dimensionality without having an effect on
+the local neighborhoods, I would expect the overlap to be large in this case.
+
+The second column uses 150 nearest neighbors: if the overlap for 15 neighbors is
+low, but larger for 150 nearest neighbors, then the local neighborhood is
+getting distorted a bit by PCA, but the same points are still "nearby". This
+assumes you believe that 150 nearest neighbors still represents a "local"
+neighborhood vs 15 neighbors. In my experience, UMAP local structure is rarely
+strongly affected by using 150 nearest neighbors vs 15, so I think it's an ok
+assumption for our purposes here. The more nearest neighbors you look at, the
+larger the overlap will be: in the limit of choosing the size of the dataset as
+the nearest neighbors, the overlap will always be 1, but for most datasets, the
+proportion of the dataset that we return with 15 vs 150 neighbors isn't a big
+change, except maybe for for the `oli` dataset, but it's never been a dataset
+that has provided any particular issues for embedding with UMAP or t-SNE, so 
+I am unconcerned.
+
+The third column measures the overlap of the exact 15 nearest neighbors versus
+the scaled 15 nearest neighbors. Here we would hope that the overlap would be
+reduced, or there would be no point in carrying out the re-scaling. Too little
+overlap might be a bit worrying as we would hope some of the local neighborhood
+would be retained.
+
+The fourth column again looks at the overlap of the exact 15 nearest neighbors
+versus the 15 scaled nearest neighbors, but after using PCA for pre-processing.
+In this case, I would hope this column's numbers looks like the third column's
+numbers, so that PCA wasn't affecting how the nearest neighbor are being
+rescaled.
+
+As `mammoth`, `sch10k` and `curve2d` don't have enough columns to be reduced
+to 100D, only the 15 nearest neighbors vs scaled 15 nearest neighbors is
+reported.
+
+
+| dataset     | 15 nn vs PCA | 150 nn vs PCA | 15 nn vs snn | PCA 15 nn vs snn |
+| :---------- | :----------- | :------------ | :----------- | :--------------- |
+| mammoth     |              |               | 0.7885       |                  |
+| sch10k      |              |               | 0.8308       |                  |
+| curve2d     |              |               | 0.9576       |                  |
+| oli         | 0.9555       | 0.9862        | 0.5878       | 0.594            |
+| frey        | 0.9661       | 0.9806        | 0.6332       | 0.6458           |
+| coil20      | 0.944        | 0.9491        | 0.7262       | 0.735            |
+| mnist       | 0.8694       | 0.9077        | 0.5985       | 0.6154           |
+| fashion     | 0.7496       | 0.8219        | 0.5252       | 0.5721           |
+| kuzushiji   | 0.8059       | 0.8341        | 0.5647       | 0.5688           |
+| cifar10     | 0.749        | 0.8064        | 0.3624       | 0.4061           |
+| macosko2015 | 0.1201       | 0.1321        | 0.3061       | 0.4914           |
+| tasic2018   | 0.4805       | 0.715         | 0.5102       | 0.6439           |
+| ng20        | 0.2705       | 0.1608        | 0.5017       | 0.5422           |
+
+For a lot of the datasets, PCA doesn't have a big effect on the overlap of
+nearest neighbors. There is a small increase in the overlap when (`macosko2015`,
+`tasic2018` and `ng20`), I remain concerned. Applying PCA results in noticeably
+lower overlap for 15 nearest neighbor. Going to 150 nearest neighbors helps
+for `tasic2018`, but does very little for `macosko2015`. For `ng20` the overlap
+with 150 nearest neighbors is actually worse than for 15 nearest neighbors.
+
+Looking at the scaled nearest neighbors, a 50-60% overlap of the 15 nearest
+neighbors seems typical. For lower dimensional datasets, the overlap is higher.
+The effect of PCA is to increase the amount of overlap after scaling.
+
+### Hubness
+
+Hubness of a dataset measures if there are some items which are disproportionately
+"popular" with other items in the dataset. This can reduce the usefulness of
+a nearest neighbor graph.
+
+For hubness, I measure the number of times an item appears in the $k$-nearest
+neighbor list of the items in the dataset (the
+[k-occurrence](https://www.jmlr.org/papers/v11/radovanovic10a.html)): this can
+take a value from 0 to $N$ (where $N$ is the number of items in the dataset), so
+I scale the values by $N$, so the range is 0-1. The maximum k-occurrence across
+the dataset is then the hubness. You can interpret the resulting value as the
+proportion of the dataset that the most "hubby" point in the data is connected
+to. In the case where there are no hubs, we would expect every point to be on
+$k$ other neighbor lists, so the hubness would be $k/N$.
+
+In the table below, I first report the hub-free hubness value as `k/N`. Then the
+rest of the columns are the calculated hubness using the following definitions
+of nearest neighbors: the 15 nearest neighbors, the 15 nearest neighbors after
+PCA, the 15 scaled nearest neighbors, and the 15 scaled nearest neighbors after
+PCA. I would hope that the scaled nearest neighbors result in reduced hubness:
+[Schnitzler and co-workers](https://jmlr.org/papers/v13/schnitzer12a.html)
+explicitly recommend it as a way to reduce hubness.
+
+| dataset     | k/N       | 15 nn    | PCA 15 nn | 15 snn   | PCA 15 snn |
+| :---------- | :-------- | :------- | :-------- | :------- | :--------- |
+| mammoth     | 0.0015    | 0.003    |           | 0.0058   |            |
+| sch10k      | 0.001579  | 0.002736 |           | 0.004946 |            |
+| curve2d     | 0.01034   | 0.01517  |           | 0.01517  |            |
+| oli         | 0.0375    | 0.2175   | 0.2025    | 0.145    | 0.1575     |
+| frey        | 0.007634  | 0.02239  | 0.02087   | 0.02901  | 0.03155    |
+| coil20      | 0.01042   | 0.03194  | 0.02847   | 0.05417  | 0.06111    |
+| mnist       | 0.0002143 | 0.001129 | 0.0009857 | 0.0007   | 0.0007     |
+| fashion     | 0.0002143 | 0.0036   | 0.001514  | 0.001186 | 0.0008857  |
+| kuzushiji   | 0.0002143 | 0.002786 | 0.0015    | 0.001    | 0.0008571  |
+| cifar10     | 0.00025   | 0.03202  | 0.01208   | 0.002883 | 0.001617   |
+| macosko2015 | 0.0003348 | 0.2262   | 0.01192   | 0.0208   | 0.001361   |
+| tasic2018   | 0.0006297 | 0.01696  | 0.00701   | 0.003148 | 0.002183   |
+| ng20        | 0.0007959 | 0.7064   | 0.01894   | 0.1296   | 0.002812   |
+
+`oli` has a surprisingly high hubness: there is one point that is a neighbor
+of 20% of the dataset. Meanwhile, most other datasets don't have a high hubness,
+i.e. they are all below 0.05 (no point is a neighbor of more than 5% of the rest
+of the dataset). At this point it should be no surprise that the exceptions are
+`macosko2015` and `ng20`.
+
+The table shows there are also two effective measures for reducing hubness:
+local scaling, as recommended by Schnitzler and co-workers does seem to help a
+lot. For datasets which didn't have any problem with hubness, the hubness can
+go up a tiny bit, but not in a way that seems very concerning. This is an effect
+that was also noted by Schnitzler and co-workers.
+
+PCA is also effective and for `macosko2015` and `ng20` reduces the hubness more
+than scaling the original raw distances, and in general combining PCA and
+scaling results in the lowest hubness.
+
+Although the histograms of the distances showed only a minor effect of scaling
+the distances, these numbers suggest that testing the effect of using the scaled
+nearest neighbors would be a useful thing to try with UMAP.
 
 ## See Also
 
@@ -857,6 +1006,10 @@ lines(uk$w, pkm100$attr, col = "#AA3377", lwd = lwd)
 
 * December 25 2021
   * Add the 20NG dataset to the analysis of the effect of PCA.
+  * Regenerate the scaled nearest neighbor histograms due to a bug in my scaled
+  distance code (although you can't tell the difference visually).
+  * Add tables on neighbor overlap and hubness to test the effect of PCA and
+  scaled neighbors.
 * December 24 2021
   * Add some more datasets for the nearest neighbor histograms.
 * December 23 2021
