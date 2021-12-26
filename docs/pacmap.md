@@ -696,14 +696,6 @@ For the other datasets, PCA doesn't seem to distort the distributions as much.
 However, as they are all image datasets, that doesn't necessarily mean that
 there aren't problems lurking. Memo to self: find some non-image datasets, e.g.
 the 20 Newsgroup dataset (available in the PaCMAP repo) for text categorization.
-`macosko2015` does indeed show a pretty dramatic change in its distribution,
-particularly its nearest neighbors. `tasic2018` also seems to show this. Could
-just be coincidence that those are both RNA-seq datasets, but probably a look at
-how such datasets are normalized or otherwise pre-processed might be in order.
-For the other datasets, PCA doesn't seem to distort the distributions as much.
-However, as they are all image datasets, that doesn't necessarily mean that
-there aren't problems lurking. Memo to self: find some non-image datasets, e.g.
-the 20 Newsgroup dataset (available in the PaCMAP repo) for text categorization.
 
 ### 20NG
 
@@ -752,9 +744,16 @@ default settings for Truncated SVD in sklearn always produces the truncated SVD.
 However, for this data it did a fine job: the dot products of each column with
 the next column was always below $10^{-14}$, which is good enough for me. I also
 tried with [irlba](http://bwlewis.github.io/irlba/) in R, but on this occasion
-it was irlba that had trouble converging with its default parameters. In terms
-of the distributions for the 100 and 3000 dimension distances, results seemed
-very comparable, so I am sticking with the Python TruncatedSVD results below.
+it was irlba that had trouble converging with its default parameters (increasing
+the `work` parameter fixed this issue). In terms of the distributions for the
+100 and 3000 dimension distances, results seemed very comparable, so I am
+sticking with the Python TruncatedSVD results below.
+
+The above procedure isn't completely ideal because PaCMAP centers its input
+before performing PCA via SVD. The above is just a low-rank approximation via
+SVD. I don't actually know how to safely combine centering with SVD on a sparse
+matrix with TruncatedSVD (irlba is able to implicitly center sparse data).
+Fortunately, for calculating Euclidean distances, the difference doesn't matter.
 
 Below is a comparison of the distance distributions using 3000 columns vs 100.
 
