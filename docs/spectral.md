@@ -128,6 +128,10 @@ makes this naming ambiguous.
 $D^{-1/2} W D^{-1/2}$ is sometimes called the (symmetrized) normalized adjacency
 matrix.
 
+You will often see this normalization written as:
+
+$$L_{sym \left(ij\right)} = \frac{W_{ij}}{\sqrt{D_i D_j}}$$
+
 ### Random Walk Normalized Laplacian
 
 $$L_{rw} = D^{-1} L = I - D^{-1} W$$
@@ -393,12 +397,14 @@ Therefore, unless you go out of your way to specify the order in which
 to return the eigenvectors of $P$, the largest eigenvectors of $P$ are not
 necessarily going to be the same as the smallest eigenvectors of $L_{rw}$.
 
-I looked at a couple of implementations of diffusion maps (for example, 
-a [gist by Rahul Raj](https://gist.github.com/rahulrajpl/36a5724d0c261b915292182b1d741393),
-the [pyDiffMap](https://github.com/DiffusionMapsAcademics/pyDiffMap) package)
-and the ordering of the eigenvectors seems to be consistent with using $L_{rw}$,
-i.e. they take into account the sign of the eigenvalues, or shift the $P$ matrix
-to avoid the eigenvalues changing sign.
+I looked at a couple of implementations of diffusion maps (for example, a [gist
+by Rahul
+Raj](https://gist.github.com/rahulrajpl/36a5724d0c261b915292182b1d741393), the
+[pyDiffMap](https://github.com/DiffusionMapsAcademics/pyDiffMap) package, the
+[megaman](https://github.com/mmp2/megaman) package) and the ordering of the
+eigenvectors seems to be consistent with using $L_{rw}$, i.e. they take into
+account the sign of the eigenvalues, or shift the $P$ matrix to avoid the
+eigenvalues changing sign.
 
 The diffusion map literature doesn't really get into any details about ordering
 the eigenvectors (or specifically what "largest" means), but diffusion maps are
@@ -459,7 +465,7 @@ Socher report and Wikipedia page seem to leave out some steps. Here's my
 attempt. I'll try and stick with the notation I've seen used elsewhere, which 
 is truly unfortunate. 
 
-*December 8 2021* The 
+*December 8 2021*: The 
 [pyDiffMap](https://github.com/DiffusionMapsAcademics/pyDiffMap) package seems
 to carry out a procedure very close to what follows, so this should be reasonably
 reliable.
@@ -560,7 +566,20 @@ around that by taking advantage of the fact that shifting a matrix by $\alpha I$
 ($\alpha$ being a scalar value) shifts the eigenvalues by $\alpha$.
 The eigenvalues of $\alpha I + P$ are therefore $\alpha + \mu$. Picking 
 $\alpha=1$ means the eigenvalues of $I + P_{sym}$ are in the range of 0-2, which
-is safe for us to run SVD on.
+is safe for us to run SVD on. *December 26 2021*: the 
+[megaman](https://github.com/mmp2/megaman) python package forms a similar
+matrix, but adds $\epsilon I$ (with $\epsilon = 2$) to ensure the smallest
+eigenvalue is larger than zero and hence the matrix is positive definite rather
+than positive semi-definite (see See comments in the
+[spectral_embedding](https://github.com/mmp2/megaman/blob/ebf7b6f38c512be22d35ddf69c109506e62cac5b/megaman/embedding/spectral_embedding.py#L103).
+Probably the reason is that a positive definite matrix is a requirement for
+using the
+[LOBPCG](https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.linalg.lobpcg.html)
+eigensolver, so this shouldn't be an issue with the SVD approach I advocate
+here. We don't use the singular vectors corresponding to the zero eigenvalue so
+the fact that there is no guarantee that the right and left singular vectors are
+the same for that singular value in the positive semi-definite case shouldn't be
+relevant.
 1. Ordering the vectors is now very confusing: for graph Laplacians, we were
 talking about the $k$th eigenvector as that associated with the $k$th *smallest*
 eigenvalue, but when using $P$, it's actually the $k$th *largest* eigenvalue.
@@ -624,6 +643,56 @@ best choice. For example, in 2001 Inderjit Dhillon published a paper on
 where SVD can be applied to a smaller matrix than would be needed if solving
 a generalized eigenvalue problem directly (the difference in matrix size doesn't
 seem that big, though).
+
+## Repeated Eigendirections
+
+In the previous section I mentioned getting the Laplacian Eigenmap for a 1D line
+embedded in 3D. Assuming you get a good converged result, the output using the
+first two eigenvectors is a parabola. This is a generic problem when there is a
+high "aspect ratio" in a dataset, i.e. the manifold extends much more in one
+direction than another. Successive eigenvectors will contain information about
+the same coordinate. This problem was described as "repeated eigendirections" by
+[Gerber and co-workers](https://dl.acm.org/doi/abs/10.1145/1273496.1273532) and
+is also discussed at length by [Goldberg and
+co-workers](https://arxiv.org/abs/0806.2646). For more on this, see the
+discussion by [Kohli and
+co-workers](https://www.jmlr.org/papers/v22/21-0131.html) and especially the
+references they point to (under 'Laplacian Eigenmaps' in section 1.3). At this
+point I'd love to say "and here's the easy solution that's been discovered", but
+that doesn't seem to be the case, so see the above papers and the references
+therein for more suggested fixes.
+
+## The Kernel PCA Connection
+
+[Kernel PCA](https://doi.org/10.1162%2F089976698300017467) describes quite a
+similar process to everything described above: you create a square affinity
+matrix based on the kernel function (usually called the Kernel matrix, 
+Gram matrix or Gramian matrix), but instead of forming a graph Laplacian matrix
+from it, do SVD on the kernel matrix directly. This relies on the "kernel trick"
+(I don't actually know who first coined that phrase): the value of the kernel
+matrix element $w_{ij}$ can be seen as the result of transforming $\mathbf{x_i}$
+and $\mathbf{x_j}$ into some high-dimensional space (this mapping function is 
+usually labelled as $\Phi$), and then taking the dot product. Hence you don't
+need to ever actually map the data into the high dimensional space or to even
+know what $\Phi$ is. As discussed way at the beginning of this document as long
+as $W$ is symmetric and positive semi-definite, then you have a kernel that
+works with the kernel trick (such functions are often referred to as a Mercer 
+kernel).
+
+A difference between the spectral methods and kernel PCA is the normalization of
+$W$. Doing PCA requires mean-centered data and in kernel PCA this means the
+transformed data should also be mean-centered. But the whole point of the kernel
+trick is to avoid having to actually form the transformed data. Instead, the
+kernel matrix is double centered: 
+$W_{norm} = \left(I - \frac{1}{N}\mathbf{1} \right) W \left(I - \frac{1}{N}\mathbf{1} \right)$
+where $\mathbf{1}$ is an $N$ by $N$ matrix of all 1s. This normalization results
+in the row and column means all being zero.
+
+For more on this, [Bengio and
+co-workers](http://www.iro.umontreal.ca/~lisa/pointeurs/TR1232.pdf) have a
+technical report connecting spectral clustering with kernel PCA and [Ham and
+co-workers](https://dl.acm.org/doi/10.1145/1015330.1015417) describe how graph
+Laplacians can themselves be considered kernels.
 
 ## Further Reading
 
@@ -705,12 +774,22 @@ spectral clustering paper.
 * A nice [visual tool](https://dominikschmidt.xyz/spectral-clustering-exp/) for
 spectral clustering.
 
+* The earliest mention (as far as I know) of the [repeated
+eigendirections](https://dl.acm.org/doi/abs/10.1145/1273496.1273532) problem as
+the cause for the distortion in Laplacian eigenmaps.
+
 * There is a longer version of Inderjit Dhillon's paper on bipartite spectral 
 graph clustering published as a technical report (TR-01-05), but it's only
 available from The University of Texas at Austin via FTP:
 <ftp://ftp.cs.utexas.edu/pub/techreports/tr01-05.pdf>. This is no longer a
 very web-browser friendly protocol, so have fun scrounging around for a more
 conveniently hosted version.
+
+* A popular [review of kernel methods](https://projecteuclid.org/journals/annals-of-statistics/volume-36/issue-3/Kernel-methods-in-machine-learning/10.1214/009053607000000677.full).
+
+* A more recent (as of 2021) [review on kernels in machine
+learning](https://arxiv.org/abs/2106.08443) that has references to other papers
+that connect kernel PCA to spectral methods.
 
 ## Some code
 
