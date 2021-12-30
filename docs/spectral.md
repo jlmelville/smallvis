@@ -589,6 +589,12 @@ the $k$th *largest* singular value.
 
 ### A Truncated SVD recipe
 
+*December 30 2021*: Thanks to [a reddit comment on spectral
+embeddings](https://www.reddit.com/r/MachineLearning/comments/rrrjrz/comment/hqirwix)
+I have discovered that several network embedding methods (e.g.
+[NetSMF](https://arxiv.org/abs/1906.11156)) use truncated SVD to get
+eigenvectors of graph Laplacians, similar to what is described below.
+
 Here's a procedure for calculating eigenvectors I've talked about here via
 truncated SVD. As noted above, indexing can get confusing, but it *is*
 consistent in the sense that if you stick with the convention of ordering
@@ -784,6 +790,11 @@ available from The University of Texas at Austin via FTP:
 <ftp://ftp.cs.utexas.edu/pub/techreports/tr01-05.pdf>. This is no longer a
 very web-browser friendly protocol, so have fun scrounging around for a more
 conveniently hosted version.
+
+* [NetMF](https://arxiv.org/abs/1710.02971) and variations like
+[NetSMF](https://arxiv.org/abs/1906.11156) and 
+[NetMF+](https://arxiv.org/abs/2110.12782) make use of Truncated SVD to get
+eigenvalues of graph Laplacians in the field of network embedding.
 
 * A popular [review of kernel methods](https://projecteuclid.org/journals/annals-of-statistics/volume-36/issue-3/Kernel-methods-in-machine-learning/10.1214/009053607000000677.full).
 
