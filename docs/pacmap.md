@@ -445,6 +445,11 @@ The closest scaled distance neighbors are searched from within the
 `n_neighbors + 50` with the smallest unscaled nearest neighbors. Scaled 
 distances are not used in any other part of the method.
 
+*11th January 2022*: note that the $i$th observation will always find itself
+as its own nearest neighbor (or tied in the case with duplicates). PaCMAP 
+accounts for this by actually looking at `n_neighbors + 51` and ignoring the
+actual closest neighbor.
+
 Roughly then we can expect to be looking for `60-75` nearest neighbors for
 datasets up to $N = 100 000$.
 
@@ -1003,6 +1008,9 @@ lines(uk$w, pkm100$attr, col = "#AA3377", lwd = lwd)
 
 ## Changelog
 
+* January 11 2022 
+  * Add a note to mention that counts of near neighbors exclude the "self" 
+  neighbor.
 * December 25 2021
   * Add the 20NG dataset to the analysis of the effect of PCA.
   * Regenerate the scaled nearest neighbor histograms due to a bug in my scaled

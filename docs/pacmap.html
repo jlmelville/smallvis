@@ -528,6 +528,7 @@ d_{ij}^{2,select} = \frac{r_{ij}^2}{\sigma_i \sigma_j}
 \]</span></p>
 <p>where <span class="math inline">\(r_{ij}^2\)</span> represents the distance in the input space. The local scaling factor <span class="math inline">\(\sigma_i\)</span> is the mean average (unscaled) distance of the 4th-6th nearest neighbors of <span class="math inline">\(i\)</span>. This choice for <span class="math inline">\(\sigma_i\)</span> is the same as that used in the Trimap method (<a href="https://github.com/eamid/trimap">github</a>, <a href="https://arxiv.org/abs/1910.00204">arXiv</a>).</p>
 <p>The closest scaled distance neighbors are searched from within the <code>n_neighbors + 50</code> with the smallest unscaled nearest neighbors. Scaled distances are not used in any other part of the method.</p>
+<p><em>11th January 2022</em>: note that the <span class="math inline">\(i\)</span>th observation will always find itself as its own nearest neighbor (or tied in the case with duplicates). PaCMAP accounts for this by actually looking at <code>n_neighbors + 51</code> and ignoring the actual closest neighbor.</p>
 <p>Roughly then we can expect to be looking for <code>60-75</code> nearest neighbors for datasets up to <span class="math inline">\(N = 100 000\)</span>.</p>
 </div>
 </div>
@@ -1201,6 +1202,10 @@ lines(uk$w, pkm100$attr, col = &quot;#AA3377&quot;, lwd = lwd)</code></pre>
 <div id="changelog" class="section level2">
 <h2>Changelog</h2>
 <ul>
+<li>January 11 2022
+<ul>
+<li>Add a note to mention that counts of near neighbors exclude the “self” neighbor.</li>
+</ul></li>
 <li>December 25 2021
 <ul>
 <li>Add the 20NG dataset to the analysis of the effect of PCA.</li>
