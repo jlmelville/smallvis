@@ -525,8 +525,10 @@ number seeds.
 ## Pairwise Distance Comparison
 
 To get a feel for the effect of the different neighbor calculations, here are
-some histograms of pairwise distances for different sets of neighbors across
-a variety of datasets. The different sets of neighbors are labelled as:
+some histograms of pairwise distances for different sets of exact nearest
+neighbors across a variety of datasets. Neither UMAP nor PaCMAP use exact
+nearest neighbors, but it's one less variable to worry about. The different sets
+of neighbors are labelled as:
 
 * `15`: The 15 nearest neighbors. Actually it's only the 14 nearest neighbors
 because I omit the first nearest neighbor of each item which is always itself.
@@ -779,6 +781,10 @@ effects.
 
 ## Quantifying the effect of PCA and scaled distances
 
+*January 13 2022*: A previous version of this section has an error in the scaled
+distance calculation. It doesn't really affect any conclusions or trends. I
+also added a few extra comparisons.
+
 Here is an attempt to quantify how PCA and the scaled distances affects the
 nearest neighbors, using overlap of different nearest neighbors lists and the
 hubness of the dataset.
@@ -792,75 +798,125 @@ that an overlap of 0 means there no neighbors in common, and 1 means the neighbo
 lists are identical. In the table below, the average over all items in each
 dataset is reported.
 
-The first column is for the exact 15 nearest neighbors vs the exact 15 nearest
-neighbors found after applying PCA and reducing to 100 dimensions. These
-neighbors aren't used directly in PaCMAP but are used in UMAP. If PCA is mainly
-acting as a way to reduce the initial dimensionality without having an effect on
-the local neighborhoods, I would expect the overlap to be large in this case.
+I look at using PCA with 100 dimensions, and when generating the scaled 15
+nearest neighbors, select the 15 from the 65 nearest neighbors based on the
+unscaled distances. These are the PaCMAP defaults.
 
-The second column uses 150 nearest neighbors: if the overlap for 15 neighbors is
-low, but larger for 150 nearest neighbors, then the local neighborhood is
-getting distorted a bit by PCA, but the same points are still "nearby". This
-assumes you believe that 150 nearest neighbors still represents a "local"
-neighborhood vs 15 neighbors. In my experience, UMAP local structure is rarely
-strongly affected by using 150 nearest neighbors vs 15, so I think it's an ok
-assumption for our purposes here. The more nearest neighbors you look at, the
-larger the overlap will be: in the limit of choosing the size of the dataset as
-the nearest neighbors, the overlap will always be 1, but for most datasets, the
-proportion of the dataset that we return with 15 vs 150 neighbors isn't a big
-change, except maybe for for the `oli` dataset, but it's never been a dataset
-that has provided any particular issues for embedding with UMAP or t-SNE, so 
-I am unconcerned.
+There are a *lot* of numbers reported here. I'll try and explain why I am 
+interested in each column:
 
-The third column measures the overlap of the exact 15 nearest neighbors versus
-the scaled 15 nearest neighbors. Here we would hope that the overlap would be
-reduced, or there would be no point in carrying out the re-scaling. Too little
-overlap might be a bit worrying as we would hope some of the local neighborhood
-would be retained.
+* `15 vs PCA15`: the overlap of the 15 nearest neighbors in the original space
+vs after doing PCA. The 15 nearest neighbors without PCA applied to them is what
+UMAP would use by default. If PCA is mainly acting as a way to reduce the
+initial dimensionality without having an effect on the local neighborhoods, I
+would expect the overlap to be large in this case.
+* `150 vs PCA150`: same as the above, but looking at 150 nearest neighbors: if
+the overlap for 15 neighbors is low, but larger for 150 nearest neighbors, then
+the local neighborhood is getting distorted a bit by PCA, but the same points
+are still "nearby". This assumes you believe that 150 nearest neighbors still
+represents a "local" neighborhood vs 15 neighbors. In my experience, UMAP local
+structure is rarely strongly affected by using 150 nearest neighbors vs 15, so I
+think it's an ok assumption for our purposes here. The more nearest neighbors
+you look at, the larger the overlap will be: in the limit of choosing the size
+of the dataset as the nearest neighbors, the overlap will always be 1, but for
+most datasets, the proportion of the dataset that we return with 15 vs 150
+neighbors isn't a big change, except maybe for for the `oli` dataset, but it's
+never been a dataset that has provided any particular issues for embedding with
+UMAP or t-SNE, so I am unconcerned.
+* `15 vs 15s`: the overlap between the 15 nearest neighbors in the original
+space vs after local scaling. No PCA is applied in either case. Here we would
+hope that the overlap would be reduced, or there would be no point in carrying
+out the re-scaling. On the other hand, too little overlap might be also a bit
+worrying as we would hope some of the local neighborhood would be retained.
+* `PCA15 vs 15s`: if PCA has an effect and local scaling (without PCA) has an 
+effect on the local neighborhoods, how similar are they? Do they tend to choose
+the same neighborhoods?
+* `15 vs PCA15s`: this compares the 15 nearest neighbors without any PCA or
+local scaling, with those after carrying out PCA *and* local scaling. This
+is a direct comparison of how UMAP and PaCMAP decide on the local neighborhood.
+* `PCA15 vs PCA15s`: for this column I am curious to know how much of an effect
+local scaling has after applying PCA. In particular, seeing what the numbers are
+like compared to the equivalent comparison without PCA involved in the 
+`15 vs 15s` column. Is the overlap the same or are there some trends?
 
-The fourth column again looks at the overlap of the exact 15 nearest neighbors
-versus the 15 scaled nearest neighbors, but after using PCA for pre-processing.
-In this case, I would hope this column's numbers looks like the third column's
-numbers, so that PCA wasn't affecting how the nearest neighbor are being
-rescaled.
-
-As `mammoth`, `sch10k` and `curve2d` don't have enough columns to be reduced
-to 100D, only the 15 nearest neighbors vs scaled 15 nearest neighbors is
-reported.
+After writing all that out, I feel like I definitely might not be a lot of fun
+at parties, but here we are. Also `mammoth`, `sch10k` and `curve2d` don't have
+enough columns to be reduced to 100D, they are excluded from any PCA-based
+comparison.
 
 
-| dataset     | 15 nn vs PCA | 150 nn vs PCA | 15 nn vs snn | PCA 15 nn vs snn |
-| :---------- | :----------- | :------------ | :----------- | :--------------- |
-| mammoth     |              |               | 0.7885       |                  |
-| sch10k      |              |               | 0.8308       |                  |
-| curve2d     |              |               | 0.9576       |                  |
-| oli         | 0.9555       | 0.9862        | 0.5878       | 0.594            |
-| frey        | 0.9661       | 0.9806        | 0.6332       | 0.6458           |
-| coil20      | 0.944        | 0.9491        | 0.7262       | 0.735            |
-| mnist       | 0.8694       | 0.9077        | 0.5985       | 0.6154           |
-| fashion     | 0.7496       | 0.8219        | 0.5252       | 0.5721           |
-| kuzushiji   | 0.8059       | 0.8341        | 0.5647       | 0.5688           |
-| cifar10     | 0.749        | 0.8064        | 0.3624       | 0.4061           |
-| macosko2015 | 0.1201       | 0.1321        | 0.3061       | 0.4914           |
-| tasic2018   | 0.4805       | 0.715         | 0.5102       | 0.6439           |
-| ng20        | 0.2705       | 0.1608        | 0.5017       | 0.5422           |
+| dataset     | 15 vs PCA15 | 150 vs PCA150 | 15 vs 15s | PCA15 vs 15s | 15 vs PCA15s | PCA15 vs PCA15s |
+|:------------|:------------|:--------------|:----------|:-------------|:-------------|-----------------|
+| mammoth     |             |               | 0.8952    |              |              |                 |
+| sch10k      |             |               | 0.9185    |              |              |                 |
+| curve2d     |             |               | 0.9808    |              |              |                 |
+| oli         | 0.9555      | 0.9862        | 0.7488    | 0.7662       | 0.7347       | 0.7538          |
+| frey        | 0.9661      | 0.9806        | 0.7943    | 0.8086       | 0.7883       | 0.8042          |
+| coil20      | 0.944       | 0.9491        | 0.8538    | 0.8733       | 0.8343       | 0.8623          |
+| mnist       | 0.8694      | 0.9077        | 0.765     | 0.7624       | 0.7312       | 0.7798          |
+| fashion     | 0.7496      | 0.8219        | 0.6946    | 0.6936       | 0.6073       | 0.7432          |
+| kuzushiji   | 0.8059      | 0.8341        | 0.7238    | 0.704        | 0.6709       | 0.7334          |
+| cifar10     | 0.749       | 0.8064        | 0.4718    | 0.5845       | 0.3953       | 0.5286          |
+| macosko2015 | 0.1201      | 0.1321        | 0.4071    | 0.1575       | 0.1045       | 0.6609          |
+| tasic2018   | 0.4805      | 0.715         | 0.7155    | 0.5281       | 0.4419       | 0.8124          |
+| ng20        | 0.2705      | 0.1608        | 0.5883    | 0.3052       | 0.278        | 0.6974          |
 
-For a lot of the datasets, PCA doesn't have a big effect on the overlap of
-nearest neighbors. There is a small increase in the overlap when (`macosko2015`,
-`tasic2018` and `ng20`), I remain concerned. Applying PCA results in noticeably
-lower overlap for 15 nearest neighbor. Going to 150 nearest neighbors helps
-for `tasic2018`, but does very little for `macosko2015`. For `ng20` the overlap
-with 150 nearest neighbors is actually worse than for 15 nearest neighbors.
+Looking at the first two columns it does seem that PCA doesn't have a big effect
+on the overlap of nearest neighbors for a lot of datasets. The three obvious
+exceptions are `macosko2015`, `tasic2018` and `ng20`. Going to 150 nearest
+neighbors helps for `tasic2018`, but does very little for `macosko2015`. For
+`ng20` the overlap with 150 nearest neighbors is actually worse than for 15
+nearest neighbors.
 
-Looking at the scaled nearest neighbors, a 50-60% overlap of the 15 nearest
-neighbors seems typical. For lower dimensional datasets, the overlap is higher.
-The effect of PCA is to increase the amount of overlap after scaling.
+This confirms my fears about the cavalier use of PCA for preprocessing: it might
+be a good idea to do it, but it does have an effect on the results of the
+nearest neighbors so you should have a good reason for doing it (and in the
+case of PaCMAP why 100 dimensions is the magic number).
+
+Looking at the scaled nearest neighbors, this has a more consistent effect
+on neighborhoods than PCA. For datasets like `oli` and `frey` where PCA retained
+more than 90% of the neighborhoods, local scaling retains 75% and 79%. At the
+other end of the scale, where applying PCA to `macosko2015` resulted in a 12%
+neighborhood preservation, local scaling retains 41%.
+
+The `PCA15 vs 15s` results shows that there isn't a consistent overlap between
+applying PCA vs local scaling, i.e. PCA and local scaling could return different
+neighborhoods, so whatever effect PCA has in the cases like `macosko2015`, it's
+not that a similar effect to local scaling (even though a smaller dimensionality
+should result in the reduction of hubs).
+
+The `15 vs PCA15s` column shows how many neighbors we would expect PaCMAP to
+have in common with UMAP with default-ish settings. The answer is: not that
+much, depending on the dataset. Only `coil20` has more than 80% overlap on
+average.
+
+Finally `PCA15 vs PCA15s` should be looked at along side `15 vs 15s`. The trends
+are very similar, although the overlap is always higher for the PCA case. In
+cases like `macosko2015` and `ng20` local scaling has a 10-20% smaller effect.
+
+To summarize: you can expect that local scaling *does* change the neighbors that
+are considered to be close. The degree of change that occurs after local scaling
+is quite similar whether you apply PCA or not (I would expect 25-50% change in
+the neighbors on average with the setting here), but applying PCA *could* have a
+very big effect on the neighbors. Or it might do very little.
 
 ### Hubness
 
-Hubness of a dataset measures if there are some items which are disproportionately
-"popular" with other items in the dataset. This can reduce the usefulness of
-a nearest neighbor graph.
+The preceding section indicates that both PCA and local scaling can affect
+the local neighborhoods that are used in dimensionality reduction. A possible
+good outcome for either approach might be to reduce hubness in the dataset.
+
+Hubness of a dataset measures if there are some items which are
+disproportionately "popular" with other items in the dataset. This can reduce
+the usefulness of a nearest neighbor graph in a variety of settings. So in most
+cases you will want to trade exact accuracy over the nearest neighbors of a
+nodes for something that makes reaching arbitrary nodes in other parts of the
+graph easier: for example if you are searching a graph by hopping from node to
+node via edges, having hubs mean that some nodes will be reached
+disproportionately often which could be a waste of time depending on your needs.
+In dimensionality reduction methods involving sampling edges like UMAP and
+PaCMAP, a node that shows up as part of a very large number of edges may end up
+distorting the optimization in a way that makes the visualization unhelpful.
 
 For hubness, I measure the number of times an item appears in the $k$-nearest
 neighbor list of the items in the dataset (the
@@ -880,21 +936,21 @@ PCA. I would hope that the scaled nearest neighbors result in reduced hubness:
 [Schnitzler and co-workers](https://jmlr.org/papers/v13/schnitzer12a.html)
 explicitly recommend it as a way to reduce hubness.
 
-| dataset     | k/N       | 15 nn    | PCA 15 nn | 15 snn   | PCA 15 snn |
-| :---------- | :-------- | :------- | :-------- | :------- | :--------- |
-| mammoth     | 0.0015    | 0.003    |           | 0.0058   |            |
-| sch10k      | 0.001579  | 0.002736 |           | 0.004946 |            |
-| curve2d     | 0.01034   | 0.01517  |           | 0.01517  |            |
-| oli         | 0.0375    | 0.2175   | 0.2025    | 0.145    | 0.1575     |
-| frey        | 0.007634  | 0.02239  | 0.02087   | 0.02901  | 0.03155    |
-| coil20      | 0.01042   | 0.03194  | 0.02847   | 0.05417  | 0.06111    |
-| mnist       | 0.0002143 | 0.001129 | 0.0009857 | 0.0007   | 0.0007     |
-| fashion     | 0.0002143 | 0.0036   | 0.001514  | 0.001186 | 0.0008857  |
-| kuzushiji   | 0.0002143 | 0.002786 | 0.0015    | 0.001    | 0.0008571  |
-| cifar10     | 0.00025   | 0.03202  | 0.01208   | 0.002883 | 0.001617   |
-| macosko2015 | 0.0003348 | 0.2262   | 0.01192   | 0.0208   | 0.001361   |
-| tasic2018   | 0.0006297 | 0.01696  | 0.00701   | 0.003148 | 0.002183   |
-| ng20        | 0.0007959 | 0.7064   | 0.01894   | 0.1296   | 0.002812   |
+| dataset     | k/N       | 15 nn    | PCA 15 nn | 15 snn    | PCA 15 snn |
+|:------------|:----------|:---------|:----------|:----------|:-----------|
+| mammoth     | 0.0015    | 0.003    |           | 0.0028    |            |
+| sch10k      | 0.001579  | 0.002736 |           | 0.002631  |            |
+| curve2d     | 0.01034   | 0.01517  |           | 0.01517   |            |
+| oli         | 0.0375    | 0.2175   | 0.2025    | 0.0825    | 0.08       |
+| frey        | 0.007634  | 0.02239  | 0.02087   | 0.01527   | 0.01476    |
+| coil20      | 0.01042   | 0.03194  | 0.02847   | 0.02083   | 0.02153    |
+| mnist       | 0.0002143 | 0.001129 | 0.0009857 | 0.0005    | 0.0004714  |
+| fashion     | 0.0002143 | 0.0036   | 0.001514  | 0.001357  | 0.0006286  |
+| kuzushiji   | 0.0002143 | 0.002786 | 0.0015    | 0.0006714 | 0.0005571  |
+| cifar10     | 0.00025   | 0.03202  | 0.01208   | 0.00285   | 0.00165    |
+| macosko2015 | 0.0003348 | 0.2262   | 0.01192   | 0.02071   | 0.00154    |
+| tasic2018   | 0.0006297 | 0.01696  | 0.00701   | 0.004114  | 0.002225   |
+| ng20        | 0.0007959 | 0.7064   | 0.01894   | 0.09063   | 0.003184   |
 
 `oli` has a surprisingly high hubness: there is one point that is a neighbor
 of 20% of the dataset. Meanwhile, most other datasets don't have a high hubness,
@@ -1008,6 +1064,16 @@ lines(uk$w, pkm100$attr, col = "#AA3377", lwd = lwd)
 
 ## Changelog
 
+* January 14 2022
+  * Hubness and neighbor overlap measures needed recalculating because of three
+  mistakes I made calculating the local scaling:
+  * I included the "self" neighbor when counting neighbors. PaCMAP ignores it,
+  so when it says to average over the 4th-6th nearest neighbors, if an
+  observation is considered a neighbor of itself (e.g. the UMAP Python
+  implementation does this), then you actually want the 5th-7th neighbors.
+  * For consistency with PaCMAP, I decided to only look in the 65 nearest
+  neighbors for the scaled neighbors, even though I had calculated 150.
+  * The scaled distances weren't squared.
 * January 11 2022 
   * Add a note to mention that counts of near neighbors exclude the "self" 
   neighbor.
