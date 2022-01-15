@@ -871,7 +871,11 @@ nearest neighbors.
 This confirms my fears about the cavalier use of PCA for preprocessing: it might
 be a good idea to do it, but it does have an effect on the results of the
 nearest neighbors so you should have a good reason for doing it (and in the
-case of PaCMAP why 100 dimensions is the magic number).
+case of PaCMAP why 100 dimensions is the magic number). *January 14 2022*: see
+[Cooley and co-workers](https://doi.org/10.1101/689851) for a similar argument
+about the effect of PCA (and UMAP and t-SNE) on preserving neighborhoods. They
+use the Jaccard distance (sometimes referred to as Tanimoto) with 20-nearest
+neighbors on a variety of single cell RNAseq datasets. 
 
 Looking at the scaled nearest neighbors, this has a more consistent effect
 on neighborhoods than PCA. For datasets like `oli` and `frey` where PCA retained
@@ -1074,6 +1078,7 @@ lines(uk$w, pkm100$attr, col = "#AA3377", lwd = lwd)
   * For consistency with PaCMAP, I decided to only look in the 65 nearest
   neighbors for the scaled neighbors, even though I had calculated 150.
   * The scaled distances weren't squared.
+  * Mention the Cooley and co-workers paper on neighborhood distortion from PCA.
 * January 11 2022 
   * Add a note to mention that counts of near neighbors exclude the "self" 
   neighbor.

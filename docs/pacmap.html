@@ -1025,7 +1025,7 @@ ng20tfidf_svd3000 = svd.fit_transform(ng20tfidf)</code></pre>
 </tbody>
 </table>
 <p>Looking at the first two columns it does seem that PCA doesn’t have a big effect on the overlap of nearest neighbors for a lot of datasets. The three obvious exceptions are <code>macosko2015</code>, <code>tasic2018</code> and <code>ng20</code>. Going to 150 nearest neighbors helps for <code>tasic2018</code>, but does very little for <code>macosko2015</code>. For <code>ng20</code> the overlap with 150 nearest neighbors is actually worse than for 15 nearest neighbors.</p>
-<p>This confirms my fears about the cavalier use of PCA for preprocessing: it might be a good idea to do it, but it does have an effect on the results of the nearest neighbors so you should have a good reason for doing it (and in the case of PaCMAP why 100 dimensions is the magic number).</p>
+<p>This confirms my fears about the cavalier use of PCA for preprocessing: it might be a good idea to do it, but it does have an effect on the results of the nearest neighbors so you should have a good reason for doing it (and in the case of PaCMAP why 100 dimensions is the magic number). <em>January 14 2022</em>: see <a href="https://doi.org/10.1101/689851">Cooley and co-workers</a> for a similar argument about the effect of PCA (and UMAP and t-SNE) on preserving neighborhoods. They use the Jaccard distance (sometimes referred to as Tanimoto) with 20-nearest neighbors on a variety of single cell RNAseq datasets.</p>
 <p>Looking at the scaled nearest neighbors, this has a more consistent effect on neighborhoods than PCA. For datasets like <code>oli</code> and <code>frey</code> where PCA retained more than 90% of the neighborhoods, local scaling retains 75% and 79%. At the other end of the scale, where applying PCA to <code>macosko2015</code> resulted in a 12% neighborhood preservation, local scaling retains 41%.</p>
 <p>The <code>PCA15 vs 15s</code> results shows that there isn’t a consistent overlap between applying PCA vs local scaling, i.e. PCA and local scaling could return different neighborhoods, so whatever effect PCA has in the cases like <code>macosko2015</code>, it’s not that a similar effect to local scaling (even though a smaller dimensionality should result in the reduction of hubs).</p>
 <p>The <code>15 vs PCA15s</code> column shows how many neighbors we would expect PaCMAP to have in common with UMAP with default-ish settings. The answer is: not that much, depending on the dataset. Only <code>coil20</code> has more than 80% overlap on average.</p>
@@ -1258,6 +1258,7 @@ lines(uk$w, pkm100$attr, col = &quot;#AA3377&quot;, lwd = lwd)</code></pre>
 <li>I included the “self” neighbor when counting neighbors. PaCMAP ignores it, so when it says to average over the 4th-6th nearest neighbors, if an observation is considered a neighbor of itself (e.g. the UMAP Python implementation does this), then you actually want the 5th-7th neighbors.</li>
 <li>For consistency with PaCMAP, I decided to only look in the 65 nearest neighbors for the scaled neighbors, even though I had calculated 150.</li>
 <li>The scaled distances weren’t squared.</li>
+<li>Mention the Cooley and co-workers paper on neighborhood distortion from PCA.</li>
 </ul></li>
 <li>January 11 2022
 <ul>
