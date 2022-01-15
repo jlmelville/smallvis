@@ -978,7 +978,9 @@ nearest neighbors would be a useful thing to try with UMAP.
 
 ## See Also
 
-Some notes on the related method
+* Cynthia Rudin's [dimensionality reduction course notes
+(PDF)](https://users.cs.duke.edu/~cynthia/CourseNotes/DataVizLectureNotes.pdf).
+* Some notes on the related method
 [NCVis](https://jlmelville.github.io/smallvis/ncvis.html).
 
 ## R Code for Plots
@@ -1068,6 +1070,8 @@ lines(uk$w, pkm100$attr, col = "#AA3377", lwd = lwd)
 
 ## Changelog
 
+* January 15 2022
+  * Add link to Cynthia Rudin's course notes.
 * January 14 2022
   * Hubness and neighbor overlap measures needed recalculating because of three
   mistakes I made calculating the local scaling:
