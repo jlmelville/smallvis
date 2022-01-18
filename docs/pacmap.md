@@ -179,7 +179,7 @@ $$
 leading to the gradient:
 
 $$
-\frac{\partial C_{PaCMAP}^-}{\partial{\mathbf{y_i}}} =
+\frac{\partial C_{PaCMAP}^+}{\partial{\mathbf{y_i}}} =
 2\frac{ab}{\left(b + \tilde{d_{ij}}\right)^2} \left(\mathbf{y_i} - \mathbf{y_j}\right)
 $$
 
@@ -193,7 +193,7 @@ $$
 giving:
 
 $$
-\frac{\partial C_{PaCMAP}^+}{\partial{\mathbf{y_i}}} =
+\frac{\partial C_{PaCMAP}^-}{\partial{\mathbf{y_i}}} =
 -2\frac{1}{\left(1 + \tilde{d_{ij}}\right)^2} \left(\mathbf{y_i} - \mathbf{y_j}\right)
 $$
 
@@ -1070,6 +1070,8 @@ lines(uk$w, pkm100$attr, col = "#AA3377", lwd = lwd)
 
 ## Changelog
 
+* January 17 2022
+  * Correct sign of paper gradient expressions
 * January 15 2022
   * Add link to Cynthia Rudin's course notes.
 * January 14 2022

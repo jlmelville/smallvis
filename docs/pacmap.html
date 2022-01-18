@@ -354,7 +354,7 @@ C^{-}_{PaCMAP} = \frac{1}{1 + \tilde{d_{ij}}} = \frac{w_{ij}}{1 + w_{ij}}
 \]</span></p>
 <p>leading to the gradient:</p>
 <p><span class="math display">\[
-\frac{\partial C_{PaCMAP}^-}{\partial{\mathbf{y_i}}} =
+\frac{\partial C_{PaCMAP}^+}{\partial{\mathbf{y_i}}} =
 2\frac{ab}{\left(b + \tilde{d_{ij}}\right)^2} \left(\mathbf{y_i} - \mathbf{y_j}\right)
 \]</span></p>
 <p>The repulsive derivative is:</p>
@@ -364,7 +364,7 @@ C^{-}_{PaCMAP} = \frac{1}{1 + \tilde{d_{ij}}} = \frac{w_{ij}}{1 + w_{ij}}
 \]</span></p>
 <p>giving:</p>
 <p><span class="math display">\[
-\frac{\partial C_{PaCMAP}^+}{\partial{\mathbf{y_i}}} =
+\frac{\partial C_{PaCMAP}^-}{\partial{\mathbf{y_i}}} =
 -2\frac{1}{\left(1 + \tilde{d_{ij}}\right)^2} \left(\mathbf{y_i} - \mathbf{y_j}\right)
 \]</span></p>
 </div>
@@ -1255,6 +1255,10 @@ lines(uk$w, pkm100$attr, col = &quot;#AA3377&quot;, lwd = lwd)</code></pre>
 <div id="changelog" class="section level2">
 <h2>Changelog</h2>
 <ul>
+<li>January 17 2022
+<ul>
+<li>Correct sign of paper gradient expressions</li>
+</ul></li>
 <li>January 15 2022
 <ul>
 <li>Add link to Cynthia Rudin’s course notes.</li>
