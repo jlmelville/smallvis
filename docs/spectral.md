@@ -695,10 +695,28 @@ where $\mathbf{1}$ is an $N$ by $N$ matrix of all 1s. This normalization results
 in the row and column means all being zero.
 
 For more on this, [Bengio and
-co-workers](http://www.iro.umontreal.ca/~lisa/pointeurs/TR1232.pdf) have a
+co-workers (PDF)](http://www.iro.umontreal.ca/~lisa/pointeurs/TR1232.pdf) have a
 technical report connecting spectral clustering with kernel PCA and [Ham and
 co-workers](https://dl.acm.org/doi/10.1145/1015330.1015417) describe how graph
 Laplacians can themselves be considered kernels.
+
+Standard linear PCA fits into Kernel PCA by using the "linear kernel", i.e. the 
+dot product of the the input vectors: you can get the principal components or
+loadings or whatever you are looking for whether you use the scatter/covariance 
+matrix ($W'W$) or the Gram matrix ($WW'$), subject to some scaling of eigenvalues
+here or a matrix multiplication with $W$ there. If you are doing PCA, you
+usually need to center your input data anyway, and the double-centering that
+kernel PCA does has no effect on the eigendecomposition.
+
+So if the linear kernel is good enough for PCA, is it good choice for an
+affinity matrix for spectral methods? Unfortunately not because there's nothing
+to stop a dot product from being negative. This isn't a deal breaker for kernel
+PCA because a positive definite kernel doesn't actually have to produce positive
+values from its inputs. The eigenvalues of the resulting kernel matrix *do* have
+to be all positive, but attempting to construct a graph Laplacian matrix from
+that won't give a matrix with the properties we need. There seems to be a small
+amount of literature on graph Laplacians with negative edge weights but it
+doesn't seem like something I would get very excited about at the moment.
 
 ## Further Reading
 
