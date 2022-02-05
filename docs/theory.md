@@ -254,9 +254,6 @@ $$
 \frac{\partial C_{UMAP}}{\partial w_{ij}} =
 -\frac{v_{ij}}{w_{ij}} +
 \frac{ \left( 1 - v_{ij} \right)}{ \left( 1 - w_{ij} \right)}
-= 
--\frac{v_{ij}}{w_{ij} \left(1 - w_{ij} \right)} +
-\frac{w_{ij}}{ w_{ij} \left( 1 - w_{ij} \right)}
 $$
 
 ## Gradients
