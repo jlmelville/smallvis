@@ -62,7 +62,7 @@ smaller, fine-grained clusters.
 * $\lambda$ controls cluster separation. Low $\lambda$ leads to larger separation,
 high $\lambda$ to a smaller separation.
 
-Setting $\alpha = 1, \beta = 1$ (and therefore $\lambda = 1$) gives the
+Setting $\alpha = 1, \beta = 0$ (and therefore $\lambda = 1$) gives the
 KL-divergence, although you wouldn't know it from looking at the divergence
 above. We'll get to that. Anyway, if you use the t-distribution as the
 low-dimensional weight function, you get back t-SNE. You can therefore use the
