@@ -49,7 +49,7 @@ around 25 minutes.
 
 ```R
 install.packages("devtools")
-devtools::install_github("jlmelville/smallvis/smallvis")
+devtools::install_github("jlmelville/smallvis", subdir = "smallvis")
 library(smallvis)
 ```
 
