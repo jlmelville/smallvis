@@ -1095,9 +1095,12 @@ mmds_init <- function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FA
 }
 
 # Metric MDS, minimizing strain.
-mmds <- function() {
+mmds <- function(eps = .Machine$double.eps) {
   list(
-    init = mmds_init,
+    init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
+      cost <- mmds_init(cost, X, max_iter, eps, verbose, ret_extra)
+      cost
+    },
     pfn = function(cost, Y) {
       cost <- cost_update(cost, Y)
       cost$pcost <- colSums((cost$R - cost$D) ^ 2)
@@ -1128,7 +1131,7 @@ mmds <- function() {
   )
 }
 
-smmds <- function() {
+smmds <- function(eps = .Machine$double.eps) {
   lreplace(
     mmds(),
     init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
@@ -1172,10 +1175,9 @@ smmds <- function() {
   )
 }
 
-sammon <- function() {
+sammon <- function(eps = .Machine$double.eps) {
   lreplace(mmds(),
-    init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
-                    ret_extra = c()) {
+    init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       cost <- mmds_init(cost, X, max_iter, eps, verbose, ret_extra)
       cost$rsum_inv <- 1 / sum(cost$R)
       cost
@@ -1194,13 +1196,12 @@ sammon <- function() {
 }
 
 
-gmmds <- function(k) {
+gmmds <- function(k, eps = .Machine$double.eps) {
   lreplace(
     mmds(),
-    init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
+    init = function(cost, X, max_iter, verbose = FALSE,
                     ret_extra = c()) {
       cost$R <- geodesic(X, k, verbose = verbose)
-
       cost$eps <- eps
       cost
     },
@@ -1222,11 +1223,10 @@ gmmds <- function(k) {
 # Define neighborhoods using a radius based on a fraction (f) of all input
 # distances (sorted by increasing length), don't correct non-neighborhood
 # distances unless they smaller than the input distance
-ballmmds <- function(f = 0.1) {
+ballmmds <- function(f = 0.1, eps = .Machine$double.eps) {
   lreplace(
     mmds(),
-    init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
-                    ret_extra = c()) {
+    init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       cost <- mmds_init(cost = cost, X = X, max_iter = max_iter, eps = eps, verbose = verbose,
                         ret_extra = ret_extra)
 
@@ -1285,11 +1285,10 @@ ballmmds <- function(f = 0.1) {
 
 # Create the symmetrized knn graph, don't correct non-neighborhood distances
 # unless they smaller than the input distance
-knnmmds <- function(k) {
+knnmmds <- function(k, eps = .Machine$double.eps) {
   lreplace(
     mmds(),
-    init = function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
-                    ret_extra = c()) {
+    init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       cost <- mmds_init(cost = cost, X = X, max_iter = max_iter, eps = eps, verbose = verbose,
                         ret_extra = ret_extra)
       knn <- knn_graph(X = X, k = k)
