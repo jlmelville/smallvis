@@ -82,13 +82,15 @@ kl_cost <- function(cost, Y) {
 
 # t-SNE
 tsne <- function(perplexity, inp_kernel = "gaussian", symmetrize = "symmetric", 
+                 normalize = TRUE, row_normalize = TRUE,
                  eps = .Machine$double.xmin) {
   list(
     init = function(cost, X, max_iter, verbose = FALSE,
                     ret_extra = c()) {
       symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
-                       symmetrize = symmetrize, normalize = TRUE,
+                       symmetrize = symmetrize, normalize = normalize,
+                       row_normalize = row_normalize,
                        verbose = verbose, ret_extra = ret_extra)
       cost$eps <- eps
       cost
