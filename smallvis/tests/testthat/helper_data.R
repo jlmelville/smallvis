@@ -17,3 +17,9 @@ x2d <- function(X) {
 
 iris10 <- x2m(iris[1:10, ])
 iris10_Y <- pca_scores(iris10, ncol = 2)
+
+# 10 iris entries which are unique, otherwise knn tests are hard to get
+# unique indices and ordering
+uiris <- unique(iris)
+uirism <- as.matrix(uiris[, -5])
+ui10 <- uirism[6:15, ]

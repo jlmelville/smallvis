@@ -110,14 +110,14 @@ test_that("early and late exaggeration", {
 })
 
 test_that("tsne with knn kernel", {
-  res <- smallvis(iris10, Y_init = iris10_Y, perplexity = 5,
+  res <- smallvis(ui10, Y_init = iris10_Y, perplexity = 5,
                        epoch_callback = NULL, verbose = FALSE, ret_extra = TRUE,
                        method = list("tsne", inp_kernel = "knn"))
-  expect_equal(res$Y, c2y(-276.7, 247.6, 81.28, 204.7, -184.4, -384.5, -15.83, 
-                          -100.5, 387.4, 40.96, 93.64, 114.7, 172.6, -83.46,
-                          -65.53, -178.7, -175.7, 132.9, -24.35, 13.96), 
+  expect_equal(res$Y, c2y(-182.6, 12.18, -54.55, 135.9, 42.38, -112, 36.08, 104.4,
+                          226.2, -207.9, -15.1, -98.5, -12.47, 16.06, 67.05, 75.83,
+                          -14.6, -76.44, -27.96, 86.13), 
                tolerance = 0.1)
-  expect_equal(final_cost(res), 0.1934, tolerance = 1e-5)
+  expect_equal(final_cost(res), 0.1874, tolerance = 1e-5)
 })
 
 test_that("mmds", {
@@ -189,12 +189,12 @@ test_that("ballmmds", {
 
 
 test_that("knnmmds", {
-  res <- smallvis(iris10, Y_init = iris10_Y, method = "knnmmds", eta = 0.1, perplexity = 5,
+  res <- smallvis(ui10, Y_init = iris10_Y, method = "knnmmds", eta = 0.1, perplexity = 5,
                   epoch_callback = NULL, verbose = FALSE, ret_extra = TRUE, max_iter = 50)
-  expect_equal(res$Y, c2y(-0.1916, -0.2973, 0.1988, 0.228, 0.03356, -0.419, 0.4968, -0.201,
-                        0.4247, -0.2729, -0.4865, 0.5189, 0.285, 0.5853, -0.5463, -1.44,
-                        0.03945, -0.2379, 0.9893, 0.2931), tolerance = 1e-3)
-  expect_equal(final_cost(res), 0.1155, tolerance = 1e-4)
+  expect_equal(res$Y, c2y(-0.02127, -0.4137, 0.03973, -0.3668, 0.1283, 0.2665,
+                          -0.1675, 0.08009, -0.2882, 0.7429, -0.9082, 0.195, -0.08725,
+                          0.7362, 0.2872, -0.6242, 0.01732, 0.472, 1.008, -1.096), tolerance = 1e-3)
+  expect_equal(final_cost(res), 0.09232, tolerance = 1e-4)
 })
 
 test_that("asne", {
@@ -290,33 +290,36 @@ test_that("t-ee", {
 })
 
 test_that("umap", {
-  res <- smallvis(iris10, Y_init = iris10_Y, method = "umap", eta = 0.1,
-                  perplexity = 5,
-                  epoch_callback = NULL, verbose = FALSE, ret_extra = TRUE)
-  expect_equal(res$Y, c2y(-1.359, 0.7321, 0.8316, 1.071, -1.346, -1.606, 0.7614, -1.036,
-                          1.407, 0.543, -0.0262, 0.5369, -0.1322, -0.1236, -0.07116, -0.08141,
-                          -0.4839, 0.01953, -0.1767, 0.5387), tolerance = 1e-3)
-  expect_equal(final_cost(res), 13.15, tolerance = 1e-4)
+  res <- smallvis(ui10,
+    Y_init = iris10_Y, method = "umap", eta = 0.1,
+    perplexity = 5,
+    epoch_callback = NULL, verbose = FALSE, ret_extra = TRUE
+  )
+  expect_equal(res$Y, c2y(-1.366, 0.3414, -0.03553, 1.286, 0.4816, -1.413, 
+                          0.1112, 0.7286, 1.395, -1.53, 0.7608, 0.04752, 
+                          0.03106, -0.8109, -0.3484, 0.7816, 0.03649, -0.496, 
+                          -0.8464, 0.8442), tolerance = 1e-3)
+  expect_equal(final_cost(res), 9.602, tolerance = 1e-4)
 })
 
 test_that("tumap", {
-  res <- smallvis(iris10, Y_init = iris10_Y, method = "tumap", eta = 0.1,
+  res <- smallvis(ui10, Y_init = iris10_Y, method = "tumap", eta = 0.1,
                   perplexity = 5, max_iter = 100,
                   epoch_callback = NULL, verbose = FALSE, ret_extra = TRUE)
-  expect_equal(res$Y, c2y(-1.609, 0.8876, 0.9294, 1.305, -1.586, -1.982, 0.7682, -1.107,
-                          1.792, 0.6012, -0.002293, 0.7693, -0.2082, -0.2003, -0.0997,
-                          -0.1114, -0.701, 0.0876, -0.2937, 0.7598), tolerance = 1e-3)
-  expect_equal(final_cost(res), 11.28, tolerance = 1e-4)
+  expect_equal(res$Y, c2y(-1.581, 0.5081, -0.1482, 1.593, 0.5022, -1.681, 0.09625,
+                          0.8259, 1.763, -1.879, 0.9585, 0.1987, 0.1134, -1.144,
+                          -0.504, 0.9968, 0.1569, -0.7199, -1.159, 1.103), tolerance = 1e-3)
+  expect_equal(final_cost(res), 7.918, tolerance = 1e-4)
 })
 
 test_that("ntumap", {
-  res <- smallvis(iris10, Y_init = iris10_Y, method = "ntumap", eta = 10,
+  res <- smallvis(ui10, Y_init = iris10_Y, method = "ntumap", eta = 10,
                   perplexity = 5,
                   epoch_callback = NULL, verbose = FALSE, ret_extra = TRUE)
-  expect_equal(res$Y, c2y(-14.05, 10.35, 5.266, 11.03, -11.35, -18.74, 3.344, -6.781,
-                          17.74, 3.193, 3.335, 6.7, -0.7754, -3.755, -3.275, -2.134, -7.851,
-                          2.971, -2.838, 7.622), tolerance = 1e-3)
-  expect_equal(final_cost(res), 0.1622, tolerance = 1e-4)
+  expect_equal(res$Y, c2y(-4.619, 0.8858, -0.8735, 4.701, 1.426, -3.795, -0.7134,
+                          3.005, 5.722, -5.74, 0.4776, -2.065, 0.7893, -2.145, 0.4571,
+                          2.238, -0.9915, -0.4577, -0.5401, 2.237), tolerance = 1e-3)
+  expect_equal(final_cost(res), 0.1491, tolerance = 1e-4)
 })
 
 test_that("largevis", {
@@ -493,11 +496,11 @@ test_that("Miscellany", {
                                      0.255, 0.6345, -0.2948, -0.2062, 0.06976, 
                                      -0.593, -0.6877, 0.3523, -0.1592, 0.6293), 
              cost = 0.01672)
-  expect_api(method = "skdtsne", Y = c(-7.687, 5.428, 2.879, 6.062, -6.108, -10.1, 
-                                       2.072, -3.779, 9.649, 1.581, 1.44, 3.908, 
-                                       -0.3108, -1.613, -2.027, -1.569, -4.155, 
-                                       1.423, -1.279, 4.182), 
-             cost = 0.1622)
+  expect_api(method = "skdtsne", Y = c(-5.342, 2.313, -1.382, 5.558, 0.9979,
+                                       -4.497, 0.04262, 3.021, 6.039, -6.751,
+                                       0.04283, 1.227, -0.2283, -2.662, -1.389,
+                                       2.117, 1.291, -1.949, -0.4529, 2.002), X = ui10, 
+             cost = 0.1442)
 })
 
 test_that("repeated runs", {

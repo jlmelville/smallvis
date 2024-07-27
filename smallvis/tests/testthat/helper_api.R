@@ -1,5 +1,5 @@
-expect_api <- function(method, Y, cost) {
-  res <- smallvis(iris10, Y_init = iris10_Y, 
+expect_api <- function(method, Y, cost, X = iris10) {
+  res <- smallvis(X, Y_init = iris10_Y, 
                   method = method, eta = 0.1,
                   perplexity = 5, epoch_callback = NULL, verbose = FALSE, 
                   ret_extra = TRUE)

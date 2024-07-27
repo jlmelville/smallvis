@@ -523,6 +523,8 @@
 #'   expensive-to-calculate values to return, which will be returned in addition
 #'   to those value which are returned when this value is \code{TRUE}. See the
 #'   \code{Value} section for details.
+#' @param n_threads Number of threads to use in multi-threaded code. Default is
+#'   0, which means no multi-threading.
 #' @param verbose If \code{TRUE}, log progress messages to the console.
 #' @return If \code{ret_extra} is \code{FALSE}, the embedded output coordinates
 #'   as a matrix. Otherwise, a list with the following items:
@@ -848,6 +850,7 @@ smallvis <- function(X, k = 2, scale = "absmax",
                  ee_mon_buffer = 2,
                  tol_wait = 15,
                  ret_extra = FALSE,
+                 n_threads = 0,
                  verbose = TRUE) {
 
   if (is.logical(epoch_callback)) {
@@ -879,54 +882,54 @@ smallvis <- function(X, k = 2, scale = "absmax",
   if (is.character(method)) {
     method <- match.arg(tolower(method), method_names)
     cost_fn <- switch(method,
-         tsne = tsne(perplexity = perplexity),
-         umap = umap(perplexity = perplexity),
-         largevis = largevis(perplexity = perplexity),
-         tumap = tumap(perplexity = perplexity),
-         ntumap = ntumap(perplexity = perplexity),
+         tsne = tsne(perplexity = perplexity, n_threads = n_threads),
+         umap = umap(perplexity = perplexity, n_threads = n_threads),
+         largevis = largevis(perplexity = perplexity, n_threads = n_threads),
+         tumap = tumap(perplexity = perplexity, n_threads = n_threads),
+         ntumap = ntumap(perplexity = perplexity, n_threads = n_threads),
          mmds = mmds(),
-         gmmds = gmmds(k = perplexity),
-         asne = asne(perplexity = perplexity),
-         ssne = ssne(perplexity = perplexity),
-         wtsne = wtsne(perplexity = perplexity),
-         wssne = wssne(perplexity = perplexity),
-         hssne = hssne(perplexity = perplexity),
-         ee = ee(perplexity = perplexity),
-         nerv = nerv(perplexity = perplexity),
-         snerv = snerv(perplexity = perplexity),
-         jse = jse(perplexity = perplexity),
-         sjse = sjse(perplexity = perplexity),
+         gmmds = gmmds(k = perplexity, n_threads = n_threads),
+         asne = asne(perplexity = perplexity, n_threads = n_threads),
+         ssne = ssne(perplexity = perplexity, n_threads = n_threads),
+         wtsne = wtsne(perplexity = perplexity, n_threads = n_threads),
+         wssne = wssne(perplexity = perplexity, n_threads = n_threads),
+         hssne = hssne(perplexity = perplexity, n_threads = n_threads),
+         ee = ee(perplexity = perplexity, n_threads = n_threads),
+         nerv = nerv(perplexity = perplexity, n_threads = n_threads),
+         snerv = snerv(perplexity = perplexity, n_threads = n_threads),
+         jse = jse(perplexity = perplexity, n_threads = n_threads),
+         sjse = sjse(perplexity = perplexity, n_threads = n_threads),
          smmds = smmds(),
          sammon = sammon(),
-         tasne = tasne(perplexity = perplexity),
-         trmsne = trmsne(perplexity = perplexity),
-         trsrsne = trsrsne(perplexity = perplexity),
-         tmsne = tmsne(perplexity = perplexity),
-         arsrsne = arsrsne(perplexity = perplexity),
-         rsrjse = rsrjse(perplexity = perplexity),
-         rsrnerv = rsrnerv(perplexity = perplexity),
-         btsne = btsne(perplexity = perplexity),
-         bssne = bssne(perplexity = perplexity),
-         basne = basne(perplexity = perplexity),
-         btasne = btasne(perplexity = perplexity),
-         bnerv = bnerv(perplexity = perplexity),
+         tasne = tasne(perplexity = perplexity, n_threads = n_threads),
+         trmsne = trmsne(perplexity = perplexity, n_threads = n_threads),
+         trsrsne = trsrsne(perplexity = perplexity, n_threads = n_threads),
+         tmsne = tmsne(perplexity = perplexity, n_threads = n_threads),
+         arsrsne = arsrsne(perplexity = perplexity, n_threads = n_threads),
+         rsrjse = rsrjse(perplexity = perplexity, n_threads = n_threads),
+         rsrnerv = rsrnerv(perplexity = perplexity, n_threads = n_threads),
+         btsne = btsne(perplexity = perplexity, n_threads = n_threads),
+         bssne = bssne(perplexity = perplexity, n_threads = n_threads),
+         basne = basne(perplexity = perplexity, n_threads = n_threads),
+         btasne = btasne(perplexity = perplexity, n_threads = n_threads),
+         bnerv = bnerv(perplexity = perplexity, n_threads = n_threads),
          ballmmds = ballmmds(),
-         knnmmds = knnmmds(k = perplexity),
-         dhssne = dhssne(perplexity = perplexity),
-         tsneu = tsneu(perplexity = perplexity),
-         pstsne = pstsne(perplexity = perplexity),
-         skdtsne = skdtsne(perplexity = perplexity),
-         usne = usne(perplexity = perplexity),
-         cetsne = cetsne(perplexity = perplexity),
-         tee = tee(perplexity = perplexity),
-         absne = absne(perplexity = perplexity),
-         chsne = chsne(perplexity = perplexity),
-         hlsne = hlsne(perplexity = perplexity),
-         gsne = gsne(perplexity = perplexity),
-         rklsne = rklsne(perplexity = perplexity),
-         jssne = jssne(perplexity = perplexity),      
-         abssne = abssne(perplexity = perplexity),
-         bhssne = bhssne(perplexity = perplexity),
+         knnmmds = knnmmds(k = perplexity, n_threads = n_threads),
+         dhssne = dhssne(perplexity = perplexity, n_threads = n_threads),
+         tsneu = tsneu(perplexity = perplexity, n_threads = n_threads),
+         pstsne = pstsne(perplexity = perplexity, n_threads = n_threads),
+         skdtsne = skdtsne(perplexity = perplexity, n_threads = n_threads),
+         usne = usne(perplexity = perplexity, n_threads = n_threads),
+         cetsne = cetsne(perplexity = perplexity, n_threads = n_threads),
+         tee = tee(perplexity = perplexity, n_threads = n_threads),
+         absne = absne(perplexity = perplexity, n_threads = n_threads),
+         chsne = chsne(perplexity = perplexity, n_threads = n_threads),
+         hlsne = hlsne(perplexity = perplexity, n_threads = n_threads),
+         gsne = gsne(perplexity = perplexity, n_threads = n_threads),
+         rklsne = rklsne(perplexity = perplexity, n_threads = n_threads),
+         jssne = jssne(perplexity = perplexity, n_threads = n_threads),      
+         abssne = abssne(perplexity = perplexity, n_threads = n_threads),
+         bhssne = bhssne(perplexity = perplexity, n_threads = n_threads),
          stop("BUG: someone forgot to implement option: '", method, "'")
     )
   }
@@ -1278,7 +1281,6 @@ smallvis <- function(X, k = 2, scale = "absmax",
         }
         old_cdiffrc <- cdiffrc
       }
-      
       if (cost < min_cost) {
         stop_early <- TRUE
         tsmessage("Stopping early: cost fell below min_cost")
@@ -2257,7 +2259,7 @@ x2aff_sigma <- function(X, sigma = 1e-3, verbose = FALSE) {
 
 # Create a symmetrized distance matrix based on the k-nearest neighbors
 # Non-neighbor distances are set to Inf
-knndist <- function(X, k) {
+knndist <- function(X, k, n_threads) {
   if (methods::is(X, "dist")) {
     # If it's already a distance matrix, find k-smallest distance per column
     # (ignoring self-distances of zero) and set everything larger to Inf
@@ -2282,12 +2284,14 @@ knndist <- function(X, k) {
     if (k > n - 1) {
       stop("k must be not be > n - 1")
     }
-    knn <- FNN::get.knn(X, k = k)
-
+    knn <- rnndescent::brute_force_knn(X, k = k + 1, n_threads = n_threads)
+    knn$idx <- knn$idx[, 2:(k + 1)]
+    knn$dist <- knn$dist[, 2:(k + 1)]
+    
     D <- matrix(Inf, nrow = n, ncol = n)
     diag(D) <- 0
     for (i in 1:n) {
-      D[i, knn$nn.index[i, ]] <- knn$nn.dist[i, ]
+      D[i, knn$idx[i, ]] <- knn$dist[i, ]
     }
   }
 
@@ -2298,7 +2302,7 @@ knndist <- function(X, k) {
 # Create the knn graph: D[i, j] = 1 if j is one of i's k-nearest neighbors.
 # i is NOT considered a neighbor of itself.
 # No symmetrization is carried out.
-knn_graph <- function(X, k) {
+knn_graph <- function(X, k, n_threads) {
   if (methods::is(X, "dist")) {
     D <- as.matrix(X)
     n <- nrow(D)
@@ -2319,11 +2323,12 @@ knn_graph <- function(X, k) {
     if (k > n - 1) {
       stop("k must be not be > n - 1")
     }
-    knn <- FNN::get.knn(X, k = k)
-
+    knn <- rnndescent::brute_force_knn(X, k = k + 1, n_threads = n_threads)
+    knn$idx <- knn$idx[, 2:(k + 1)]
+    
     D <- matrix(0, nrow = n, ncol = n)
     for (i in 1:n) {
-      D[i, knn$nn.index[i, ]] <- 1
+      D[i, knn$idx[i, ]] <- 1
     }
   }
   D
@@ -2331,12 +2336,11 @@ knn_graph <- function(X, k) {
 
 # Given data X and k nearest neighbors, return a geodisic distance matrix
 # Disconnections are treated by using the Euclidean distance.
-geodesic <- function(X, k, fill = TRUE, verbose = FALSE) {
+geodesic <- function(X, k, fill = TRUE, n_threads = 0, verbose = FALSE) {
   tsmessage("Calculating geodesic distances with k = ", k)
 
   # The hard work is done by Rfast's implementation of Floyd's algorithm
-  G <- Rfast::floyd(knndist(X, k))
-
+  G <- Rfast::floyd(knndist(X, k, n_threads = n_threads))
   if (any(is.infinite(G)) && fill) {
     tsmessage("k = ", k, " resulted in disconnections: filling with Euclidean distances")
     if (methods::is(X, "dist")) {
@@ -2645,6 +2649,7 @@ smooth_knn_distances <-
            tol = 1e-5,
            min_k_dist_scale = 1e-3,
            cardinality = log2(k),
+           n_threads = 0,
            verbose = FALSE) {
 
     tsmessage("Commencing smooth kNN distance calibration for k = ", formatC(k))
@@ -2658,12 +2663,15 @@ smooth_knn_distances <-
       }
     }
     else {
-      fnn <- FNN::get.knn(X, k = k - 1)
+      knn <- rnndescent::brute_force_knn(X, k = k, n_threads = n_threads)
+      knn$idx <- knn$idx[, 2:k]
+      knn$dist <- knn$dist[, 2:k]
+
       nn_idx <- matrix(nrow = nrow(X), ncol = k)
       nn_idx[, 1] <- 1:nrow(nn_idx)
-      nn_idx[, 2:ncol(nn_idx)] <- fnn$nn.index
+      nn_idx[, 2:ncol(nn_idx)] <- knn$idx
       nn_dist <- matrix(0, nrow = nrow(X), ncol = k)
-      nn_dist[, 2:ncol(nn_dist)] <- fnn$nn.dist
+      nn_dist[, 2:ncol(nn_dist)] <- knn$dist
     }
 
     n <- nrow(nn_dist)
