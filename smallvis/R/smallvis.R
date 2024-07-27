@@ -1085,15 +1085,25 @@ smallvis <- function(X, k = 2, scale = "absmax",
         # Pretty sure it doesn't matter, given the current options
         A <- cost_fn$V
         if (is.null(A)) {
-          tsmessage("Using P for spectral initialization")
           A <- cost_fn$P
+          if (!is.null(A)) {
+            tsmessage("Using P for spectral initialization")
+          }        
         }
         else {
           tsmessage("Using V for spectral initialization")
         }
+        
         if (is.null(A)) {
-          stop("No suitable input for spectral initialization")
+          if (!is.null(cost_fn$R)) {
+            tsmessage("Using 1/ (1 + R) for spectral initialization")
+            A <- 1 / (1 + cost_fn$R)
+          }
+          else {
+            stop("No suitable input for spectral initialization")
+          }
         }
+        
         if (Y_init == "laplacian") {
           tsmessage("Initializing from Laplacian Eigenmap")
           Y <- laplacian_eigenmap(A, ndim = k)
