@@ -2264,7 +2264,7 @@ x2aff_sigma <- function(X, sigma = 1e-3, verbose = FALSE) {
 
 # Create a symmetrized distance matrix based on the k-nearest neighbors
 # Non-neighbor distances are set to Inf
-knndist <- function(X, k, n_threads) {
+knn_dist <- function(X, k, n_threads, verbose) {
   if (methods::is(X, "dist")) {
     # If it's already a distance matrix, find k-smallest distance per column
     # (ignoring self-distances of zero) and set everything larger to Inf
@@ -2289,6 +2289,7 @@ knndist <- function(X, k, n_threads) {
     if (k > n - 1) {
       stop("k must be not be > n - 1")
     }
+    tsmessage("Finding ", k + 1, " nearest neighbors")
     knn <- rnndescent::brute_force_knn(X, k = k + 1, n_threads = n_threads)
     knn$idx <- knn$idx[, 2:(k + 1)]
     knn$dist <- knn$dist[, 2:(k + 1)]
@@ -2307,7 +2308,7 @@ knndist <- function(X, k, n_threads) {
 # Create the knn graph: D[i, j] = 1 if j is one of i's k-nearest neighbors.
 # i is NOT considered a neighbor of itself.
 # No symmetrization is carried out.
-knn_graph <- function(X, k, n_threads) {
+knn_graph <- function(X, k, n_threads, verbose) {
   if (methods::is(X, "dist")) {
     D <- as.matrix(X)
     n <- nrow(D)
@@ -2328,6 +2329,8 @@ knn_graph <- function(X, k, n_threads) {
     if (k > n - 1) {
       stop("k must be not be > n - 1")
     }
+    
+    tsmessage("Finding ", k + 1, " nearest neighbors")
     knn <- rnndescent::brute_force_knn(X, k = k + 1, n_threads = n_threads)
     knn$idx <- knn$idx[, 2:(k + 1)]
     
@@ -2345,7 +2348,8 @@ geodesic <- function(X, k, fill = TRUE, n_threads = 0, verbose = FALSE) {
   tsmessage("Calculating geodesic distances with k = ", k)
 
   # The hard work is done by Rfast's implementation of Floyd's algorithm
-  G <- Rfast::floyd(knndist(X, k, n_threads = n_threads))
+  R <- knn_dist(X, k, n_threads = n_threads, verbose = verbose)
+  G <- Rfast::floyd(R)
   if (any(is.infinite(G)) && fill) {
     tsmessage("k = ", k, " resulted in disconnections: filling with Euclidean distances")
     if (methods::is(X, "dist")) {
@@ -2668,6 +2672,7 @@ smooth_knn_distances <-
       }
     }
     else {
+      tsmessage("Finding ", k + 1, " nearest neighbors")
       knn <- rnndescent::brute_force_knn(X, k = k, n_threads = n_threads)
       knn$idx <- knn$idx[, 2:k]
       knn$dist <- knn$dist[, 2:k]

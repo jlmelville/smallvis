@@ -1285,9 +1285,9 @@ knnmmds <- function(k, eps = .Machine$double.eps, n_threads = 0) {
   lreplace(
     mmds(),
     init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
-      cost <- mmds_init(cost = cost, X = X, max_iter = max_iter, eps = eps, verbose = verbose,
-                        ret_extra = ret_extra)
-      knn <- knn_graph(X = X, k = k, n_threads = n_threads)
+      cost <- mmds_init(cost = cost, X = X, max_iter = max_iter, eps = eps, 
+                        verbose = verbose, ret_extra = ret_extra)
+      knn <- knn_graph(X = X, k = k, n_threads = n_threads, verbose = verbose)
       # symmetrize
       cost$knn <- pmax(knn, t(knn))
       cost
