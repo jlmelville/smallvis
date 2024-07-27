@@ -2323,7 +2323,7 @@ knn_dist <- function(X, k, n_threads, verbose) {
 # Create the knn graph: D[i, j] = 1 if j is one of i's k-nearest neighbors.
 # i is NOT considered a neighbor of itself.
 # No symmetrization is carried out.
-# Used by knnmmds
+# Used by knnmmds and knn kernel for SNE
 knn_graph <- function(X, k, n_threads, verbose) {
   if (methods::is(X, "dist")) {
     D <- as.matrix(X)

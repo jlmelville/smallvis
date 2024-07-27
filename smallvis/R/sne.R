@@ -981,7 +981,7 @@ sne_init <- function(cost,
       stop("Can't use multiple perplexities with knn kernel")
     }
     tsmessage("Using knn kernel with k = ", formatC(perplexity))
-    P <- knn_graph(X, k = perplexity, n_threads = n_threads)
+    P <- knn_graph(X, k = perplexity, n_threads = n_threads, verbose = verbose)
     x2ares <- list(W = P)
   }
   else if (tolower(kernel) == "skd") {
