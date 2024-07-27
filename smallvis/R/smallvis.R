@@ -1095,7 +1095,12 @@ smallvis <- function(X, k = 2, scale = "absmax",
         }
         
         if (is.null(A)) {
-          if (!is.null(cost_fn$R)) {
+          if (!is.null(cost_fn$knn)) {
+            tsmessage("Using knn 1 / 1 + R for spectral initialization")
+            A <- 1 / (1 + cost_fn$R)
+            A[cost_fn$knn == 0] <- 0
+          }
+          else if (!is.null(cost_fn$R)) {
             tsmessage("Using 1/ (1 + R) for spectral initialization")
             A <- 1 / (1 + cost_fn$R)
           }
@@ -2318,6 +2323,7 @@ knn_dist <- function(X, k, n_threads, verbose) {
 # Create the knn graph: D[i, j] = 1 if j is one of i's k-nearest neighbors.
 # i is NOT considered a neighbor of itself.
 # No symmetrization is carried out.
+# Used by knnmmds
 knn_graph <- function(X, k, n_threads, verbose) {
   if (methods::is(X, "dist")) {
     D <- as.matrix(X)
