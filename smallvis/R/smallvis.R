@@ -524,7 +524,12 @@
 #'   to those value which are returned when this value is \code{TRUE}. See the
 #'   \code{Value} section for details.
 #' @param n_threads Number of threads to use in multi-threaded code. Default is
-#'   0, which means no multi-threading.
+#'   0, which means no multi-threading. Mainly affects the calculation of things
+#'   like distance matrices if you set \code{use_cpp = TRUE}. Otherwise, only
+#'   methods that need to calculate nearest neighbors will be affected.
+#' @param use_cpp If \code{TRUE} use multi-threaded C++ code to calculate some
+#'   matrices. Default is \code{FALSE}. This won't speed up all steps and you
+#'   will want to use this in conjunction with \code{n_threads}.
 #' @param eps Set epsilon for avoiding division-by-zero errors. Default is
 #'   \code{.Machine$double.eps}, but if you see inconsistent convergence results
 #'   with optimizer that should be reducing the cost each iteration, then try
@@ -855,6 +860,7 @@ smallvis <- function(X, k = 2, scale = "absmax",
                  tol_wait = 15,
                  ret_extra = FALSE,
                  n_threads = 0,
+                 use_cpp = FALSE,
                  eps = .Machine$double.eps,
                  verbose = TRUE) {
 
@@ -892,20 +898,20 @@ smallvis <- function(X, k = 2, scale = "absmax",
          largevis = largevis(perplexity = perplexity, n_threads = n_threads, eps = eps),
          tumap = tumap(perplexity = perplexity, n_threads = n_threads, eps = eps),
          ntumap = ntumap(perplexity = perplexity, n_threads = n_threads, eps = eps),
-         mmds = mmds(eps = eps),
-         gmmds = gmmds(k = perplexity, n_threads = n_threads, eps = eps),
+         mmds = mmds(n_threads = n_threads, eps = eps, use_cpp = use_cpp),
+         gmmds = gmmds(k = perplexity, n_threads = n_threads, eps = eps, use_cpp = use_cpp),
          asne = asne(perplexity = perplexity, n_threads = n_threads, eps = eps),
          ssne = ssne(perplexity = perplexity, n_threads = n_threads, eps = eps),
          wtsne = wtsne(perplexity = perplexity, n_threads = n_threads, eps = eps),
          wssne = wssne(perplexity = perplexity, n_threads = n_threads, eps = eps),
          hssne = hssne(perplexity = perplexity, n_threads = n_threads, eps = eps),
-         ee = ee(perplexity = perplexity, n_threads = n_threads, eps = eps),
+         ee = ee(perplexity = perplexity, n_threads = n_threads, eps = eps, use_cpp = use_cpp),
          nerv = nerv(perplexity = perplexity, n_threads = n_threads, eps = eps),
          snerv = snerv(perplexity = perplexity, n_threads = n_threads, eps = eps),
          jse = jse(perplexity = perplexity, n_threads = n_threads, eps = eps),
          sjse = sjse(perplexity = perplexity, n_threads = n_threads, eps = eps),
-         smmds = smmds(eps = eps),
-         sammon = sammon(eps = eps),
+         smmds = smmds(n_threads = n_threads, eps = eps, use_cpp = use_cpp),
+         sammon = sammon(n_threads = n_threads, eps = eps, use_cpp = use_cpp),
          tasne = tasne(perplexity = perplexity, n_threads = n_threads, eps = eps),
          trmsne = trmsne(perplexity = perplexity, n_threads = n_threads, eps = eps),
          trsrsne = trsrsne(perplexity = perplexity, n_threads = n_threads, eps = eps),
@@ -918,8 +924,8 @@ smallvis <- function(X, k = 2, scale = "absmax",
          basne = basne(perplexity = perplexity, n_threads = n_threads, eps = eps),
          btasne = btasne(perplexity = perplexity, n_threads = n_threads, eps = eps),
          bnerv = bnerv(perplexity = perplexity, n_threads = n_threads, eps = eps),
-         ballmmds = ballmmds(eps = eps),
-         knnmmds = knnmmds(k = perplexity, n_threads = n_threads, eps = eps),
+         ballmmds = ballmmds(n_threads = n_threads, eps = eps, use_cpp = use_cpp),
+         knnmmds = knnmmds(k = perplexity, n_threads = n_threads, eps = eps, use_cpp = use_cpp),
          dhssne = dhssne(perplexity = perplexity, n_threads = n_threads, eps = eps),
          tsneu = tsneu(perplexity = perplexity, n_threads = n_threads, eps = eps),
          pstsne = pstsne(perplexity = perplexity, n_threads = n_threads, eps = eps),
@@ -930,7 +936,7 @@ smallvis <- function(X, k = 2, scale = "absmax",
          absne = absne(perplexity = perplexity, n_threads = n_threads, eps = eps),
          chsne = chsne(perplexity = perplexity, n_threads = n_threads, eps = eps),
          hlsne = hlsne(perplexity = perplexity, n_threads = n_threads, eps = eps),
-         gsne = gsne(perplexity = perplexity, n_threads = n_threads, eps = eps),
+         gsne = gsne(perplexity = perplexity, n_threads = n_threads, eps = eps, use_cpp = use_cpp),
          rklsne = rklsne(perplexity = perplexity, n_threads = n_threads, eps = eps),
          jssne = jssne(perplexity = perplexity, n_threads = n_threads, eps = eps),      
          abssne = abssne(perplexity = perplexity, n_threads = n_threads, eps = eps),
@@ -1153,7 +1159,8 @@ smallvis <- function(X, k = 2, scale = "absmax",
                      cost_fn = cost_fn, itercosts = itercosts,
                      start_time = start_time, optionals = ret_optionals,
                      pca = ifelse(pca && !whiten, initial_dims, 0),
-                     whiten = ifelse(pca && whiten, initial_dims, 0)))
+                     whiten = ifelse(pca && whiten, initial_dims, 0),
+                     use_cpp = use_cpp, n_threads = n_threads))
   }
   
   opt_stages <- c()
@@ -1387,7 +1394,8 @@ smallvis <- function(X, k = 2, scale = "absmax",
             exaggeration_factor, late_exaggeration_factor,
             optionals = ret_optionals,
             pca = ifelse(pca && !whiten, initial_dims, 0),
-            whiten = ifelse(pca && whiten, initial_dims, 0))
+            whiten = ifelse(pca && whiten, initial_dims, 0),
+            use_cpp = use_cpp, n_threads = n_threads)
 
   res
 }
@@ -1883,13 +1891,13 @@ make_smallvis_cb <- function(df) {
   palette <- NULL
   function(Y, iter, cost = NULL) {
     if (is.null(palette)) {
-      palette <- vizier:::make_palette(ncolors = nrow(Y), color_scheme = rainbow)
+      palette <- vizier:::color_helper(df, color_scheme = rainbow)$palette
     }
     title <- paste0("iter: ", iter)
     if (!(is.null(cost) || is.na(cost))) {
       title <- paste0(title, " cost = ", formatC(cost))
     }
-    vizier::embed_plot(Y, df, title = title, colors = palette)
+    vizier::embed_plot(Y, df, title = title, color_scheme = palette)
   }
 }
 
@@ -1909,7 +1917,7 @@ ret_value <- function(Y, ret_extra, method, X, scale, Y_init, iter, start_time =
                       stop_lying_iter = NULL, start_late_lying_iter = NULL,
                       opt_input = NULL, opt_res = NULL,
                       exaggeration_factor = 1, late_exaggeration_factor = 1,
-                      optionals = c()) {
+                      optionals = c(), use_cpp = FALSE, n_threads = 1) {
   attr(Y, "dimnames") <- NULL
   if (ret_extra) {
     end_time <- Sys.time()
@@ -2015,11 +2023,11 @@ ret_value <- function(Y, ret_extra, method, X, scale, Y_init, iter, start_time =
           res$DX <- X
         }
         else {
-          res$DX <- sqrt(safe_dist2(X))
+          res$DX <- calc_d(X, use_cpp = use_cpp, n_threads = n_threads)
         }
       }
       else if (o == "dy") {
-        res$DY <- sqrt(safe_dist2(Y))
+        res$DY <- calc_d(Y, use_cpp = use_cpp, n_threads = n_threads)
       }
 
       if (o == "x") {
@@ -2258,7 +2266,8 @@ shannon <- function(D2, beta) {
   )
 }
 
-x2aff_sigma <- function(X, sigma = 1e-3, verbose = FALSE) {
+x2aff_sigma <- function(X, sigma = 1e-3, verbose = FALSE, use_cpp = FALSE, 
+                        n_threads = 1) {
   x_is_dist <- methods::is(X, "dist")
   if (x_is_dist) {
     D <- X
@@ -2267,7 +2276,7 @@ x2aff_sigma <- function(X, sigma = 1e-3, verbose = FALSE) {
     D <- D * D
   }
   else {
-    D <- safe_dist2(X)
+    D <- calc_d2(X, use_cpp = use_cpp, n_threads = n_threads)
   }
   beta <- 1 / (sigma * sigma)
   sres <- shannon(D, beta)
@@ -2360,11 +2369,12 @@ knn_graph <- function(X, k, n_threads, verbose) {
 
 # Given data X and k nearest neighbors, return a geodisic distance matrix
 # Disconnections are treated by using the Euclidean distance.
-geodesic <- function(X, k, fill = TRUE, n_threads = 0, verbose = FALSE) {
+geodesic <- function(X, k, fill = TRUE, use_cpp = FALSE, n_threads = 0, 
+                     verbose = FALSE) {
   tsmessage("Calculating geodesic distances with k = ", k)
 
-  # The hard work is done by Rfast's implementation of Floyd's algorithm
   R <- knn_dist(X, k, n_threads = n_threads, verbose = verbose)
+  # The hard work is done by Rfast's implementation of Floyd's algorithm
   G <- Rfast::floyd(R)
   if (any(is.infinite(G)) && fill) {
     tsmessage("k = ", k, " resulted in disconnections: filling with Euclidean distances")
@@ -2372,7 +2382,7 @@ geodesic <- function(X, k, fill = TRUE, n_threads = 0, verbose = FALSE) {
       R <- as.matrix(X)
     }
     else {
-      R <- sqrt(safe_dist2(X))
+      R <- calc_d(X, use_cpp = use_cpp, n_threads = n_threads)
     }
     G[is.infinite(G)] <- R[is.infinite(G)]
   }
@@ -2527,6 +2537,24 @@ user_idp_perps <- function(perplexity) {
 dist2 <- function(X) {
   D2 <- rowSums(X * X)
   D2 + sweep(X %*% t(X) * -2, 2, t(D2), `+`)
+}
+
+calc_d2 <- function(X, use_cpp = FALSE, n_threads = 1) {
+  if (use_cpp) {
+    dist2_cpp(X, n_threads = n_threads)
+  }
+  else {
+    safe_dist2(X)
+  }
+}
+
+calc_d <- function(X, use_cpp = FALSE, n_threads = 1) {
+  if (use_cpp) {
+    dist_cpp(X, n_threads = n_threads)
+  }
+  else {
+    sqrt(safe_dist2(X))
+  }
 }
 
 # Squared Euclidean distances, ensuring no small -ve distances can occur

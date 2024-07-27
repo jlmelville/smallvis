@@ -3,3 +3,4 @@
 export(smallvis)
 export(smallvis_perpstep)
 export(smallvis_rep)
+useDynLib(smallvis, .registration = TRUE)

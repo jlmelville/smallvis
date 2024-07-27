@@ -37,6 +37,7 @@ smallvis(
   tol_wait = 15,
   ret_extra = FALSE,
   n_threads = 0,
+  use_cpp = FALSE,
   eps = .Machine$double.eps,
   verbose = TRUE
 )
@@ -195,7 +196,13 @@ to those value which are returned when this value is \code{TRUE}. See the
 \code{Value} section for details.}
 
 \item{n_threads}{Number of threads to use in multi-threaded code. Default is
-0, which means no multi-threading.}
+0, which means no multi-threading. Mainly affects the calculation of things
+like distance matrices if you set \code{use_cpp = TRUE}. Otherwise, only
+methods that need to calculate nearest neighbors will be affected.}
+
+\item{use_cpp}{If \code{TRUE} use multi-threaded C++ code to calculate some
+matrices. Default is \code{FALSE}. This won't speed up all steps and you
+will want to use this in conjunction with \code{n_threads}.}
 
 \item{eps}{Set epsilon for avoiding division-by-zero errors. Default is
 \code{.Machine$double.eps}, but if you see inconsistent convergence results

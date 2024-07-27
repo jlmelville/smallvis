@@ -168,6 +168,17 @@ test_that("smmds", {
   expect_equal(final_cost(res), 0.3038, tolerance = 1e-4)
 })
 
+test_that("smmds-cpp", {
+  res <- smallvis(iris10, Y_init = iris10_Y, method = "smmds", eta = 0.001,
+                  epoch_callback = NULL, verbose = FALSE, ret_extra = TRUE,
+                  use_cpp = TRUE)
+  expect_equal(res$Y, c2y(-0.4952, 0.3507, 0.3716, 0.5528, -0.502, -1.449, 0.1852, -0.2768,
+                          1.042, 0.2206, 0.1035, 0.4062, -0.1173, -0.07106, -0.1869, -0.02864,
+                          -0.459, 0.09674, -0.1043, 0.3608), tolerance = 1e-3)
+  expect_equal(final_cost(res), 0.3038, tolerance = 1e-4)
+})
+
+
 test_that("gmmds", {
   res <- smallvis(iris10, Y_init = iris10_Y, method = "gmmds", eta = 0.1,
                   perplexity = 3,
