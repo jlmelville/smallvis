@@ -13,7 +13,7 @@ exp_shift <- function(X) {
   X <- exp(sweep(X, 2, apply(X, 2, max)))
 }
 
-expQ <- function(Y, eps = .Machine$double.xmin, beta = NULL,
+expQ <- function(Y, eps = .Machine$double.eps, beta = NULL,
                      A = NULL,
                      is_symmetric = FALSE,
                      matrix_normalize = FALSE) {
@@ -83,7 +83,7 @@ kl_cost <- function(cost, Y) {
 # t-SNE
 tsne <- function(perplexity, inp_kernel = "gaussian", symmetrize = "symmetric", 
                  normalize = TRUE, row_normalize = TRUE,
-                 eps = .Machine$double.xmin, n_threads = 0) {
+                 eps = .Machine$double.eps, n_threads = 0) {
   list(
     init = function(cost, X, max_iter, verbose = FALSE,
                     ret_extra = c()) {
@@ -146,7 +146,7 @@ tsne <- function(perplexity, inp_kernel = "gaussian", symmetrize = "symmetric",
 # Visualizing similarity data with a mixture of maps.
 # In \emph{International Conference on Artificial Intelligence and Statistics} (pp. 67-74).
 ssne <- function(perplexity, inp_kernel = "gaussian", 
-                 symmetrize = "symmetric", eps = .Machine$double.xmin,
+                 symmetrize = "symmetric", eps = .Machine$double.eps,
                  n_threads = 0) {
   lreplace(
     tsne(perplexity = perplexity, inp_kernel = inp_kernel, 
@@ -171,10 +171,9 @@ ssne <- function(perplexity, inp_kernel = "gaussian",
 # Stochastic neighbor embedding.
 # In \emph{Advances in neural information processing systems} (pp. 833-840).
 asne <- function(perplexity, inp_kernel = "gaussian", 
-                 eps = .Machine$double.xmin, n_threads = 0) {
-  eps. <- eps
+                 eps = .Machine$double.eps, n_threads = 0) {
   lreplace(tsne(perplexity),
-    init = function(cost, X, max_iter, eps = eps., verbose = FALSE,
+    init = function(cost, X, max_iter, verbose = FALSE,
                     ret_extra = c()) {
       cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
                        symmetrize = "none", normalize = FALSE,
@@ -203,7 +202,7 @@ asne <- function(perplexity, inp_kernel = "gaussian",
 # Heavy-tailed symmetric stochastic neighbor embedding.
 # In \emph{Advances in neural information processing systems} (pp. 2169-2177).
 hssne <- function(perplexity, alpha = 0.5, inp_kernel = "gaussian", 
-                  symmetrize = "symmetric", eps = .Machine$double.xmin,
+                  symmetrize = "symmetric", eps = .Machine$double.eps,
                   n_threads = 0) {
   alpha <- max(alpha, 1e-8)
   apow <- -1 / alpha
@@ -232,9 +231,10 @@ hssne <- function(perplexity, alpha = 0.5, inp_kernel = "gaussian",
   )
 }
 
-# exists to demonstrate that contant beta doesn't have any meaningful effect
+# exists to demonstrate that constant beta doesn't have any meaningful effect
 # on the results.
-bhssne <- function(perplexity, alpha = 0.5, beta = 1, n_threads = 0) {
+bhssne <- function(perplexity, alpha = 0.5, beta = 1,
+                   eps = .Machine$double.eps, n_threads = 0) {
   alpha <- max(alpha, 1e-8)
   beta <- max(beta, 1e-8)
   lreplace(
@@ -242,8 +242,7 @@ bhssne <- function(perplexity, alpha = 0.5, beta = 1, n_threads = 0) {
     b4 = 4 * beta,
     ab = alpha * beta,
     apow = -1 / alpha,
-    init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
-                    ret_extra = c()) {
+    init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       ret_extra <- unique(c(ret_extra, 'beta'))
       cost <- sne_init(cost, X, perplexity = perplexity,
                        symmetrize = "symmetric", normalize = TRUE,
@@ -277,7 +276,7 @@ bhssne <- function(perplexity, alpha = 0.5, beta = 1, n_threads = 0) {
 
 # A version of HSSNE where alpha is allowed to vary at every epoch
 dhssne <- function(perplexity, alpha = 0.5, inp_kernel = "gaussian", 
-                   symmetrize = "symmetric", eps = .Machine$double.xmin,
+                   symmetrize = "symmetric", eps = .Machine$double.eps,
                    n_threads = 0) {
   alpha_min <- 1e-8
   alpha <- max(alpha, alpha_min)
@@ -340,12 +339,10 @@ dhssne <- function(perplexity, alpha = 0.5, inp_kernel = "gaussian",
 # In \emph{Proceedings of the 31st International Conference on Machine Learning (ICML-14)}
 # (pp. 460-468).
 wtsne <- function(perplexity, inp_kernel = "gaussian", 
-                  symmetrize = "symmetric", eps = .Machine$double.xmin,
+                  symmetrize = "symmetric", eps = .Machine$double.eps,
                   n_threads = 0) {
-  eps. <- eps
   lreplace(tsne(perplexity = perplexity),
-    init = function(cost, X, max_iter, eps = eps., 
-                    verbose = FALSE, ret_extra = c()) {
+    init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       ret_extra <- c(ret_extra, "pdeg")
       cost <- sne_init(cost, X, perplexity = perplexity, 
@@ -383,12 +380,10 @@ wtsne <- function(perplexity, inp_kernel = "gaussian",
 }
 
 wssne <- function(perplexity, inp_kernel = "gaussian", 
-                  symmetrize = "symmetric", eps = .Machine$double.xmin,
+                  symmetrize = "symmetric", eps = .Machine$double.eps,
                   n_threads = 0) {
-  eps. <- eps
   lreplace(ssne(perplexity = perplexity),
-     init = function(cost, X, max_iter, eps = eps., 
-                     verbose = FALSE, ret_extra = c()) {
+     init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
        symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
        ret_extra <- c(ret_extra, "pdeg")
        cost <- sne_init(cost, X, perplexity = perplexity,
@@ -420,11 +415,11 @@ wssne <- function(perplexity, inp_kernel = "gaussian",
 
 # t-SNE but with the gradient defined in terms of un-normalized weights
 # Exists entirely as an academic exercise
-tsneu <- function(perplexity, inp_kernel = "gaussian", n_threads = 0) {
+tsneu <- function(perplexity, inp_kernel = "gaussian", 
+                  eps = .Machine$double.eps, n_threads = 0) {
   lreplace(
     tsne(perplexity = perplexity, inp_kernel = inp_kernel),
-    init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
-                    ret_extra = c()) {
+    init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       ret_extra = unique(c(ret_extra, "V"))
       cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
                        symmetrize = "symmetric", normalize = TRUE,
@@ -451,11 +446,11 @@ tsneu <- function(perplexity, inp_kernel = "gaussian", n_threads = 0) {
 
 # A pseudo-separable approximation of t-SNE, where the output weight sum is only
 # recalculated during the epoch
-pstsne <- function(perplexity, inp_kernel = "gaussian", n_threads = 0) {
+pstsne <- function(perplexity, inp_kernel = "gaussian",
+                   eps = .Machine$double.eps, n_threads = 0) {
   lreplace(
     tsne(perplexity = perplexity, inp_kernel = inp_kernel),
-    init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
-                    ret_extra = c()) {
+    init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       ret_extra = unique(c(ret_extra, "V"))
       cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
                        symmetrize = "symmetric", normalize = TRUE,
@@ -468,6 +463,7 @@ pstsne <- function(perplexity, inp_kernel = "gaussian", n_threads = 0) {
       cost$Vsum <- sum(cost$V)
       cost$invVsum <- 1 / (cost$Vsum)
 
+      cost$eps <- eps
       cost
     },
     cache_input = function(cost) {
@@ -507,12 +503,10 @@ pstsne <- function(perplexity, inp_kernel = "gaussian", n_threads = 0) {
 # EE-like cost function in terms of I-Divergence
 # Scaled to give a gradient similar in form to t-SNE
 tee <- function(perplexity, inp_kernel = "gaussian", symmetrize = "symmetric",
-                lambda = 0.01, eps = .Machine$double.xmin, n_threads = 0) {
-  eps. <- eps
+                lambda = 0.01, eps = .Machine$double.eps, n_threads = 0) {
   lreplace(
     tsne(perplexity = perplexity),
-    init = function(cost, X, max_iter, eps = eps., verbose = FALSE,
-                    ret_extra = c()) {
+    init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       ret_extra = unique(c(ret_extra, "V", "dint"))
       cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
@@ -562,27 +556,25 @@ tee <- function(perplexity, inp_kernel = "gaussian", symmetrize = "symmetric",
 # UMAP/t-SNE Hybrids ------------------------------------------------------
 
 # Calculate P via normalized smooth knn-distances
-skdtsne <- function(perplexity, n_threads = 0) {
+skdtsne <- function(perplexity, eps = .Machine$double.eps, n_threads = 0) {
   tsne(perplexity = perplexity, inp_kernel = "skd", symmetrize = "umap", 
-       eps = 1e-9, n_threads = n_threads)
+       eps = eps, n_threads = n_threads)
 }
 
 # Use the UMAP curve family in output kernel
 usne <- function(perplexity, inp_kernel = "gaussian", symmetrize = "symmetric", 
                  spread = 1, min_dist = 0.001, gr_eps = 0.1, 
-                 eps = .Machine$double.xmin, n_threads = 0) {
-  eps. <- eps
+                 eps = .Machine$double.eps, n_threads = 0) {
   lreplace(
     tsne(perplexity = perplexity),
-    init = function(cost, X, max_iter, eps = eps., verbose = FALSE,
-                    ret_extra = c()) {
+    init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
                        symmetrize = symmetrize, normalize = TRUE,
                        verbose = verbose, ret_extra = ret_extra,
                        n_threads = n_threads)
-      cost$eps <- eps
       cost <- init_ab(cost, spread = spread, min_dist = min_dist, verbose = verbose)
+      cost$eps <- eps
       cost
     },
     update = function(cost, Y) {
@@ -607,11 +599,10 @@ usne <- function(perplexity, inp_kernel = "gaussian", symmetrize = "symmetric",
 
 # UMAP cross entropy cost instead of KL divergence
 cetsne <- function(perplexity, inp_kernel = "gaussian", 
-                   symmetrize = "symmetric", eps = .Machine$double.xmin,
+                   symmetrize = "symmetric", eps = .Machine$double.eps,
                    n_threads = 0) {
-  eps. <- eps
   lreplace(tsne(perplexity),
-           init = function(cost, X, max_iter, eps = eps., verbose = FALSE,
+           init = function(cost, X, max_iter, verbose = FALSE,
                            ret_extra = c()) {
              cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
                               symmetrize = "symmetric", normalize = TRUE,
@@ -669,10 +660,9 @@ cetsne <- function(perplexity, inp_kernel = "gaussian",
 
 # t-SNE with input kernel bandwidths transferred to output
 btsne <- function(perplexity, inp_kernel = "gaussian", beta = NULL,
-                  n_threads = 0) {
+                  eps = .Machine$double.eps, n_threads = 0) {
   lreplace(tsne(perplexity = perplexity, inp_kernel = inp_kernel),
-    init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
-                    ret_extra = c()) {
+    init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       ret_extra <- unique(c(ret_extra, 'beta'))
       cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
                        symmetrize = "symmetric", normalize = TRUE,
@@ -704,10 +694,9 @@ btsne <- function(perplexity, inp_kernel = "gaussian", beta = NULL,
 
 # SSNE with input kernel bandwidths transferred to output
 bssne <- function(perplexity, inp_kernel = "gaussian", beta = NULL, 
-                  n_threads = 0) {
+                  eps = .Machine$double.eps, n_threads = 0) {
   lreplace(ssne(perplexity = perplexity, inp_kernel = inp_kernel),
-    init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
-                     ret_extra = c()) {
+    init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
        ret_extra <- unique(c(ret_extra, 'beta'))
        cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
                         symmetrize = "symmetric", normalize = TRUE,
@@ -734,11 +723,11 @@ bssne <- function(perplexity, inp_kernel = "gaussian", beta = NULL,
 }
 
 # ASNE with input kernel bandwidths transferred to output
-basne <- function(perplexity, beta = NULL, n_threads = 0) {
+basne <- function(perplexity, beta = NULL, eps = .Machine$double.eps, 
+                  n_threads = 0) {
   lreplace(
     asne(perplexity = perplexity),
-    init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
-                    ret_extra = c()) {
+    init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       ret_extra <- unique(c(ret_extra, 'beta'))
 
       cost <- sne_init(cost, X, perplexity = perplexity,
@@ -766,8 +755,10 @@ basne <- function(perplexity, beta = NULL, n_threads = 0) {
 }
 
 # t-ASNE with input kernel bandwidths transferred to output
-btasne <- function(perplexity, beta = NULL, n_threads = 0) {
-  lreplace(basne(perplexity = perplexity, beta = beta, n_threads = n_threads),
+btasne <- function(perplexity, beta = NULL, eps = .Machine$double.eps, 
+                   n_threads = 0) {
+  lreplace(basne(perplexity = perplexity, beta = beta, eps = eps,
+                 n_threads = n_threads),
     pfn = kl_cost,
     gr = function(cost, Y) {
     cost <- cost_update(cost, Y)
@@ -790,7 +781,7 @@ btasne <- function(perplexity, beta = NULL, n_threads = 0) {
 
 tasne <- function(perplexity, n_threads = 0) {
   lreplace(tsne(perplexity = perplexity),
-           init = function(cost, X, max_iter, eps = .Machine$double.xmin, 
+           init = function(cost, X, max_iter, eps = .Machine$double.eps, 
                            verbose = FALSE, ret_extra = c()) {
              cost <- sne_init(cost, X, perplexity = perplexity,
                               symmetrize = "none", normalize = FALSE,
@@ -823,11 +814,9 @@ tasne <- function(perplexity, n_threads = 0) {
 
 # ASNE but with the t-distributed kernel
 tasne <- function(perplexity, inp_kernel = "gaussian", 
-                  eps = .Machine$double.xmin, n_threads = 0) {
-  eps. <- eps
+                  eps = .Machine$double.eps, n_threads = 0) {
   lreplace(tsne(perplexity = perplexity),
-  init = function(cost, X, max_iter, eps = eps., verbose = FALSE,
-                  ret_extra = c()) {
+  init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
     cost <- sne_init(cost, X, perplexity = perplexity, inp_kernel <- inp_kernel,
                      symmetrize = "none", normalize = FALSE,
                      verbose = verbose, ret_extra = ret_extra,
@@ -857,10 +846,9 @@ tasne <- function(perplexity, inp_kernel = "gaussian",
 # t-RM-SNE
 # t-SNE without symmetrization of P (but still pair-normalizing)
 # row-normalize, then matrix normalize
-trmsne <- function(perplexity, inp_kernel = "gaussian", n_threads = 0) {
+trmsne <- function(perplexity, inp_kernel = "gaussian", eps = .Machine$double.eps, n_threads = 0) {
   lreplace(tsne(perplexity = perplexity, inp_kernel = inp_kernel),
-           init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
-                           ret_extra = c()) {
+           init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
              cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
                               symmetrize = "none", normalize = TRUE,
                               verbose = verbose, ret_extra = ret_extra,
@@ -881,9 +869,10 @@ trmsne <- function(perplexity, inp_kernel = "gaussian", n_threads = 0) {
 # t-M-SNE
 # t-SNE but without row-normalizing or symmetrizing, just matrix normalization
 # Not recommended
-tmsne <- function(perplexity, inp_kernel = "gaussian", n_threads = 0) {
+tmsne <- function(perplexity, inp_kernel = "gaussian", 
+                  eps = .Machine$double.eps, n_threads = 0) {
   lreplace(trmsne(perplexity = perplexity, inp_kernel = inp_kernel),
-           init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
+           init = function(cost, X, max_iter, verbose = FALSE,
                            ret_extra = c()) {
              cost <- sne_init(cost, X, perplexity = perplexity, kernel = inp_kernel,
                               symmetrize = "none", row_normalize = FALSE,
@@ -897,9 +886,9 @@ tmsne <- function(perplexity, inp_kernel = "gaussian", n_threads = 0) {
 
 # RSR row-normalize, symmetrize, then row-normalize again
 # Might work a tiny bit better than t-ASNE?
-trsrsne <- function(perplexity, n_threads = 0) {
+trsrsne <- function(perplexity, eps = .Machine$double.eps, n_threads = 0) {
   lreplace(tasne(perplexity),
-           init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
+           init = function(cost, X, max_iter, verbose = FALSE, 
                            ret_extra = c()) {
              cost <- sne_init(cost, X, perplexity = perplexity,
                               symmetrize = "symmetric", normalize = FALSE,
@@ -916,9 +905,9 @@ trsrsne <- function(perplexity, n_threads = 0) {
 }
 
 
-arsrsne <- function(perplexity, n_threads = 0) {
+arsrsne <- function(perplexity, eps = .Machine$double.eps, n_threads = 0) {
   lreplace(asne(perplexity),
-           init = function(cost, X, max_iter, eps = .Machine$double.xmin, verbose = FALSE,
+           init = function(cost, X, max_iter, verbose = FALSE,
                            ret_extra = c()) {
              cost <- sne_init(cost, X, perplexity = perplexity,
                               symmetrize = "symmetric", normalize = FALSE,
@@ -1092,12 +1081,12 @@ sne_init <- function(cost,
 
 # The intrinsic dimensionality associated with a gaussian affinity vector
 # Convenient only from in x2aff, where all these values are available
-intd_x2aff <- function(D2, beta, W, Z, H, eps = .Machine$double.xmin) {
+intd_x2aff <- function(D2, beta, W, Z, H, eps = .Machine$double.eps) {
   P <- W / Z
   -2 * beta * sum(D2 * P * (log(P + eps) + H))
 }
 
-shannonpr <- function(P, eps = .Machine$double.xmin) {
+shannonpr <- function(P, eps = .Machine$double.eps) {
   P <- P / rowSums(P)
   rowSums(-P * log(P + eps))
 }

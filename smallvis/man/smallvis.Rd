@@ -36,6 +36,8 @@ smallvis(
   ee_mon_buffer = 2,
   tol_wait = 15,
   ret_extra = FALSE,
+  n_threads = 0,
+  eps = .Machine$double.eps,
   verbose = TRUE
 )
 }
@@ -191,6 +193,14 @@ coordinates. You may also provide a vector of names of potentially large or
 expensive-to-calculate values to return, which will be returned in addition
 to those value which are returned when this value is \code{TRUE}. See the
 \code{Value} section for details.}
+
+\item{n_threads}{Number of threads to use in multi-threaded code. Default is
+0, which means no multi-threading.}
+
+\item{eps}{Set epsilon for avoiding division-by-zero errors. Default is
+\code{.Machine$double.eps}, but if you see inconsistent convergence results
+with optimizer that should be reducing the cost each iteration, then try
+setting this to a larger value, e.g. between \code{1e-3 - 1e-9}.}
 
 \item{verbose}{If \code{TRUE}, log progress messages to the console.}
 }

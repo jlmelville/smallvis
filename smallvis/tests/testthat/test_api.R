@@ -578,13 +578,13 @@ test_that("multiscale perplexities", {
 
 test_that("t-EE and LargeVis are equivalent (sometimes)", {
   restee <- smallvis(iris10, Y_init = iris10_Y, perplexity = 4,
-                     method = list("tee", lambda = 1, eps = .Machine$double.xmin), 
+                     method = list("tee", lambda = 1, eps = .Machine$double.eps), 
                      opt = list("steepd", eta = 0.1), min_cost = -Inf,
                      verbose = FALSE, epoch_callback = NULL)
 
   reslv <- smallvis(iris10, Y_init = iris10_Y, perplexity = 4,
                     method = list("largevis", normalize = FALSE, gamma = 1, 
-                                  gr_eps = 1, eps = .Machine$double.xmin), 
+                                  gr_eps = 1, eps = .Machine$double.eps), 
                     opt = list("steepd", eta = 0.01),
                     verbose = FALSE, epoch_callback = NULL)
   expect_equal(restee, reslv)
