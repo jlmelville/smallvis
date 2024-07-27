@@ -1078,8 +1078,9 @@ gsne <- function(perplexity, lambda = 1, inp_kernel = "gaussian",
 
 # Distance Preserving Methods ---------------------------------------------
 
-mmds_init <- function(cost, X, max_iter, eps = .Machine$double.eps, verbose = FALSE,
-                      ret_extra = c()) {
+mmds_init <- function(cost, X, max_iter, eps = .Machine$double.eps, 
+                      verbose = FALSE, ret_extra = c()) {
+  tsmessage("Calculating pairwise distances")
   if (methods::is(X, "dist")) {
     cost$R <- as.matrix(X)
   }
