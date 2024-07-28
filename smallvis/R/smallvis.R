@@ -2564,11 +2564,21 @@ safe_dist2 <- function(X) {
   D2
 }
 
-calc_tweight <- function(D2, use_cpp = FALSE, n_threads = 1) {
+calc_d2tweight <- function(D2, use_cpp = FALSE, n_threads = 1) {
   if (use_cpp) {
-    tweight_cpp(D2, n_threads = n_threads)
+    d2_to_tweight_cpp(D2, n_threads = n_threads)
   }
   else {
+    1 / (1 + D2)
+  }
+}
+
+calc_tweight <- function(X, use_cpp = FALSE, n_threads = 1) {
+  if (use_cpp) {
+    tweight_cpp(X, n_threads = n_threads)
+  }
+  else {
+    D2 <- calc_d2(X, use_cpp = use_cpp, n_threads = n_threads)
     1 / (1 + D2)
   }
 }

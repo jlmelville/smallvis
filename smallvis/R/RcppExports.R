@@ -9,7 +9,11 @@ dist_cpp <- function(input, n_threads = 1L) {
     .Call(`_smallvis_dist_cpp`, input, n_threads)
 }
 
-tweight_cpp <- function(dist_matrix, n_threads) {
-    .Call(`_smallvis_tweight_cpp`, dist_matrix, n_threads)
+tweight_cpp <- function(input, n_threads = 1L) {
+    .Call(`_smallvis_tweight_cpp`, input, n_threads)
+}
+
+d2_to_tweight_cpp <- function(dist_matrix, n_threads) {
+    .Call(`_smallvis_d2_to_tweight_cpp`, dist_matrix, n_threads)
 }
 

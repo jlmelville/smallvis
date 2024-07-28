@@ -35,14 +35,26 @@ BEGIN_RCPP
 END_RCPP
 }
 // tweight_cpp
-NumericMatrix tweight_cpp(NumericMatrix dist_matrix, int n_threads);
-RcppExport SEXP _smallvis_tweight_cpp(SEXP dist_matrixSEXP, SEXP n_threadsSEXP) {
+NumericMatrix tweight_cpp(NumericMatrix input, std::size_t n_threads);
+RcppExport SEXP _smallvis_tweight_cpp(SEXP inputSEXP, SEXP n_threadsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type input(inputSEXP);
+    Rcpp::traits::input_parameter< std::size_t >::type n_threads(n_threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(tweight_cpp(input, n_threads));
+    return rcpp_result_gen;
+END_RCPP
+}
+// d2_to_tweight_cpp
+NumericMatrix d2_to_tweight_cpp(NumericMatrix dist_matrix, int n_threads);
+RcppExport SEXP _smallvis_d2_to_tweight_cpp(SEXP dist_matrixSEXP, SEXP n_threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< NumericMatrix >::type dist_matrix(dist_matrixSEXP);
     Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
-    rcpp_result_gen = Rcpp::wrap(tweight_cpp(dist_matrix, n_threads));
+    rcpp_result_gen = Rcpp::wrap(d2_to_tweight_cpp(dist_matrix, n_threads));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -51,6 +63,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_smallvis_dist2_cpp", (DL_FUNC) &_smallvis_dist2_cpp, 2},
     {"_smallvis_dist_cpp", (DL_FUNC) &_smallvis_dist_cpp, 2},
     {"_smallvis_tweight_cpp", (DL_FUNC) &_smallvis_tweight_cpp, 2},
+    {"_smallvis_d2_to_tweight_cpp", (DL_FUNC) &_smallvis_d2_to_tweight_cpp, 2},
     {NULL, NULL, 0}
 };
 

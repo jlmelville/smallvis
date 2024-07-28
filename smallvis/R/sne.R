@@ -128,9 +128,7 @@ tsne <- function(perplexity, inp_kernel = "gaussian", symmetrize = "symmetric",
       res
     },
     update = function(cost, Y) {
-      W <- calc_d2(Y, use_cpp = use_cpp, n_threads = n_threads)
-      # not faster to use threading
-      W <- calc_tweight(W, use_cpp = FALSE, n_threads = n_threads)
+      W <- calc_tweight(Y, use_cpp = use_cpp, n_threads = n_threads)
       diag(W) <- 0
 
       cost$Z <- sum(W)
