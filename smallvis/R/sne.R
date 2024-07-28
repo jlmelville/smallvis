@@ -112,8 +112,12 @@ tsne <- function(perplexity, inp_kernel = "gaussian", symmetrize = "symmetric",
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
       P <- cost$P
-      cost$G <- k2g(Y, 4 * cost$W * (P - cost$W / cost$Z))
-      
+      if (use_cpp) {
+        cost$G <- tsne_grad_cpp(P, cost$W, cost$Z, Y, n_threads = n_threads)
+      }
+      else {
+        cost$G <- k2g(Y, 4 * cost$W * (P - cost$W / cost$Z))
+      }
       cost
     },
     export = function(cost, val) {

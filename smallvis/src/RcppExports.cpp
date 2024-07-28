@@ -58,12 +58,28 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// tsne_grad_cpp
+NumericMatrix tsne_grad_cpp(const NumericMatrix& P, const NumericMatrix& W, double Z, const NumericMatrix& Y, std::size_t n_threads);
+RcppExport SEXP _smallvis_tsne_grad_cpp(SEXP PSEXP, SEXP WSEXP, SEXP ZSEXP, SEXP YSEXP, SEXP n_threadsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type P(PSEXP);
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type W(WSEXP);
+    Rcpp::traits::input_parameter< double >::type Z(ZSEXP);
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type Y(YSEXP);
+    Rcpp::traits::input_parameter< std::size_t >::type n_threads(n_threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(tsne_grad_cpp(P, W, Z, Y, n_threads));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_smallvis_dist2_cpp", (DL_FUNC) &_smallvis_dist2_cpp, 2},
     {"_smallvis_dist_cpp", (DL_FUNC) &_smallvis_dist_cpp, 2},
     {"_smallvis_tweight_cpp", (DL_FUNC) &_smallvis_tweight_cpp, 2},
     {"_smallvis_d2_to_tweight_cpp", (DL_FUNC) &_smallvis_d2_to_tweight_cpp, 2},
+    {"_smallvis_tsne_grad_cpp", (DL_FUNC) &_smallvis_tsne_grad_cpp, 5},
     {NULL, NULL, 0}
 };
 
