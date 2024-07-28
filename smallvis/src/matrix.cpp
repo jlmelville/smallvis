@@ -42,6 +42,13 @@ void dist(const std::vector<double> &data, std::vector<double> &dist_matrix,
   }
 }
 
+void tweight(const std::vector<double> &dist_matrix,
+             std::vector<double> &transformed_matrix, int start, int end) {
+  for (int idx = start; idx < end; ++idx) {
+    transformed_matrix[idx] = 1.0 / (1.0 + dist_matrix[idx]);
+  }
+}
+
 // [[Rcpp::export]]
 NumericMatrix dist2_cpp(NumericMatrix input, std::size_t n_threads = 1) {
   if (n_threads == 0) {
@@ -111,6 +118,36 @@ NumericMatrix dist_cpp(NumericMatrix input, std::size_t n_threads = 1) {
 
   NumericMatrix result(n, n);
   std::copy(dist_matrix.begin(), dist_matrix.end(), result.begin());
+
+  return result;
+}
+
+// [[Rcpp::export]]
+NumericMatrix tweight_cpp(NumericMatrix dist_matrix, int n_threads) {
+  int n = dist_matrix.nrow();
+  int total_elements = n * n;
+
+  std::vector<double> dist_matrix_vec(dist_matrix.begin(), dist_matrix.end());
+
+  std::vector<double> transformed_matrix(total_elements, 0.0);
+
+  int chunk_size = (total_elements + n_threads - 1) / n_threads;
+
+  std::vector<std::thread> threads;
+  for (int t = 0; t < n_threads; ++t) {
+    int start = t * chunk_size;
+    int end = std::min(start + chunk_size, total_elements);
+    threads.emplace_back(tweight, std::cref(dist_matrix_vec),
+                         std::ref(transformed_matrix), start, end);
+  }
+
+  for (auto &thread : threads) {
+    thread.join();
+  }
+
+  NumericMatrix result(n, n);
+  std::copy(transformed_matrix.begin(), transformed_matrix.end(),
+            result.begin());
 
   return result;
 }

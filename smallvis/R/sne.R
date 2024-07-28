@@ -14,10 +14,12 @@ exp_shift <- function(X) {
 }
 
 expQ <- function(Y, eps = .Machine$double.eps, beta = NULL,
-                     A = NULL,
-                     is_symmetric = FALSE,
-                     matrix_normalize = FALSE) {
-  W <- dist2(Y)
+                 A = NULL,
+                 is_symmetric = FALSE,
+                 matrix_normalize = FALSE,
+                 use_cpp = FALSE,
+                 n_threads = 1) {
+  W <- calc_d2(Y, use_cpp = use_cpp, n_threads = n_threads)
   
   if (!is.null(beta)) {
     W <- exp_shift(-W * beta)
@@ -126,8 +128,9 @@ tsne <- function(perplexity, inp_kernel = "gaussian", symmetrize = "symmetric",
       res
     },
     update = function(cost, Y) {
-      W <- dist2(Y)
-      W <- 1 / (1 + W)
+      W <- calc_d2(Y, use_cpp = use_cpp, n_threads = n_threads)
+      # not faster to use threading
+      W <- calc_tweight(W, use_cpp = FALSE, n_threads = n_threads)
       diag(W) <- 0
 
       cost$Z <- sum(W)
@@ -160,8 +163,8 @@ ssne <- function(perplexity, inp_kernel = "gaussian",
       cost
     },
     update = function(cost, Y) {
-      cost$Q <- expQ(Y, cost$eps, is_symmetric = TRUE,
-                         matrix_normalize = TRUE)$Q
+      cost$Q <- expQ(Y, cost$eps, is_symmetric = TRUE, matrix_normalize = TRUE,
+                     use_cpp = use_cpp, n_threads = n_threads)$Q
       cost
     },
     sentinel = "Q"
@@ -191,7 +194,8 @@ asne <- function(perplexity, inp_kernel = "gaussian",
       cost
     },
     update = function(cost, Y) {
-      cost$Q <- expQ(Y, eps = cost$eps, is_symmetric = FALSE)$Q
+      cost$Q <- expQ(Y, eps = cost$eps, is_symmetric = FALSE,
+                     use_cpp = use_cpp, n_threads = n_threads)$Q
       cost
     },
     sentinel = "Q"
@@ -204,7 +208,7 @@ asne <- function(perplexity, inp_kernel = "gaussian",
 # In \emph{Advances in neural information processing systems} (pp. 2169-2177).
 hssne <- function(perplexity, alpha = 0.5, inp_kernel = "gaussian", 
                   symmetrize = "symmetric", eps = .Machine$double.eps,
-                  n_threads = 0) {
+                  n_threads = 0, use_cpp = FALSE) {
   alpha <- max(alpha, 1e-8)
   apow <- -1 / alpha
   lreplace(
@@ -219,7 +223,7 @@ hssne <- function(perplexity, alpha = 0.5, inp_kernel = "gaussian",
       cost
     },
     update = function(cost, Y) {
-      W <- dist2(Y)
+      W <- calc_d2(Y, use_cpp = use_cpp, n_threads = n_threads)
       # to include bandwidth
       # W <- (alpha * beta * W + 1) ^ (-1 / alpha)
       W <- powm(alpha * W + 1, apow, cost$eps)
@@ -264,7 +268,7 @@ bhssne <- function(perplexity, alpha = 0.5, beta = 1,
       cost
     },
     update = function(cost, Y) {
-      W <- dist2(Y)
+      W <- calc_d2(Y, use_cpp = use_cpp, n_threads = n_threads)
       W <- powm(cost$ab * W + 1, cost$apow, cost$eps)
       diag(W) <- 0
       
@@ -278,7 +282,7 @@ bhssne <- function(perplexity, alpha = 0.5, beta = 1,
 # A version of HSSNE where alpha is allowed to vary at every epoch
 dhssne <- function(perplexity, alpha = 0.5, inp_kernel = "gaussian", 
                    symmetrize = "symmetric", eps = .Machine$double.eps,
-                   n_threads = 0) {
+                   n_threads = 0, use_cpp = FALSE) {
   alpha_min <- 1e-8
   alpha <- max(alpha, alpha_min)
   lreplace(
@@ -322,7 +326,7 @@ dhssne <- function(perplexity, alpha = 0.5, inp_kernel = "gaussian",
     },
     update = function(cost, Y) {
       alpha <- cost$alpha
-      W <- dist2(Y)
+      W <- calc_d2(Y, use_cpp = use_cpp, n_threads = n_threads)
       W <- powm(alpha * W + 1, cost$apow, cost$eps)
       diag(W) <- 0
 
@@ -370,7 +374,7 @@ wtsne <- function(perplexity, inp_kernel = "gaussian",
     update = function(cost, Y) {
       M <- cost$M
 
-      W <- dist2(Y)
+      W <- calc_d2(Y, use_cpp = use_cpp, n_threads = n_threads)
       W <- M / (1 + W)
       diag(W) <- 0
 
@@ -411,7 +415,8 @@ wssne <- function(perplexity, inp_kernel = "gaussian",
        cost
      },
      update = function(cost, Y) {
-       cost$Q <- expQ(Y, cost$eps, A = cost$M, matrix_normalize = TRUE)$Q
+       cost$Q <- expQ(Y, cost$eps, A = cost$M, matrix_normalize = TRUE, 
+                      use_cpp = use_cpp, n_threads = n_threads)$Q
        cost
      }
   )
@@ -488,7 +493,7 @@ pstsne <- function(perplexity, inp_kernel = "gaussian",
       cost
     },
     update = function(cost, Y) {
-      W <- dist2(Y)
+      W <- calc_d2(Y, use_cpp = use_cpp, n_threads = n_threads)
       W <- 1 / (1 + W)
       diag(W) <- 0
 
@@ -536,7 +541,7 @@ tee <- function(perplexity, inp_kernel = "gaussian", symmetrize = "symmetric",
       cost
     },
     update = function(cost, Y) {
-      W <- dist2(Y)
+      W <- calc_d2(Y, use_cpp = use_cpp, n_threads = n_threads)
       W <- 1 / (1 + W)
       diag(W) <- 0
       cost$W <- W
@@ -563,9 +568,10 @@ tee <- function(perplexity, inp_kernel = "gaussian", symmetrize = "symmetric",
 # UMAP/t-SNE Hybrids ------------------------------------------------------
 
 # Calculate P via normalized smooth knn-distances
-skdtsne <- function(perplexity, eps = .Machine$double.eps, n_threads = 0) {
+skdtsne <- function(perplexity, eps = .Machine$double.eps, n_threads = 0,
+                    use_cpp = FALSE) {
   tsne(perplexity = perplexity, inp_kernel = "skd", symmetrize = "umap", 
-       eps = eps, n_threads = n_threads)
+       eps = eps, n_threads = n_threads, use_cpp = use_cpp)
 }
 
 # Use the UMAP curve family in output kernel
@@ -585,7 +591,7 @@ usne <- function(perplexity, inp_kernel = "gaussian", symmetrize = "symmetric",
       cost
     },
     update = function(cost, Y) {
-      D2 <- dist2(Y)
+      D2 <- calc_d2(Y, use_cpp = use_cpp, n_threads = n_threads)
       D2[D2 < 0] <- 0
 
       W <- 1 / (1 + cost$a * D2 ^ cost$b)
@@ -643,7 +649,7 @@ cetsne <- function(perplexity, inp_kernel = "gaussian",
            },
            update = function(cost, Y) {
              P <- cost$P
-             W <- dist2(Y)
+             W <- calc_d2(Y, use_cpp = use_cpp, n_threads = n_threads)
              W <- 1 / (1 + W)
              diag(W) <- 0
 
@@ -689,7 +695,7 @@ btsne <- function(perplexity, inp_kernel = "gaussian", beta = NULL,
       cost
     },
     update = function(cost, Y) {
-      W <- dist2(Y)
+      W <- calc_d2(Y, use_cpp = use_cpp, n_threads = n_threads)
       W <- 1 / (1 + (cost$beta * W))
       diag(W) <- 0
 
@@ -725,7 +731,8 @@ bssne <- function(perplexity, inp_kernel = "gaussian", beta = NULL,
       cost
     },
     update = function(cost, Y) {
-      cost$Q <- expQ(Y, cost$eps, beta = cost$beta, matrix_normalize = TRUE)$Q
+      cost$Q <- expQ(Y, cost$eps, beta = cost$beta, matrix_normalize = TRUE,
+                     use_cpp = use_cpp, n_threads = n_threads)$Q
       cost
     }
   )
@@ -752,7 +759,8 @@ basne <- function(perplexity, beta = NULL, eps = .Machine$double.eps,
       cost
     },
     update = function(cost, Y) {
-      cost$Q <- expQ(Y, eps = cost$eps, beta = cost$beta, is_symmetric = FALSE)$Q
+      cost$Q <- expQ(Y, eps = cost$eps, beta = cost$beta, is_symmetric = FALSE,
+                     use_cpp = use_cpp, n_threads = n_threads)$Q
       cost
     },
     gr = function(cost, Y) {
@@ -765,9 +773,9 @@ basne <- function(perplexity, beta = NULL, eps = .Machine$double.eps,
 
 # t-ASNE with input kernel bandwidths transferred to output
 btasne <- function(perplexity, beta = NULL, eps = .Machine$double.eps, 
-                   n_threads = 0) {
+                   n_threads = 0, use_cpp = FALSE) {
   lreplace(basne(perplexity = perplexity, beta = beta, eps = eps,
-                 n_threads = n_threads),
+                 n_threads = n_threads, use_cpp = use_cpp),
     pfn = kl_cost,
     gr = function(cost, Y) {
     cost <- cost_update(cost, Y)
@@ -777,7 +785,7 @@ btasne <- function(perplexity, beta = NULL, eps = .Machine$double.eps,
      cost
     },
     update = function(cost, Y) {
-      W <- dist2(Y)
+      W <- calc_d2(Y, use_cpp = use_cpp, n_threads = n_threads)
       W <- 1 / (1 + cost$beta * W)
       diag(W) <- 0
        
@@ -808,7 +816,7 @@ tasne <- function(perplexity, n_threads = 0, use_cpp = FALSE) {
              cost
            },
            update = function(cost, Y) {
-             W <- dist2(Y)
+             W <- calc_d2(Y, use_cpp = use_cpp, n_threads = n_threads)
              W <- 1 / (1 + W)
              diag(W) <- 0
              
@@ -843,7 +851,7 @@ tasne <- function(perplexity, inp_kernel = "gaussian",
     cost
   },
   update = function(cost, Y) {
-    W <- dist2(Y)
+    W <- calc_d2(Y, use_cpp = use_cpp, n_threads = n_threads)
     W <- 1 / (1 + W)
     diag(W) <- 0
 

@@ -160,13 +160,12 @@ largevis <- function(perplexity, inp_kernel = "gaussian",
      },
      gr = function(cost, Y) {
        cost <- cost_update(cost, Y)
-
        W <- cost$W
        cost$G <- k2g(Y, 4 * W * (cost$P - ((gamma * W) / (1 + cost$greps1 * W))))
        cost
      },
      update = function(cost, Y) {
-       W <- dist2(Y)
+       W <- calc_d2(Y, use_cpp = use_cpp, n_threads = n_threads)
        W <- 1 / (1 + W)
        diag(W) <- 0
 
@@ -225,7 +224,7 @@ umap <- function(perplexity, inp_kernel = "skd", symmetrize = "umap",
       cost
     },
     update = function(cost, Y) {
-      D2 <- dist2(Y)
+      D2 <- calc_d2(Y, use_cpp = use_cpp, n_threads = n_threads)
       D2[D2 < 0] <- 0
 
       W <- 1 / (1 + cost$a * D2 ^ cost$b)
@@ -268,7 +267,7 @@ tumap <- function(perplexity, inp_kernel = "skd", symmetrize = "umap",
       cost
     },
     update = function(cost, Y) {
-      W <- dist2(Y)
+      W <- calc_d2(Y, use_cpp = use_cpp, n_threads = n_threads)
       W <- 1 / (1 + W)
       diag(W) <- 0
 
@@ -308,7 +307,7 @@ ntumap <- function(perplexity, inp_kernel = "skd", symmetrize = "umap",
     },
     update = function(cost, Y) {
       P <- cost$P
-      W <- dist2(Y)
+      W <- calc_d2(Y, use_cpp = use_cpp, n_threads = n_threads)
       W <- 1 / (1 + W)
       diag(W) <- 0
 
@@ -363,7 +362,7 @@ rklsne <- function(perplexity, inp_kernel = "gaussian",
       cost
     },
     update = function(cost, Y) {
-      W <- dist2(Y)
+      W <- calc_d2(Y, use_cpp = use_cpp, n_threads = n_threads)
       W <- 1 / (1 + W)
       diag(W) <- 0
       sumW <- sum(W)
@@ -418,7 +417,7 @@ jssne <- function(perplexity, inp_kernel = "gaussian",
       eps <- cost$eps
       P <- cost$P
       
-      W <- dist2(Y)
+      W <- calc_d2(Y, use_cpp = use_cpp, n_threads = n_threads)
       W <- 1 / (1 + W)
       diag(W) <- 0
       sumW <- sum(W)
@@ -483,7 +482,7 @@ chsne <- function(perplexity, inp_kernel = "gaussian",
     update = function(cost, Y) {
       P <- cost$P
       
-      W <- dist2(Y)
+      W <- calc_d2(Y, use_cpp = use_cpp, n_threads = n_threads)
       W <- 1 / (1 + W)
       diag(W) <- 0
       Z <- sum(W)
@@ -546,7 +545,7 @@ hlsne <- function(perplexity, inp_kernel = "gaussian",
     update = function(cost, Y) {
       P <- cost$P
       
-      W <- dist2(Y)
+      W <- calc_d2(Y, use_cpp = use_cpp, n_threads = n_threads)
       W <- 1 / (1 + W)
       diag(W) <- 0
       Z <- sum(W)
@@ -567,7 +566,7 @@ hlsne <- function(perplexity, inp_kernel = "gaussian",
 # alpha-beta divergence
 absne <- function(perplexity, inp_kernel = "gaussian", 
                   symmetrize = "symmetric", alpha = 1, lambda = 1,
-                  eps = .Machine$double.eps, n_threads = 0) {
+                  eps = .Machine$double.eps, n_threads = 0, use_cpp = FALSE) {
   beta <- lambda - alpha
 
   eps0 <- 1e-5
@@ -634,7 +633,7 @@ absne <- function(perplexity, inp_kernel = "gaussian",
       cost
     },
     update = function(cost, Y) {
-      W <- dist2(Y)
+      W <- calc_d2(Y, use_cpp = use_cpp, n_threads = n_threads)
       W <- 1 / (1 + W)
       diag(W) <- 0
       Z <- sum(W)
@@ -706,7 +705,7 @@ absneb0 <- function(perplexity, inp_kernel = "gaussian",
       cost
     },
     update = function(cost, Y) {
-      W <- dist2(Y)
+      W <- calc_d2(Y, use_cpp = use_cpp, n_threads = n_threads)
       W <- 1 / (1 + W)
       diag(W) <- 0
       Z <- sum(W)
@@ -776,7 +775,7 @@ absneamb <- function(perplexity, inp_kernel = "gaussian",
       cost
     },
     update = function(cost, Y) {
-      W <- dist2(Y)
+      W <- calc_d2(Y, use_cpp = use_cpp, n_threads = n_threads)
       W <- 1 / (1 + W)
       diag(W) <- 0
       Z <- sum(W)
@@ -845,7 +844,7 @@ absnea0 <- function(perplexity, inp_kernel = "gaussian",
       cost
     },
     update = function(cost, Y) {
-      W <- dist2(Y)
+      W <- calc_d2(Y, use_cpp = use_cpp, n_threads = n_threads)
       W <- 1 / (1 + W)
       diag(W) <- 0
       Z <- sum(W)
@@ -913,7 +912,7 @@ absne00 <- function(perplexity, inp_kernel = "gaussian",
       cost
     },
     update = function(cost, Y) {
-      W <- dist2(Y)
+      W <- calc_d2(Y, use_cpp = use_cpp, n_threads = n_threads)
       W <- 1 / (1 + W)
       diag(W) <- 0
       Z <- sum(W)
@@ -990,7 +989,8 @@ abssne <- function(perplexity, inp_kernel = "gaussian",
     update = function(cost, Y) {
       eps <- cost$eps
       
-      Q <- expQ(Y, cost$eps, is_symmetric = TRUE, matrix_normalize = TRUE)$Q
+      Q <- expQ(Y, cost$eps, is_symmetric = TRUE, matrix_normalize = TRUE,
+                use_cpp = use_cpp, n_threads = n_threads)$Q
       
       cost$PaQb <- cost$Pa * powm(Q, beta, eps)
       cost$PaQbc <- colSums(cost$PaQb)
@@ -1066,7 +1066,7 @@ gsne <- function(perplexity, lambda = 1, inp_kernel = "gaussian",
       cost
     },
     update = function(cost, Y) {
-      W <- dist2(Y)
+      W <- calc_d2(Y, use_cpp = use_cpp, n_threads = n_threads)
       What <- 1 + W
       W <- 1 / What
       diag(W) <- 0
@@ -1416,7 +1416,7 @@ ee <- function(perplexity, lambda = 100, neg_weights = TRUE,
       res
     },
     update = function(cost, Y) {
-      W <- dist2(Y)
+      W <- calc_d2(Y, use_cpp = use_cpp, n_threads = n_threads)
       W <- exp(-W)
       diag(W) <- 0
       cost$W <- W
@@ -1483,7 +1483,8 @@ nerv <- function(perplexity, lambda = 0.9, inp_kernel = "gaussian",
     update = function(cost, Y) {
       eps <- cost$eps
 
-      Q <- expQ(Y, eps, is_symmetric = TRUE)$Q
+      Q <- expQ(Y, eps, is_symmetric = TRUE, use_cpp = use_cpp, 
+                n_threads = n_threads)$Q
       cost$Q <- Q
       
       # Reverse KL gradient
@@ -1502,7 +1503,7 @@ nerv <- function(perplexity, lambda = 0.9, inp_kernel = "gaussian",
 
 snerv <- function(perplexity, lambda = 0.9, inp_kernel = "gaussian", 
                   symmetrize = "symmetric", eps = .Machine$double.eps,
-                  n_threads = 0) {
+                  n_threads = 0, use_cpp = FALSE) {
   lambda4 <- 4 * lambda
   oml <- 1 - lambda
   oml4 <- 4 * oml
@@ -1539,7 +1540,8 @@ snerv <- function(perplexity, lambda = 0.9, inp_kernel = "gaussian",
     update = function(cost, Y) {
       eps <- cost$eps
       
-      Q <- expQ(Y, eps, is_symmetric = TRUE, matrix_normalize = TRUE)$Q      
+      Q <- expQ(Y, eps, is_symmetric = TRUE, matrix_normalize = TRUE,
+                use_cpp = use_cpp, n_threads = n_threads)$Q      
       cost$Q <- Q
       
       # Reverse KL gradient
@@ -1610,7 +1612,8 @@ jse <- function(perplexity, kappa = 0.5, inp_kernel = "gaussian",
     update = function(cost, Y) {
       eps <- cost$eps
 
-      Q <- expQ(Y, eps = eps, is_symmetric = TRUE)$Q
+      Q <- expQ(Y, eps = eps, is_symmetric = TRUE, use_cpp = use_cpp,
+                n_threads = n_threads)$Q
 
       Z <- kappa * cost$P + om_kappa * Q
       Z[Z < eps] <- eps
@@ -1630,7 +1633,7 @@ jse <- function(perplexity, kappa = 0.5, inp_kernel = "gaussian",
 
 sjse <- function(perplexity, kappa = 0.5, inp_kernel = "gaussian", 
                  symmetrize = "symmetric", eps = .Machine$double.eps,
-                 n_threads = 0) {
+                 n_threads = 0, use_cpp = FALSE) {
   eps0 <- 1e-5
   kappa <- max(kappa, eps0)
   kappa <- min(kappa, 1 - eps0)
@@ -1642,7 +1645,8 @@ sjse <- function(perplexity, kappa = 0.5, inp_kernel = "gaussian",
   
   lreplace(
     ssne(perplexity = perplexity, inp_kernel = inp_kernel, 
-         symmetrize = symmetrize, eps = eps, n_threads = n_threads),
+         symmetrize = symmetrize, eps = eps, n_threads = n_threads,
+         use_cpp = use_cpp),
     pfn = function(cost, Y) {
       cost <- cost_update(cost, Y)
       eps <- cost$eps
@@ -1663,7 +1667,8 @@ sjse <- function(perplexity, kappa = 0.5, inp_kernel = "gaussian",
     update = function(cost, Y) {
       eps <- cost$eps
       
-      Q <- expQ(Y, cost$eps, is_symmetric = TRUE, matrix_normalize = TRUE)$Q      
+      Q <- expQ(Y, cost$eps, is_symmetric = TRUE, matrix_normalize = TRUE,
+                use_cpp = use_cpp, n_threads = n_threads)$Q      
       Z <- kappa * cost$P + om_kappa * Q
       Z[Z < eps] <- eps
       diag(Z) <- 0
@@ -1758,7 +1763,8 @@ bnerv <- function(perplexity, lambda = 0.9, eps = .Machine$double.eps,
     update = function(cost, Y) {
       eps <- cost$eps
 
-      Q <- expQ(Y, eps, beta = cost$beta, is_symmetric = FALSE)$Q
+      Q <- expQ(Y, eps, beta = cost$beta, is_symmetric = FALSE,
+                use_cpp = use_cpp, n_threads = n_threads)$Q
       cost$Q <- Q
       
       # Reverse KL gradient
