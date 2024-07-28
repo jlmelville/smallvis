@@ -621,7 +621,7 @@
 #' tsne_iris <- smallvis(iris, perplexity = 50, verbose = TRUE)
 #'
 #' # Can use a custom epoch_callback for visualization
-#' colors = rainbow(length(unique(iris$Species)))
+#' colors = grDevices::rainbow(length(unique(iris$Species)))
 #' names(colors) = unique(iris$Species)
 #' ecb = function(x, y) {
 #'   plot(x, t = 'n')
@@ -993,7 +993,7 @@ smallvis <- function(X, k = 2, scale = "absmax",
     }
   }
 
-  if (class(pca) == "character" && pca == "whiten") {
+  if (methods::is(pca, "character") && pca == "whiten") {
     pca <- TRUE
     whiten <- TRUE
   }
@@ -1891,7 +1891,7 @@ make_smallvis_cb <- function(df) {
   palette <- NULL
   function(Y, iter, cost = NULL) {
     if (is.null(palette)) {
-      palette <- vizier:::color_helper(df, color_scheme = rainbow)$palette
+      palette <- vizier:::color_helper(df, color_scheme = grDevices::rainbow)$palette
     }
     title <- paste0("iter: ", iter)
     if (!(is.null(cost) || is.na(cost))) {
@@ -2687,7 +2687,7 @@ find_ab_params <- function(spread = 1, min_dist = 0.001) {
     stats::nls(yv ~ 1 / (1 + a * xv ^ (2 * b)),
              start = list(a = 1, b = 1))$m$getPars()
     }, silent = TRUE)
-    if (class(result) == "try-error") {
+    if (methods::is(result, "try-error")) {
       stop("Can't find a, b for provided spread/min_dist values")
     }
   result

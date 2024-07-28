@@ -714,7 +714,7 @@ function with these optimizers.
 tsne_iris <- smallvis(iris, perplexity = 50, verbose = TRUE)
 
 # Can use a custom epoch_callback for visualization
-colors = rainbow(length(unique(iris$Species)))
+colors = grDevices::rainbow(length(unique(iris$Species)))
 names(colors) = unique(iris$Species)
 ecb = function(x, y) {
   plot(x, t = 'n')
