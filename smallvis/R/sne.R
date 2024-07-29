@@ -1056,9 +1056,13 @@ sne_init <- function(cost,
     }
     tsmessage("Commencing calibration for perplexity = ",
                 format_perps(perplexity))
-    x2ares <- x2aff(X, perplexity, tol = 1e-5, kernel = kernel,
-                      verbose = verbose)
-    P <- x2ares$W
+    if (use_cpp) {
+      P <- find_beta_cpp(X, perplexity, tol = 1e-5, n_threads = n_threads)$W
+    }
+    else {
+      x2ares <- x2aff(X, perplexity, tol = 1e-5, kernel = kernel, verbose = verbose)
+      P <- x2ares$W
+    }
   }
 
   P <- scale_affinities(P, 

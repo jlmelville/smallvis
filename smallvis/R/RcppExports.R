@@ -21,3 +21,7 @@ tsne_grad_cpp <- function(P, W, Z, Y, n_threads) {
     .Call(`_smallvis_tsne_grad_cpp`, P, W, Z, Y, n_threads)
 }
 
+find_beta_cpp <- function(X, perplexity = 15, tol = 1e-5, max_tries = 50L, n_threads = 1L) {
+    .Call(`_smallvis_find_beta_cpp`, X, perplexity, tol, max_tries, n_threads)
+}
+

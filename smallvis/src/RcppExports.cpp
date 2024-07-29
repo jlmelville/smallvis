@@ -73,6 +73,21 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// find_beta_cpp
+List find_beta_cpp(const NumericMatrix& X, double perplexity, double tol, int max_tries, std::size_t n_threads);
+RcppExport SEXP _smallvis_find_beta_cpp(SEXP XSEXP, SEXP perplexitySEXP, SEXP tolSEXP, SEXP max_triesSEXP, SEXP n_threadsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< double >::type perplexity(perplexitySEXP);
+    Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
+    Rcpp::traits::input_parameter< int >::type max_tries(max_triesSEXP);
+    Rcpp::traits::input_parameter< std::size_t >::type n_threads(n_threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(find_beta_cpp(X, perplexity, tol, max_tries, n_threads));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_smallvis_dist2_cpp", (DL_FUNC) &_smallvis_dist2_cpp, 2},
@@ -80,6 +95,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_smallvis_tweight_cpp", (DL_FUNC) &_smallvis_tweight_cpp, 2},
     {"_smallvis_d2_to_tweight_cpp", (DL_FUNC) &_smallvis_d2_to_tweight_cpp, 2},
     {"_smallvis_tsne_grad_cpp", (DL_FUNC) &_smallvis_tsne_grad_cpp, 5},
+    {"_smallvis_find_beta_cpp", (DL_FUNC) &_smallvis_find_beta_cpp, 5},
     {NULL, NULL, 0}
 };
 
