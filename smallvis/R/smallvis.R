@@ -2211,13 +2211,15 @@ x2aff <- function(X, perplexity = 15, tol = 1e-5, kernel = "gauss",
       tries <- tries + 1
     }
     if (abs(Hdiff) > tol) {
+      # Put a weight of 1/perplexity on the perplexity-nearest neighbors
       bad_perp <- bad_perp + 1
       knn_idx <- order(Di, decreasing = FALSE)[1:max(floor(perplexity), 1)]
       knn_idx[knn_idx >= i] <- knn_idx[knn_idx >= i]  + 1
-      Wi <- rep(0, length(Di))
-      Wi[knn_idx] <- 1
+      Wi <- rep(0, n)
+      Wi[knn_idx] <- 1 / floor(perplexity)
 
       intd[i] <- 0
+      W[i, ] <- Wi
     }
     else {
       # if we didn't supply estimates for beta manually, then initialize guess for
@@ -2227,8 +2229,9 @@ x2aff <- function(X, perplexity = 15, tol = 1e-5, kernel = "gauss",
         beta[i + 1] <- beta[i]
       }
       intd[i] <- intd_x2aff(Di, beta[i], Wi, sumWi, H)
+      W[i, -i] <- Wi
     }
-    W[i, -i] <- Wi
+    
   }
   sigma <- sqrt(1 / beta)
 
