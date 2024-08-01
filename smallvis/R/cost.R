@@ -1114,7 +1114,12 @@ mmds <- function(eps = .Machine$double.eps, use_cpp = FALSE, n_threads = 1) {
     },
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
-      cost$G <- k2g(Y, -4 * (cost$R - cost$D) / (cost$D + cost$eps))
+      if (use_cpp) {
+        cost$G <- mmds_grad_cpp(cost$R, cost$D, Y, eps = eps, n_threads = n_threads)
+      }
+      else {
+        cost$G <- k2g(Y, -4 * (cost$R - cost$D) / (cost$D + cost$eps))
+      }
       cost
     },
     update = function(cost, Y) {
