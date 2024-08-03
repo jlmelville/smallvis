@@ -1,5 +1,13 @@
 # Generic Weight/Cost/Gradient functions ----------------------------------
 
+# Convert Force constant to Gradient
+k2g <- function(Y, K, symmetrize = FALSE) {
+  if (symmetrize) {
+    K <- K + t(K)
+  }
+  Y * colSums(K) - (K %*% Y)
+}
+
 logm <- function(m, eps = .Machine$double.eps) {
   diag(m) <- eps
   m <- log(m)
@@ -21,12 +29,88 @@ powm <- function(m, n, eps = .Machine$double.eps) {
   m
 }
 
-# Convert Force constant to Gradient
-k2g <- function(Y, K, symmetrize = FALSE) {
-  if (symmetrize) {
-    K <- K + t(K)
+# Calculates shifted exponential column-wise: exp(X - a)
+# where a is the column max.
+# This is the log-sum-exp trick to avoid numeric underflow:
+# log sum_i exp x_i = a + log sum_i exp(x_i - a)
+# => sum_i exp x_i = exp a * sum_i exp(x_i - a)
+# with a = max x_i
+# exp(max x_i) can still underflow so we don't return Z (the sum)
+# Use Q directly (exp a appears in numerator and denominator, so cancels).
+# https://statmodeling.stat.columbia.edu/2016/06/11/log-sum-of-exponentials/
+# https://www.xarg.org/2016/06/the-log-sum-exp-trick-in-machine-learning/
+# http://wittawat.com/posts/log-sum_exp_underflow.html
+exp_shift <- function(X) {
+  X <- exp(sweep(X, 2, apply(X, 2, max)))
+}
+
+expQ <- function(Y, eps = .Machine$double.eps, beta = NULL,
+                 A = NULL,
+                 is_symmetric = FALSE,
+                 matrix_normalize = FALSE,
+                 use_cpp = FALSE,
+                 n_threads = 1) {
+  W <- calc_d2(Y, use_cpp = use_cpp, n_threads = n_threads)
+  
+  if (!is.null(beta)) {
+    W <- exp_shift(-W * beta)
   }
-  Y * colSums(K) - (K %*% Y)
+  else {
+    W <- exp_shift(-W)
+  }
+  
+  if (!is.null(A)) {
+    W <- A * W
+  }
+  diag(W) <- 0
+  
+  if (matrix_normalize) {
+    Z <- sum(W)
+  }
+  else {
+    if (is_symmetric) {
+      Z <- colSums(W)
+    }
+    else {
+      Z <- rowSums(W)
+    }
+  }
+  # cost of division (vs storing 1/Z and multiplying) seems small
+  Q <- W / Z
+  
+  if (eps > 0) {
+    Q[Q < eps] <- eps
+  }
+  diag(Q) <- 0
+  
+  list(
+    Q = Q,
+    Z = Z
+  )
+}
+
+# KL divergence using Q directly
+kl_costQ <- function(cost, Y) {
+  cost <- cost_update(cost, Y)
+  
+  # P log(P / Q) = P log P - P log Q
+  cost$pcost <- cost$plogp - colSums(cost$P * logm(cost$Q, cost$eps))
+  cost
+}
+
+kl_costQr <- function(cost, Y) {
+  cost <- cost_update(cost, Y)
+  
+  # P log(P / Q) = P log P - P log Q
+  cost$pcost <- cost$plogp - rowSums(cost$P * logm(cost$Q, cost$eps))
+  cost
+}
+
+kl_cost <- function(cost, Y) {
+  cost <- cost_update(cost, Y)
+  # P log(P / Q) = P log P - P log Q
+  cost$pcost <- cost$plogp - colSums(cost$P * logm(cost$W / cost$Z, cost$eps))
+  cost
 }
 
 cost_init <- function(cost,
