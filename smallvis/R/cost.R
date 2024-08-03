@@ -44,55 +44,51 @@ exp_shift <- function(X) {
   X <- exp(sweep(X, 2, apply(X, 2, max)))
 }
 
-expQ <- function(Y, eps = .Machine$double.eps, beta = NULL,
+expQ <- function(Y,
+                 eps = .Machine$double.eps,
+                 beta = NULL,
                  A = NULL,
                  is_symmetric = FALSE,
                  matrix_normalize = FALSE,
                  use_cpp = FALSE,
                  n_threads = 1) {
   W <- calc_d2(Y, use_cpp = use_cpp, n_threads = n_threads)
-  
+
   if (!is.null(beta)) {
     W <- exp_shift(-W * beta)
-  }
-  else {
+  } else {
     W <- exp_shift(-W)
   }
-  
+
   if (!is.null(A)) {
     W <- A * W
   }
   diag(W) <- 0
-  
+
   if (matrix_normalize) {
     Z <- sum(W)
-  }
-  else {
+  } else {
     if (is_symmetric) {
       Z <- colSums(W)
-    }
-    else {
+    } else {
       Z <- rowSums(W)
     }
   }
   # cost of division (vs storing 1/Z and multiplying) seems small
   Q <- W / Z
-  
+
   if (eps > 0) {
     Q[Q < eps] <- eps
   }
   diag(Q) <- 0
-  
-  list(
-    Q = Q,
-    Z = Z
-  )
+
+  list(Q = Q, Z = Z)
 }
 
 # KL divergence using Q directly
 kl_costQ <- function(cost, Y) {
   cost <- cost_update(cost, Y)
-  
+
   # P log(P / Q) = P log P - P log Q
   cost$pcost <- cost$plogp - colSums(cost$P * logm(cost$Q, cost$eps))
   cost
@@ -100,7 +96,7 @@ kl_costQ <- function(cost, Y) {
 
 kl_costQr <- function(cost, Y) {
   cost <- cost_update(cost, Y)
-  
+
   # P log(P / Q) = P log P - P log Q
   cost$pcost <- cost$plogp - rowSums(cost$P * logm(cost$Q, cost$eps))
   cost
