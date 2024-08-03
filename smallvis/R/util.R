@@ -8,20 +8,22 @@ dist2 <- function(X) {
   D2 + sweep(X %*% t(X) * -2, 2, t(D2), `+`)
 }
 
-calc_d2 <- function(X, use_cpp = FALSE, n_threads = 1) {
+calc_d2 <- function(X,
+                    use_cpp = FALSE,
+                    n_threads = 1) {
   if (use_cpp) {
     dist2_cpp(X, n_threads = n_threads)
-  }
-  else {
+  } else {
     safe_dist2(X)
   }
 }
 
-calc_d <- function(X, use_cpp = FALSE, n_threads = 1) {
+calc_d <- function(X,
+                   use_cpp = FALSE,
+                   n_threads = 1) {
   if (use_cpp) {
     dist_cpp(X, n_threads = n_threads)
-  }
-  else {
+  } else {
     sqrt(safe_dist2(X))
   }
 }
@@ -33,20 +35,22 @@ safe_dist2 <- function(X) {
   D2
 }
 
-calc_d2tweight <- function(D2, use_cpp = FALSE, n_threads = 1) {
+calc_d2tweight <- function(D2,
+                           use_cpp = FALSE,
+                           n_threads = 1) {
   if (use_cpp) {
     d2_to_tweight_cpp(D2, n_threads = n_threads)
-  }
-  else {
+  } else {
     1 / (1 + D2)
   }
 }
 
-calc_tweight <- function(X, use_cpp = FALSE, n_threads = 1) {
+calc_tweight <- function(X,
+                         use_cpp = FALSE,
+                         n_threads = 1) {
   if (use_cpp) {
     tweight_cpp(X, n_threads = n_threads)
-  }
-  else {
+  } else {
     D2 <- calc_d2(X, use_cpp = use_cpp, n_threads = n_threads)
     1 / (1 + D2)
   }
@@ -63,10 +67,13 @@ stime <- function() {
 }
 
 # message with a time stamp
-tsmessage <- function(..., domain = NULL, appendLF = TRUE, force = FALSE,
+tsmessage <- function(...,
+                      domain = NULL,
+                      appendLF = TRUE,
+                      force = FALSE,
                       time_stamp = TRUE) {
   verbose <- get0("verbose", envir = sys.parent())
-  
+
   if (force || (!is.null(verbose) && verbose)) {
     msg <- ""
     if (time_stamp) {
@@ -115,18 +122,15 @@ nnat <- function(x) {
 # log vector information
 summarize <- function(X, msg = "", verbose = FALSE) {
   summary_X <- summary(X, digits = max(3, getOption("digits") - 3))
-  tsmessage(msg, ": ", paste(names(summary_X), ":", summary_X, "|",
-                             collapse = ""))
+  tsmessage(msg, ": ", paste(names(summary_X), ":", summary_X, "|", collapse = ""))
 }
 
 # Format perplexity as a string. Could be a scalar or a vector. In the latter
 # case, just list the first two values and then ellipses
 format_perps <- function(perplexity) {
   if (length(perplexity) > 1) {
-    paste0(formatC(perplexity[1]), ", ",
-           formatC(perplexity[2]), "...")
-  }
-  else {
+    paste0(formatC(perplexity[1]), ", ", formatC(perplexity[2]), "...")
+  } else {
     formatC(perplexity)
   }
 }

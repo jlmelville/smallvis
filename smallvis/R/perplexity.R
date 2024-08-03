@@ -7,48 +7,49 @@
 # NB set default kernel to "exp" to get results closer to the tsne package.
 # This differs from the procedure in the t-SNE paper by exponentially weighting
 # the distances, rather than the squared distances.
-x2aff <- function(X, perplexity = 15, tol = 1e-5, kernel = "gauss",
-                  verbose = FALSE, guesses = NULL) {
+x2aff <- function(X,
+                  perplexity = 15,
+                  tol = 1e-5,
+                  kernel = "gauss",
+                  verbose = FALSE,
+                  guesses = NULL) {
   x_is_dist <- methods::is(X, "dist")
   if (x_is_dist) {
     D <- X
     n <- attr(D, "Size")
-    
+
     D <- as.matrix(D)
     if (kernel == "gauss") {
       D <- D * D
     }
-  }
-  else {
+  } else {
     XX <- rowSums(X * X)
     n <- nrow(X)
   }
-  
+
   nperps <- length(perplexity)
   if (nperps > 1 && nperps != n) {
     stop("Must provide one perplexity per point")
   }
-  
+
   if (!is.null(guesses) && length(guesses) != n) {
     stop("Initial guess vector must match number of observations in X")
   }
-  
+
   W <- matrix(0, n, n)
   intd <- rep(0, n)
   if (!is.null(guesses)) {
     beta <- guesses
-  }
-  else {
+  } else {
     beta <- rep(1, n)
   }
   if (nperps == 1) {
     logU <- log(perplexity)
-  }
-  else {
+  } else {
     perps <- perplexity
   }
   bad_perp <- 0
-  
+
   for (i in 1:n) {
     if (nperps > 1) {
       perplexity <- perps[i]
@@ -56,18 +57,17 @@ x2aff <- function(X, perplexity = 15, tol = 1e-5, kernel = "gauss",
     }
     betamin <- -Inf
     betamax <- Inf
-    
+
     if (x_is_dist) {
       Di <- D[i, -i]
-    }
-    else {
+    } else {
       Di <- (XX[i] + XX - 2 * colSums(tcrossprod(X[i, ], X)))[-i]
       Di[Di < 0] <- 0
       if (kernel == "exp") {
         Di <- sqrt(Di)
       }
     }
-    
+
     # If we haven't been provided with guesses, then try the initialization used
     # for all points in ELKI according to Schubert & Gertz in "Intrinsic
     # t-Stochastic Neighbor Embedding for Visualization and Outlier Detection: A
@@ -77,12 +77,12 @@ x2aff <- function(X, perplexity = 15, tol = 1e-5, kernel = "gauss",
     if (is.null(guesses) && i == 1) {
       beta[1] <- 0.5 * perplexity / mean(Di)
     }
-    
+
     sres <- shannon(Di, beta[i])
     H <- sres$H
     Wi <- sres$W
     sumWi <- sres$Z
-    
+
     Hdiff <- H - logU
     tries <- 0
     while (abs(Hdiff) > tol && tries < 50) {
@@ -101,12 +101,12 @@ x2aff <- function(X, perplexity = 15, tol = 1e-5, kernel = "gauss",
           beta[i] <- (beta[i] + betamin) / 2
         }
       }
-      
+
       sres <- shannon(Di, beta[i])
       H <- sres$H
       Wi <- sres$W
       sumWi <- sres$Z
-      
+
       Hdiff <- H - logU
       tries <- tries + 1
     }
@@ -114,14 +114,13 @@ x2aff <- function(X, perplexity = 15, tol = 1e-5, kernel = "gauss",
       # Put a weight of 1/perplexity on the perplexity-nearest neighbors
       bad_perp <- bad_perp + 1
       knn_idx <- order(Di, decreasing = FALSE)[1:max(floor(perplexity), 1)]
-      knn_idx[knn_idx >= i] <- knn_idx[knn_idx >= i]  + 1
+      knn_idx[knn_idx >= i] <- knn_idx[knn_idx >= i] + 1
       Wi <- rep(0, n)
       Wi[knn_idx] <- 1 / floor(perplexity)
-      
+
       intd[i] <- 0
       W[i, ] <- Wi
-    }
-    else {
+    } else {
       # if we didn't supply estimates for beta manually, then initialize guess for
       # next point with optimized beta for this point: doesn't save many
       # iterations, but why not?
@@ -131,15 +130,14 @@ x2aff <- function(X, perplexity = 15, tol = 1e-5, kernel = "gauss",
       intd[i] <- intd_x2aff(Di, beta[i], Wi, sumWi, H)
       W[i, -i] <- Wi
     }
-    
   }
   sigma <- sqrt(1 / beta)
-  
+
   if (bad_perp > 0) {
     tsmessage("Warning: ", bad_perp, " perplexity calibrations failed!")
     warning(bad_perp, " perplexity calibrations failed")
   }
-  
+
   if (verbose) {
     summarize(sigma, "sigma summary", verbose = verbose)
     summarize(intd, "Dint", verbose = verbose)
@@ -156,37 +154,34 @@ x2aff <- function(X, perplexity = 15, tol = 1e-5, kernel = "gauss",
 shannon <- function(D2, beta) {
   W <- exp(-D2 * beta)
   Z <- sum(W)
-  
+
   if (Z == 0) {
     H <- 0
-  }
-  else {
+  } else {
     H <- log(Z) + beta * sum(D2 * W) / Z
   }
-  list(
-    W = W,
-    Z = Z,
-    H = H
-  )
+  list(W = W, Z = Z, H = H)
 }
 
-x2aff_sigma <- function(X, sigma = 1e-3, verbose = FALSE, use_cpp = FALSE, 
+x2aff_sigma <- function(X,
+                        sigma = 1e-3,
+                        verbose = FALSE,
+                        use_cpp = FALSE,
                         n_threads = 1) {
   x_is_dist <- methods::is(X, "dist")
   if (x_is_dist) {
     D <- X
-    
+
     D <- as.matrix(D)
     D <- D * D
-  }
-  else {
+  } else {
     D <- calc_d2(X, use_cpp = use_cpp, n_threads = n_threads)
   }
   beta <- 1 / (sigma * sigma)
   sres <- shannon(D, beta)
   W <- sres$W
   diag(W) <- 0
-  
+
   list(W = W, beta = beta)
 }
 
@@ -209,8 +204,7 @@ knn_dist <- function(X, k, n_threads, verbose) {
       Di[Di > kdists[i]] <- Inf
       D[, i] <- Di
     }
-  }
-  else {
+  } else {
     # Find the k-nearest indexes and distances of X, and set the corresponding
     # distance matrix elements
     n <- nrow(X)
@@ -221,14 +215,14 @@ knn_dist <- function(X, k, n_threads, verbose) {
     knn <- rnndescent::brute_force_knn(X, k = k + 1, n_threads = n_threads)
     knn$idx <- knn$idx[, 2:(k + 1)]
     knn$dist <- knn$dist[, 2:(k + 1)]
-    
+
     D <- matrix(Inf, nrow = n, ncol = n)
     diag(D) <- 0
     for (i in 1:n) {
       D[i, knn$idx[i, ]] <- knn$dist[i, ]
     }
   }
-  
+
   # symmetrize
   pmin(D, t(D))
 }
@@ -250,19 +244,18 @@ knn_graph <- function(X, k, n_threads, verbose) {
       Di[Di > kdists[i]] <- 0
       D[, i] <- 1
     }
-  }
-  else {
+  } else {
     # Find the k-nearest indexes and distances of X, and set the corresponding
     # distance matrix elements
     n <- nrow(X)
     if (k > n - 1) {
       stop("k must be not be > n - 1")
     }
-    
+
     tsmessage("Finding ", k + 1, " nearest neighbors")
     knn <- rnndescent::brute_force_knn(X, k = k + 1, n_threads = n_threads)
     knn$idx <- knn$idx[, 2:(k + 1)]
-    
+
     D <- matrix(0, nrow = n, ncol = n)
     for (i in 1:n) {
       D[i, knn$idx[i, ]] <- 1
@@ -273,19 +266,26 @@ knn_graph <- function(X, k, n_threads, verbose) {
 
 # Given data X and k nearest neighbors, return a geodisic distance matrix
 # Disconnections are treated by using the Euclidean distance.
-geodesic <- function(X, k, fill = TRUE, use_cpp = FALSE, n_threads = 0, 
+geodesic <- function(X,
+                     k,
+                     fill = TRUE,
+                     use_cpp = FALSE,
+                     n_threads = 0,
                      verbose = FALSE) {
   tsmessage("Calculating geodesic distances with k = ", k)
-  
+
   R <- knn_dist(X, k, n_threads = n_threads, verbose = verbose)
   # The hard work is done by Rfast's implementation of Floyd's algorithm
   G <- Rfast::floyd(R)
   if (any(is.infinite(G)) && fill) {
-    tsmessage("k = ", k, " resulted in disconnections: filling with Euclidean distances")
+    tsmessage(
+      "k = ",
+      k,
+      " resulted in disconnections: filling with Euclidean distances"
+    )
     if (methods::is(X, "dist")) {
       R <- as.matrix(X)
-    }
-    else {
+    } else {
       R <- calc_d(X, use_cpp = use_cpp, n_threads = n_threads)
     }
     G[is.infinite(G)] <- R[is.infinite(G)]
@@ -293,54 +293,73 @@ geodesic <- function(X, k, fill = TRUE, use_cpp = FALSE, n_threads = 0,
   G
 }
 
-# Multiscale perplexities: P is an average over the results of multiple 
+# Multiscale perplexities: P is an average over the results of multiple
 # perplexities
 # as described by de Bodt et al in
 # Perplexity-free t-SNE and twice Student tt-SNE (2018)
-msp <- function(X, perplexities = NULL, tol = 1e-5,
-                symmetrize = "symmetric", row_normalize = TRUE,
+msp <- function(X,
+                perplexities = NULL,
+                tol = 1e-5,
+                symmetrize = "symmetric",
+                row_normalize = TRUE,
                 normalize = TRUE,
-                verbose = FALSE, guesses = NULL) {
+                verbose = FALSE,
+                guesses = NULL) {
   if (methods::is(X, "dist")) {
     n <- attr(X, "Size")
-  }
-  else {
+  } else {
     n <- nrow(X)
   }
-  
+
   if (is.null(perplexities)) {
     perplexities <- idp_perps(n)
   }
-  tsmessage("Calculating multi-scale P with perplexities from ",
-            formatC(perplexities[1]), " to ", formatC(last(perplexities)))
-  
+  tsmessage(
+    "Calculating multi-scale P with perplexities from ",
+    formatC(perplexities[1]),
+    " to ",
+    formatC(last(perplexities))
+  )
+
   res <- NULL
   for (perplexity in perplexities) {
-    tsmessage("Commencing calibration for perplexity = ",
-              format_perps(perplexity))
-    x2a_res <- x2aff(X = X, perplexity = perplexity, tol = tol, kernel = "gauss",
-                     verbose = verbose, guesses = guesses)
+    tsmessage(
+      "Commencing calibration for perplexity = ",
+      format_perps(perplexity)
+    )
+    x2a_res <- x2aff(
+      X = X,
+      perplexity = perplexity,
+      tol = tol,
+      kernel = "gauss",
+      verbose = verbose,
+      guesses = guesses
+    )
     P <- x2a_res$W
-    Q <- scale_affinities(P, 
-                          symmetrize = "symmetric", row_normalize = TRUE,
-                          normalize = TRUE)
+    Q <- scale_affinities(
+      P,
+      symmetrize = "symmetric",
+      row_normalize = TRUE,
+      normalize = TRUE
+    )
     if (is.null(res)) {
       res$P <- Q
-    }
-    else {
+    } else {
       res$P <- res$P + Q
     }
   }
-  
+
   if (length(perplexities) > 1) {
     res$P <- res$P / length(perplexities)
   }
-  
+
   if (is.logical(row_normalize)) {
-    tsmessage("Effective perplexity of multiscale P approx = ", 
-              formatC(stats::median(perpp(res$P))))
+    tsmessage(
+      "Effective perplexity of multiscale P approx = ",
+      formatC(stats::median(perpp(res$P)))
+    )
   }
-  
+
   res
 }
 
@@ -348,38 +367,51 @@ msp <- function(X, perplexities = NULL, tol = 1e-5,
 # Scan through the provided perplexities and use the result which maximizes
 # the mean correlation dimension (which is an estimate for the intrinsic
 # dimensionality). Stops at the first maxmimum found.
-idp <- function(X, perplexities = NULL, tol = 1e-5,
-                verbose = FALSE, guesses = NULL) {
+idp <- function(X,
+                perplexities = NULL,
+                tol = 1e-5,
+                verbose = FALSE,
+                guesses = NULL) {
   if (methods::is(X, "dist")) {
     n <- attr(X, "Size")
-  }
-  else {
+  } else {
     n <- nrow(X)
   }
-  
+
   if (is.null(perplexities)) {
     perplexities <- idp_perps(n)
   }
   if (verbose) {
-    tsmessage("Searching for intrinsic dimensionality with perplexities from ",
-              formatC(perplexities[1]), " to ", formatC(last(perplexities)))
+    tsmessage(
+      "Searching for intrinsic dimensionality with perplexities from ",
+      formatC(perplexities[1]),
+      " to ",
+      formatC(last(perplexities))
+    )
   }
-  
+
   corr_dim_max <- -Inf
   idp <- 0
   idp_res <- NULL
   for (perplexity in perplexities) {
     if (verbose) {
-      tsmessage("Commencing calibration for perplexity = ",
-                format_perps(perplexity))
+      tsmessage(
+        "Commencing calibration for perplexity = ",
+        format_perps(perplexity)
+      )
     }
-    x2a_res <- x2aff(X = X, perplexity = perplexity, tol = tol, kernel = "gauss",
-                     verbose = verbose, guesses = guesses)
+    x2a_res <- x2aff(
+      X = X,
+      perplexity = perplexity,
+      tol = tol,
+      kernel = "gauss",
+      verbose = verbose,
+      guesses = guesses
+    )
     corr_dim <- mean(x2a_res$dint)
     if (corr_dim <= corr_dim_max) {
       break
-    }
-    else {
+    } else {
       corr_dim_max <- corr_dim
       idp <- perplexity
       idp_res <- x2a_res
@@ -389,10 +421,14 @@ idp <- function(X, perplexities = NULL, tol = 1e-5,
     stop("Unable to find an IDP: all correlation dimensions were -ve")
   }
   if (verbose) {
-    tsmessage("Found IDP at perplexity = ", formatC(idp),
-              " intrinsic dimensionality = ", formatC(corr_dim_max))
+    tsmessage(
+      "Found IDP at perplexity = ",
+      formatC(idp),
+      " intrinsic dimensionality = ",
+      formatC(corr_dim_max)
+    )
   }
-  
+
   idp_res$idp <- idp
   idp_res
 }
@@ -405,7 +441,7 @@ idp_perps <- function(n) {
   max_u <- min(128, max(2, ceiling(n / 2)))
   max_uexp <- floor(log2(max_u))
   min_uexp <- min(2, max_uexp)
-  2 ^ (min_uexp:max_uexp)
+  2^(min_uexp:max_uexp)
 }
 
 # Is the perplexity argument a string or a list with the first element is a
@@ -415,8 +451,7 @@ perp_method <- function(perplexity) {
   if (is.character(perplexity) || is.list(perplexity)) {
     if (is.list(perplexity)) {
       method <- perplexity[[1]]
-    }
-    else {
+    } else {
       method <- perplexity
     }
   }
