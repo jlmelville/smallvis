@@ -876,16 +876,520 @@ smallvis <- function(X,
   if (is.logical(epoch_callback)) {
     if (epoch_callback) {
       epoch_callback <- make_smallvis_cb(X)
-    }
-    else {
+    } else {
       epoch_callback <- NULL
     }
-  }
-  else if (is.function(epoch_callback)) {
+  } else if (is.function(epoch_callback)) {
     force(epoch_callback)
   }
-  
+
   # The embedding method
+  cost_fn <- create_cost(method, perplexity, eps, n_threads, use_cpp)
+
+  if (exaggeration_factor != 1) {
+    if (stop_lying_iter < 1) {
+      stop("stop_lying_iter must be >= 1")
+    }
+  }
+
+  if (late_exaggeration_factor != 1) {
+    if (start_late_lying_iter < 1) {
+      stop("start_late_lying_iter must be >= 1")
+    }
+  }
+
+  if (exaggeration_factor != 1 && late_exaggeration_factor != 1) {
+    if (start_late_lying_iter < stop_lying_iter) {
+      stop("start_late_lying_iter must be >= stop_lying_iter")
+    }
+  }
+
+  if (methods::is(pca, "character") && pca == "whiten") {
+    pca <- TRUE
+    whiten <- TRUE
+  } else {
+    whiten <- FALSE
+  }
+  if (pca && initial_dims < k) {
+    stop(
+      "Initial PCA dimensionality must be larger than desired output ",
+      "dimension"
+    )
+  }
+
+  start_time <- NULL
+  ret_optionals <- c()
+  if (methods::is(ret_extra, "character")) {
+    ret_optionals <- ret_extra
+    ret_extra <- TRUE
+  }
+
+  if (ret_extra) {
+    start_time <- Sys.time()
+  }
+
+  if (methods::is(X, "dist")) {
+    n <- attr(X, "Size")
+  } else {
+    if (methods::is(X, "data.frame")) {
+      indexes <- which(vapply(X, is.numeric, logical(1)))
+      tsmessage("Found ", length(indexes), " numeric columns")
+      if (length(indexes) == 0) {
+        stop("No numeric columns found")
+      }
+      X <- X[, indexes]
+    }
+
+    X <- scale_input(X, scale, verbose = verbose)
+    X <- pca_preprocess(X, pca, whiten, initial_dims, verbose = verbose)
+    n <- nrow(X)
+  }
+
+  # Check for NA
+  if (any(is.na(X))) {
+    stop("Input data contains NA: missing data is not allowed")
+  }
+
+  # Fail early as possible if matrix initializer is invalid
+  if (methods::is(Y_init, "matrix")) {
+    if (nrow(Y_init) != n || ncol(Y_init) != k) {
+      stop("Y_init matrix does not match necessary configuration for X")
+    }
+  }
+
+  # Optimizer
+  if (opt[[1]] == "dbd" || opt[[1]] == "ndbd") {
+    if (eta == "optsne") {
+      eta <- n / exaggeration_factor
+      tsmessage("Using opt-SNE learning rate = ", formatC(eta))
+    }
+    opt_list <- lmerge(
+      opt,
+      list(
+        momentum = momentum,
+        final_momentum = final_momentum,
+        mom_switch_iter = mom_switch_iter,
+        eta = eta,
+        min_gain = min_gain,
+        verbose = verbose
+      )
+    )
+  } else {
+    opt_list <- opt
+  }
+  opt <- opt_create(opt_list, verbose = verbose)
+
+  # Initialize the cost function and create P
+  cost_fn <- cost_init(
+    cost_fn,
+    X,
+    max_iter = max_iter,
+    verbose = verbose,
+    ret_extra = ret_optionals
+  )
+
+  # Output Initialization
+  if (!is.null(Y_init)) {
+    if (methods::is(Y_init, "matrix")) {
+      Y <- Y_init
+      Y_init <- "matrix"
+    } else {
+      Y_init <- match.arg(
+        tolower(Y_init),
+        c("rand", "pca", "spca", "laplacian", "normlaplacian")
+      )
+
+      if (!is_spectral_init(Y_init)) {
+        # We now handle scaling coordinates below, so spca is treated like pca
+        non_spectral_init <- Y_init
+        if (non_spectral_init == "spca") {
+          non_spectral_init <- "pca"
+        }
+        Y <- init_out(non_spectral_init,
+          X,
+          n,
+          k,
+          pca_preprocessed = pca,
+          verbose = verbose
+        )
+      } else {
+        # Use normalized or unnormalized input weight for spectral initialization
+        # Pretty sure it doesn't matter, given the current options
+        A <- cost_fn$V
+        if (is.null(A)) {
+          A <- cost_fn$P
+          if (!is.null(A)) {
+            tsmessage("Using P for spectral initialization")
+          }
+        } else {
+          tsmessage("Using V for spectral initialization")
+        }
+
+        if (is.null(A)) {
+          if (!is.null(cost_fn$knn)) {
+            tsmessage("Using knn 1 / 1 + R for spectral initialization")
+            A <- 1 / (1 + cost_fn$R)
+            A[cost_fn$knn == 0] <- 0
+          } else if (!is.null(cost_fn$R)) {
+            tsmessage("Using 1/ (1 + R) for spectral initialization")
+            A <- 1 / (1 + cost_fn$R)
+          } else {
+            stop("No suitable input for spectral initialization")
+          }
+        }
+
+        if (Y_init == "laplacian") {
+          tsmessage("Initializing from Laplacian Eigenmap")
+          Y <- laplacian_eigenmap(A, ndim = k)
+        } else {
+          tsmessage("Initializing from normalized Laplacian")
+          Y <- normalized_spectral_init(A, ndim = k)
+        }
+      }
+    }
+    if (!is.null(Y_init_sdev) ||
+      Y_init == "spca" || Y_init == "rand") {
+      if (is.null(Y_init_sdev)) {
+        Y_init_sdev <- 1e-4
+      }
+      tsmessage("Scaling initial coords to sdev = ", formatC(Y_init_sdev))
+      Y <- shrink_coords(Y, Y_init_sdev)
+    }
+  }
+
+  cost <- NA
+  itercosts <- c()
+  if (iter0_cost && (verbose || ret_extra)) {
+    cost_eval_res <- cost_eval(cost_fn, Y)
+    cost_fn <- cost_eval_res$cost
+    cost <- cost_eval_res$value
+
+    tsmessage("Iteration #0 error: ", formatC(cost))
+
+    if (ret_extra) {
+      names(cost) <- 0
+      itercosts <- c(itercosts, cost)
+    }
+    cost_fn <- cost_clear(cost_fn)
+  }
+
+  # Display initialization
+  if (!is.null(epoch_callback)) {
+    do_callback(epoch_callback, Y, 0, cost, cost_fn, opt)
+  }
+  if (max_iter < 1) {
+    return(
+      ret_value(
+        Y,
+        ret_extra,
+        method,
+        X,
+        scale,
+        Y_init,
+        iter = 0,
+        cost_fn = cost_fn,
+        itercosts = itercosts,
+        start_time = start_time,
+        optionals = ret_optionals,
+        pca = ifelse(pca && !whiten, initial_dims, 0),
+        whiten = ifelse(pca &&
+          whiten, initial_dims, 0),
+        use_cpp = use_cpp,
+        n_threads = n_threads
+      )
+    )
+  }
+
+  opt_stages <- c()
+  if (exaggeration_factor != 1) {
+    opt_stages <- c(opt_stages, "early")
+  }
+  opt_stages <- c(opt_stages, "opt")
+  if (late_exaggeration_factor != 1) {
+    opt_stages <- c(opt_stages, "late")
+  }
+  opt_stage_idx <- 1
+
+  opt_epoch <- epoch
+  opt_tol <- tol
+  old_cdiffrc <- NULL
+  # Start exaggerating
+  if (!is.null(cost_fn$P) && exaggeration_factor != 1) {
+    cost_fn <- start_exaggerating(cost_fn, exaggeration_factor)
+    if (!is.null(ee_mon_epoch)) {
+      epoch <- ee_mon_epoch
+      # prevent tolerance based convergence if we monitor EE
+      ee_mon_tol <- 0
+      tol <- ee_mon_tol
+      stop_lying_iter <- max_iter
+      tsmessage(
+        "Applying early exaggeration factor = ",
+        exaggeration_factor,
+        ", epoch every ",
+        epoch,
+        " iterations"
+      )
+    }
+  } else {
+    stop_lying_iter <- 0
+  }
+
+  old_cost <- NULL
+  tolval <- NULL
+  tsmessage("Optimizing coordinates")
+
+  # Use a while loop, so we can change max_iter inside the loop
+  iter <- 0
+  while (iter < max_iter) {
+    iter <- iter + 1
+    opt_res <- opt_step(opt, cost_fn, Y, iter)
+    opt <- opt_res$opt
+    cost_fn <- opt_res$cost_fn
+    Y <- opt_res$Y
+
+    if (!is.null(cost_fn$P) && iter == stop_lying_iter &&
+      exaggeration_factor != 1) {
+      tsmessage("Switching off exaggeration at iter ", iter)
+      cost_fn <- stop_exaggerating(cost_fn, exaggeration_factor)
+      opt_stage_idx <- opt_stage_idx + 1
+      epoch <- opt_epoch
+      tol <- opt_tol
+    }
+
+    if (!is.null(cost_fn$P) && iter == start_late_lying_iter &&
+      late_exaggeration_factor != 1) {
+      tsmessage(
+        "Starting late exaggeration = ",
+        formatC(late_exaggeration_factor),
+        " at iter ",
+        iter,
+        " until iter ",
+        max_iter
+      )
+      cost_fn <- start_exaggerating(cost_fn, late_exaggeration_factor)
+
+      opt_stage_idx <- opt_stage_idx + 1
+    }
+
+    if (nnat(opt$is_terminated)) {
+      tsmessage(
+        "Iteration #",
+        iter,
+        " stopping early: optimizer reports convergence: ",
+        opt$terminate$what
+      )
+      max_iter <- iter
+      break
+    }
+
+    # Recenter after each iteration
+    Y <- sweep(Y, 2, colMeans(Y))
+
+    if ((epoch > 0 && iter %% epoch == 0) || iter == max_iter) {
+      stop_early <- FALSE
+
+      cost_eval_res <- cost_eval(cost_fn, Y, opt_res)
+      cost_fn <- cost_eval_res$cost
+      cost <- cost_eval_res$value
+
+      if (!is.null(old_cost)) {
+        tolval <- reltol(cost, old_cost) / epoch
+      }
+
+      if (verbose) {
+        tsmessage(
+          "Iteration #",
+          iter,
+          " error: ",
+          formatC(cost),
+          " ||G||2 = ",
+          formatC(norm2(opt_res$G)),
+          appendLF = FALSE
+        )
+        if (!is.null(tolval)) {
+          message(" tol = ", formatC(tolval), appendLF = FALSE)
+        }
+
+        if (!is.null(opt$counts)) {
+          message(" nf = ",
+            opt$counts$fn,
+            " ng = ",
+            opt$counts$gr,
+            appendLF = FALSE
+          )
+        }
+
+        # special treatment for mize innards
+        if (!is.null(opt$stages$gradient_descent$step_size$value)) {
+          opt$stages$gradient_descent$step_size$value
+          message(
+            " alpha = ",
+            formatC(opt$stages$gradient_descent$step_size$value),
+            appendLF = FALSE
+          )
+        }
+
+        if (!is.null(old_cost) && cost > old_cost) {
+          message(" !", appendLF = FALSE)
+        }
+
+        if (!is.null(opt$epoch)) {
+          opt <- opt$epoch(Y, iter, cost, cost_fn, opt)
+        }
+
+        message()
+        utils::flush.console()
+      }
+      if (!is.null(epoch_callback)) {
+        do_callback(epoch_callback, Y, iter, cost, cost_fn, opt)
+      }
+
+      if (ret_extra) {
+        names(cost) <- iter
+        itercosts <- c(itercosts, cost)
+      }
+
+      # Early stopping tests
+      if (!is.null(ee_mon_epoch)) {
+        cdiff <- old_cost - cost
+        cdiffrc <- cdiff / old_cost
+        if (length(cdiffrc) > 0 &&
+          opt_stages[opt_stage_idx] == "early") {
+          if (iter > ee_mon_wait &&
+            length(cdiffrc) > 0 && length(old_cdiffrc) > 0 &&
+            cdiffrc < old_cdiffrc) {
+            if (ee_mon_buffer < 1) {
+              stop_early <- TRUE
+              tsmessage("Stopping early: EE relative change reached maximum")
+            } else {
+              ee_mon_buffer <- ee_mon_buffer - 1
+            }
+          }
+        }
+        old_cdiffrc <- cdiffrc
+      }
+      if (cost < min_cost) {
+        stop_early <- TRUE
+        tsmessage("Stopping early: cost fell below min_cost")
+      }
+
+      if (!nnat(opt$is_terminated) && !is.null(tolval) &&
+        tolval < tol && cost <= old_cost &&
+        (iter > stop_lying_iter + tol_wait ||
+          opt_stages[opt_stage_idx] != "opt")) {
+        stop_early <- TRUE
+        tsmessage(
+          "Stopping early: relative tolerance (",
+          formatC(tol),
+          ") met"
+        )
+      }
+
+      # Alternative tolerance grad 2norm doesn't need cost to decrease to stop
+      # (Use this for certain settings with e.g. LargeVis where numerical issues
+      # can cause the cost function to increase almost negligibly)
+      g2tolval <- (norm2(opt_res$G))
+      if (!nnat(opt$is_terminated) &&
+        !is.null(g2tol) && g2tolval < g2tol &&
+        (iter > stop_lying_iter + tol_wait ||
+          opt_stages[opt_stage_idx] != "opt")) {
+        stop_early <- TRUE
+        tsmessage(
+          "Stopping early: ||G||2 tolerance (",
+          formatC(g2tol),
+          ") met"
+        )
+      }
+
+      # Stop current stage early if we aren't making progress
+      if (stop_early) {
+        if (opt_stage_idx == length(opt_stages)) {
+          # run out of optimization stages, so give up
+          break
+        }
+
+        opt_stage <- opt_stages[opt_stage_idx]
+        if (opt_stage == "early") {
+          # stop early exaggeration and adjust mom_switch_iter accordingly
+          # Only applies to DBD optimizer
+          n_low_mom_iters <- mom_switch_iter - stop_lying_iter
+          stop_lying_iter <- iter + 1
+          mom_switch_iter <- stop_lying_iter + n_low_mom_iters
+          opt$mom_switch_iter <- mom_switch_iter
+        }
+
+        # we know there is at least one more stage or we would have hit the
+        # break earlier
+        next_opt_stage <- opt_stages[opt_stage_idx + 1]
+
+        switch(next_opt_stage,
+          opt = tsmessage("Proceeding to main optimization stage"),
+          late = {
+            n_late_exagg_iters <- max_iter - start_late_lying_iter
+            start_late_lying_iter <- iter + 1
+            max_iter <- start_late_lying_iter + n_late_exagg_iters
+            tsmessage("Proceeding to late exaggeration stage")
+          },
+          stop("BUG: unknown optimization stage '", next_opt_stage, "'")
+        )
+      }
+
+      if (nnat(opt$is_terminated)) {
+        break
+      }
+
+      old_cost <- cost
+
+      # Any special custom epoch stuff
+      epoch_res <- do_epoch(opt, cost_fn, iter, Y, cost)
+      opt <- epoch_res$opt
+      cost_fn <- epoch_res$cost
+    }
+  }
+
+  if (opt_stages[opt_stage_idx] == "early") {
+    cost_fn <- stop_exaggerating(cost_fn, exaggeration_factor)
+  }
+  if (opt_stages[opt_stage_idx] == "late") {
+    cost_fn <- stop_exaggerating(cost_fn, late_exaggeration_factor)
+  }
+
+  # Recenter before output
+  Y <- sweep(Y, 2, colMeans(Y))
+  res <- ret_value(
+    Y,
+    ret_extra,
+    method,
+    X,
+    scale,
+    Y_init,
+    iter,
+    start_time,
+    cost_fn = cost_fn,
+    opt_res$G,
+    perplexity,
+    itercosts,
+    stop_lying_iter,
+    start_late_lying_iter,
+    opt_list,
+    opt,
+    exaggeration_factor,
+    late_exaggeration_factor,
+    optionals = ret_optionals,
+    pca = ifelse(pca && !whiten, initial_dims, 0),
+    whiten = ifelse(pca && whiten, initial_dims, 0),
+    use_cpp = use_cpp,
+    n_threads = n_threads
+  )
+
+  res
+}
+
+create_cost <- function(method,
+                        perplexity,
+                        eps,
+                        n_threads,
+                        use_cpp) {
   method_names <- c(
     "tsne",
     "largevis",
@@ -938,8 +1442,7 @@ smallvis <- function(X,
   )
   if (is.character(method)) {
     method <- match.arg(tolower(method), method_names)
-    cost_fn <- switch(
-      method,
+    cost_fn <- switch(method,
       tsne = tsne(
         perplexity = perplexity,
         n_threads = n_threads,
@@ -1226,8 +1729,7 @@ smallvis <- function(X,
       ),
       stop("BUG: someone forgot to implement option: '", method, "'")
     )
-  }
-  else {
+  } else {
     if (is.list(method)) {
       methodlist <- method
       method_name <- methodlist[[1]]
@@ -1235,19 +1737,16 @@ smallvis <- function(X,
       method <- match.arg(tolower(method_name), method_names)
       if (exists(method_name)) {
         fn <- get(method_name)
-      }
-      else {
+      } else {
         stop("Unknown method: '", method_name, "'")
       }
-    }
-    else if (is.function(method)) {
+    } else if (is.function(method)) {
       fn <- method
       methodlist <- list()
-    }
-    else {
+    } else {
       stop("Bad method parameter type")
     }
-    
+
     param_names <- names(formals(fn))
     if ("perplexity" %in% param_names) {
       methodlist$perplexity <- perplexity
@@ -1257,509 +1756,8 @@ smallvis <- function(X,
     }
     cost_fn <- do.call(fn, methodlist)
   }
-  
-  if (exaggeration_factor != 1) {
-    if (stop_lying_iter < 1) {
-      stop("stop_lying_iter must be >= 1")
-    }
-  }
-  
-  if (late_exaggeration_factor != 1) {
-    if (start_late_lying_iter < 1) {
-      stop("start_late_lying_iter must be >= 1")
-    }
-  }
-  
-  if (exaggeration_factor != 1 && late_exaggeration_factor != 1) {
-    if (start_late_lying_iter < stop_lying_iter) {
-      stop("start_late_lying_iter must be >= stop_lying_iter")
-    }
-  }
-  
-  if (methods::is(pca, "character") && pca == "whiten") {
-    pca <- TRUE
-    whiten <- TRUE
-  }
-  else {
-    whiten <- FALSE
-  }
-  if (pca && initial_dims < k) {
-    stop("Initial PCA dimensionality must be larger than desired output ",
-         "dimension")
-  }
-  
-  start_time <- NULL
-  ret_optionals <- c()
-  if (methods::is(ret_extra, "character")) {
-    ret_optionals <- ret_extra
-    ret_extra <- TRUE
-  }
-  
-  if (ret_extra) {
-    start_time <- Sys.time()
-  }
-  
-  if (methods::is(X, "dist")) {
-    n <- attr(X, "Size")
-  }
-  else {
-    if (methods::is(X, "data.frame")) {
-      indexes <- which(vapply(X, is.numeric, logical(1)))
-      tsmessage("Found ", length(indexes), " numeric columns")
-      if (length(indexes) == 0) {
-        stop("No numeric columns found")
-      }
-      X <- X[, indexes]
-    }
-    
-    X <- scale_input(X, scale, verbose = verbose)
-    X <- pca_preprocess(X, pca, whiten, initial_dims, verbose = verbose)
-    n <- nrow(X)
-  }
-  
-  # Check for NA
-  if (any(is.na(X))) {
-    stop("Input data contains NA: missing data is not allowed")
-  }
-  
-  # Fail early as possible if matrix initializer is invalid
-  if (methods::is(Y_init, "matrix")) {
-    if (nrow(Y_init) != n || ncol(Y_init) != k) {
-      stop("Y_init matrix does not match necessary configuration for X")
-    }
-  }
-  
-  # Optimizer
-  if (opt[[1]] == "dbd" || opt[[1]] == "ndbd") {
-    if (eta == "optsne") {
-      eta <- n / exaggeration_factor
-      tsmessage("Using opt-SNE learning rate = ", formatC(eta))
-    }
-    opt_list <- lmerge(
-      opt,
-      list(
-        momentum = momentum,
-        final_momentum = final_momentum,
-        mom_switch_iter = mom_switch_iter,
-        eta = eta,
-        min_gain = min_gain,
-        verbose = verbose
-      )
-    )
-  }
-  else {
-    opt_list <- opt
-  }
-  opt <- opt_create(opt_list, verbose = verbose)
-  
-  # Initialize the cost function and create P
-  cost_fn <- cost_init(
-    cost_fn,
-    X,
-    max_iter = max_iter,
-    verbose = verbose,
-    ret_extra = ret_optionals
-  )
-  
-  # Output Initialization
-  if (!is.null(Y_init)) {
-    if (methods::is(Y_init, "matrix")) {
-      Y <- Y_init
-      Y_init <- "matrix"
-    }
-    else {
-      Y_init <- match.arg(tolower(Y_init),
-                          c("rand", "pca", "spca", "laplacian", "normlaplacian"))
-      
-      if (!is_spectral_init(Y_init)) {
-        # We now handle scaling coordinates below, so spca is treated like pca
-        non_spectral_init <- Y_init
-        if (non_spectral_init == "spca") {
-          non_spectral_init <- "pca"
-        }
-        Y <- init_out(non_spectral_init,
-                      X,
-                      n,
-                      k,
-                      pca_preprocessed = pca,
-                      verbose = verbose)
-      }
-      else {
-        # Use normalized or unnormalized input weight for spectral initialization
-        # Pretty sure it doesn't matter, given the current options
-        A <- cost_fn$V
-        if (is.null(A)) {
-          A <- cost_fn$P
-          if (!is.null(A)) {
-            tsmessage("Using P for spectral initialization")
-          }
-        }
-        else {
-          tsmessage("Using V for spectral initialization")
-        }
-        
-        if (is.null(A)) {
-          if (!is.null(cost_fn$knn)) {
-            tsmessage("Using knn 1 / 1 + R for spectral initialization")
-            A <- 1 / (1 + cost_fn$R)
-            A[cost_fn$knn == 0] <- 0
-          }
-          else if (!is.null(cost_fn$R)) {
-            tsmessage("Using 1/ (1 + R) for spectral initialization")
-            A <- 1 / (1 + cost_fn$R)
-          }
-          else {
-            stop("No suitable input for spectral initialization")
-          }
-        }
-        
-        if (Y_init == "laplacian") {
-          tsmessage("Initializing from Laplacian Eigenmap")
-          Y <- laplacian_eigenmap(A, ndim = k)
-        }
-        else {
-          tsmessage("Initializing from normalized Laplacian")
-          Y <- normalized_spectral_init(A, ndim = k)
-        }
-      }
-    }
-    if (!is.null(Y_init_sdev) ||
-        Y_init == "spca" || Y_init == "rand") {
-      if (is.null(Y_init_sdev)) {
-        Y_init_sdev <- 1e-4
-      }
-      tsmessage("Scaling initial coords to sdev = ", formatC(Y_init_sdev))
-      Y <- shrink_coords(Y, Y_init_sdev)
-    }
-  }
-  
-  cost <- NA
-  itercosts <- c()
-  if (iter0_cost && (verbose || ret_extra)) {
-    cost_eval_res <- cost_eval(cost_fn, Y)
-    cost_fn <- cost_eval_res$cost
-    cost <- cost_eval_res$value
-    
-    tsmessage("Iteration #0 error: ", formatC(cost))
-    
-    if (ret_extra) {
-      names(cost) <- 0
-      itercosts <- c(itercosts, cost)
-    }
-    cost_fn <- cost_clear(cost_fn)
-  }
-  
-  # Display initialization
-  if (!is.null(epoch_callback)) {
-    do_callback(epoch_callback, Y, 0, cost, cost_fn, opt)
-  }
-  if (max_iter < 1) {
-    return(
-      ret_value(
-        Y,
-        ret_extra,
-        method,
-        X,
-        scale,
-        Y_init,
-        iter = 0,
-        cost_fn = cost_fn,
-        itercosts = itercosts,
-        start_time = start_time,
-        optionals = ret_optionals,
-        pca = ifelse(pca && !whiten, initial_dims, 0),
-        whiten = ifelse(pca &&
-                          whiten, initial_dims, 0),
-        use_cpp = use_cpp,
-        n_threads = n_threads
-      )
-    )
-  }
-  
-  opt_stages <- c()
-  if (exaggeration_factor != 1) {
-    opt_stages <- c(opt_stages, "early")
-  }
-  opt_stages <- c(opt_stages, "opt")
-  if (late_exaggeration_factor != 1) {
-    opt_stages <- c(opt_stages, "late")
-  }
-  opt_stage_idx <- 1
-  
-  opt_epoch <- epoch
-  opt_tol <- tol
-  old_cdiffrc <- NULL
-  # Start exaggerating
-  if (!is.null(cost_fn$P) && exaggeration_factor != 1) {
-    cost_fn <- start_exaggerating(cost_fn, exaggeration_factor)
-    if (!is.null(ee_mon_epoch)) {
-      epoch <- ee_mon_epoch
-      # prevent tolerance based convergence if we monitor EE
-      ee_mon_tol <- 0
-      tol <- ee_mon_tol
-      stop_lying_iter <- max_iter
-      tsmessage(
-        "Applying early exaggeration factor = ",
-        exaggeration_factor,
-        ", epoch every ",
-        epoch,
-        " iterations"
-      )
-    }
-  }
-  else {
-    stop_lying_iter <- 0
-  }
-  
-  old_cost <- NULL
-  tolval <- NULL
-  tsmessage("Optimizing coordinates")
-  
-  # Use a while loop, so we can change max_iter inside the loop
-  iter <- 0
-  while (iter < max_iter) {
-    iter <- iter + 1
-    opt_res <- opt_step(opt, cost_fn, Y, iter)
-    opt <- opt_res$opt
-    cost_fn <- opt_res$cost_fn
-    Y <- opt_res$Y
-    
-    if (!is.null(cost_fn$P) && iter == stop_lying_iter &&
-        exaggeration_factor != 1) {
-      tsmessage("Switching off exaggeration at iter ", iter)
-      cost_fn <- stop_exaggerating(cost_fn, exaggeration_factor)
-      opt_stage_idx <- opt_stage_idx + 1
-      epoch <- opt_epoch
-      tol <- opt_tol
-    }
-    
-    if (!is.null(cost_fn$P) && iter == start_late_lying_iter &&
-        late_exaggeration_factor != 1) {
-      tsmessage(
-        "Starting late exaggeration = ",
-        formatC(late_exaggeration_factor),
-        " at iter ",
-        iter,
-        " until iter ",
-        max_iter
-      )
-      cost_fn <- start_exaggerating(cost_fn, late_exaggeration_factor)
-      
-      opt_stage_idx <- opt_stage_idx + 1
-    }
-    
-    if (nnat(opt$is_terminated)) {
-      tsmessage(
-        "Iteration #",
-        iter,
-        " stopping early: optimizer reports convergence: ",
-        opt$terminate$what
-      )
-      max_iter <- iter
-      break
-    }
-    
-    # Recenter after each iteration
-    Y <- sweep(Y, 2, colMeans(Y))
-    
-    if ((epoch > 0 && iter %% epoch == 0) || iter == max_iter) {
-      stop_early <- FALSE
-      
-      cost_eval_res <- cost_eval(cost_fn, Y, opt_res)
-      cost_fn <- cost_eval_res$cost
-      cost <- cost_eval_res$value
-      
-      if (!is.null(old_cost)) {
-        tolval <- reltol(cost, old_cost) / epoch
-      }
-      
-      if (verbose) {
-        tsmessage(
-          "Iteration #",
-          iter,
-          " error: ",
-          formatC(cost)
-          ,
-          " ||G||2 = ",
-          formatC(norm2(opt_res$G))
-          ,
-          appendLF = FALSE
-        )
-        if (!is.null(tolval)) {
-          message(" tol = ", formatC(tolval), appendLF = FALSE)
-        }
-        
-        if (!is.null(opt$counts)) {
-          message(" nf = ",
-                  opt$counts$fn,
-                  " ng = ",
-                  opt$counts$gr,
-                  appendLF = FALSE)
-        }
-        
-        # special treatment for mize innards
-        if (!is.null(opt$stages$gradient_descent$step_size$value)) {
-          opt$stages$gradient_descent$step_size$value
-          message(
-            " alpha = ",
-            formatC(opt$stages$gradient_descent$step_size$value),
-            appendLF = FALSE
-          )
-        }
-        
-        if (!is.null(old_cost) && cost > old_cost) {
-          message(" !", appendLF = FALSE)
-        }
-        
-        if (!is.null(opt$epoch)) {
-          opt <- opt$epoch(Y, iter, cost, cost_fn, opt)
-        }
-        
-        message()
-        utils::flush.console()
-      }
-      if (!is.null(epoch_callback)) {
-        do_callback(epoch_callback, Y, iter, cost, cost_fn, opt)
-      }
-      
-      if (ret_extra) {
-        names(cost) <- iter
-        itercosts <- c(itercosts, cost)
-      }
-      
-      # Early stopping tests
-      if (!is.null(ee_mon_epoch)) {
-        cdiff <- old_cost - cost
-        cdiffrc <- cdiff / old_cost
-        if (length(cdiffrc) > 0 &&
-            opt_stages[opt_stage_idx] == "early") {
-          if (iter > ee_mon_wait &&
-              length(cdiffrc) > 0 && length(old_cdiffrc) > 0 &&
-              cdiffrc < old_cdiffrc) {
-            if (ee_mon_buffer < 1) {
-              stop_early <- TRUE
-              tsmessage("Stopping early: EE relative change reached maximum")
-            }
-            else {
-              ee_mon_buffer <- ee_mon_buffer - 1
-            }
-          }
-        }
-        old_cdiffrc <- cdiffrc
-      }
-      if (cost < min_cost) {
-        stop_early <- TRUE
-        tsmessage("Stopping early: cost fell below min_cost")
-      }
-      
-      if (!nnat(opt$is_terminated) && !is.null(tolval) &&
-          tolval < tol && cost <= old_cost &&
-          (iter > stop_lying_iter + tol_wait
-           || opt_stages[opt_stage_idx] != "opt")) {
-        stop_early <- TRUE
-        tsmessage("Stopping early: relative tolerance (",
-                  formatC(tol),
-                  ") met")
-      }
-      
-      # Alternative tolerance grad 2norm doesn't need cost to decrease to stop
-      # (Use this for certain settings with e.g. LargeVis where numerical issues
-      # can cause the cost function to increase almost negligibly)
-      g2tolval <- (norm2(opt_res$G))
-      if (!nnat(opt$is_terminated) &&
-          !is.null(g2tol) && g2tolval < g2tol &&
-          (iter > stop_lying_iter + tol_wait
-           || opt_stages[opt_stage_idx] != "opt")) {
-        stop_early <- TRUE
-        tsmessage("Stopping early: ||G||2 tolerance (",
-                  formatC(g2tol),
-                  ") met")
-      }
-      
-      # Stop current stage early if we aren't making progress
-      if (stop_early) {
-        if (opt_stage_idx == length(opt_stages)) {
-          # run out of optimization stages, so give up
-          break
-        }
-        
-        opt_stage <- opt_stages[opt_stage_idx]
-        if (opt_stage == "early") {
-          # stop early exaggeration and adjust mom_switch_iter accordingly
-          # Only applies to DBD optimizer
-          n_low_mom_iters <- mom_switch_iter - stop_lying_iter
-          stop_lying_iter <- iter + 1
-          mom_switch_iter <- stop_lying_iter + n_low_mom_iters
-          opt$mom_switch_iter <- mom_switch_iter
-        }
-        
-        # we know there is at least one more stage or we would have hit the
-        # break earlier
-        next_opt_stage <- opt_stages[opt_stage_idx + 1]
-        
-        switch(
-          next_opt_stage,
-          opt = tsmessage("Proceeding to main optimization stage"),
-          late = {
-            n_late_exagg_iters <- max_iter - start_late_lying_iter
-            start_late_lying_iter <- iter + 1
-            max_iter <- start_late_lying_iter + n_late_exagg_iters
-            tsmessage("Proceeding to late exaggeration stage")
-          },
-          stop("BUG: unknown optimization stage '", next_opt_stage, "'")
-        )
-      }
-      
-      if (nnat(opt$is_terminated)) {
-        break
-      }
-      
-      old_cost <- cost
-      
-      # Any special custom epoch stuff
-      epoch_res <- do_epoch(opt, cost_fn, iter, Y, cost)
-      opt <- epoch_res$opt
-      cost_fn <- epoch_res$cost
-    }
-  }
-  
-  if (opt_stages[opt_stage_idx] == "early") {
-    cost_fn <- stop_exaggerating(cost_fn, exaggeration_factor)
-  }
-  if (opt_stages[opt_stage_idx] == "late") {
-    cost_fn <- stop_exaggerating(cost_fn, late_exaggeration_factor)
-  }
-  
-  # Recenter before output
-  Y <- sweep(Y, 2, colMeans(Y))
-  res <- ret_value(
-    Y,
-    ret_extra,
-    method,
-    X,
-    scale,
-    Y_init,
-    iter,
-    start_time,
-    cost_fn = cost_fn,
-    opt_res$G,
-    perplexity,
-    itercosts,
-    stop_lying_iter,
-    start_late_lying_iter,
-    opt_list,
-    opt,
-    exaggeration_factor,
-    late_exaggeration_factor,
-    optionals = ret_optionals,
-    pca = ifelse(pca && !whiten, initial_dims, 0),
-    whiten = ifelse(pca && whiten, initial_dims, 0),
-    use_cpp = use_cpp,
-    n_threads = n_threads
-  )
-  
-  res
 }
+
 
 # Result Export -----------------------------------------------------------
 
@@ -1795,16 +1793,15 @@ ret_value <- function(Y,
   attr(Y, "dimnames") <- NULL
   if (ret_extra) {
     end_time <- Sys.time()
-    
+
     if (methods::is(X, "dist")) {
       N <- attr(X, "Size")
       origD <- NULL
-    }
-    else {
+    } else {
       N <- nrow(X)
       origD <- ncol(X)
     }
-    
+
     res <- list(
       Y = Y,
       N = N,
@@ -1815,52 +1812,50 @@ ret_value <- function(Y,
       iter = iter,
       time_secs = as.numeric(end_time - start_time, units = "secs")
     )
-    
+
     if (!is.null(G)) {
       res$G2norm <- norm2(G)
     }
-    
+
     if (pca > 0) {
       res$pca_dims <- pca
-    }
-    else if (whiten > 0) {
+    } else if (whiten > 0) {
       res$whiten_dims <- whiten
     }
-    
+
     if (is.null(cost_fn$pcost)) {
       cost_fn <- cost_grad(cost_fn, Y)
       cost_fn <- cost_point(cost_fn, Y)
     }
     res$costs <- cost_fn$pcost
-    
+
     if (!is.null(opt_input)) {
       res$opt <- opt_input
       if (!is.null(opt_res$counts)) {
         res$opt$counts <- opt_res$counts
       }
     }
-    
-    
+
+
     # Don't report exaggeration settings if they didn't do anything
     if (exaggeration_factor == 1 || late_exaggeration_factor == 1) {
       if (exaggeration_factor == 1) {
         exaggeration_factor <- NULL
         stop_lying_iter <- NULL
       }
-      
+
       if (late_exaggeration_factor == 1) {
         late_exaggeration_factor <- NULL
         start_late_lying_iter <- NULL
       }
-    }
-    else {
+    } else {
       # Don't report start_late_lying_iter if we never got there
       if (start_late_lying_iter > iter) {
         start_late_lying_iter <- NULL
         late_exaggeration_factor <- NULL
       }
     }
-    
+
     res <- c(
       res,
       list(
@@ -1872,13 +1867,13 @@ ret_value <- function(Y,
         start_late_lying_iter = start_late_lying_iter
       )
     )
-    
+
     # If using the Intrinsic Dimensionality method, use the chosen perplexity
     if (!is.null(cost_fn$idp)) {
       res$perplexity <- cost_fn$idp
     }
-    
-    
+
+
     optionals <- tolower(unique(optionals))
     for (o in optionals) {
       exported <- NULL
@@ -1889,8 +1884,7 @@ ret_value <- function(Y,
       if (!is.null(exported)) {
         if (nchar(o) < 3) {
           res[[toupper(o)]] <- exported
-        }
-        else {
+        } else {
           res[[o]] <- exported
         }
       }
@@ -1898,24 +1892,21 @@ ret_value <- function(Y,
       else if (o == "dx") {
         if (methods::is(X, "dist")) {
           res$DX <- X
-        }
-        else {
+        } else {
           res$DX <- calc_d(X, use_cpp = use_cpp, n_threads = n_threads)
         }
-      }
-      else if (o == "dy") {
+      } else if (o == "dy") {
         res$DY <- calc_d(Y, use_cpp = use_cpp, n_threads = n_threads)
       }
-      
+
       if (o == "x") {
         res$X <- X
       }
     }
-    
+
     res <- remove_nulls(res)
     res
-  }
-  else {
+  } else {
     Y
   }
 }
