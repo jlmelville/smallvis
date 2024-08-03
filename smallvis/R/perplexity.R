@@ -264,34 +264,7 @@ knn_graph <- function(X, k, n_threads, verbose) {
   D
 }
 
-# Given data X and k nearest neighbors, return a geodisic distance matrix
-# Disconnections are treated by using the Euclidean distance.
-geodesic <- function(X,
-                     k,
-                     fill = TRUE,
-                     use_cpp = FALSE,
-                     n_threads = 0,
-                     verbose = FALSE) {
-  tsmessage("Calculating geodesic distances with k = ", k)
 
-  R <- knn_dist(X, k, n_threads = n_threads, verbose = verbose)
-  # The hard work is done by Rfast's implementation of Floyd's algorithm
-  G <- Rfast::floyd(R)
-  if (any(is.infinite(G)) && fill) {
-    tsmessage(
-      "k = ",
-      k,
-      " resulted in disconnections: filling with Euclidean distances"
-    )
-    if (methods::is(X, "dist")) {
-      R <- as.matrix(X)
-    } else {
-      R <- calc_d(X, use_cpp = use_cpp, n_threads = n_threads)
-    }
-    G[is.infinite(G)] <- R[is.infinite(G)]
-  }
-  G
-}
 
 # Multiscale perplexities: P is an average over the results of multiple
 # perplexities
