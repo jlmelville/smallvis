@@ -488,7 +488,7 @@ sne_init <- function(cost,
                      row_normalize = TRUE,
                      normalize = TRUE,
                      n_threads = 0,
-                     use_cpp = use_cpp,
+                     use_cpp = FALSE,
                      verbose = FALSE,
                      ret_extra = c()) {
   if (tolower(kernel) == "knn") {
@@ -559,21 +559,34 @@ sne_init <- function(cost,
     if (!is.numeric(perplexity)) {
       stop("Unknown perplexity method, '", perplexity[[1]], "'")
     }
-    tsmessage(
-      "Commencing calibration for perplexity = ",
-      format_perps(perplexity)
-    )
-    if (use_cpp) {
-      P <- find_beta_cpp(X, perplexity, tol = 1e-5, n_threads = n_threads)$W
-    } else {
-      x2ares <- x2aff(
-        X,
-        perplexity,
-        tol = 1e-5,
-        kernel = kernel,
-        verbose = verbose
-      )
-      P <- x2ares$W
+    if (kernel == "perpknn") {
+      k <- 3 * perplexity
+      if (k > nrow(X) - 1) {
+        warning("Perplexity probably too high for number of points,",
+                " result may not be meaningful")
+        k <- nrow(X) - 1
+      }
+      tsmessage("Commencing calibration for perplexity = ",
+                format_perps(perplexity), " with k = ", k)
+      knn <- rnndescent::brute_force_knn(X, k = k + 1, n_threads = n_threads)
+      knn_dist <- knn$dist[, 2:(k + 1)]
+      knn_idx <- knn$idx[, 2:(k + 1)]
+      P <- find_beta_knn_cpp(knn_dist, knn_idx, perplexity = perplexity,
+                                n_threads = n_threads)$P
+    }
+    else {
+      tsmessage("Commencing calibration for perplexity = ",
+                format_perps(perplexity))
+      if (use_cpp) {
+        P <- find_beta_cpp(X, perplexity, tol = 1e-5, n_threads = n_threads)$W
+      } else {
+        x2ares <- x2aff(X,
+                        perplexity,
+                        tol = 1e-5,
+                        kernel = kernel,
+                        verbose = verbose)
+        P <- x2ares$W
+      }
     }
   }
 

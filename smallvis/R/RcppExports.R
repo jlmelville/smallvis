@@ -25,6 +25,10 @@ mmds_grad_cpp <- function(R, D, Y, eps, n_threads) {
     .Call(`_smallvis_mmds_grad_cpp`, R, D, Y, eps, n_threads)
 }
 
+find_beta_knn_cpp <- function(knn_distances, knn_indices, perplexity = 15, tol = 1e-5, max_tries = 50L, n_threads = 1L) {
+    .Call(`_smallvis_find_beta_knn_cpp`, knn_distances, knn_indices, perplexity, tol, max_tries, n_threads)
+}
+
 find_beta_cpp <- function(X, perplexity = 15, tol = 1e-5, max_tries = 50L, n_threads = 1L) {
     .Call(`_smallvis_find_beta_cpp`, X, perplexity, tol, max_tries, n_threads)
 }
