@@ -1,7 +1,7 @@
 Package: smallvis
 Type: Package
 Title: Small Scale Neighborhood Embedding Algorithms
-Version: 0.0.0.9000
+Version: 0.0.2.9001
 Authors@R: person("James", "Melville", email = "jlmelville@gmail.com",
     role = c("aut", "cre"))
 Description: Neighborhood embedding methods for small scale visualization, such
@@ -11,6 +11,7 @@ License: GPL (>= 2)
 Imports:
     methods,
     mize (>= 0.2),
+    Rcpp,
     Rfast,
     rnndescent,
     vizier
@@ -24,3 +25,5 @@ Date: 2017-11-28
 URL: http://github.com/jlmelville/smallvis
 BugReports: http://github.com/jlmelville/smallvis/issues
 RoxygenNote: 7.3.2
+LinkingTo: 
+    Rcpp

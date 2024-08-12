@@ -3,3 +3,5 @@
 export(smallvis)
 export(smallvis_perpstep)
 export(smallvis_rep)
+importFrom(Rcpp,sourceCpp)
+useDynLib(smallvis, .registration = TRUE)

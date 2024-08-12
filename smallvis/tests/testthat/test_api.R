@@ -168,6 +168,17 @@ test_that("smmds", {
   expect_equal(final_cost(res), 0.3038, tolerance = 1e-4)
 })
 
+test_that("smmds-cpp", {
+  res <- smallvis(iris10, Y_init = iris10_Y, method = "smmds", eta = 0.001,
+                  epoch_callback = NULL, verbose = FALSE, ret_extra = TRUE,
+                  use_cpp = TRUE)
+  expect_equal(res$Y, c2y(-0.4952, 0.3507, 0.3716, 0.5528, -0.502, -1.449, 0.1852, -0.2768,
+                          1.042, 0.2206, 0.1035, 0.4062, -0.1173, -0.07106, -0.1869, -0.02864,
+                          -0.459, 0.09674, -0.1043, 0.3608), tolerance = 1e-3)
+  expect_equal(final_cost(res), 0.3038, tolerance = 1e-4)
+})
+
+
 test_that("gmmds", {
   res <- smallvis(iris10, Y_init = iris10_Y, method = "gmmds", eta = 0.1,
                   perplexity = 3,
@@ -501,6 +512,25 @@ test_that("Miscellany", {
                                        0.04283, 1.227, -0.2283, -2.662, -1.389,
                                        2.117, 1.291, -1.949, -0.4529, 2.002), X = ui10, 
              cost = 0.1442)
+  expect_api(method = "tsne", Y = c(-4.617, 2.008, -0.8907, 4.044, 0.6146, -3.478, 0.4454,
+                                    1.967, 4.82, -4.913, 0.5231, 0.837, 0.02866, -1.871, -1.438,
+                                    1.273, 0.6842, -1.849, -0.6084, 2.42), X = ui10,
+             cost = 0.02485)
+  expect_api(method = "tsne", Y = c(-4.617, 2.008, -0.8907, 4.044, 0.6146, -3.478, 0.4454,
+                                    1.967, 4.82, -4.913, 0.5231, 0.837, 0.02866, -1.871, -1.438,
+                                    1.273, 0.6842, -1.849, -0.6084, 2.42), X = ui10, use_cpp = TRUE,
+             cost = 0.02485)
+  expect_api(method = list("bhtsne", perplexity = 3, inp_kernel = "perpnnks", theta = 0.0),
+             Y = c(-12.52, 4.749, -1.071, 10.54, 2.669, -10.44, 1.578, 5.019,
+                   13.21, -13.73, 3.153, 3.662, 1.081, -7.454, -3.565, 4.962,
+                   2.446, -5.197, -6.536, 7.447), X = ui10, use_cpp = TRUE, perplexity = 3,
+             cost = 0.05768)
+  expect_api(method = list("bhtsne", perplexity = 3, inp_kernel = "perpnnks", theta = 0.5),
+             Y = c(-11.78, 4.035, -1.215, 10.35, 2.76, -9.966, 1.177, 5.08,
+                   12.8, -13.23, 2.413, 3.66, 0.7804, -6.291, -3.386, 4.257,
+                   2.233, -4.78, -5.25, 6.362), X = ui10, use_cpp = TRUE, perplexity = 3,
+             cost = 0.05564)
+             
 })
 
 test_that("repeated runs", {
