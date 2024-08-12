@@ -1,7 +1,7 @@
 Package: smallvis
 Type: Package
 Title: Small Scale Neighborhood Embedding Algorithms
-Version: 0.0.1.9001
+Version: 0.0.2.9001
 Authors@R: person("James", "Melville", email = "jlmelville@gmail.com",
     role = c("aut", "cre"))
 Description: Neighborhood embedding methods for small scale visualization, such
