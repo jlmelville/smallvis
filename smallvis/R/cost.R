@@ -140,7 +140,7 @@ cost_point <- function(cost, Y) {
 cost_clear <- function(cost) {
   if (!is.null(cost$sentinel)) {
     cost[[cost$sentinel]] <- NULL
-  } else if (is.null(cost$clear)) {
+  } else if (!is.null(cost$clear)) {
     cost <- cost$clear(cost)
   }
   cost

@@ -10,7 +10,7 @@ void mmds_grad(const std::vector<double> &R, const std::vector<double> &D,
                const std::vector<double> &Y, double eps,
                std::vector<double> &gradient, std::size_t start,
                std::size_t end, std::size_t n, std::size_t d) {
-  
+
   for (std::size_t i = start; i < end; ++i) {
     const std::size_t i_d = i * d;
     const std::size_t i_n = i * n;
@@ -27,14 +27,13 @@ void mmds_grad(const std::vector<double> &R, const std::vector<double> &D,
   }
 }
 
-
 void tsne_grad(const std::vector<double> &P, const std::vector<double> &W,
                double Z, const std::vector<double> &Y,
                std::vector<double> &gradient, std::size_t start,
                std::size_t end, std::size_t n) {
 
   const double Z4 = 4.0 / Z;
-  
+
   for (std::size_t i = start; i < end; ++i) {
     const std::size_t i_d = i + i;
     const std::size_t i_n = i * n;
@@ -256,10 +255,9 @@ NumericMatrix d2_to_tweight_cpp(NumericMatrix dist_matrix, int n_threads) {
 }
 
 // [[Rcpp::export]]
-NumericMatrix tsne_grad_cpp(const NumericMatrix &P,
-                                    const NumericMatrix &W, double Z,
-                                    const NumericMatrix &Y,
-                                    std::size_t n_threads) {
+NumericMatrix tsne_grad_cpp(const NumericMatrix &P, const NumericMatrix &W,
+                            double Z, const NumericMatrix &Y,
+                            std::size_t n_threads) {
   std::size_t n = Y.nrow();
 
   std::vector<double> P_vec(P.begin(), P.end());
@@ -300,35 +298,33 @@ NumericMatrix tsne_grad_cpp(const NumericMatrix &P,
 }
 
 // [[Rcpp::export]]
-NumericMatrix mmds_grad_cpp(const NumericMatrix &R,
-                            const NumericMatrix &D,
-                            const NumericMatrix &Y,
-                            double eps,
+NumericMatrix mmds_grad_cpp(const NumericMatrix &R, const NumericMatrix &D,
+                            const NumericMatrix &Y, double eps,
                             std::size_t n_threads) {
   std::size_t n = Y.nrow();
   std::size_t d = Y.ncol();
-  
+
   std::vector<double> R_vec(R.begin(), R.end());
   std::vector<double> D_vec(D.begin(), D.end());
-  
+
   std::vector<double> Y_vec(n * d);
   for (std::size_t i = 0; i < n; ++i) {
     for (std::size_t j = 0; j < d; ++j) {
       Y_vec[i * d + j] = Y(i, j);
     }
   }
-  
+
   std::vector<double> gradient_vec(n * d, 0.0);
-  
+
   if (n_threads > 1) {
     std::size_t chunk_size = (n + n_threads - 1) / n_threads;
     std::vector<std::thread> threads;
     for (std::size_t t = 0; t < n_threads; ++t) {
       std::size_t start_row = t * chunk_size;
       std::size_t end_row = std::min(start_row + chunk_size, n);
-      threads.emplace_back(mmds_grad, std::cref(R_vec), std::cref(D_vec), 
-                           std::cref(Y_vec), eps, std::ref(gradient_vec), start_row,
-                           end_row, n, d);
+      threads.emplace_back(mmds_grad, std::cref(R_vec), std::cref(D_vec),
+                           std::cref(Y_vec), eps, std::ref(gradient_vec),
+                           start_row, end_row, n, d);
     }
     for (auto &thread : threads) {
       thread.join();
@@ -336,16 +332,13 @@ NumericMatrix mmds_grad_cpp(const NumericMatrix &R,
   } else {
     mmds_grad(R_vec, D_vec, Y_vec, eps, gradient_vec, 0, n, n, d);
   }
-  
+
   NumericMatrix gradient(n, d);
   for (std::size_t i = 0; i < n; ++i) {
     for (std::size_t j = 0; j < d; ++j) {
       gradient(i, j) = gradient_vec[i * d + j];
     }
   }
-  
+
   return gradient;
 }
-
-
-

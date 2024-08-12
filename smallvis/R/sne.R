@@ -79,6 +79,76 @@ tsne <- function(perplexity,
   )
 }
 
+bhtsne <- function(perplexity,
+                   inp_kernel = "perpnnas",
+                   eps = .Machine$double.eps,
+                   theta = 0.5,
+                   n_threads = 0) {
+  list(
+    init = function(cost,
+                    X,
+                    max_iter,
+                    verbose = FALSE,
+                    ret_extra = c()) {
+      cost <- sne_init(
+        cost,
+        X,
+        perplexity = perplexity,
+        kernel = inp_kernel,
+        symmetrize = "symmetric",
+        normalize = TRUE,
+        row_normalize = TRUE,
+        verbose = verbose,
+        ret_extra = ret_extra,
+        n_threads = n_threads,
+        use_cpp = TRUE
+      )
+      cost$eps <- eps
+      cost
+    },
+    cache_input = function(cost) {
+      cost$plogp <- sum(cost$P@x * log(cost$P@x))
+      cost
+    },
+    pfn = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+      cost$pcost <- cost$plogp - bh_plogq_cpp(cost$P@i,
+        cost$P@p,
+        cost$P@x,
+        Y,
+        theta = theta,
+        n_threads = n_threads
+      )
+      # browser()
+      cost
+    },
+    gr = function(cost, Y) {
+      cost <- cost_update(cost, Y)
+      cost$G <- bh_tsne_gradient_cpp(cost$P@i,
+        cost$P@p,
+        cost$P@x,
+        Y,
+        theta = theta,
+        n_threads = n_threads
+      )
+      # browser()
+      cost$G <- 4 * cost$G
+      cost
+    },
+    export = function(cost, val) {
+      res <- cost_export(cost, val)
+      res
+    },
+    update = function(cost, Y) {
+      cost
+    },
+    exaggerate = function(cost, exaggeration_factor) {
+      cost$P <- cost$P * exaggeration_factor
+      cost
+    }
+  )
+}
+
 # Cook, J., Sutskever, I., Mnih, A., & Hinton, G. E. (2007).
 # Visualizing similarity data with a mixture of maps.
 # In \emph{International Conference on Artificial Intelligence and Statistics} (pp. 67-74).

@@ -54,7 +54,8 @@ laplacian_eigenmap <- function(A,
   # This effectively row-normalizes A: colSums is normally faster than rowSums
   # and because A is symmetric, they're equivalent
   M <- A / colSums(A)
-  if (use_RSpectra && requireNamespace("RSpectra", quietly = TRUE, warn.conflicts = FALSE)) {
+  if (use_RSpectra &&
+    requireNamespace("RSpectra", quietly = TRUE, warn.conflicts = FALSE)) {
     tsmessage("Using RSpectra for eigenvectors")
     Re(RSpectra::eigs(M, k = ndim + 1)$vectors[, 2:(ndim + 1)])
   } else {
@@ -78,7 +79,8 @@ normalized_spectral_init <- function(A,
   L <- -t(A / Dsq) / Dsq
   diag(L) <- 1 + diag(L)
 
-  if (use_RSpectra && requireNamespace("RSpectra", quietly = TRUE, warn.conflicts = FALSE)) {
+  if (use_RSpectra &&
+    requireNamespace("RSpectra", quietly = TRUE, warn.conflicts = FALSE)) {
     tsmessage("Using RSpectra for eigenvectors")
     k <- ndim + 1
     ncv <- max(2 * k + 1, floor(sqrt(n)))
@@ -143,23 +145,43 @@ pca_scores <- function(X,
     }
     scores <- res_mds$points
   } else {
-    X <- scale(X, center = TRUE, scale = FALSE)
-    # do SVD on X directly rather than forming covariance matrix
-    s <- svd(X, nu = ncol, nv = 0)
-    D <- diag(c(s$d[1:ncol]))
-    if (verbose || ret_extra) {
-      # calculate eigenvalues of covariance matrix from singular values
-      lambda <- (s$d^2) / (nrow(X) - 1)
-      varex <- sum(lambda[1:ncol]) / sum(lambda)
+    if (ncol < 0.5 * min(dim(X))) {
+      res <- irlba::prcomp_irlba(
+        X,
+        n = ncol,
+        retx = TRUE,
+        center = TRUE,
+        scale = FALSE
+      )
+      scores <- res$x
+      ncol <- ncol(res$rotation)
+      varex <- sum(res$sdev[1:ncol]^2) / res$totalvar
       tsmessage(
-        "PCA: ",
+        "PCA (via irlba): ",
         ncol,
         " components explained ",
         formatC(varex * 100),
         "% variance"
       )
+    } else {
+      X <- scale(X, center = TRUE, scale = FALSE)
+      # do SVD on X directly rather than forming covariance matrix
+      s <- svd(X, nu = ncol, nv = 0)
+      D <- diag(c(s$d[1:ncol]))
+      if (verbose || ret_extra) {
+        # calculate eigenvalues of covariance matrix from singular values
+        lambda <- (s$d^2) / (nrow(X) - 1)
+        varex <- sum(lambda[1:ncol]) / sum(lambda)
+        tsmessage(
+          "PCA (via SVD): ",
+          ncol,
+          " components explained ",
+          formatC(varex * 100),
+          "% variance"
+        )
+      }
+      scores <- s$u %*% D
     }
-    scores <- s$u %*% D
   }
 
   if (ret_extra) {

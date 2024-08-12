@@ -38,6 +38,7 @@ smallvis(
   ret_extra = FALSE,
   n_threads = 0,
   use_cpp = FALSE,
+  theta = 0.5,
   eps = .Machine$double.eps,
   verbose = TRUE
 )
@@ -65,7 +66,7 @@ standard deviation. See 'Output initialization' section.}
 \item{perplexity}{The target perplexity for parameterizing the input
 probabilities. For method \code{"umap"}, controls the neighborhood size
 for parameterizing the smoothed k-nearest neighbor distances. See also the
-'Intrinsic dimensionality perplexity' and 'Multiscale perplexities' 
+'Intrinsic dimensionality perplexity' and 'Multiscale perplexities'
 sections.}
 
 \item{max_iter}{Maximum number of iterations in the optimization.}
@@ -114,24 +115,24 @@ this case, use the gradient norm to stop early.}
 
 \item{momentum}{Initial momentum value.}
 
-\item{final_momentum}{Final momentum value. If 
+\item{final_momentum}{Final momentum value. If
 \code{late_exaggeration_factor > 1}, then during late exaggeration, the
 momentum is switched back to \code{momentum} from this value.}
 
 \item{mom_switch_iter}{Iteration at which the momentum will switch from
-\code{momentum} to \code{final_momentum}. If 
+\code{momentum} to \code{final_momentum}. If
 \code{exaggeration_factor > 1}, then this should occur at some point
 after \code{stop_lying_iter} (default is 150 iterations after). If
 the early exaggeration phase stops early, this value is treated as being
 relative to when early exaggeration stops, to avoid wasting iterations
 at the lower momentum value. For example, if \code{stop_lying_iter = 100}
 and \code{mom_switch_iter = 250} (the defaults), but early exaggeration
-converges at iteration 50, the switch iteration will occur at iteration 
+converges at iteration 50, the switch iteration will occur at iteration
 150.}
 
 \item{eta}{Learning rate value, a positive number. Or set to \code{"optsne"},
 to use the formula suggested by Belkina and co-workers (2018) in their
-opt-SNE package (the size of the dataset divided by the 
+opt-SNE package (the size of the dataset divided by the
 \code{exaggeration_factor}).}
 
 \item{min_gain}{Minimum gradient descent step size.}
@@ -179,8 +180,8 @@ number of iterations before monitoring the relative rate of change of the
 cost function during early exaggeration.}
 
 \item{ee_mon_buffer}{If \code{ee_mon_epoch} is non-\code{NULL}, then ignore
-this number of occurences of the relative rate of change of the cost 
-function decreasing, which would otherwise signal termination of 
+this number of occurences of the relative rate of change of the cost
+function decreasing, which would otherwise signal termination of
 the early exaggeration stage. This is to prevent erroneous termination of
 early exaggeration under conditions when the cost can fluctuate noisily.}
 
@@ -197,13 +198,16 @@ to those value which are returned when this value is \code{TRUE}. See the
 
 \item{n_threads}{Number of threads to use in multi-threaded code. Default is
 0, which means no multi-threading. Mainly affects the calculation of things
-like distance matrices and perplexity calibration if you set 
+like distance matrices and perplexity calibration if you set
 \code{use_cpp = TRUE}. Otherwise, only methods that need to calculate
 nearest neighbors will be affected.}
 
 \item{use_cpp}{If \code{TRUE} use multi-threaded C++ code for some
 calculations. Default is \code{FALSE}. This won't speed up all steps and
 you will want to use this in conjunction with \code{n_threads}.}
+
+\item{theta}{Barnes-Hut approximation accuracy. Default is 0.5. Set to 0.0
+for exact t-SNE. Applies only for \code{method = "bhtsne"}.}
 
 \item{eps}{Set epsilon for avoiding division-by-zero errors. Default is
 \code{.Machine$double.eps}, but if you see inconsistent convergence results
@@ -300,6 +304,7 @@ to the \code{method} parameter are:
 \itemize{
   \item \code{"tsne"} t-Distributed Stochastic Neighbor Embedding
   (van der Maaten and Hinton, 2008).
+  \item \code{"bhtsne"} Barnes-Hut t-SNE (van der Maaten, 2014).
   \item \code{"largevis"} the cost function of the LargeVis algorithm
   (Tang et al, 2016). Input affinities are calculated and symmetrized using
   the same perplexity calibration method as t-SNE, but are not normalized.
@@ -339,17 +344,17 @@ to the \code{method} parameter are:
   co-workers, use method \code{"bnerv"}.
   \item \code{"jse"} The Jensen-Shannon Embedding method of Lee and
   co-workers (2013).
-  \item \code{"absne"} The alpha-beta SNE method of Narayan and co-workers 
+  \item \code{"absne"} The alpha-beta SNE method of Narayan and co-workers
   (2015).
-  \item \code{"chsne"} The chi-squared divergence version of t-SNE 
+  \item \code{"chsne"} The chi-squared divergence version of t-SNE
   (Im and co-workers, 2018).
-  \item \code{"hlsne"} The Hellinger distance divergence version of t-SNE 
+  \item \code{"hlsne"} The Hellinger distance divergence version of t-SNE
   (Im and co-workers, 2018).
   \item \code{"rklsne"} The reverse Kullback-Leibler divergence version of
   t-SNE (Im and co-workers, 2018).
   \item \code{"jssne"} The Jensen-Shannon divergence version of t-SNE (Im and
   co-workers, 2018).
-  \item \code{"gsne"}, The global SNE (g-SNE) method of Zhou and Sharpee 
+  \item \code{"gsne"}, The global SNE (g-SNE) method of Zhou and Sharpee
   (2018).
 }
 
@@ -381,9 +386,9 @@ Some parameters are available for all (nor nearly all) methods.
       sparsification is carried out with this kernel, so there are no
       memory or performance improvements to be had with this setting.
       \code{"skd"} uses the smooth knn distances method as used by UMAP.
-   \item{\code{symmetrize}} the type of symmetrization, used by symmetric 
+   \item{\code{symmetrize}} the type of symmetrization, used by symmetric
       methods only. Can be one of:
-      \code{"symmetric"} symmetric nearest neighbor style, by arithmetic 
+      \code{"symmetric"} symmetric nearest neighbor style, by arithmetic
       averaging, as in t-SNE.
       \code{"fuzzy"} symmetrization by fuzzy set union as used in UMAP.
       \code{"mutual"} mutual nearest neighbor style as suggested by Schubert
@@ -394,10 +399,10 @@ Some parameters are available for all (nor nearly all) methods.
    \item \code{"LargeVis"}
    \itemize{
    \item{\code{gamma}} Weighting term for the repulsive versus attractive
-    forces. Default is \code{1}. The implementation by the creators of 
-    LargeVis uses a default \code{gamma = 7}, but note that this is for 
-    stochastic gradient descent with limited sampling of the repulsive 
-    contributions so it's unlikely to be a good choice with the 
+    forces. Default is \code{1}. The implementation by the creators of
+    LargeVis uses a default \code{gamma = 7}, but note that this is for
+    stochastic gradient descent with limited sampling of the repulsive
+    contributions so it's unlikely to be a good choice with the
     implementation used in this package.
    \item{\code{gr_eps}} Epsilon used in the gradient to prevent
     division by zero. Default is \code{0.1}.
@@ -456,9 +461,9 @@ Some parameters are available for all (nor nearly all) methods.
    }
    \item \code{"ABSNE"}
    \itemize{
-   \item{\code{alpha}} Alpha value for the alpha-beta divergence. Set 
+   \item{\code{alpha}} Alpha value for the alpha-beta divergence. Set
    \code{alpha < 1} to produce more smaller, finer-grained clusters, and
-   \code{alpha > 1} to produce fewer, larger clusters, with more emphasis 
+   \code{alpha > 1} to produce fewer, larger clusters, with more emphasis
    on global structure. Default is \code{1.0}, to give t-SNE-like behavior.
    \item{\code{lambda}} Sum of alpha + beta, where beta is the beta value
    for the alpha-beta divergence. Set \code{lambda < 1} to increase cluster
@@ -467,8 +472,8 @@ Some parameters are available for all (nor nearly all) methods.
    }
    \item \code{"gsne"}
    \itemize{
-   \item{\code{lambda}} Weighting factor to put increasing emphasis on 
-   preserving global similarities. Set to \code{0} to get t-SNE (no 
+   \item{\code{lambda}} Weighting factor to put increasing emphasis on
+   preserving global similarities. Set to \code{0} to get t-SNE (no
    extra emphasis on global structure), and to \code{1.0} to get equal
    weighting between the local and global divergences. Default is \code{1.0}.
    }
@@ -488,7 +493,7 @@ to one of the following:
   \item{A matrix}: which must have dimensions \code{n} by \code{k}, where
   \code{n} is the number of rows in \code{X}.
   \item{\code{"rand"}}: initialize from a Gaussian distribution with mean 0
-  and standard deviation 1e-4, the default used by t-SNE. The standard 
+  and standard deviation 1e-4, the default used by t-SNE. The standard
   deviation can be controlled with \code{Y_init_sdev} (see below).
   \item{\code{"pca"}}: use the first \code{k} scores of the
   PCA: columns are centered, but no scaling beyond that which is applied by
@@ -527,8 +532,8 @@ Steinerberger, 2017): it may therefore unnecessary to use the
 
 The \code{Y_init_sdev} parameter, if provided, will scale the input
 coordinates such that the standard deviation of each dimension is the
-provided value. The default is to do no scaling, except for 
-\code{Y_init = "spca"} and \code{Y_init = "rand"} where a scaling to a 
+provided value. The default is to do no scaling, except for
+\code{Y_init = "spca"} and \code{Y_init = "rand"} where a scaling to a
 standard deviation of \code{1e-4} is used, as in t-SNE initialization.
 \code{Y_init = "spca"} is effectively an alias for \code{Y_init = "pca",
 Y_init_sdev = 1e-4}.
@@ -585,19 +590,19 @@ increasing order. For more details on IDP, see
 
 
 Another technique to combine multiple perplexities is to use the multiscale
-approach given by de Bodt and co-workers (2018). As with IDP, a series of 
+approach given by de Bodt and co-workers (2018). As with IDP, a series of
 candidate perplexities are used, but all the affinity matrices are used to
 create an average matrix which is used as the final probability matrix.
-To use this method, set \code{perplexity = "multiscale"}. Default and custom 
-list of perplexities to use can be provided in the same way as with IDP. 
+To use this method, set \code{perplexity = "multiscale"}. Default and custom
+list of perplexities to use can be provided in the same way as with IDP.
 
 Note that previous work by this group described a slightly more complex
 approach where the number of individual perplexity results are introduced
 into the average sequentially over the course of the optimization, and
-the output probabilities are also generated by an averaging. Although also 
+the output probabilities are also generated by an averaging. Although also
 referred to as "multiscale", these variations are not implemented. Also,
-if \code{ret_extra = TRUE} is used, extra data associated with a specific 
-perplexity (e.g. degree centrality, intrinsic dimensionality) will not 
+if \code{ret_extra = TRUE} is used, extra data associated with a specific
+perplexity (e.g. degree centrality, intrinsic dimensionality) will not
 be returned.
 }
 
@@ -816,14 +821,14 @@ In \emph{Advances in neural information processing systems}
 (pp. 585-591).
 \url{http://papers.nips.cc/paper/1961-laplacian-eigenmaps-and-spectral-techniques-for-embedding-and-clustering.pdf}
 
-Belkina, A. C., Ciccolella, C. O., Anno, R., Spidlen, J., Halpert, R., & Snyder-Cappione, J. (2018). 
-Automated optimal parameters for T-distributed stochastic neighbor embedding improve visualization and allow analysis of large datasets. 
+Belkina, A. C., Ciccolella, C. O., Anno, R., Spidlen, J., Halpert, R., & Snyder-Cappione, J. (2018).
+Automated optimal parameters for T-distributed stochastic neighbor embedding improve visualization and allow analysis of large datasets.
 \emph{bioRxiv}, 451690.
 \url{https://www.biorxiv.org/content/10.1101/451690v2.abstract}
 
-De Bodt, C., Mulders, D., Verleysen, M., & Lee, J. A. (2018). 
-Perplexity-free t-SNE and twice Student tt-SNE. 
-In \emph{European Symposium on Artificial Neural Networks, Computational Intelligence and Machine Learning (ESANN 2018)} (pp. 123-128). 
+De Bodt, C., Mulders, D., Verleysen, M., & Lee, J. A. (2018).
+Perplexity-free t-SNE and twice Student tt-SNE.
+In \emph{European Symposium on Artificial Neural Networks, Computational Intelligence and Machine Learning (ESANN 2018)} (pp. 123-128).
 \url{http://hdl.handle.net/2078.1/200844}
 
 Borg, I., & Groenen, P. J. (2005).
@@ -842,13 +847,13 @@ Hinton, G. E., & Roweis, S. T. (2002).
 Stochastic neighbor embedding.
 In \emph{Advances in neural information processing systems} (pp. 833-840).
 
-Im, D. J., Verma, N., & Branson, K. (2018). 
-Stochastic Neighbor Embedding under f-divergences. 
+Im, D. J., Verma, N., & Branson, K. (2018).
+Stochastic Neighbor Embedding under f-divergences.
 \emph{arXiv preprint} \emph{arXiv}:1811.01247.
 \url{https://arxiv.org/abs/1811.01247}
 
 Kobak, D., & Berens, P. (2018).
-The art of using t-SNE for single-cell transcriptomics. 
+The art of using t-SNE for single-cell transcriptomics.
 \emph{bioRxiv}, 453449.
 \url{https://doi.org/10.1101/453449}
 
@@ -872,13 +877,13 @@ UMAP: Uniform Manifold Approximation and Projection for Dimension Reduction
 \emph{arXiv preprint} \emph{arXiv}:1802.03426.
 \url{https://arxiv.org/abs/1802.03426}
 
-Narayan, K. S., Punjani, A., & Abbeel, P. (2015, June). 
-Alpha-Beta Divergences Discover Micro and Macro Structures in Data. 
+Narayan, K. S., Punjani, A., & Abbeel, P. (2015, June).
+Alpha-Beta Divergences Discover Micro and Macro Structures in Data.
 In \emph{Proceedings of the 32nd International Conference on Machine Learning (ICML-14)}
 (pp 796-804).
 \url{http://proceedings.mlr.press/v37/narayan15.html}
 
-Schubert, E., & Gertz, M. (2017, October). 
+Schubert, E., & Gertz, M. (2017, October).
 Intrinsic t-stochastic neighbor embedding for visualization and outlier detection.
 In \emph{International Conference on Similarity Search and Applications}
 (pp. 188-203). Springer, Cham.
@@ -900,6 +905,11 @@ Van der Maaten, L., & Hinton, G. (2008).
 Visualizing data using t-SNE.
 \emph{Journal of Machine Learning Research}, \emph{9} (2579-2605).
 \url{http://www.jmlr.org/papers/v9/vandermaaten08a.html}
+
+Van der Maaten, L. (2014). 
+Accelerating t-SNE using tree-based algorithms.
+\emph{Journal of Machine Learning Research}, \emph{15}(1) (3221-3245).
+\url{https://jmlr.org/papers/v15/vandermaaten14a.html}
 
 Venna, J., Peltonen, J., Nybo, K., Aidos, H., & Kaski, S. (2010).
 Information retrieval perspective to nonlinear dimensionality reduction for
@@ -926,8 +936,8 @@ Majorization-Minimization for Manifold Embedding.
 In \emph{Proceedings of the 18th International Conference on Artificial Intelligence and Statistics (AISTATS 2015)}
 (pp. 1088-1097).
 
-Zhou, Y., & Sharpee, T. (2018). 
-Using global t-SNE to preserve inter-cluster data structure. 
-\emph{bioRxiv}, 331611. 
+Zhou, Y., & Sharpee, T. (2018).
+Using global t-SNE to preserve inter-cluster data structure.
+\emph{bioRxiv}, 331611.
 \url{https://doi.org/10.1101/331611}
 }

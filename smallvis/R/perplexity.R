@@ -455,20 +455,19 @@ scale_affinities <- function(P,
   # row normalization before anything else
   if (nnat(row_normalize)) {
     if (symmetrize == "rowsymm") {
-      P <- 0.5 * (P + t(P))
+      P <- 0.5 * (P + Matrix::t(P))
       symmetrize <- "none"
     }
-    P <- P / rowSums(P)
+    P <- P / Matrix::rowSums(P)
   } else if (is.numeric(row_normalize)) {
-    P <- row_normalize * P / rowSums(P)
+    P <- row_normalize * P / Matrix::rowSums(P)
   }
-
   # Symmetrize
   P <- switch(symmetrize,
     none = P,
-    symmetric = 0.5 * (P + t(P)),
-    average = 0.5 * (P + t(P)),
-    mutual = sqrt(P * t(P)),
+    symmetric = 0.5 * (P + Matrix::t(P)),
+    average = 0.5 * (P + Matrix::t(P)),
+    mutual = sqrt(P * Matrix::t(P)),
     umap = fuzzy_set_union(P),
     fuzzy = fuzzy_set_union(P),
     stop("unknown symmetrization: ", symmetrize)
@@ -559,32 +558,89 @@ sne_init <- function(cost,
     if (!is.numeric(perplexity)) {
       stop("Unknown perplexity method, '", perplexity[[1]], "'")
     }
-    if (kernel == "perpknn") {
-      k <- 3 * perplexity
-      if (k > nrow(X) - 1) {
-        warning("Perplexity probably too high for number of points,",
-                " result may not be meaningful")
-        k <- nrow(X) - 1
+
+    # perpnn options:
+    # perpnnks: use exact knn with sparse output
+    # perpnnas: use approximate knn with sparse output
+    # perpnnkd: use exact knn with dense output
+    # perpnnad: use approximate knn with dense output
+    if (startsWith(kernel, "perpnn")) {
+      n <- nrow(X)
+      if (perplexity > n - 1) {
+        stop("Perplexity too high for number of points")
       }
-      tsmessage("Commencing calibration for perplexity = ",
-                format_perps(perplexity), " with k = ", k)
-      knn <- rnndescent::brute_force_knn(X, k = k + 1, n_threads = n_threads)
+      k <- 3 * perplexity
+      if (k > n - 1) {
+        warning(
+          "Perplexity probably too high for number of points,",
+          " result may not be meaningful"
+        )
+        k <- n - 1
+      }
+      if (kernel %in% c("perpnnks", "perpnnkd")) {
+        tsmessage(
+          "Finding exact nearest neighbors with k = ",
+          k,
+          " n_threads = ",
+          n_threads
+        )
+        knn <- rnndescent::brute_force_knn(X, k = k + 1, n_threads = n_threads)
+      } else {
+        tsmessage(
+          "Finding approximate nearest neighbors with k = ",
+          k,
+          " n_threads = ",
+          n_threads
+        )
+        knn <- rnndescent::rnnd_knn(X, k = k + 1, n_threads = n_threads)
+      }
       knn_dist <- knn$dist[, 2:(k + 1)]
       knn_idx <- knn$idx[, 2:(k + 1)]
-      P <- find_beta_knn_cpp(knn_dist, knn_idx, perplexity = perplexity,
-                                n_threads = n_threads)$P
-    }
-    else {
-      tsmessage("Commencing calibration for perplexity = ",
-                format_perps(perplexity))
+
+      ret_sparse <- kernel %in% c("perpnnks", "perpnnas")
+      tsmessage(
+        "Commencing calibration for perplexity = ",
+        format_perps(perplexity),
+        " n_threads = ",
+        n_threads
+      )
+      P <- find_beta_knn_cpp(
+        knn_dist,
+        knn_idx,
+        perplexity = perplexity,
+        n_threads = n_threads,
+        ret_sparse = ret_sparse
+      )$P
+      if (ret_sparse) {
+        P <- Matrix::sparseMatrix(
+          i = rep(1:n, each = k),
+          j = as.vector(t(knn_idx)),
+          x = P,
+          dims = c(n, n),
+          repr = "C"
+        )
+      }
+    } else {
       if (use_cpp) {
+        tsmessage(
+          "Commencing calibration for perplexity = ",
+          format_perps(perplexity),
+          " n_threads = ",
+          n_threads
+        )
         P <- find_beta_cpp(X, perplexity, tol = 1e-5, n_threads = n_threads)$W
       } else {
-        x2ares <- x2aff(X,
-                        perplexity,
-                        tol = 1e-5,
-                        kernel = kernel,
-                        verbose = verbose)
+        tsmessage(
+          "Commencing calibration for perplexity = ",
+          format_perps(perplexity)
+        )
+        x2ares <- x2aff(
+          X,
+          perplexity,
+          tol = 1e-5,
+          kernel = kernel,
+          verbose = verbose
+        )
         P <- x2ares$W
       }
     }
@@ -598,46 +654,48 @@ sne_init <- function(cost,
   )
   cost$P <- P
 
-  if (is.logical(row_normalize)) {
-    tsmessage(
-      "Effective perplexity of P approx = ",
-      formatC(stats::median(perpp(P)))
-    )
-  }
+  if (!methods::is(P, "sparseMatrix")) {
+    if (is.logical(row_normalize)) {
+      tsmessage(
+        "Effective perplexity of P approx = ",
+        formatC(stats::median(perpp(P)))
+      )
+    }
 
-  for (r in unique(tolower(ret_extra))) {
-    switch(r,
-      v = {
-        cost$V <- x2ares$W
-      },
-      dint = {
-        if (!is.null(x2ares$dint)) {
-          cost$dint <- x2ares$dint
+    for (r in unique(tolower(ret_extra))) {
+      switch(r,
+        v = {
+          cost$V <- x2ares$W
+        },
+        dint = {
+          if (!is.null(x2ares$dint)) {
+            cost$dint <- x2ares$dint
+          }
+        },
+        beta = {
+          if (!is.null(x2ares$beta)) {
+            cost$beta <- x2ares$beta
+          }
+        },
+        adegc = {
+          cost$adegc <- 0.5 * rowSums(x2ares$W) + colSums(x2ares$W)
+        },
+        adegin = {
+          cost$adegin <- rowSums(x2ares$W)
+        },
+        adegout = {
+          cost$adegout <- colSums(x2ares$W)
+        },
+        pdeg = {
+          cost$pdeg <- colSums(P)
+        },
+        idp = {
+          if (!is.null(x2ares$idp)) {
+            cost$idp <- x2ares$idp
+          }
         }
-      },
-      beta = {
-        if (!is.null(x2ares$beta)) {
-          cost$beta <- x2ares$beta
-        }
-      },
-      adegc = {
-        cost$adegc <- 0.5 * rowSums(x2ares$W) + colSums(x2ares$W)
-      },
-      adegin = {
-        cost$adegin <- rowSums(x2ares$W)
-      },
-      adegout = {
-        cost$adegout <- colSums(x2ares$W)
-      },
-      pdeg = {
-        cost$pdeg <- colSums(P)
-      },
-      idp = {
-        if (!is.null(x2ares$idp)) {
-          cost$idp <- x2ares$idp
-        }
-      }
-    )
+      )
+    }
   }
   cost
 }

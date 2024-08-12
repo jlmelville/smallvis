@@ -195,7 +195,7 @@ void find_beta(const std::vector<double> &data, std::size_t n, std::size_t d,
 List find_beta_knn_cpp(const NumericMatrix &knn_distances,
                        const IntegerMatrix &knn_indices, double perplexity = 15,
                        double tol = 1e-5, int max_tries = 50,
-                       std::size_t n_threads = 1) {
+                       bool ret_sparse = false, std::size_t n_threads = 1) {
 
   const std::size_t n = knn_distances.nrow();
   const std::size_t k = knn_distances.ncol();
@@ -232,15 +232,21 @@ List find_beta_knn_cpp(const NumericMatrix &knn_distances,
                   beta, bad_perp, 0, n);
   }
 
-  NumericMatrix P(n, n);
-  for (std::size_t i = 0; i < n; ++i) {
-    for (std::size_t j = 0; j < k; ++j) {
-      P(i, knn_indices(i, j) - 1) = W[i * k + j];
+  if (ret_sparse) {
+    NumericVector P(n * k);
+    std::copy(W.begin(), W.end(), P.begin());
+    return List::create(Named("P") = P, Named("beta") = beta,
+                        Named("bad_perp") = bad_perp);
+  } else {
+    NumericMatrix P(n, n);
+    for (std::size_t i = 0; i < n; ++i) {
+      for (std::size_t j = 0; j < k; ++j) {
+        P(i, knn_indices(i, j) - 1) = W[i * k + j];
+      }
     }
+    return List::create(Named("P") = P, Named("beta") = beta,
+                        Named("bad_perp") = bad_perp);
   }
-
-  return List::create(Named("P") = P, Named("beta") = beta,
-                      Named("bad_perp") = bad_perp);
 }
 
 // [[Rcpp::export]]

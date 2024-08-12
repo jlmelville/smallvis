@@ -8,6 +8,7 @@
 #' \itemize{
 #'   \item \code{"tsne"} t-Distributed Stochastic Neighbor Embedding
 #'   (van der Maaten and Hinton, 2008).
+#'   \item \code{"bhtsne"} Barnes-Hut t-SNE (van der Maaten, 2014).
 #'   \item \code{"largevis"} the cost function of the LargeVis algorithm
 #'   (Tang et al, 2016). Input affinities are calculated and symmetrized using
 #'   the same perplexity calibration method as t-SNE, but are not normalized.
@@ -535,6 +536,8 @@
 #'   \code{.Machine$double.eps}, but if you see inconsistent convergence results
 #'   with optimizer that should be reducing the cost each iteration, then try
 #'   setting this to a larger value, e.g. between \code{1e-3 - 1e-9}.
+#' @param theta Barnes-Hut approximation accuracy. Default is 0.5. Set to 0.0
+#'   for exact t-SNE. Applies only for \code{method = "bhtsne"}.
 #' @param verbose If \code{TRUE}, log progress messages to the console.
 #' @return If \code{ret_extra} is \code{FALSE}, the embedded output coordinates
 #'   as a matrix. Otherwise, a list with the following items:
@@ -807,6 +810,11 @@
 #' \emph{Journal of Machine Learning Research}, \emph{9} (2579-2605).
 #' \url{http://www.jmlr.org/papers/v9/vandermaaten08a.html}
 #'
+#' Van der Maaten, L. (2014). 
+#' Accelerating t-SNE using tree-based algorithms.
+#' \emph{Journal of Machine Learning Research}, \emph{15}(1) (3221-3245).
+#' \url{https://jmlr.org/papers/v15/vandermaaten14a.html}
+#'
 #' Venna, J., Peltonen, J., Nybo, K., Aidos, H., & Kaski, S. (2010).
 #' Information retrieval perspective to nonlinear dimensionality reduction for
 #' data visualization.
@@ -871,6 +879,7 @@ smallvis <- function(X,
                      ret_extra = FALSE,
                      n_threads = 0,
                      use_cpp = FALSE,
+                     theta = 0.5,
                      eps = .Machine$double.eps,
                      verbose = TRUE) {
   if (is.logical(epoch_callback)) {
@@ -884,7 +893,7 @@ smallvis <- function(X,
   }
 
   # The embedding method
-  cost_fn <- create_cost(method, perplexity, eps, n_threads, use_cpp)
+  cost_fn <- create_cost(method, perplexity, eps, n_threads, use_cpp, theta = theta)
 
   if (exaggeration_factor != 1) {
     if (stop_lying_iter < 1) {
@@ -1389,7 +1398,8 @@ create_cost <- function(method,
                         perplexity,
                         eps,
                         n_threads,
-                        use_cpp) {
+                        use_cpp,
+                        theta) {
   method_names <- c(
     "tsne",
     "largevis",
@@ -1438,7 +1448,8 @@ create_cost <- function(method,
     "jssne",
     "gsne",
     "abssne",
-    "bhssne"
+    "bhssne",
+    "bhtsne"
   )
   if (is.character(method)) {
     method <- match.arg(tolower(method), method_names)
@@ -1448,6 +1459,12 @@ create_cost <- function(method,
         n_threads = n_threads,
         eps = eps,
         use_cpp = use_cpp
+      ),
+      bhtsne = bhtsne(
+        perplexity = perplexity,
+        n_threads = n_threads,
+        eps = eps,
+        theta = theta
       ),
       umap = umap(
         perplexity = perplexity,
