@@ -2,28 +2,56 @@
 
 An R package for small-scale dimensionality reduction using 
 neighborhood-preservation
-dimensionality reduction methods, including [t-Distributed Stochastic Neighbor Embedding](https://lvdmaaten.github.io/tsne/), 
-[LargeVis](https://arxiv.org/abs/1602.00370) and 
-[UMAP](https://arxiv.org/abs/1802.03426). 
+dimensionality reduction methods, including 
+[t-Distributed Stochastic Neighbor Embedding](https://lvdmaaten.github.io/tsne/), 
+and a non-stochastic version of the [LargeVis](https://arxiv.org/abs/1602.00370)
+and [UMAP](https://arxiv.org/abs/1802.03426) cost functions.
 
-LargeVis and UMAP are of particular interest because they seem to give
-visualizations which are very competitive with t-SNE, but can use stochastic
-gradient descent to give faster run times and/or better scaling with dataset
-size than the typical Barnes-Hut t-SNE implementation.
+The purpose of this package is to make it easier to experiment with different
+dimensionality reduction methods while having more control over things like
+input scaling, nearest neighbor calculations, initialization and optimization, 
+which can make comparisons between different packages difficult. Be warned, 
+most implementations are not optimized for speed and scale like O(N^2), but see
+below for my dream to upgrade `smallvis` to more of a mediumvis.
 
-This package is designed to make it easier to experiment with and compare these 
-methods, by removing differences in implementation details.
+*August 11 2024* **The Turbo Championship Edition Update**. I have briefly
+brought `smallvis` back from the dead to speed it up a bit. I have added:
 
-One way it does this is by abandoning the more advanced nearest-neighbor 
-methods, distance approximations, sampling, and multi-threaded stochastic 
-gradient descent techniques. The price paid for this simplification is that the 
-algorithms are back to being O(N^2) in storage and computation costs (and being 
-in pure R). Unlike UMAP, 
-[the official implementation of LargeVis](https://github.com/lferry007/LargeVis),
-and the 
-[Barnes-Hut implementation of t-SNE](https://github.com/lvdmaaten/bhtsne),
-this package is therefore *not* suitable for large scale visualization.
-Hence the name smallvis.
+* Barnes-Hut t-SNE. This will scale up to larger datasets and it is feasible
+to run it on the full MNIST digits dataset (i.e. 70,000 items). This uses a
+(2D only) C++ translation of the cython implementation in the Python
+[openTSNE](https://github.com/pavlin-policar/openTSNE) package originally
+authored by [Pavlin Poličar](https://github.com/pavlin-policar). It's BSD
+3-clause licensed (and can be found in `src/bh.h`). Use it with 
+`method = "bhtsne"`. The degree of approximation can be controlled with 
+`theta`. Be aware that it's not as fast as e.g.
+[Rtsne](https://github.com/jkrijthe/Rtsne), at least during the optimization
+step. That package uses Laurens van der Maaten's original C++ code which I am
+very unsure can be redistributed with R code due to its BSD 4-clause license. I
+would love to be wrong about that though! The Quad Tree implementation could
+be used with other embedding methods, but I haven't got round to implementing
+that yet.
+* A C++ multi-threaded perplexity search using only the nearest neighbors of
+each point (3 times the perplexity) is used with BH t-SNE.
+* My own [rnndescent](https://cran.r-project.org/package=rnndescent) package
+replaces FNN for nearest neighbor search. Apart from being a monument to my ego,
+it can be faster than FNN for brute force search because it can be
+multi-threaded (use `n_threads` to control this). Also, approximate nearest
+neighbor search becomes quite important with larger datasets.
+* For exact search, I have started adding multi-threaded C++ code to calculate
+the gradient. Set `use_cpp = TRUE` to use this. It's not as big a win in speed
+up as you might hope because the R code is using some very optimized linear
+algebra for some steps which will blow my puny C++ code out of the water.
+However in many cases the linear algebra libraries won't be mult-threaded so
+sheer brute force threads can overcome this. Just don't expect setting `n` 
+threads to give you `n` times the speed. Like Barnes-Hut, this requires me to
+implement the gradients in C++ for each method and I haven't done that yet.
+* [irlba](https://cran.r-project.org/package=irlba) is now a dependency for 
+doing PCA on larger datasets.
+
+I will probably at least attempt to apply Barnes-Hut and multi-threading to some
+other methods. On the other hand, it's taken me five years to get back to this,
+so don't hold your breath.
 
 ## Prerequisites
 
@@ -60,6 +88,10 @@ library(smallvis)
 # set verbose = TRUE to log progress to the console
 # Automatically plots the results during optimization
 tsne_iris <- smallvis(iris, perplexity = 25, verbose = TRUE)
+
+# Barnes-Hut:
+bhtsne_iris <- smallvis(iris, perplexity = 25, method = "bhtsne", theta = 0.8)
+
 
 # Using a custom epoch_callback
 uniq_spec <- unique(iris$Species)
@@ -205,7 +237,7 @@ scale.
 Also of relevance are:
 
 * [UMAP](https://github.com/lmcinnes/umap) (in Python)
-* [UWOT](https://github.com/jlmelville/uwot) a package implementing LargeVis 
+* [uwot](https://github.com/jlmelville/uwot) a package implementing LargeVis 
 and UMAP.
 * [LargeVis](https://github.com/lferry007/LargeVis) (in C++)
 * [Spectra](http://spectralib.org/), the C++ library that RSpectra wraps.
@@ -221,5 +253,5 @@ of Justin Donaldson's R package for [t-SNE](https://cran.r-project.org/package=t
 [GPLv2 or later](https://www.gnu.org/licenses/gpl-2.0.txt). Any 
 LargeVis-specific code (e.g. cost and gradient calculation) can also be 
 considered [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0).
-Similarly, UMAP-related code is also licensed as 
+Similarly, Barnes-Hut and UMAP-related code is also licensed as 
 [BSD 3-clause](https://opensource.org/licenses/BSD-3-Clause).
