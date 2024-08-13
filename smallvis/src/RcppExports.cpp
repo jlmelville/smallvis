@@ -81,13 +81,13 @@ BEGIN_RCPP
 END_RCPP
 }
 // d2_to_tweight_cpp
-NumericMatrix d2_to_tweight_cpp(NumericMatrix dist_matrix, int n_threads);
+NumericMatrix d2_to_tweight_cpp(NumericMatrix dist_matrix, std::size_t n_threads);
 RcppExport SEXP _smallvis_d2_to_tweight_cpp(SEXP dist_matrixSEXP, SEXP n_threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< NumericMatrix >::type dist_matrix(dist_matrixSEXP);
-    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    Rcpp::traits::input_parameter< std::size_t >::type n_threads(n_threadsSEXP);
     rcpp_result_gen = Rcpp::wrap(d2_to_tweight_cpp(dist_matrix, n_threads));
     return rcpp_result_gen;
 END_RCPP
