@@ -188,13 +188,13 @@ void _bh_tsne_negative_gradient_single(const QuadTree::Node &node,
   // Check if we can use this node as a summary
   if (node.is_summary(d2_ij, theta2)) {
     double w_ij = 1.0 / (1.0 + d2_ij);
+    double nw_ij = node.num_points * w_ij;
+    Zi += nw_ij;
 
-    Zi += node.num_points * w_ij;
-
+    nw_ij *= w_ij;
     // un-normalized -ve grad W*W*dY
-    w_ij *= w_ij;
-    gradient_x += node.num_points * w_ij * diff_x;
-    gradient_y += node.num_points * w_ij * diff_y;
+    gradient_x += nw_ij * diff_x;
+    gradient_y += nw_ij * diff_y;
 
     return;
   }
