@@ -143,8 +143,8 @@ public:
     double coords_min_y = std::numeric_limits<double>::max();
     double coords_max_y = std::numeric_limits<double>::lowest();
 
-    const std::size_t n_points = data.size() / 2;
-    for (std::size_t i = 0; i < n_points * 2; i += 2) {
+    const std::size_t data_len = data.size();
+    for (std::size_t i = 0; i < data_len; i += 2) {
       double x = data[i];
       double y = data[i + 1];
 
@@ -160,7 +160,7 @@ public:
         std::max(coords_max_x - coords_min_x, coords_max_y - coords_min_y);
 
     root = std::make_unique<Node>(center_x, center_y, length);
-    for (std::size_t i = 0; i < n_points * 2; i += 2) {
+    for (std::size_t i = 0; i < data_len; i += 2) {
       root->add_point(data[i], data[i + 1], eps);
     }
   }
@@ -211,7 +211,7 @@ void bh_tsne_negative_gradient(const QuadTree &tree,
                                const std::vector<double> &embedding,
                                double theta2, double eps, std::size_t n_threads,
                                std::vector<double> &gradient) {
-  std::size_t num_points = embedding.size() / 2;
+  std::size_t embedding_len = embedding.size();
   std::vector<double> Zi(std::max(static_cast<std::size_t>(1), n_threads), 0.0);
 
   const QuadTree::Node *root = tree.root.get();
@@ -224,12 +224,11 @@ void bh_tsne_negative_gradient(const QuadTree &tree,
                                         gradient[i + 1], Zi[thread_id]);
     }
   };
-  parallel_for(num_points, n_threads, worker);
+  parallel_for(embedding_len / 2, n_threads, worker);
 
   double Z = std::accumulate(Zi.begin(), Zi.end(), eps);
-
   // Normalize the gradient
-  for (std::size_t i = 0; i < num_points * 2; i += 2) {
+  for (std::size_t i = 0; i < embedding_len; i += 2) {
     gradient[i] /= Z;
     gradient[i + 1] /= Z;
   }
@@ -243,8 +242,7 @@ void bh_tsne_positive_gradient(const std::vector<std::size_t> &indices,
                                std::vector<double> &gradient) {
 
   auto worker = [&](std::size_t start, std::size_t end) {
-    for (std::size_t i = start; i < end; ++i) {
-      const std::size_t i2 = i * 2;
+    for (std::size_t i = start, i2 = start * 2; i < end; ++i, i2 += 2) {
       for (std::size_t k = indptr[i]; k < indptr[i + 1]; ++k) {
         std::size_t j2 = indices[k] * 2;
 
@@ -292,18 +290,18 @@ void _bh_Zi(const QuadTree::Node &node, double point_x, double point_y,
 
 double bh_Z(const QuadTree &tree, const std::vector<double> &embedding,
             double theta2, double eps, std::size_t n_threads) {
-  std::size_t num_points = embedding.size() / 2;
   std::vector<double> Zi(std::max(static_cast<std::size_t>(1), n_threads), 0.0);
 
   const QuadTree::Node *root = tree.root.get();
 
   // Function to calculate the negative gradient for a single point
   auto worker = [&](std::size_t start, std::size_t end, std::size_t thread_id) {
-    for (std::size_t i = start * 2; i < end * 2; i += 2) {
+    const std::size_t end2 = end * 2;
+    for (std::size_t i = start * 2; i < end2; i += 2) {
       _bh_Zi(*root, embedding[i], embedding[i + 1], theta2, eps, Zi[thread_id]);
     }
   };
-  parallel_for(num_points, n_threads, worker);
+  parallel_for(embedding.size() / 2, n_threads, worker);
 
   return std::accumulate(Zi.begin(), Zi.end(), eps);
 }
@@ -313,8 +311,6 @@ double bh_plogq(const std::vector<std::size_t> &indices,
                 const std::vector<double> &P_data,
                 const std::vector<double> &embedding, double theta, double eps,
                 std::size_t n_threads) {
-  std::size_t n_samples = embedding.size() / 2;
-
   QuadTree tree(embedding, eps);
   double mlogZ =
       -std::log(bh_Z(tree, embedding, theta * theta, eps, n_threads));
@@ -339,7 +335,7 @@ double bh_plogq(const std::vector<std::size_t> &indices,
     }
     partial_plogq[thread_id] += window_plogq;
   };
-  parallel_for(n_samples, n_threads, worker);
+  parallel_for(embedding.size() / 2, n_threads, worker);
 
   return std::accumulate(partial_plogq.begin(), partial_plogq.end(), 0.0);
 }
@@ -359,7 +355,6 @@ std::vector<double> bh_tsne_gradient(const std::vector<std::size_t> &indices,
                             gradient);
   bh_tsne_positive_gradient(indices, indptr, P_data, embedding, n_threads,
                             gradient);
-
   return gradient;
 }
 } // namespace smallvis
