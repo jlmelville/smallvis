@@ -119,11 +119,9 @@ public:
     }
 
     void update_center_of_mass(double point_x, double point_y) noexcept {
-      center_of_mass_x =
-          (center_of_mass_x * num_points + point_x) / (num_points + 1);
-      center_of_mass_y =
-          (center_of_mass_y * num_points + point_y) / (num_points + 1);
       num_points += 1;
+      center_of_mass_x += (point_x - center_of_mass_x) / num_points;
+      center_of_mass_y += (point_y - center_of_mass_y) / num_points;
     }
 
     void split() {
