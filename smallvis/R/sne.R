@@ -129,6 +129,7 @@ bhtsne <- function(perplexity,
         cost$P@x,
         Y,
         theta = theta,
+        eps = eps,
         n_threads = n_threads
       )
       # browser()

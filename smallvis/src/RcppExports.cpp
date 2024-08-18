@@ -11,35 +11,35 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // bh_tsne_gradient_cpp
-NumericMatrix bh_tsne_gradient_cpp(IntegerVector indices, IntegerVector indptr, NumericVector P_data, NumericMatrix embedding, double theta, double eps, int n_threads);
+NumericMatrix bh_tsne_gradient_cpp(const IntegerVector& indices, const IntegerVector& indptr, const NumericVector& P_data, const NumericMatrix& embedding, double theta, double eps, std::size_t n_threads);
 RcppExport SEXP _smallvis_bh_tsne_gradient_cpp(SEXP indicesSEXP, SEXP indptrSEXP, SEXP P_dataSEXP, SEXP embeddingSEXP, SEXP thetaSEXP, SEXP epsSEXP, SEXP n_threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< IntegerVector >::type indices(indicesSEXP);
-    Rcpp::traits::input_parameter< IntegerVector >::type indptr(indptrSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type P_data(P_dataSEXP);
-    Rcpp::traits::input_parameter< NumericMatrix >::type embedding(embeddingSEXP);
+    Rcpp::traits::input_parameter< const IntegerVector& >::type indices(indicesSEXP);
+    Rcpp::traits::input_parameter< const IntegerVector& >::type indptr(indptrSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type P_data(P_dataSEXP);
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type embedding(embeddingSEXP);
     Rcpp::traits::input_parameter< double >::type theta(thetaSEXP);
     Rcpp::traits::input_parameter< double >::type eps(epsSEXP);
-    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    Rcpp::traits::input_parameter< std::size_t >::type n_threads(n_threadsSEXP);
     rcpp_result_gen = Rcpp::wrap(bh_tsne_gradient_cpp(indices, indptr, P_data, embedding, theta, eps, n_threads));
     return rcpp_result_gen;
 END_RCPP
 }
 // bh_plogq_cpp
-double bh_plogq_cpp(IntegerVector indices, IntegerVector indptr, NumericVector P_data, NumericMatrix embedding, double theta, double eps, int n_threads);
+double bh_plogq_cpp(const IntegerVector& indices, const IntegerVector& indptr, const NumericVector& P_data, const NumericMatrix& embedding, double theta, double eps, std::size_t n_threads);
 RcppExport SEXP _smallvis_bh_plogq_cpp(SEXP indicesSEXP, SEXP indptrSEXP, SEXP P_dataSEXP, SEXP embeddingSEXP, SEXP thetaSEXP, SEXP epsSEXP, SEXP n_threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< IntegerVector >::type indices(indicesSEXP);
-    Rcpp::traits::input_parameter< IntegerVector >::type indptr(indptrSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type P_data(P_dataSEXP);
-    Rcpp::traits::input_parameter< NumericMatrix >::type embedding(embeddingSEXP);
+    Rcpp::traits::input_parameter< const IntegerVector& >::type indices(indicesSEXP);
+    Rcpp::traits::input_parameter< const IntegerVector& >::type indptr(indptrSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type P_data(P_dataSEXP);
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type embedding(embeddingSEXP);
     Rcpp::traits::input_parameter< double >::type theta(thetaSEXP);
     Rcpp::traits::input_parameter< double >::type eps(epsSEXP);
-    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    Rcpp::traits::input_parameter< std::size_t >::type n_threads(n_threadsSEXP);
     rcpp_result_gen = Rcpp::wrap(bh_plogq_cpp(indices, indptr, P_data, embedding, theta, eps, n_threads));
     return rcpp_result_gen;
 END_RCPP
