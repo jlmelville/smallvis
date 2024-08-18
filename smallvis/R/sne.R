@@ -80,10 +80,17 @@ tsne <- function(perplexity,
 }
 
 bhtsne <- function(perplexity,
-                   inp_kernel = "perpnnas",
-                   eps = .Machine$double.eps,
+                   inp_kernel = "nngaussian",
+                   nn = "approximate",
                    theta = 0.5,
+                   eps = .Machine$double.eps,
                    n_threads = 0) {
+  if (is.null(inp_kernel)) {
+    inp_kernel <- "nngaussian"
+  }
+  if (is.null(nn)) {
+    nn <- "approximate"
+  }
   list(
     init = function(cost,
                     X,
@@ -101,7 +108,9 @@ bhtsne <- function(perplexity,
         verbose = verbose,
         ret_extra = ret_extra,
         n_threads = n_threads,
-        use_cpp = TRUE
+        use_cpp = TRUE,
+        nn = nn,
+        sparse = TRUE
       )
       cost$eps <- eps
       cost

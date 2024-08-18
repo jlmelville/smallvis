@@ -270,8 +270,8 @@ smooth_knn_distances <-
         nn_dist[i, ] <- X[i, nn_idx[i, ]]
       }
     } else {
-      tsmessage("Finding ", k + 1, " nearest neighbors")
-      knn <- rnndescent::brute_force_knn(X, k = k, n_threads = n_threads)
+      # TODO: shouldn't this be k + 1 ?
+      knn <- get_nn(X, k = k, n_threads = n_threads, verbose = verbose)
       knn$idx <- knn$idx[, 2:k]
       knn$dist <- knn$dist[, 2:k]
 

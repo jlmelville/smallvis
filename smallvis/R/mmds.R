@@ -312,6 +312,7 @@ knnmmds <- function(k,
       knn <- knn_graph(
         X = X,
         k = k,
+        ret_sparse = FALSE,
         n_threads = n_threads,
         verbose = verbose
       )

@@ -536,8 +536,32 @@
 #'   \code{.Machine$double.eps}, but if you see inconsistent convergence results
 #'   with optimizer that should be reducing the cost each iteration, then try
 #'   setting this to a larger value, e.g. between \code{1e-3 - 1e-9}.
-#' @param theta Barnes-Hut approximation accuracy. Default is 0.5. Set to 0.0
-#'   for exact t-SNE. Applies only for \code{method = "bhtsne"}.
+#' @param theta Barnes-Hut approximation accuracy. Default is \code{1.0} which
+#'   more or less corresponds to the default degree of approximation used in
+#'   the \code{Rtsne} package. Set to 0.0 for exact t-SNE. Applies only for
+#'   \code{method = "bhtsne"}.
+#' @param inp_kernel For t-SNE-like methods, determines how the input
+#'   similarities are calculated. Possible values are:
+#'   \itemize{
+#'   \item{\code{"gaussian"}} Gaussian kernel using the target
+#'   \code{perplexity}.
+#'   \item{\code{"nngaussian"}} Gaussian kernel using the target
+#'   \code{perplexity} but similarities beyond the nearest neighbors of each
+#'   observation are set to zero. The number of nearest neighbors is three
+#'   times the \code{perplexity}. For large datasets, this is faster than 
+#'   \code{"gaussian"}, with only a negligible loss of accuracy.
+#'   \item \code{"knn"}} k-nearest neighbors kernel. Only the \code{perplexity}
+#'   nearest neighbors of each observation are considered and each are given
+#'   a similarity of \code{1/perplexity}. This can be a lot faster than using
+#'   \code{"nngaussian"} as fewer neighbors need to be found.
+#' @param nn Method for finding nearest neighbors. Possible values are:
+#'  \itemize{
+#'  \item{\code{"exact"}} Exact nearest neighbors.
+#'  \item{\code{"approximate"}} Approximate nearest neighbors.
+#'  }
+#'  Approximate nearest neighbors are faster for large datasets and usually the
+#'  small loss in accuracy is not a problem. The default is \code{NULL}, where
+#'  each method gets to choose the best method for its needs.
 #' @param verbose If \code{TRUE}, log progress messages to the console.
 #' @return If \code{ret_extra} is \code{FALSE}, the embedded output coordinates
 #'   as a matrix. Otherwise, a list with the following items:
@@ -879,8 +903,10 @@ smallvis <- function(X,
                      ret_extra = FALSE,
                      n_threads = 0,
                      use_cpp = FALSE,
-                     theta = 0.5,
+                     theta = 1.0,
                      eps = .Machine$double.eps,
+                     inp_kernel = NULL,
+                     nn = NULL,
                      verbose = TRUE) {
   if (is.logical(epoch_callback)) {
     if (epoch_callback) {
@@ -893,8 +919,17 @@ smallvis <- function(X,
   }
 
   # The embedding method
-  cost_fn <- create_cost(method, perplexity, eps, n_threads, use_cpp, theta = theta)
-
+  cost_fn <- create_cost(
+    method,
+    perplexity,
+    eps,
+    n_threads,
+    use_cpp,
+    theta = theta,
+    inp_kernel = inp_kernel,
+    nn = nn
+  )
+  
   if (exaggeration_factor != 1) {
     if (stop_lying_iter < 1) {
       stop("stop_lying_iter must be >= 1")
@@ -1399,7 +1434,9 @@ create_cost <- function(method,
                         eps,
                         n_threads,
                         use_cpp,
-                        theta) {
+                        theta,
+                        inp_kernel,
+                        nn) {
   method_names <- c(
     "tsne",
     "largevis",
@@ -1464,7 +1501,9 @@ create_cost <- function(method,
         perplexity = perplexity,
         n_threads = n_threads,
         eps = eps,
-        theta = theta
+        theta = theta,
+        inp_kernel = inp_kernel,
+        nn = nn
       ),
       umap = umap(
         perplexity = perplexity,

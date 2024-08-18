@@ -38,8 +38,10 @@ smallvis(
   ret_extra = FALSE,
   n_threads = 0,
   use_cpp = FALSE,
-  theta = 0.5,
+  theta = 1,
   eps = .Machine$double.eps,
+  inp_kernel = NULL,
+  nn = NULL,
   verbose = TRUE
 )
 }
@@ -206,13 +208,39 @@ nearest neighbors will be affected.}
 calculations. Default is \code{FALSE}. This won't speed up all steps and
 you will want to use this in conjunction with \code{n_threads}.}
 
-\item{theta}{Barnes-Hut approximation accuracy. Default is 0.5. Set to 0.0
-for exact t-SNE. Applies only for \code{method = "bhtsne"}.}
+\item{theta}{Barnes-Hut approximation accuracy. Default is \code{1.0} which
+more or less corresponds to the default degree of approximation used in
+the \code{Rtsne} package. Set to 0.0 for exact t-SNE. Applies only for
+\code{method = "bhtsne"}.}
 
 \item{eps}{Set epsilon for avoiding division-by-zero errors. Default is
 \code{.Machine$double.eps}, but if you see inconsistent convergence results
 with optimizer that should be reducing the cost each iteration, then try
 setting this to a larger value, e.g. between \code{1e-3 - 1e-9}.}
+
+\item{inp_kernel}{For t-SNE-like methods, determines how the input
+similarities are calculated. Possible values are:
+\itemize{
+\item{\code{"gaussian"}} Gaussian kernel using the target
+\code{perplexity}.
+\item{\code{"nngaussian"}} Gaussian kernel using the target
+\code{perplexity} but similarities beyond the nearest neighbors of each
+observation are set to zero. The number of nearest neighbors is three
+times the \code{perplexity}. For large datasets, this is faster than 
+\code{"gaussian"}, with only a negligible loss of accuracy.
+\item \code{"knn"}} k-nearest neighbors kernel. Only the \code{perplexity}
+nearest neighbors of each observation are considered and each are given
+a similarity of \code{1/perplexity}. This can be a lot faster than using
+\code{"nngaussian"} as fewer neighbors need to be found.}
+
+\item{nn}{Method for finding nearest neighbors. Possible values are:
+\itemize{
+\item{\code{"exact"}} Exact nearest neighbors.
+\item{\code{"approximate"}} Approximate nearest neighbors.
+}
+Approximate nearest neighbors are faster for large datasets and usually the
+small loss in accuracy is not a problem. The default is \code{NULL}, where
+each method gets to choose the best method for its needs.}
 
 \item{verbose}{If \code{TRUE}, log progress messages to the console.}
 }

@@ -1,5 +1,222 @@
 # Perplexity Calibration --------------------------------------------------
 
+# kernels:
+# knn
+# skd
+# sigma
+# gaussian: standard gaussian kernel with perplexity over all observations
+# nngaussian: gaussian kernel with perplexity over nearest neighbors
+sne_init <- function(cost,
+                     X,
+                     perplexity,
+                     kernel = "gaussian",
+                     symmetrize = "symmetric",
+                     row_normalize = TRUE,
+                     normalize = TRUE,
+                     n_threads = 0,
+                     use_cpp = FALSE,
+                     sparse = FALSE,
+                     nn = "exact",
+                     verbose = FALSE,
+                     ret_extra = c()) {
+  if (tolower(kernel) == "knn") {
+    if (is.character(perplexity) || is.list(perplexity)) {
+      stop("Can't use intrinsic dimensionality with knn kernel")
+    }
+    if (length(perplexity) > 1) {
+      stop("Can't use multiple perplexities with knn kernel")
+    }
+    tsmessage("Using knn kernel with k = ", formatC(perplexity))
+    P <- knn_graph(
+      X,
+      k = perplexity,
+      n_threads = n_threads,
+      ret_sparse = sparse,
+      exact = nn == "exact",
+      verbose = verbose
+    )
+    x2ares <- list(W = P)
+  } else if (tolower(kernel) == "skd") {
+    P <- smooth_knn_distances(
+      X,
+      k = perplexity,
+      tol = 1e-5,
+      n_threads = n_threads,
+      verbose = verbose
+    )$P
+    row_normalize <- FALSE
+    x2ares <- list(W = P)
+  } else if (perp_method(perplexity) == "idp") {
+    perplexities <- NULL
+    if (is.list(perplexity) && length(perplexity) == 2) {
+      perplexities <- perplexity[[2]]
+    }
+
+    x2ares <- idp(X,
+      perplexities = perplexities,
+      tol = 1e-5,
+      verbose = verbose
+    )
+    P <- x2ares$W
+    ret_extra <- unique(c(ret_extra, "idp"))
+  } else if (perp_method(perplexity) == "multiscale") {
+    perplexities <- NULL
+    if (is.list(perplexity) && length(perplexity) == 2) {
+      perplexities <- perplexity[[2]]
+    }
+
+    mspres <- msp(
+      X,
+      perplexities = perplexities,
+      tol = 1e-5,
+      symmetrize = symmetrize,
+      row_normalize = row_normalize,
+      normalize = normalize,
+      verbose = verbose
+    )
+    cost$P <- mspres$P
+    return(cost)
+  } else if (tolower(kernel) == "sigma") {
+    tsmessage("Using fixed sigma = ", formatC(perplexity))
+    x2ares <- x2aff_sigma(
+      X,
+      sigma = perplexity,
+      n_threads = n_threads,
+      use_cpp = use_cpp,
+      verbose = verbose
+    )
+    P <- x2ares$W
+  } else {
+    if (!is.numeric(perplexity)) {
+      stop("Unknown perplexity method, '", perplexity[[1]], "'")
+    }
+
+    if (kernel == "nngaussian") {
+      n <- nrow(X)
+      if (perplexity > n - 1) {
+        stop("Perplexity too high for number of points")
+      }
+      k <- 3 * perplexity
+      if (k > n - 1) {
+        warning(
+          "Perplexity probably too high for number of points,",
+          " result may not be meaningful"
+        )
+        k <- n - 1
+      }
+      knn <- get_nn(
+        X,
+        k = k + 1,
+        exact = nn == "exact",
+        n_threads = n_threads,
+        verbose = verbose
+      )
+      knn_dist <- knn$dist[, 2:(k + 1)]
+      knn_idx <- knn$idx[, 2:(k + 1)]
+
+      tsmessage(
+        "Commencing calibration for perplexity = ",
+        format_perps(perplexity),
+        " n_threads = ",
+        n_threads
+      )
+      P <- find_beta_knn_cpp(
+        knn_dist,
+        knn_idx,
+        perplexity = perplexity,
+        n_threads = n_threads,
+        ret_sparse = sparse
+      )$P
+      if (sparse) {
+        P <- Matrix::sparseMatrix(
+          i = rep(1:n, each = k),
+          j = as.vector(t(knn_idx)),
+          x = P,
+          dims = c(n, n),
+          repr = "C"
+        )
+      }
+    } else {
+      if (use_cpp) {
+        tsmessage(
+          "Commencing calibration for perplexity = ",
+          format_perps(perplexity),
+          " n_threads = ",
+          n_threads
+        )
+        P <- find_beta_cpp(X, perplexity, tol = 1e-5, n_threads = n_threads)$W
+      } else {
+        tsmessage(
+          "Commencing calibration for perplexity = ",
+          format_perps(perplexity)
+        )
+        x2ares <- x2aff(
+          X,
+          perplexity,
+          tol = 1e-5,
+          kernel = kernel,
+          verbose = verbose
+        )
+        P <- x2ares$W
+      }
+    }
+  }
+
+  P <- scale_affinities(
+    P,
+    symmetrize = symmetrize,
+    row_normalize = row_normalize,
+    normalize = normalize
+  )
+  cost$P <- P
+
+  if (!methods::is(P, "sparseMatrix")) {
+    if (is.logical(row_normalize)) {
+      tsmessage(
+        "Effective perplexity of P approx = ",
+        formatC(stats::median(perpp(P)))
+      )
+    }
+
+    for (r in unique(tolower(ret_extra))) {
+      switch(r,
+        v = {
+          cost$V <- x2ares$W
+        },
+        dint = {
+          if (!is.null(x2ares$dint)) {
+            cost$dint <- x2ares$dint
+          }
+        },
+        beta = {
+          if (!is.null(x2ares$beta)) {
+            cost$beta <- x2ares$beta
+          }
+        },
+        adegc = {
+          cost$adegc <- 0.5 * rowSums(x2ares$W) + colSums(x2ares$W)
+        },
+        adegin = {
+          cost$adegin <- rowSums(x2ares$W)
+        },
+        adegout = {
+          cost$adegout <- colSums(x2ares$W)
+        },
+        pdeg = {
+          cost$pdeg <- colSums(P)
+        },
+        idp = {
+          if (!is.null(x2ares$idp)) {
+            cost$idp <- x2ares$idp
+          }
+        }
+      )
+    }
+  }
+  cost
+}
+
+
 # Calculates the input affinities from X, such that each normalized row of the
 # affinity matrix has the specified perplexity (within the supplied tolerance).
 # Returns a list containing the affinities, beta values and intrinsic
@@ -211,8 +428,13 @@ knn_dist <- function(X, k, n_threads, verbose) {
     if (k > n - 1) {
       stop("k must be not be > n - 1")
     }
-    tsmessage("Finding ", k + 1, " nearest neighbors")
-    knn <- rnndescent::brute_force_knn(X, k = k + 1, n_threads = n_threads)
+    knn <- get_nn(
+      X,
+      k = k + 1,
+      exact = TRUE,
+      n_threads = n_threads,
+      verbose = verbose
+    )
     knn$idx <- knn$idx[, 2:(k + 1)]
     knn$dist <- knn$dist[, 2:(k + 1)]
 
@@ -231,8 +453,16 @@ knn_dist <- function(X, k, n_threads, verbose) {
 # i is NOT considered a neighbor of itself.
 # No symmetrization is carried out.
 # Used by knnmmds and knn kernel for SNE
-knn_graph <- function(X, k, n_threads, verbose) {
+knn_graph <- function(X,
+                      k,
+                      exact = TRUE,
+                      ret_sparse = FALSE,
+                      n_threads = 0,
+                      verbose = FALSE) {
   if (methods::is(X, "dist")) {
+    if (ret_sparse) {
+      stop("distance matrix to sparse knn graph not supported")
+    }
     D <- as.matrix(X)
     n <- nrow(D)
     if (k > n - 1) {
@@ -252,18 +482,49 @@ knn_graph <- function(X, k, n_threads, verbose) {
       stop("k must be not be > n - 1")
     }
 
-    tsmessage("Finding ", k + 1, " nearest neighbors")
-    knn <- rnndescent::brute_force_knn(X, k = k + 1, n_threads = n_threads)
+    knn <- get_nn(X,
+      k = k + 1,
+      exact = exact,
+      n_threads = n_threads,
+      verbose = verbose
+    )
     knn$idx <- knn$idx[, 2:(k + 1)]
-
-    D <- matrix(0, nrow = n, ncol = n)
-    for (i in 1:n) {
-      D[i, knn$idx[i, ]] <- 1
+    if (ret_sparse) {
+      knn$dist <- rep(1, n * k)
+      D <- graph_to_sparse(knn)
+    } else {
+      D <- matrix(0, nrow = n, ncol = n)
+      for (i in 1:n) {
+        D[i, knn$idx[i, ]] <- 1
+      }
     }
   }
   D
 }
 
+get_nn <- function(X,
+                   k,
+                   exact = FALSE,
+                   n_threads = 0,
+                   verbose = FALSE) {
+  if (exact) {
+    tsmessage(
+      "Finding exact nearest neighbors with k = ",
+      k,
+      " n_threads = ",
+      n_threads
+    )
+    rnndescent::brute_force_knn(X, k = k, n_threads = n_threads)
+  } else {
+    tsmessage(
+      "Finding approximate nearest neighbors with k = ",
+      k,
+      " n_threads = ",
+      n_threads
+    )
+    rnndescent::rnnd_knn(X, k = k, n_threads = n_threads)
+  }
+}
 
 
 # Multiscale perplexities: P is an average over the results of multiple
@@ -477,227 +738,6 @@ scale_affinities <- function(P,
     P <- P / sum(P)
   }
   P
-}
-
-sne_init <- function(cost,
-                     X,
-                     perplexity,
-                     kernel = "gaussian",
-                     symmetrize = "symmetric",
-                     row_normalize = TRUE,
-                     normalize = TRUE,
-                     n_threads = 0,
-                     use_cpp = FALSE,
-                     verbose = FALSE,
-                     ret_extra = c()) {
-  if (tolower(kernel) == "knn") {
-    if (is.character(perplexity) || is.list(perplexity)) {
-      stop("Can't use intrinsic dimensionality with knn kernel")
-    }
-    if (length(perplexity) > 1) {
-      stop("Can't use multiple perplexities with knn kernel")
-    }
-    tsmessage("Using knn kernel with k = ", formatC(perplexity))
-    P <- knn_graph(X,
-      k = perplexity,
-      n_threads = n_threads,
-      verbose = verbose
-    )
-    x2ares <- list(W = P)
-  } else if (tolower(kernel) == "skd") {
-    P <- smooth_knn_distances(
-      X,
-      k = perplexity,
-      tol = 1e-5,
-      n_threads = n_threads,
-      verbose = verbose
-    )$P
-    row_normalize <- FALSE
-    x2ares <- list(W = P)
-  } else if (perp_method(perplexity) == "idp") {
-    perplexities <- NULL
-    if (is.list(perplexity) && length(perplexity) == 2) {
-      perplexities <- perplexity[[2]]
-    }
-
-    x2ares <- idp(X,
-      perplexities = perplexities,
-      tol = 1e-5,
-      verbose = verbose
-    )
-    P <- x2ares$W
-    ret_extra <- unique(c(ret_extra, "idp"))
-  } else if (perp_method(perplexity) == "multiscale") {
-    perplexities <- NULL
-    if (is.list(perplexity) && length(perplexity) == 2) {
-      perplexities <- perplexity[[2]]
-    }
-
-    mspres <- msp(
-      X,
-      perplexities = perplexities,
-      tol = 1e-5,
-      symmetrize = symmetrize,
-      row_normalize = row_normalize,
-      normalize = normalize,
-      verbose = verbose
-    )
-    cost$P <- mspres$P
-    return(cost)
-  } else if (tolower(kernel) == "sigma") {
-    tsmessage("Using fixed sigma = ", formatC(perplexity))
-    x2ares <- x2aff_sigma(
-      X,
-      sigma = perplexity,
-      n_threads = n_threads,
-      use_cpp = use_cpp,
-      verbose = verbose
-    )
-    P <- x2ares$W
-  } else {
-    if (!is.numeric(perplexity)) {
-      stop("Unknown perplexity method, '", perplexity[[1]], "'")
-    }
-
-    # perpnn options:
-    # perpnnks: use exact knn with sparse output
-    # perpnnas: use approximate knn with sparse output
-    # perpnnkd: use exact knn with dense output
-    # perpnnad: use approximate knn with dense output
-    if (startsWith(kernel, "perpnn")) {
-      n <- nrow(X)
-      if (perplexity > n - 1) {
-        stop("Perplexity too high for number of points")
-      }
-      k <- 3 * perplexity
-      if (k > n - 1) {
-        warning(
-          "Perplexity probably too high for number of points,",
-          " result may not be meaningful"
-        )
-        k <- n - 1
-      }
-      if (kernel %in% c("perpnnks", "perpnnkd")) {
-        tsmessage(
-          "Finding exact nearest neighbors with k = ",
-          k,
-          " n_threads = ",
-          n_threads
-        )
-        knn <- rnndescent::brute_force_knn(X, k = k + 1, n_threads = n_threads)
-      } else {
-        tsmessage(
-          "Finding approximate nearest neighbors with k = ",
-          k,
-          " n_threads = ",
-          n_threads
-        )
-        knn <- rnndescent::rnnd_knn(X, k = k + 1, n_threads = n_threads)
-      }
-      knn_dist <- knn$dist[, 2:(k + 1)]
-      knn_idx <- knn$idx[, 2:(k + 1)]
-
-      ret_sparse <- kernel %in% c("perpnnks", "perpnnas")
-      tsmessage(
-        "Commencing calibration for perplexity = ",
-        format_perps(perplexity),
-        " n_threads = ",
-        n_threads
-      )
-      P <- find_beta_knn_cpp(
-        knn_dist,
-        knn_idx,
-        perplexity = perplexity,
-        n_threads = n_threads,
-        ret_sparse = ret_sparse
-      )$P
-      if (ret_sparse) {
-        P <- Matrix::sparseMatrix(
-          i = rep(1:n, each = k),
-          j = as.vector(t(knn_idx)),
-          x = P,
-          dims = c(n, n),
-          repr = "C"
-        )
-      }
-    } else {
-      if (use_cpp) {
-        tsmessage(
-          "Commencing calibration for perplexity = ",
-          format_perps(perplexity),
-          " n_threads = ",
-          n_threads
-        )
-        P <- find_beta_cpp(X, perplexity, tol = 1e-5, n_threads = n_threads)$W
-      } else {
-        tsmessage(
-          "Commencing calibration for perplexity = ",
-          format_perps(perplexity)
-        )
-        x2ares <- x2aff(
-          X,
-          perplexity,
-          tol = 1e-5,
-          kernel = kernel,
-          verbose = verbose
-        )
-        P <- x2ares$W
-      }
-    }
-  }
-
-  P <- scale_affinities(
-    P,
-    symmetrize = symmetrize,
-    row_normalize = row_normalize,
-    normalize = normalize
-  )
-  cost$P <- P
-
-  if (!methods::is(P, "sparseMatrix")) {
-    if (is.logical(row_normalize)) {
-      tsmessage(
-        "Effective perplexity of P approx = ",
-        formatC(stats::median(perpp(P)))
-      )
-    }
-
-    for (r in unique(tolower(ret_extra))) {
-      switch(r,
-        v = {
-          cost$V <- x2ares$W
-        },
-        dint = {
-          if (!is.null(x2ares$dint)) {
-            cost$dint <- x2ares$dint
-          }
-        },
-        beta = {
-          if (!is.null(x2ares$beta)) {
-            cost$beta <- x2ares$beta
-          }
-        },
-        adegc = {
-          cost$adegc <- 0.5 * rowSums(x2ares$W) + colSums(x2ares$W)
-        },
-        adegin = {
-          cost$adegin <- rowSums(x2ares$W)
-        },
-        adegout = {
-          cost$adegout <- colSums(x2ares$W)
-        },
-        pdeg = {
-          cost$pdeg <- colSums(P)
-        },
-        idp = {
-          if (!is.null(x2ares$idp)) {
-            cost$idp <- x2ares$idp
-          }
-        }
-      )
-    }
-  }
-  cost
 }
 
 # The intrinsic dimensionality associated with a gaussian affinity vector
