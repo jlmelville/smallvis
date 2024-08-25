@@ -263,42 +263,39 @@ void bh_tsne_positive_gradient(const std::vector<std::size_t> &indices,
   parallel_for(gradient.size() / 2, n_threads, worker);
 }
 
-void _bh_Zi(const QuadTree::Node &node, double point_x, double point_y,
-            double theta2, double eps, double &Zi) {
+double _bh_Zi(const QuadTree::Node &node, double point_x, double point_y,
+              double theta2, double eps) {
   // Ensure we do not process empty nodes or simple self-interactions
   if (node.is_skippable(point_x, point_y, eps)) {
-    return;
+    return 0.0;
   }
 
-  // Compute the squared Euclidean distance between the point and the center of
-  // mass
   double diff_x = node.center_of_mass_x - point_x;
   double diff_y = node.center_of_mass_y - point_y;
   double d2_ij = eps + diff_x * diff_x + diff_y * diff_y;
 
-  // Check if we can use this node as a summary
   if (node.is_summary(d2_ij, theta2)) {
-    Zi += node.num_points / (1.0 + d2_ij);
-    return;
+    return node.num_points / (1.0 + d2_ij);
   }
 
   // Recursively apply Barnes-Hut to the children
+  double Zi = 0.0;
   for (const auto &child : node.children) {
-    _bh_Zi(*child, point_x, point_y, theta2, eps, Zi);
+    Zi += _bh_Zi(*child, point_x, point_y, theta2, eps);
   }
+  return Zi;
 }
 
 double bh_Z(const QuadTree &tree, const std::vector<double> &embedding,
             double theta2, double eps, std::size_t n_threads) {
+
   std::vector<double> Zi(std::max(static_cast<std::size_t>(1), n_threads), 0.0);
-
   const QuadTree::Node *root = tree.root.get();
-
-  // Function to calculate the negative gradient for a single point
   auto worker = [&](std::size_t start, std::size_t end, std::size_t thread_id) {
     const std::size_t end2 = end * 2;
     for (std::size_t i = start * 2; i < end2; i += 2) {
-      _bh_Zi(*root, embedding[i], embedding[i + 1], theta2, eps, Zi[thread_id]);
+      Zi[thread_id] +=
+          _bh_Zi(*root, embedding[i], embedding[i + 1], theta2, eps);
     }
   };
   parallel_for(embedding.size() / 2, n_threads, worker);
