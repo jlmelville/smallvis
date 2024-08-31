@@ -9,6 +9,8 @@ Description: Neighborhood embedding methods for small scale visualization, such
     function.
 License: GPL (>= 2)
 Imports:
+    irlba,
+    Matrix,
     methods,
     mize (>= 0.2),
     Rcpp,
