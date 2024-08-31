@@ -1,5 +1,165 @@
 # Optimization algorithms
 
+# Generic Functions -------------------------------------------------------
+
+# Creates the optimizer: mize or internal
+opt_create <- function(optlist, verbose = FALSE) {
+  name <- optlist[[1]]
+  optlist[[1]] <- NULL
+  
+  if (tolower(name) %in% c("adagrad", "adadelta", "rmsprop", "dbd",
+                           "ndbd", "adam", "adamax", "nadam", "amsgrad",
+                           "steepd", "mom", "nag", "gmom")) {
+    optlist$verbose <- verbose
+    opt <- do.call(get(name), optlist)
+    opt$smallvis_step <- opt_step_internal
+  }
+  else {
+    if (tolower(name) == "specd") {
+      optlist$method <- "PHESS"
+    }
+    else {
+      optlist$method <- name
+    }
+    optlist$max_iter <- Inf
+    approx_hess <- optlist$approx_hess
+    optlist$approx_hess <- NULL
+    opt <- do.call(mize::make_mize, optlist)
+    opt$name <- name
+    opt$smallvis_step <- opt_step_mize
+    if (tolower(name) %in% c("specd")) {
+      opt$requires_B <- TRUE
+    }
+    # Use the diagonal of the Spectral Direction Hessian approximation
+    # to initialize the quasi-Newton methods
+    if (nnat(approx_hess) && tolower(name) %in% c("bfgs", "l-bfgs", "sr1")) {
+      opt$requires_H <- TRUE
+    }
+  }
+  
+  opt
+}
+
+# Initializes the optimizer - called on the first iteration
+opt_init <- function(opt, n, ndim) {
+  if (!is.null(opt$init)) {
+    opt <- opt$init(opt, n, ndim)
+  }
+  opt
+}
+
+# Runs one "step" of optimization - could be multiple f/g evaluations with
+# mize optimizers
+opt_step <- function(opt, cost_fn, Y, iter) {
+  opt$smallvis_step(opt, cost_fn, Y, iter)
+}
+
+# One step of optimization using the non-mize optimizers
+opt_step_internal <- function(opt, cost_fn, Y, iter) {
+  if (iter == 1) {
+    opt <- opt_init(opt, nrow(Y), ncol(Y))
+  }
+  
+  cost_fn <- cost_grad(cost_fn, Y)
+  
+  opt <- opt$upd(opt, cost_fn, Y, iter, cost_fn$G)
+  cost_fn <- cost_clear(cost_fn)
+  if (nnat(opt$transposed)) {
+    Y <- Y + t(opt$uY)
+  }
+  else {
+    Y <- Y + opt$uY
+  }
+  
+  list(
+    Y = Y,
+    cost_fn = cost_fn,
+    opt = opt,
+    G = cost_fn$G
+  )
+}
+
+# Mize Bridge -------------------------------------------------------------
+
+# Adapt the smallvis cost function into the mize form
+mizify_cost <- function(cost, nrow) {
+  fg <- function(par) {
+    dim(par) <- c(nrow, length(par) / nrow)
+    cost <- cost_grad(cost, par)
+    G <- cost$G
+    
+    cost <- cost_point(cost, par)
+    pcosts <- cost$pcost
+    fn <- sum(pcosts)
+    
+    dim(G) <- NULL
+    list(fn = fn, gr = G)
+  }
+  fn <- function(par) {
+    fg(par)$fn
+  }
+  gr <- function(par) {
+    fg(par)$gr
+  }
+  list(
+    fn = fn, gr = gr, fg = fg
+  )
+}
+
+# One step of mize optimization
+opt_step_mize <- function(opt, cost_fn, Y, iter) {
+  nr <- nrow(Y)
+  nc <- ncol(Y)
+  fg <- mizify_cost(cost_fn, nr)
+  if (nnat(opt$requires_B) && iter == 1) {
+    # The Spectral Direction is the positive part of the Hessian, 4L+.
+    # mize stores the gradient as a vector, so the Hessian should be a dN x dN
+    # block diagonal matrix, with this block repeated d times (d being the
+    # output dimension), but shamefully, mize has a hack inside the hessian solve
+    # code to recognize when the Hessian is too small for exactly this case.
+    
+    # Graph Laplacian , L+ = D+ - W+
+    if (is.null(cost_fn$P)) {
+      stop("No P matrix in cost for use in approximate Hessian")
+    }
+    Lp <- diag(colSums(cost_fn$P)) - cost_fn$P
+    mu <- min(Lp[Lp > 0]) * 1e-10
+    B <- 4 * (Lp + mu)
+    
+    fg$hs <- function(par) {
+      B
+    }
+  }
+  # Quasi Newton methods need the inverse Hessian
+  # so just use the easy-to-invert diagonal
+  if (nnat(opt$requires_H) && iter == 1) {
+    H <- 4 * colSums(cost_fn$P)
+    fg$hi <- function(par) {
+      rep(1 / H, nc)
+    }
+  }
+  dim(Y) <- NULL
+  
+  if (iter == 1) {
+    opt <- mize::mize_init(opt, Y, fg)
+  }
+  res <- mize::mize_step(opt, Y, fg)
+  step_summary <- mize::mize_step_summary(res$opt, res$par, fg, par_old = Y)
+  res$opt <- mize::check_mize_convergence(step_summary)
+  
+  Y <- res$par
+  dim(Y) <- c(nr, nc)
+  
+  list(
+    Y = Y,
+    cost_fn = cost_fn,
+    opt = res$opt,
+    f = res$f,
+    G = res$g
+  )
+}
+
+
 # Adagrad -----------------------------------------------------------------
 
 adagrad <- function(eta = 0.01, eps = 1e-8, verbose = FALSE) {
@@ -452,159 +612,3 @@ gmom <- function(eta = 1, mu = 0.9, beta = 0.5, verbose = FALSE) {
     mu = mu
   )
 }
-
-
-
-
-# Mize Bridge -------------------------------------------------------------
-
-# Adapt the smallvis cost function into the mize form
-mizify_cost <- function(cost, nrow) {
-  fg <- function(par) {
-    dim(par) <- c(nrow, length(par) / nrow)
-    cost <- cost_grad(cost, par)
-    G <- cost$G
-
-    cost <- cost_point(cost, par)
-    pcosts <- cost$pcost
-    fn <- sum(pcosts)
-
-    dim(G) <- NULL
-    list(fn = fn, gr = G)
-  }
-  fn <- function(par) {
-    fg(par)$fn
-  }
-  gr <- function(par) {
-    fg(par)$gr
-  }
-  list(
-    fn = fn, gr = gr, fg = fg
-  )
-}
-
-# One step of mize optimization
-opt_step_mize <- function(opt, cost_fn, Y, iter) {
-  nr <- nrow(Y)
-  nc <- ncol(Y)
-  fg <- mizify_cost(cost_fn, nr)
-  if (nnat(opt$requires_B) && iter == 1) {
-    # The Spectral Direction is the positive part of the Hessian, 4L+.
-    # mize stores the gradient as a vector, so the Hessian should be a dN x dN
-    # block diagonal matrix, with this block repeated d times (d being the
-    # output dimension), but shamefully, mize has a hack inside the hessian solve
-    # code to recognize when the Hessian is too small for exactly this case.
-
-    # Graph Laplacian , L+ = D+ - W+
-    if (is.null(cost_fn$P)) {
-      stop("No P matrix in cost for use in approximate Hessian")
-    }
-    Lp <- diag(colSums(cost_fn$P)) - cost_fn$P
-    mu <- min(Lp[Lp > 0]) * 1e-10
-    B <- 4 * (Lp + mu)
-
-    fg$hs <- function(par) {
-      B
-    }
-  }
-  # Quasi Newton methods need the inverse Hessian
-  # so just use the easy-to-invert diagonal
-  if (nnat(opt$requires_H) && iter == 1) {
-    H <- 4 * colSums(cost_fn$P)
-    fg$hi <- function(par) {
-      rep(1 / H, nc)
-    }
-  }
-  dim(Y) <- NULL
-
-  if (iter == 1) {
-    opt <- mize::mize_init(opt, Y, fg)
-  }
-  res <- mize::mize_step(opt, Y, fg)
-  step_summary <- mize::mize_step_summary(res$opt, res$par, fg, par_old = Y)
-  res$opt <- mize::check_mize_convergence(step_summary)
-
-  Y <- res$par
-  dim(Y) <- c(nr, nc)
-
-  list(
-    Y = Y,
-    cost_fn = cost_fn,
-    opt = res$opt,
-    f = res$f,
-    G = res$g
-  )
-}
-
-# Generic Functions -------------------------------------------------------
-
-# Creates the optimizer: mize or internal
-opt_create <- function(optlist, verbose = FALSE) {
-  name <- optlist[[1]]
-  optlist[[1]] <- NULL
-
-  if (tolower(name) %in% c("adagrad", "adadelta", "rmsprop", "dbd",
-                           "ndbd", "adam", "adamax", "nadam", "amsgrad",
-                           "steepd", "mom", "nag", "gmom")) {
-    optlist$verbose <- verbose
-    opt <- do.call(get(name), optlist)
-    opt$smallvis_step <- opt_step_internal
-  }
-  else {
-    if (tolower(name) == "specd") {
-      optlist$method <- "PHESS"
-    }
-    else {
-      optlist$method <- name
-    }
-    optlist$max_iter <- Inf
-    approx_hess <- optlist$approx_hess
-    optlist$approx_hess <- NULL
-    opt <- do.call(mize::make_mize, optlist)
-    opt$name <- name
-    opt$smallvis_step <- opt_step_mize
-    if (tolower(name) %in% c("specd")) {
-      opt$requires_B <- TRUE
-    }
-    # Use the diagonal of the Spectral Direction Hessian approximation
-    # to initialize the quasi-Newton methods
-    if (nnat(approx_hess) && tolower(name) %in% c("bfgs", "l-bfgs", "sr1")) {
-      opt$requires_H <- TRUE
-    }
-  }
-
-  opt
-}
-
-# Initializes the optimizer - called on the first iteration
-opt_init <- function(opt, n, ndim) {
-  if (!is.null(opt$init)) {
-    opt <- opt$init(opt, n, ndim)
-  }
-  opt
-}
-
-# Runs one "step" of optimization - could be multiple f/g evaluations with
-# mize optimizers
-opt_step <- function(opt, cost_fn, Y, iter) {
-  opt$smallvis_step(opt, cost_fn, Y, iter)
-}
-
-# One step of optimization using the non-mize optimizers
-opt_step_internal <- function(opt, cost_fn, Y, iter) {
-  if (iter == 1) {
-    opt <- opt_init(opt, nrow(Y), ncol(Y))
-  }
-
-  cost_fn <- cost_grad(cost_fn, Y)
-
-  opt <- opt$upd(opt, cost_fn, Y, iter, cost_fn$G)
-  cost_fn <- cost_clear(cost_fn)
-  list(
-    Y = Y + opt$uY,
-    cost_fn = cost_fn,
-    opt = opt,
-    G = cost_fn$G
-  )
-}
-
