@@ -520,15 +520,19 @@ test_that("Miscellany", {
                                     1.967, 4.82, -4.913, 0.5231, 0.837, 0.02866, -1.871, -1.438,
                                     1.273, 0.6842, -1.849, -0.6084, 2.42), X = ui10, use_cpp = TRUE,
              cost = 0.02485)
-  expect_api(method = list("bhtsne", perplexity = 3, inp_kernel = "nngaussian", nn = "exact", theta = 0.0),
+  expect_api(method = "tsne", X = ui10, use_cpp = TRUE, bh = TRUE,
+             perplexity = 3, inp_kernel = "nngaussian", nn = "exact",
+             theta = 0.0,
              Y = c(-12.52, 4.749, -1.071, 10.54, 2.669, -10.44, 1.578, 5.019,
                    13.21, -13.73, 3.153, 3.662, 1.081, -7.454, -3.565, 4.962,
-                   2.446, -5.197, -6.536, 7.447), X = ui10, use_cpp = TRUE, perplexity = 3,
+                   2.446, -5.197, -6.536, 7.447), 
              cost = 0.05768)
-  expect_api(method = list("bhtsne", perplexity = 3, inp_kernel = "nngaussian", nn = "exact", theta = 0.5),
+  expect_api(method = "tsne", X = ui10, use_cpp = TRUE, bh = TRUE,
+             perplexity = 3, inp_kernel = "nngaussian", nn = "exact", 
+             theta = 0.5,
              Y = c(-11.78, 4.035, -1.215, 10.35, 2.76, -9.966, 1.177, 5.08,
                    12.8, -13.23, 2.413, 3.66, 0.7804, -6.291, -3.386, 4.257,
-                   2.233, -4.78, -5.25, 6.362), X = ui10, use_cpp = TRUE, perplexity = 3,
+                   2.233, -4.78, -5.25, 6.362), 
              cost = 0.05564)
              
 })

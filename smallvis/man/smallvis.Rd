@@ -38,6 +38,7 @@ smallvis(
   ret_extra = FALSE,
   n_threads = 0,
   use_cpp = FALSE,
+  bh = FALSE,
   theta = 1,
   eps = .Machine$double.eps,
   inp_kernel = NULL,
@@ -208,10 +209,18 @@ nearest neighbors will be affected.}
 calculations. Default is \code{FALSE}. This won't speed up all steps and
 you will want to use this in conjunction with \code{n_threads}.}
 
+\item{bh}{if \code{TRUE} use the Barnes-Hut method to approximate
+repulsive interactions (van der Maaten, 2014), which allows neighbor 
+embedding methods to scale to larger datasets. For large datasets, you will 
+also want to set \code{inp_kernel} to use only k-nearest neighbors for the
+input similarities, i.e. one of \code{"nngaussian"} or \code{"knn"}.
+You may also want to set \code{nn = "approximate"}. Not all methods support
+\code{bh = TRUE}.}
+
 \item{theta}{Barnes-Hut approximation accuracy. Default is \code{1.0} which
 more or less corresponds to the default degree of approximation used in
 the \code{Rtsne} package. Set to 0.0 for exact t-SNE. Applies only for
-\code{method = "bhtsne"}.}
+\code{bh = "TRUE"}.}
 
 \item{eps}{Set epsilon for avoiding division-by-zero errors. Default is
 \code{.Machine$double.eps}, but if you see inconsistent convergence results
@@ -840,6 +849,13 @@ tsne_early_ex <- smallvis(iris, exaggeraton_factor = 4, stop_lying_iter = 100)
 # Also late exaggeration to improve cluster separation
 tsne_late_ex <- smallvis(iris, exaggeraton_factor = 4, stop_lying_iter = 100,
                          late_exaggeration_factor = 1.5, start_late_lying_iter = 900)
+                         
+# Barnes-Hut, approximate nearest neighbors, multi-threading settings
+# recommended for large datasets
+bhtsne_iris <- smallvis(iris, bh = TRUE, n_threads = 4, perplexity = 30, 
+                        nn = "approximate", inp_kernel = "knn",
+                        exaggeration_factor = 12, stop_lying_iter = 250,
+                        Y_init = "spca")
 }
 }
 \references{

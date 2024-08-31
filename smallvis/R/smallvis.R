@@ -539,7 +539,14 @@
 #' @param theta Barnes-Hut approximation accuracy. Default is \code{1.0} which
 #'   more or less corresponds to the default degree of approximation used in
 #'   the \code{Rtsne} package. Set to 0.0 for exact t-SNE. Applies only for
-#'   \code{method = "bhtsne"}.
+#'   \code{bh = "TRUE"}.
+#' @param bh if \code{TRUE} use the Barnes-Hut method to approximate
+#'   repulsive interactions (van der Maaten, 2014), which allows neighbor 
+#'   embedding methods to scale to larger datasets. For large datasets, you will 
+#'   also want to set \code{inp_kernel} to use only k-nearest neighbors for the
+#'   input similarities, i.e. one of \code{"nngaussian"} or \code{"knn"}.
+#'   You may also want to set \code{nn = "approximate"}. Not all methods support
+#'   \code{bh = TRUE}.
 #' @param inp_kernel For t-SNE-like methods, determines how the input
 #'   similarities are calculated. Possible values are:
 #'   \itemize{
@@ -741,6 +748,13 @@
 #' # Also late exaggeration to improve cluster separation
 #' tsne_late_ex <- smallvis(iris, exaggeraton_factor = 4, stop_lying_iter = 100,
 #'                          late_exaggeration_factor = 1.5, start_late_lying_iter = 900)
+#'                          
+#' # Barnes-Hut, approximate nearest neighbors, multi-threading settings
+#' # recommended for large datasets
+#' bhtsne_iris <- smallvis(iris, bh = TRUE, n_threads = 4, perplexity = 30, 
+#'                         nn = "approximate", inp_kernel = "knn",
+#'                         exaggeration_factor = 12, stop_lying_iter = 250,
+#'                         Y_init = "spca")
 #' }
 #' @references
 #' Belkin, M., & Niyogi, P. (2002).
@@ -903,6 +917,7 @@ smallvis <- function(X,
                      ret_extra = FALSE,
                      n_threads = 0,
                      use_cpp = FALSE,
+                     bh = FALSE,
                      theta = 1.0,
                      eps = .Machine$double.eps,
                      inp_kernel = NULL,
@@ -927,7 +942,8 @@ smallvis <- function(X,
     use_cpp,
     theta = theta,
     inp_kernel = inp_kernel,
-    nn = nn
+    nn = nn,
+    bh = bh
   )
   
   if (exaggeration_factor != 1) {
@@ -1436,7 +1452,8 @@ create_cost <- function(method,
                         use_cpp,
                         theta,
                         inp_kernel,
-                        nn) {
+                        nn,
+                        bh) {
   method_names <- c(
     "tsne",
     "largevis",
@@ -1485,11 +1502,15 @@ create_cost <- function(method,
     "jssne",
     "gsne",
     "abssne",
-    "bhssne",
-    "bhtsne"
+    "bhssne"
   )
   if (is.character(method)) {
     method <- match.arg(tolower(method), method_names)
+    
+    if (method == "tsne" && bh) {
+      method <- "bhtsne"
+    }
+    
     cost_fn <- switch(method,
       tsne = tsne(
         perplexity = perplexity,

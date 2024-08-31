@@ -89,9 +89,11 @@ library(smallvis)
 # Automatically plots the results during optimization
 tsne_iris <- smallvis(iris, perplexity = 25, verbose = TRUE)
 
-# Barnes-Hut:
-bhtsne_iris <- smallvis(iris, perplexity = 25, method = "bhtsne", theta = 0.8)
-
+# Barnes-Hut recommended settings:
+bhtsne_iris <- smallvis(iris, bh = TRUE, n_threads = 4, perplexity = 30, 
+                        nn = "approximate", inp_kernel = "knn", theta = 1.0,
+                        exaggeration_factor = 12, stop_lying_iter = 250,
+                        Y_init = "spca")
 
 # Using a custom epoch_callback
 uniq_spec <- unique(iris$Species)
