@@ -188,7 +188,7 @@ Hessian approach but *does* use early exaggeration. Indeed the importance of
 making the exaggeration larger than for smaller datasets is stressed. Possibly 
 for large datasets, the Cholesky decomposition starts to dominate the 
 calculation time. Or, as noted by 
-[Yang and co-workers](http://www.jmlr.org/proceedings/papers/v38/yang15a.html) 
+[Yang and co-workers](https://proceedings.mlr.press/v38/yang15a.html) 
 in their experiments, the spectral direction method is unstable when used
 with early exaggeration.
 

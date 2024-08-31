@@ -70,7 +70,7 @@ from the MNIST digits). The FMM-EE paper used 60,000 digits from MNIST
 descent.
 
 Yang and co-workers looked at
-[Majorization-Minimization](http://www.jmlr.org/proceedings/papers/v38/yang15a.html)
+[Majorization-Minimization](https://proceedings.mlr.press/v38/yang15a.html)
 for optimizing t-SNE and compared it to L-BFGS, spectral directions and
 momentum-based methods for t-SNE with quite a variety of datasets of different
 sizes (up to N = 130 000). For some datasets they observe sub-optimal embeddings
