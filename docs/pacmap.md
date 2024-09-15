@@ -244,7 +244,7 @@ I have kept the `further` weight column for consistency with the paper even
 though as you can see, far pair weights are always 1. For the mid-near pairs
 during the first 100 iterations, `1000 -> 3` means the weight is linearly
 decayed from 1000 to 3 (to be completely precise, it starts at 1000 and drops by
-~10 at each iteration so at iteration 100, $w_MN \approx 13$).
+~10 at each iteration so at iteration 100, $w_{MN} \approx 13$).
 
 Neither the $a$ or $b$ parameters of the cost function can be modified by the
 user in the PaCMAP implementation. The number of iterations can be changed, but
@@ -1013,8 +1013,10 @@ UMAP](https://jlmelville.github.io/smallvis/pacmap-umap.html).
 
 ## See Also
 
-* Cynthia Rudin's [dimensionality reduction course notes
-(PDF)](https://users.cs.duke.edu/~cynthia/CourseNotes/DataVizLectureNotes.pdf).
+* [A blog post by the PaCMAP authors](https://sites.duke.edu/dimensionreduction/) 
+comparing its performance to many other embedding methods.
+* Cynthia Rudin's
+[dimensionality reduction course notes (PDF)](https://users.cs.duke.edu/~cynthia/CourseNotes/DataVizLectureNotes.pdf).
 * Some notes on the related method
 [NCVis](https://jlmelville.github.io/smallvis/ncvis.html).
 
@@ -1105,6 +1107,8 @@ lines(uk$w, pkm100$attr, col = "#AA3377", lwd = lwd)
 
 ## Changelog
 
+* September 15 2024
+  * Added link to Duke blog page (and a minor typo fix).
 * January 21 2022
   * Moved the enormous number of images to two separate pages to avoid exceeding
   50 MB HTML file size.
