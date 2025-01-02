@@ -246,11 +246,19 @@ $L_{rw}$.
 Eigenvectors aren't defined to have any particular length. Different software 
 will return the eigenvectors with different lengths, so you will need to make
 a decision about their length. The Laplacian Eigenmaps literature often refers
-to the smallest eigenvectors as a vector of 1s, so you could do that. The actual
-length will then depend on the dimensions of your matrices. The other obvious
-choice is to scale all the vectors to unit length. Forgetting to scale 
-eigenvector output has been a common cause of temporary panic and wild goose 
-chasing on my part when writing this document.
+to the smallest eigenvector $v_{rw,1}$ as a vector of 1s, so you could do that. 
+The actual length will then depend on the dimensions of your matrices. The other
+obvious choice is to scale all the vectors to unit length.
+
+Because of the relationship between the eigenvectors of $L_{rw}$ and $L_{sym}$
+described above, if you go with all 1s for $L_{rw}$ then smallest eigenvector of 
+$L_{sym}$ is $D^{1/2}$. Knowing this may have some practical value: most 
+eigenvector software routines let you supply a guess for at least one of the
+eigenvectors so this is an easy choice involving numbers you already have to
+hand.
+
+Forgetting to scale eigenvector output has been a common cause of temporary
+panic and wild goose chasing on my part when writing this document.
 
 ## Laplacian Eigenmaps
 
@@ -281,10 +289,10 @@ least in R, because generalized problems require installing the CRAN package
 eigenvectors of $P$, although you have to bear in mind that the eigenvalues of
 $P$ differ from $L_{rw}$. Compared to $L_{rw}$, when using $P$ the order of the
 eigenvectors are reversed, i.e. you want those associated with the *largest*
-eigenvalues, ignoring the top eigenvector (which is the constant eigenvector).
-$P$ might even be preferable because it's ever-so-slightly less work to
-calculate than $L_{rw}$. We'll revisit the relationship between $L_{rw}$ and $P$
-when we talk about diffusion maps.
+eigenvalues, ignoring the uninformative top eigenvector. $P$ might even be
+preferable because it's ever-so-slightly less work to calculate than $L_{rw}$.
+We'll revisit the relationship between $L_{rw}$ and $P$ when we talk about
+diffusion maps.
 
 ### Output
 
@@ -293,10 +301,9 @@ $N$ x $k$ matrix. I'll label it $Y$.
 
 $$Y = \left[v_2 | v_3 | \dots v_k \right]$$
 
-where, as noted above, we are not using the uninformative smallest eigenvector,
-$v_1$. The rows of that matrix are the coordinates of the graph vertices in the
-reduced dimension, i.e. the ith row of the 2D Laplacian Eigenmap representing
-vertex i would be:
+where, as noted above, we have discarded $v_1$. The rows of that matrix are the
+coordinates of the graph vertices in the reduced dimension, i.e. the ith row of
+the 2D Laplacian Eigenmap representing vertex i would be:
 
 $$y_i = \left(v_{i,2}, v_{i,3} \right)$$
 
@@ -341,6 +348,15 @@ In fact, see the 'Using Truncated SVD' section below for why you might
 want to operate on a matrix related to $L_{sym}$ instead of $L_{rw}$.
 
 ## Diffusion Maps
+
+*January 2 2025*: eh, probably the entire bit on diffusion maps is wrong because
+we actually need to renormalize the graph Laplacian based on a bandwidth to
+account for non-uniform sampling density. This is mentioned in the 
+[Meilă and Zhang review](https://doi.org/10.1146/annurev-statistics-040522-115238)
+and points the reader to the 
+[2006 Coifman and Lafon paper](https://doi.org/10.1016/j.acha.2006.04.006). I
+will update this eventually. If you read on, assume that the matrices involved
+are related to a different graph laplacian matrix than $L_{rw}$. Sorry!
 
 Practically speaking, we can consider diffusion maps as a generalization of
 Laplacian Eigenmaps, but solving the eigenproblem for $P$ rather than $L_{rw}$:
@@ -440,9 +456,8 @@ step $t$ by creating the iterated matrix $P^{t}$, you can get a sense of the
 geometry of the data at different scales by seeing how the probability changes
 over time. And there's not even that much extra work to do: the eigenvectors of
 the iterated matrix are the same as the original matrix $P$, and the eigenvalues
-are given by $\mu^{t}$.
 
-For a give value of $t$, the 2D diffusion map at time $t$ is therefore:
+For a given value of $t$, the 2D diffusion map at time $t$ is therefore:
 
 $$y_i = \left(\mu_{N-1}^{t} v_{i,N-1}, \mu_{N-2}^{t} v_{i,N-2} \right)$$
 
@@ -668,6 +683,11 @@ point I'd love to say "and here's the easy solution that's been discovered", but
 that doesn't seem to be the case, so see the above papers and the references
 therein for more suggested fixes.
 
+*2 January 2025*: Here's a nice 
+[review of manifold learning](https://doi.org/10.1146/annurev-statistics-040522-115238) 
+which devotes an entire section to the (surprisingly limited) literature on 
+repeated eigenvectors. No easy fixes are presented though.
+
 ## The Kernel PCA Connection
 
 [Kernel PCA](https://doi.org/10.1162%2F089976698300017467) describes quite a
@@ -819,6 +839,9 @@ eigenvalues of graph Laplacians in the field of network embedding.
 * A more recent (as of 2021) [review on kernels in machine
 learning](https://arxiv.org/abs/2106.08443) that has references to other papers
 that connect kernel PCA to spectral methods.
+
+* A [review of manifold learning](https://doi.org/10.1146/annurev-statistics-040522-115238)
+which connects spectral methods with dimensionality reduction in general.
 
 ## Some code
 
