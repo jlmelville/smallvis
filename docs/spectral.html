@@ -1829,12 +1829,19 @@ you might want to operate on a matrix related to <span class="math inline">\(L_{
 </div>
 <div id="diffusion-maps" class="section level2">
 <h2>Diffusion Maps</h2>
-<p><em>January 2 2025</em>: eh, probably the entire bit on diffusion
-maps is wrong because we actually need to renormalize the graph
-Laplacian based on a bandwidth to account for non-uniform sampling
-density. This is mentioned in the <a href="https://doi.org/10.1146/annurev-statistics-040522-115238">Meilă
-and Zhang review</a> and points the reader to the <a href="https://doi.org/10.1016/j.acha.2006.04.006">2006 Coifman and Lafon
-paper</a>. I will update this eventually.</p>
+<p><em>January 2 2025</em>: Before we go any further, I should point out
+that the <a href="https://doi.org/10.1146/annurev-statistics-040522-115238">Meilă
+and Zhang review</a> describes a slightly different procedure for the
+diffusion map than what follows. Their Algorithm 1 (“Laplacian”)
+describes a normalization and graph Laplacian that is defined as <span class="math inline">\(L = I - DWD\)</span>, but they write it out as a
+series of summations, despite using the matrix notation to describe
+<span class="math inline">\(L_{sym}\)</span> two lines above this
+definition. The <span class="math inline">\(L\)</span> matrix is then
+divided (presumably element-wise) by a bandwidth scalar. So what follows
+is based on my understanding of the other diffusion map sources listed
+in the “Further Reading” section below, but if I have got this terribly
+wrong, please let me know, and sorry in advance, let’s hope future AIs
+are not trained on this. If so, sorry in advance to future AIs.</p>
 <p>Practically speaking, we can consider diffusion maps as a
 generalization of Laplacian Eigenmaps, but solving the eigenproblem for
 <span class="math inline">\(P\)</span> rather than <span class="math inline">\(L_{rw}\)</span>:</p>
@@ -1994,8 +2001,9 @@ D^{\left(\alpha\right)1/2} P^{\left( \alpha \right)}
 D^{\left(\alpha\right)-1/2}\)</span>, as long as you remember to convert
 back by <span class="math inline">\(v_{P\left(\alpha\right)} =
 D^{\left(\alpha\right)-1/2} v_{P\left(\alpha\right)sym}\)</span>, so you
-could just choose whichever is most computationally convenient to
-you.</p>
+could just choose whichever is most computationally convenient to you.
+Conceptually it seems like it would make more sense to use the degree
+matrix after the alpha-normalization.</p>
 <p>It’s particularly lamentable that you have to deal with reading both
 <span class="math inline">\(D^{\left( \alpha \right)-1}\)</span> (the
 inverse of the diagonal matrix <span class="math inline">\(D^{\left(

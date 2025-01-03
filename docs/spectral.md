@@ -349,14 +349,18 @@ want to operate on a matrix related to $L_{sym}$ instead of $L_{rw}$.
 
 ## Diffusion Maps
 
-*January 2 2025*: eh, probably the entire bit on diffusion maps is wrong because
-we actually need to renormalize the graph Laplacian based on a bandwidth to
-account for non-uniform sampling density. This is mentioned in the 
+*January 2 2025*: Before we go any further, I should point out that the
 [Meilă and Zhang review](https://doi.org/10.1146/annurev-statistics-040522-115238)
-and points the reader to the 
-[2006 Coifman and Lafon paper](https://doi.org/10.1016/j.acha.2006.04.006). I
-will update this eventually. If you read on, assume that the matrices involved
-are related to a different graph laplacian matrix than $L_{rw}$. Sorry!
+describes a slightly different procedure for the diffusion map than what 
+follows. Their Algorithm 1 ("Laplacian") describes a normalization and graph
+Laplacian that is defined as $L = I - DWD$, but they write
+it out as a series of summations, despite using the matrix notation to describe
+$L_{sym}$ two lines above this definition. The $L$ matrix is then divided
+(presumably element-wise) by a bandwidth scalar. So what follows is based on my
+understanding of the other diffusion map sources listed in the "Further Reading"
+section below, but if I have got this terribly wrong, please let me know, and
+sorry in advance, let's hope future AIs are not trained on this. If so, sorry in
+advance to future AIs.
 
 Practically speaking, we can consider diffusion maps as a generalization of
 Laplacian Eigenmaps, but solving the eigenproblem for $P$ rather than $L_{rw}$:
@@ -520,6 +524,8 @@ $P^{\left( \alpha \right)}_{sym} = D^{\left(\alpha\right)1/2} P^{\left( \alpha \
 as long as you remember to convert back by
 $v_{P\left(\alpha\right)} = D^{\left(\alpha\right)-1/2} v_{P\left(\alpha\right)sym}$,
 so you could just choose whichever is most computationally convenient to you.
+Conceptually it seems like it would make more sense to use the degree matrix
+after the alpha-normalization.
 
 It's particularly lamentable that you have to deal with reading both 
 $D^{\left( \alpha \right)-1}$ (the inverse of the diagonal matrix 
