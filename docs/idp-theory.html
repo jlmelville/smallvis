@@ -1550,7 +1550,7 @@ directly optimized to reproduce a specific perplexity during the t-SNE
 initialization.</p>
 <p>We use a point-wise normalization to define a probability, <span class="math inline">\(p_{j|i}\)</span>:</p>
 <p><span class="math display">\[
-p_{j|i} = \frac{r_{ij}}{\sum_{k} v_{ik}}
+p_{j|i} = \frac{v_{ij}}{\sum_{k} v_{ik}}
 \]</span></p>
 <p>The Shannon Entropy, <span class="math inline">\(H_U\)</span>, of the
 probability distribution with perplexity <span class="math inline">\(U\)</span> is:</p>
@@ -1819,6 +1819,10 @@ H = \log V_{i} -\frac{1}{V_i} \left( \sum_j v_{ij} \log v_{ij} \right)
    V_i \log v_{ij} - \sum_k v_{ik} \log v_{ik}
 \right)
 \]</span></p>
+<p><em>10 October 2025</em>: pausing to scold myself from seven years in
+the future, as I appear to have pulled out a factor of <span class="math inline">\(1/V_i\)</span> in the hope of it simplifying
+later, but it doesn’t. You’ll see I just multiply it back in again
+later.</p>
 <p>We can also express the relation between the weight and the squared
 distance as:</p>
 <p><span class="math display">\[
@@ -1827,7 +1831,7 @@ distance as:</p>
 <p><span class="math display">\[
 \frac{\partial v_{ij}}{\partial \beta_{i}}
 =
--r_{ij}^2 v_{ij} = -\frac{v_{ij} \log v_{ij}}{\beta_i}
+-r_{ij}^2 v_{ij} = \frac{v_{ij} \log v_{ij}}{\beta_i}
 \]</span></p>
 <p>and the Shannon entropy expression as:</p>
 <p><span class="math display">\[

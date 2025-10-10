@@ -54,7 +54,7 @@ to reproduce a specific perplexity during the t-SNE initialization.
 We use a point-wise normalization to define a probability, $p_{j|i}$:
 
 $$
-p_{j|i} = \frac{r_{ij}}{\sum_{k} v_{ik}}
+p_{j|i} = \frac{v_{ij}}{\sum_{k} v_{ik}}
 $$
 
 The Shannon Entropy, $H_U$, of the probability distribution with perplexity $U$ 
@@ -363,6 +363,10 @@ $$
  \right)
 $$
 
+*10 October 2025*: pausing to scold myself from seven years in the future, as
+I appear to have pulled out a factor of $1/V_i$ in the hope of it simplifying
+later, but it doesn't. You'll see I just multiply it back in again later.
+
 We can also express the relation between the weight and the squared distance as:
 
 $$
@@ -373,7 +377,7 @@ and the gradient with respect to the precision as:
 $$
 \frac{\partial v_{ij}}{\partial \beta_{i}}
 =
--r_{ij}^2 v_{ij} = -\frac{v_{ij} \log v_{ij}}{\beta_i}
+-r_{ij}^2 v_{ij} = \frac{v_{ij} \log v_{ij}}{\beta_i}
 $$
 
 and the Shannon entropy expression as:
