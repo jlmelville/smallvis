@@ -285,7 +285,7 @@ $$
 which leads to:
 
 $$
-\delta_{i, U} = \frac{2 \beta_i}{S_i}
+\delta_{i, U} = \frac{2 \beta_i}{V_i}
  \sum_{j}
  \frac{\partial v_{ij}}{\partial \beta_{i}}
   \left[
@@ -349,7 +349,7 @@ $$
 and that can be combined with:
 
 $$
-\log \left( p_{j|i} \right) = \log \left( v_{ij} \right) + \log \left(V_i \right) 
+\log \left( p_{j|i} \right) = \log \left( v_{ij} \right) - \log \left(V_i \right) 
 $$
 
 to give:
