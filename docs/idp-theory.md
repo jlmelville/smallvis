@@ -51,6 +51,8 @@ input space and $\beta_i$ is the precision (inverse of the bandwidth)
 associated with point $i$. $\beta_i$ is the parameter that is directly optimized
 to reproduce a specific perplexity during the t-SNE initialization.
 
+I should also stipulate here that when $i = j$, $v_{ij} = 0$.
+
 We use a point-wise normalization to define a probability, $p_{j|i}$:
 
 $$
