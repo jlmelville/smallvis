@@ -1864,10 +1864,202 @@ U}\)</span>. The intrinsic dimensionality, <span class="math inline">\(D\)</span
 that <span class="math inline">\(\hat{\delta}_U\)</span> reaches when
 calculated over a range of perplexities. In the multi-scale JSE paper,
 perplexities in increasing powers of 2 are used.</p>
+</div>
+</div>
+<div id="the-fisher-information-connection" class="section level2">
+<h2>The Fisher Information Connection</h2>
+<p><em>10 October 2025</em>: I’m keeping the above expressions here for
+completeness, but there are some better and simpler and more interesting
+ways of writing these expressions. In the interests of full disclosure,
+I will say that these connections were pointed out to me by ChatGPT 5
+Pro. Yes I know. The derivations below were done by hand by your
+entirely human author, but I would never have spotted the relation to
+Fisher Information without the help of AI.</p>
+<p>Let’s start with the expression that is entirely in terms of
+substituting in the different derivatives expressed as un-normalized
+affinities, <span class="math inline">\(v_{ij}\)</span>, but without any
+further cancellation or re-arrangement:</p>
+<p><span class="math display">\[
+\delta_{i,U} = \frac{2 \beta_i}{V_i}
+\sum_{j}
+\frac{v_{ij} \log v_{ij}}{\beta_i}
+  \left(
+  \log v_{ij} - \frac{1}{V_i} \sum_k v_{ik} \log v_{ik}
+\right)
+\]</span></p>
+<p>Now let’s cancel out the <span class="math inline">\(\beta_i\)</span>
+terms and bring both of the <span class="math inline">\(1/V_i\)</span>
+terms inside the summations:</p>
+<p><span class="math display">\[
+\delta_{i,U} = 2
+\sum_{j}
+\frac{v_{ij} \log v_{ij}}{V_i}
+  \left(
+  \log v_{ij} - \frac{\sum_k v_{ik} \log v_{ik}}{V_i}
+\right)
+\]</span></p>
+<p>We can now reintroduce the normalized probabilities, <span class="math inline">\(p_{j|i} = v_{ij}/V_i\)</span>:</p>
+<p><span class="math display">\[
+\delta_{i,U} = 2
+\sum_{j} p_{j|i} \log v_{ij}
+  \left(
+  \log v_{ij} - \sum_k p_{k|i} \log v_{ik}
+\right)
+\]</span></p>
+<p>and lets expand the parentheses:</p>
+<p><span class="math display">\[
+\delta_{i,U} = 2 \left[
+\sum_{j} p_{j|i} (\log v_{ij})^2
+- \left( \sum_k p_{k|i} \log v_{ik}
+\right) \left( \sum_{j} p_{j|i} \log v_{ij} \right)
+\right]
+\]</span></p>
+<p>and those two summations on the right are now the same, so we don’t
+need <span class="math inline">\(k\)</span> any more:</p>
+<p><span class="math display">\[
+\delta_{i,U} = 2 \left[
+\sum_{j} p_{j|i} (\log v_{ij})^2
+- \left( \sum_{j} p_{j|i} \log v_{ij}
+\right)^2
+\right]
+\]</span></p>
+<p>At the cost of mixing probabilities and the un-normalized weights, we
+now have a much less cluttered expression. It also looks a lot like a
+variance. In fact, it’s the weighted variance of <span class="math inline">\(\log v_{ij}\)</span>, where the weights are
+provided by <span class="math inline">\(p_{j|i}\)</span>. I admit I had
+never thought about variances before, but it’s not any more outlandish
+than a weighted mean.</p>
+<p>So a compact way of expressing the correlation dimension is:</p>
+<p><span class="math display">\[
+\delta_{i,U} = 2 \, \mathrm{Var}_{p_{j|i}}(\log v_{ij})
+\]</span></p>
+<p>where the subscript on the <span class="math inline">\(\mathrm{Var}\)</span> indicates that the variance
+is weighted.</p>
+<p>It’s also true that subtracting a constant from every value in a
+variance doesn’t change it, so because <span class="math inline">\(\log
+p_{j|i} = \log v_{ij} - \log V_i\)</span>, we can also write:</p>
+<p><span class="math display">\[
+\delta_{i,U} = 2 \, \mathrm{Var}_{p_{j|i}}(\log p_{j|i})
+\]</span></p>
+<p>and you can do the calculation entirely with probabilities.</p>
+<p>Finally, because <span class="math inline">\(\log v_{ij} = -\beta_i
+r_{ij}^2\)</span>, we can <em>also</em> write:</p>
+<p><span class="math display">\[
+\delta_{i,U} = 2 \beta_i^2 \, \mathrm{Var}_{p_{j|i}}(r_{ij}^2)
+\]</span></p>
+<p>I’m going to write this out in full again, because hopefully later
+you are going to scroll back up to here and go “oh, yeah”:</p>
+<p><span class="math display">\[
+\delta_{i,U} = 2 \beta_i^2 \left[
+\sum_{j} p_{j|i} (r_{ij}^2)^2
+- \left( \sum_{j} p_{j|i} r_{ij}^2
+\right)^2
+\right]
+\]</span></p>
+<p>The probability-weighted variance part turns out to be the Fisher
+Information for <span class="math inline">\(\beta\)</span>. This may not
+be immediately obvious even if you are familiar with Fisher Information.
+To prove it, let’s go through the derivation. I am going to play a bit
+fast and loose with notation because in all the examples I see, there
+are a ton of parentheses and semi-colons which seems unnecessary for the
+fairly simple distribution we have here. Apologies to any statisticians
+reading this.</p>
+<p>The likelihood, <span class="math inline">\(L\)</span> of picking
+point <span class="math inline">\(j\)</span> given point <span class="math inline">\(i\)</span> is just the probability:</p>
+<p><span class="math display">\[
+L = p_{j|i}
+\]</span></p>
+<p>The log-likelihood, <span class="math inline">\(l\)</span> is:</p>
+<p><span class="math display">\[
+l = \log p_{j|i} = \log v_{ij} - \log V_i = -\beta_i r_{ij}^2 - \log V_i
+\]</span></p>
+<p>The <em>score</em>, <span class="math inline">\(s\)</span>, is the
+gradient of the log-likelihood with respect to the parameter in
+question, which is <span class="math inline">\(\beta_i\)</span> in this
+case:</p>
+<p><span class="math display">\[
+\frac{\partial l}{\partial \beta_i}
+= -\frac{\partial (\beta_i r_{ij}^2)}{\partial \beta_i} - \frac{\partial
+\log V_i}{\partial \beta_i} \\
+=-r_{ij}^2 - \frac{1}{V_i} \sum_k \frac{\partial v_{ik}}{\partial
+\beta_i} \\
+=-r_{ij}^2 + \frac{1}{V_i} \sum_k v_{ik} r_{ik}^2  \\
+=-r_{ij}^2 + \sum_k p_{k|i} r_{ik}^2
+\]</span></p>
+<p>Let’s get ahead of something here and talk about expectation values,
+as we will be having to notice them to get back to our old <span class="math inline">\(\delta_{i,U}\)</span> expression. For our finite
+discrete distribution, the expectation involves taking the
+probability-weighted sum over all possible values of <span class="math inline">\(j\)</span>. You can already see something like
+that in the score above where the second term is a sum over <span class="math inline">\(k\)</span> of the squared distances, weighted by
+the respective probabilities.</p>
+<p>Under some regularity conditions, the expectation of the score is
+zero (this is true of all well-behaved probability distributions, not
+this specific example). What are those conditions? They are that the
+log-likelihood must be differentiable with respect to <span class="math inline">\(\beta_i\)</span> (it is) and that the possible
+values of <span class="math inline">\(j\)</span> (the “support”) do not
+depend on <span class="math inline">\(\beta_i\)</span> (they don’t). So
+if we now explicitly write out the expectation of the score it had
+better be zero:</p>
+<p><span class="math display">\[
+E\left[ s \right]
+= \sum_j p_{j|i} \left( -r_{ij}^2 + \sum_k p_{k|i} r_{ik}^2 \right) \\
+= \left(\sum_j p_{j|i} (-r_{ij}^2) \right) + \left(\sum_k p_{k|i}
+r_{ik}^2 \sum_j p_{j|i} \right) \\
+= -\sum_j p_{j|i} r_{ij}^2 + \sum_k p_{k|i} r_{ik}^2 \\
+= 0
+\]</span></p>
+<p>That’s a relief.</p>
+<p>Now we can define the Fisher Information. The Fisher Information,
+<span class="math inline">\(I\)</span>, is the variance of the score,
+which we can write as the sum of two expectations:</p>
+<p><span class="math display">\[
+I = \mathrm{Var}(s) = E[s^2] - (E[s])^2
+\]</span></p>
+<p>But didn’t we just say that <span class="math inline">\(E[s] =
+0\)</span>? We did! So the second term is zero and we are left with:</p>
+<p><span class="math display">\[
+I = E[s^2]
+\]</span></p>
+<p>And I already prepared us for how to deal with an expectation: we’ll
+square the sum and multiply by the probabilities. So:</p>
+<p><span class="math display">\[
+I = \sum_j p_{j|i} \left( -r_{ij}^2 + \sum_k p_{k|i} r_{ik}^2 \right)^2
+\\
+= \sum_j p_{j|i} \left( (r_{ij}^2)^2 - 2 r_{ij}^2 \sum_k p_{k|i}
+r_{ik}^2 + \left( \sum_k p_{k|i}
+r_{ik}^2 \right)^2 \right) \\
+= \sum_j p_{j|i} (r_{ij}^2)^2
+- 2 \left( \sum_k p_{k|i} r_{ik}^2 \right) \left( \sum_j p_{j|i}
+r_{ij}^2 \right)
++ \left( \sum_k p_{k|i} r_{ik}^2 \right)^2
+\]</span></p>
+<p>Now we don’t have to worry about the <span class="math inline">\(k\)</span> and <span class="math inline">\(j\)</span> being different, so we can just use
+<span class="math inline">\(j\)</span> everywhere and the second and
+third terms can therefore be combined, leaving us with:</p>
+<p><span class="math display">\[
+I = \sum_j p_{j|i} (r_{ij}^2)^2
+- \left( \sum_j p_{j|i} r_{ij}^2 \right)^2
+\]</span></p>
+<p>This looks a lot like a variance. In fact, yes, now is the time to
+scroll back up and see that this is exactly the variance expression we
+had for <span class="math inline">\(\delta_{i,U}\)</span>, except for
+the factor of <span class="math inline">\(2 \beta_i^2\)</span> (this is
+also the point you say “oh, yeah”).</p>
+<p>So another way to express the correlation dimension is:</p>
+<p><span class="math display">\[
+\delta_{i,U} = 2 \beta_i^2 I
+\]</span></p>
+<p>I have searched the literature but was unable to find any Fisher
+Information-based approach to intrinsic dimensionality estimation. The
+closest I got was <a href="https://doi.org/10.1109/TSP.2009.2031722">Carter, Raich and
+Hero</a> who use a proxy to Fisher Information distance between
+probability distributions as part of manifold learning, but when they
+estimate the intrinsic dimensionality, they use the classic <a href="https://papers.nips.cc/paper_files/paper/2004/hash/74934548253bcab8490ebd74afed7031-Abstract.html">Levina
+and Bickel</a> maximum likelihood estimator. I would be interested to
+hear if anyone knows of any other work that makes this connection.</p>
 <p>For a practical application, see <a href="https://jlmelville.github.io/smallvis/idp.html">part 2</a>.</p>
 <p>Up: <a href="https://jlmelville.github.io/smallvis/">Documentation
 Home</a>.</p>
-</div>
 </div>
 
 
