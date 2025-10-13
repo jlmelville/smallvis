@@ -56,19 +56,24 @@ heat kernel.
 What *does* matter is that $W$ should be:
 
 * Symmetric.
-* Contain all non-negative values (i.e. positive semi-definite).
+* Contain all non-negative values.
 
 If $N$ is large then it is usual to sparsify $W$ by only keeping the 
 $k$-largest values in each column. This creates the k-nearest neighbor
 similarity graph, which must then be resymmetrized (e.g. by adding the 
-self-transpose).
+its transpose).
 
 If your data is naturally a graph, then you skip all of the above, you already
 have the data you need to create $W$, which is now an adjacency matrix. It's
 likely that in that case $W$ is a sparse matrix, but that doesn't matter for
 anything that follows.
 
-### Dealing with the Diagonal
+Some of the theory did assume a fixed bandwidth across your data, but
+there is recent work on variable-bandwidth kernels. See the work by 
+[Berry and Harlim](https://arxiv.org/abs/1406.5064) if you are of a more
+theoretical inclination than me.
+
+### Self-loops: Dealing with the Diagonal
 
 If your $W$ matrix is derived from a graph and you don't have loops (i.e. no
 edges from a node to itself), then the diagonal of $W$ will be all zeros. Kernel
@@ -130,7 +135,9 @@ matrix.
 
 You will often see this normalization written as:
 
-$$L_{sym \left(ij\right)} = \frac{W_{ij}}{\sqrt{D_i D_j}}$$
+$$L_{sym \left(ij\right)} = -\frac{W_{ij}}{\sqrt{D_i D_j}}$$
+
+with $$L_{sym \left(ii\right)} = 1$$.
 
 ### Random Walk Normalized Laplacian
 
@@ -159,9 +166,9 @@ It's also pretty easy to see that:
 $$L_{sym} = I - D^{1/2} P D^{-1/2}$$
 
 The matrix $P_{sym} = D^{1/2} P D^{-1/2}$ shows up in the discussion of 
-diffusion maps. The doesn't seem to be a fixed name or symbol for it, so I will
-go with $P_{sym}$ here in analogy with $L_{sym}$ to indicate it's a symmetrized
-version of $P$.
+diffusion maps. There doesn't seem to be a fixed name or symbol for it, so I
+will go with $P_{sym}$ here in analogy with $L_{sym}$ to indicate it's a
+symmetrized version of $P$.
 
 ## Eigenvectors
 
@@ -200,7 +207,7 @@ they have opposite meanings. Great.
 Both versions of the normalized adjacency matrix $D^{-1} W$ and
 $D^{-1/2} W D^{-1/2}$, have eigenvalues that vary between -1 and 1.
 
-For graph Laplacians, the the smallest eigenvalue is 0. For the normalized
+For graph Laplacians, the smallest eigenvalue is 0. For the normalized
 Laplacians $L_{sym}$ and $L_{rw}$, the maximum value an eigenvalue can attain is
 2. *December 9 2021*: For proof, see 
 [Spectral Graph Theory](http://www.math.ucsd.edu/~fan/research/revised.html), 
@@ -328,8 +335,8 @@ the term "normalized").
 3. Normalized ([Ng, Jordan and Weiss](https://papers.nips.cc/paper/2001/hash/801272ee79cfde7fa5960571fee36b9b-Abstract.html)):
 compute the first $k$ eigenvectors of $L_{sym}$. This version requires an
 additional row normalization step of the output matrix, $Y$, before you can do
-clustering: normalize the rows so each row sums to one (unit norm
-normalization).
+clustering: normalize the rows so each row has length 1 (normalization to unit 
+$l_2$ norm).
 
 After some additional theoretical discussions, von Luxburg concludes that
 clustering on the un-normalized graph Laplacian has some undesirable properties,
@@ -348,19 +355,6 @@ In fact, see the 'Using Truncated SVD' section below for why you might
 want to operate on a matrix related to $L_{sym}$ instead of $L_{rw}$.
 
 ## Diffusion Maps
-
-*January 2 2025*: Before we go any further, I should point out that the
-[Meilă and Zhang review](https://doi.org/10.1146/annurev-statistics-040522-115238)
-describes a slightly different procedure for the diffusion map than what 
-follows. Their Algorithm 1 ("Laplacian") describes a normalization and graph
-Laplacian that is defined as $L = I - DWD$, but they write
-it out as a series of summations, despite using the matrix notation to describe
-$L_{sym}$ two lines above this definition. The $L$ matrix is then divided
-(presumably element-wise) by a bandwidth scalar. So what follows is based on my
-understanding of the other diffusion map sources listed in the "Further Reading"
-section below, but if I have got this terribly wrong, please let me know, and
-sorry in advance, let's hope future AIs are not trained on this. If so, sorry in
-advance to future AIs.
 
 Practically speaking, we can consider diffusion maps as a generalization of
 Laplacian Eigenmaps, but solving the eigenproblem for $P$ rather than $L_{rw}$:
@@ -460,6 +454,7 @@ step $t$ by creating the iterated matrix $P^{t}$, you can get a sense of the
 geometry of the data at different scales by seeing how the probability changes
 over time. And there's not even that much extra work to do: the eigenvectors of
 the iterated matrix are the same as the original matrix $P$, and the eigenvalues
+are $\mu_i^t$.
 
 For a given value of $t$, the 2D diffusion map at time $t$ is therefore:
 
@@ -474,20 +469,46 @@ Because the values of $\lambda$ are in increasing order, this makes it easier
 to see that the effect of $t$ is to relatively upweight the contribution of 
 later eigenvectors in determining the distance between points on the map.
 
-### Anisotropic Diffusion
+### Why Do All This?
 
 So Diffusion Maps are just like Laplacian Eigenmaps but with some slight 
-stretching of the axes. Big deal! Actually, there's a bit more to them than
-that. You can also define different diffusion operators. At this point, sadly,
-I've never actually seen the procedure written down unambiguously. Both the
-Socher report and Wikipedia page seem to leave out some steps. Here's my 
-attempt. I'll try and stick with the notation I've seen used elsewhere, which 
-is truly unfortunate. 
+stretching of the axes. Big deal! And that's true if you are just planning to
+visualize the diffusion map in 2D or 3D, although I am sure anyone who has
+tried this has been a bit disappointed.
+
+It's really more about using the distances in the embedded space, which you can
+think of as having been "smoothed" or "denoised". The diffusion distance
+effectively averages over multiple paths between points, which makes it more
+robust to noise. This may be better than trying to measure the distance between
+points via geodesics using shortest paths in the k-nearest neighbor graph in the
+original space. You can also tune $t$ to increase emphasis from local to more
+global structure. Once you have these distances, you can re-use them to e.g.
+create a new k-nearest neighbor graph and so on.
+
+The trick is to make sure you include enough dimensions for these distances to
+be meaningful. Probably two or three dimensions isn't enough. I'll come back to
+this point in the "A Truncated SVD recipe" section below.
+
+### Anisotropic Diffusion
+
+And actually, there's a bit more to them than even that. You can also define
+different diffusion operators. At this point, sadly, I've never actually seen
+the procedure written down unambiguously. Both the Socher report and Wikipedia
+page seem to leave out some steps. Here's my attempt. I'll try and stick with
+the notation I've seen used elsewhere, which is truly unfortunate.
 
 *December 8 2021*: The 
 [pyDiffMap](https://github.com/DiffusionMapsAcademics/pyDiffMap) package seems
 to carry out a procedure very close to what follows, so this should be reasonably
 reliable.
+
+*October 12 2025*: Having spent more time with the Coifman and Lafon diffusion
+maps paper, I have corrected the procedure below. The only change is that
+originally I used the degree matrix $D$ to form the symmetrized diffusion
+operator matrix and I should have used the degree matrix formed from the
+alpha-normalized kernel matrix. To be generous to my past self, I later 
+mentioned this making conceptually more sense to me, but it's actually just the 
+correct thing to do.
 
 The full procedure is something like:
 
@@ -513,19 +534,11 @@ eigenvectors with the eigenvalues as described above.
 * If you want to use a symmetrized version of $P^{\left( \alpha \right)}$, then
 form:
 
-$$P^{\left( \alpha \right)}_{sym} = D^{1/2} P^{\left( \alpha \right)} D^{-1/2} $$
+$$P^{\left( \alpha \right)}_{sym} = D^{\left(\alpha\right)1/2} P^{\left( \alpha \right)} D^{\left(\alpha\right)-1/2}$$
 
-and remember to convert the the eigenvectors back via:
+and remember to convert the eigenvectors back via:
 
-$$v_{P\left(\alpha\right)} = D^{-1/2} v_{P\left(\alpha\right)sym}$$
-
-As far as I can tell, you could also define 
-$P^{\left( \alpha \right)}_{sym} = D^{\left(\alpha\right)1/2} P^{\left( \alpha \right)} D^{\left(\alpha\right)-1/2}$,
-as long as you remember to convert back by
-$v_{P\left(\alpha\right)} = D^{\left(\alpha\right)-1/2} v_{P\left(\alpha\right)sym}$,
-so you could just choose whichever is most computationally convenient to you.
-Conceptually it seems like it would make more sense to use the degree matrix
-after the alpha-normalization.
+$$v_{P\left(\alpha\right)} = D^{\left(\alpha\right)-1/2} v_{P\left(\alpha\right)sym}$$
 
 It's particularly lamentable that you have to deal with reading both 
 $D^{\left( \alpha \right)-1}$ (the inverse of the diagonal matrix 
@@ -533,10 +546,45 @@ $D^{\left( \alpha \right)})$ *and* the entirely different $D^{-\alpha}$
 (invert the diagonal matrix $D$, then raise the resulting diagonal values to 
 the power of $\alpha$).
 
-When $\alpha = 0$, you get back the diffusion map based on the random walk-style
-diffusion operator (and Laplacian Eigenmaps). For $\alpha = 1$, the diffusion
-operator approximates the Laplace-Beltrami operator and for $\alpha = 0.5$, you
-get Fokker-Planck diffusion.
+### Choice of $\alpha$
+
+*October 12 2025*: A new section that goes into a bit more detail about why
+being able to choose $\alpha$ is useful.
+
+There are three canonical choices for $\alpha$ which correspond to 
+interpretations of partial differential equations:
+
+* $\alpha = 0$, you get back the diffusion map based on the random walk-style
+diffusion operator (and Laplacian Eigenmaps). This includes the *density* of
+sampling in the embedding. Probably useful for clustering.
+* $\alpha = 1$ approximates the Laplace-Beltrami operator. This "corrects" for
+the density of sampling, so the embedding reflects the *geometry* of the
+underlying manifold without the effect of sampling density.
+* $\alpha = 0.5$ Fokker-Planck diffusion for a Langevin system.
+
+In terms of *why* you want to do this, you may or may not want the effect of
+density to affect the embedding. Imagine your manifold is a nice simple 2D sheet
+embedded in a higher-dimensional space, but for some reason your data is sampled
+from one part of the sheet more densely than another, then $\alpha = 0$ would
+reflect that density difference in the embedding, causing a distortion.
+$\alpha = 1$ would show the geometry of the sheet without the effect of the 
+sampling density. Values of $\alpha$ between 0 and 1 give a compromise between
+these two extremes.
+
+What about the Fokker-Planck business? This is a rather specific case where you
+have data that is generated by some dynamic process. Imagine a molecular
+dynamics simulation of something like a protein where each item in the data is a
+"snapshot" of the protein structure at a particular time. The protein will spend
+most of its time in a few low-energy states, but occasionally jump between those
+states via transition states which are much higher in energy and hence not
+sampled as often. So a density-based approach is going to capture the low_energy
+states well but not the transition states. A geometry-based approach will better
+capture the low energy states joined by these "valley-like" transition states
+but you would lose the knowledge that the protein spends most of its time in the
+low-energy states. Intermediate values of $\alpha$ give a compromise. What would
+be special about using $\alpha = 0.5$ is that you could have a more physical
+interpretation of the distances between points in the embedding space, e.g. the
+kinetics of the transitions between states can be revealed by the random walk.
 
 ## Using Truncated SVD
 
@@ -591,7 +639,7 @@ is safe for us to run SVD on. *December 26 2021*: the
 [megaman](https://github.com/mmp2/megaman) python package forms a similar
 matrix, but adds $\epsilon I$ (with $\epsilon = 2$) to ensure the smallest
 eigenvalue is larger than zero and hence the matrix is positive definite rather
-than positive semi-definite (see See comments in the
+than positive semi-definite (see comments in the
 [spectral_embedding](https://github.com/mmp2/megaman/blob/ebf7b6f38c512be22d35ddf69c109506e62cac5b/megaman/embedding/spectral_embedding.py#L103).
 Probably the reason is that a positive definite matrix is a requirement for
 using the
@@ -636,13 +684,70 @@ $I + P^{\left(\alpha\right)}_{sym}$ for diffusion maps.
     * The kth *smallest* eigenvalue $\lambda_k$ and the kth *largest* singular
     value, $d_k$ are related by $\lambda_{k} = 2 - d_{k}$.
     * Just as the case with the *smallest* eigenvector, the singular vector
-    associated with the *largest* singular value is constant.
+    associated with the *largest* singular value is the trivial
+    (degree-weighted) vector.
 1. If you want the eigenvectors of $L_{rw}$, convert in the normal way, i.e. 
 $v_{rw} = D^{-1/2} v_{sym}$.
 1. The diffusion map eigenvalues are $\mu_{k} = 1 - \lambda_{k} = d_{k} - 1$.
 
-Is this actually worth considering, especially given that none of the diffusion
-map packages I looked at in R or Python use SVD directly?
+### How Many Coordinates?
+
+If you use this sort of embedding as initialization for something like UMAP or
+t-SNE, then you always have a fixed number of dimensions to work with (very
+likely 2 or 3). But if you decide to work with diffusion maps more directly
+and want the diffusion distances to be as useful as possible you will have to
+decide how many dimensions to keep.
+
+Probably something in the style of the "fraction of variance explained" or
+thresholding as used in PCA is appropriate, but using the eigenvalues rather
+than the variance. But I would argue that the correct quantity to look at is
+the square of each eigenvalue because the distance calculation in the embedded
+space is:
+
+$$
+d(i,j)= \left( \sum_{k=1}^{N} \mu_k^2 (v_{i,k} - v_{j,k})^2 \right)^{1/2}
+$$
+
+so the contribution of each dimension to the distance is proportional to the
+square of the eigenvalue. So I would suggest picking $k$ such that:
+
+$$
+\frac{\sum_{i=1}^{k} \mu^2_i}{\sum_{i=1}^{N} \mu^2_i} \geq \text{threshold}
+$$
+
+But we need to know how to calculate the total sum of the square of the
+eigenvalues. We know that the sum of the eigenvalues of a square matrix is
+the trace, but alas we need the sum of the squares of the eigenvalues. We don't
+want to be calculating the square explicitly, but fortunately it's also true
+that the squared Frobenius norm of a symmetric matrix equals the trace of the 
+matrix's square, i.e. we can just sum the squares of the elements of 
+$I + P_{sym}$ to get the denominator in that expression.
+
+*But* we also have to take into account that we always discard the trivial
+eigenvector/eigenvalue, and we know that $\mu_1 = 1$. So the final expression is
+more like:
+
+$$
+\frac{\sum_{i=2}^{k} \mu^2_i}{\|I + P_{sym}\|_F^2 - 1} \geq \text{threshold}
+$$
+
+For $t > 1$ things are harder because there is no nice way to get the sum of the
+squares of the eigenvalues of $I + P_{sym}$ without calculating it directly. But
+in general as $t$ increases most of the contributions to the distance tend to
+concentrate in a smaller number of eigenvectors so using the choice of the 
+number of eigenvectors at $t = 1$ is still ok (and in fact conservative). So you
+can just pick the number of eigenvectors to keep at $t = 1$ and then exploring
+the effect of increasing $t$ will not require do any further eigenvector
+calculations.
+
+All of the above should still apply to the anisotropic case, using the 
+$P^{\left(\alpha\right)}_{sym}$ matrix in place of $P_{sym}$ (the trivial
+eigenvalue remains 1).
+
+### Truncated SVD in Practice
+
+Is the truncated SVD approach worth doing, especially given that none of the
+diffusion map packages I looked at in R or Python use SVD directly?
 
 When comparing this approach using [irlba](https://cran.r-project.org/package=irlba)
 versus getting the eigenvalues more directly via
@@ -669,7 +774,10 @@ best choice. For example, in 2001 Inderjit Dhillon published a paper on
 [bipartite spectral graph clustering](https://dl.acm.org/doi/10.1145/502512.502550),
 where SVD can be applied to a smaller matrix than would be needed if solving
 a generalized eigenvalue problem directly (the difference in matrix size doesn't
-seem that big, though).
+seem that big, though). I would also say that in the bipartite case, the 
+eigenvalues can be negative, so the truncated SVD approach would need to be
+adapted: maybe also look at $I - P_{sym}$, keep sufficiently large singular
+values, deduplicate and merge with the $I + P_{sym}$ results?
 
 ## Repeated Eigendirections
 
@@ -727,7 +835,7 @@ co-workers](https://dl.acm.org/doi/10.1145/1015330.1015417) describe how graph
 Laplacians can themselves be considered kernels.
 
 Standard linear PCA fits into Kernel PCA by using the "linear kernel", i.e. the 
-dot product of the the input vectors: you can get the principal components or
+dot product of the input vectors: you can get the principal components or
 loadings or whatever you are looking for whether you use the scatter/covariance 
 matrix ($W'W$) or the Gram matrix ($WW'$), subject to some scaling of eigenvalues
 here or a matrix multiplication with $W$ there. If you are doing PCA, you
@@ -847,7 +955,8 @@ learning](https://arxiv.org/abs/2106.08443) that has references to other papers
 that connect kernel PCA to spectral methods.
 
 * A [review of manifold learning](https://doi.org/10.1146/annurev-statistics-040522-115238)
-which connects spectral methods with dimensionality reduction in general.
+which connects spectral methods with dimensionality reduction in general. Note
+that their definition of diffusion maps assumes $\alpha = 1$.
 
 ## Some code
 

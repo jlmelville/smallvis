@@ -1547,19 +1547,22 @@ kind (you can set it to one and forget it exists if you prefer).</p>
 <p>What <em>does</em> matter is that <span class="math inline">\(W\)</span> should be:</p>
 <ul>
 <li>Symmetric.</li>
-<li>Contain all non-negative values (i.e. positive semi-definite).</li>
+<li>Contain all non-negative values.</li>
 </ul>
 <p>If <span class="math inline">\(N\)</span> is large then it is usual
 to sparsify <span class="math inline">\(W\)</span> by only keeping the
 <span class="math inline">\(k\)</span>-largest values in each column.
 This creates the k-nearest neighbor similarity graph, which must then be
-resymmetrized (e.g. by adding the self-transpose).</p>
+resymmetrized (e.g. by adding the its transpose).</p>
 <p>If your data is naturally a graph, then you skip all of the above,
 you already have the data you need to create <span class="math inline">\(W\)</span>, which is now an adjacency matrix. It’s
 likely that in that case <span class="math inline">\(W\)</span> is a
 sparse matrix, but that doesn’t matter for anything that follows.</p>
-<div id="dealing-with-the-diagonal" class="section level3">
-<h3>Dealing with the Diagonal</h3>
+<p>Some of the theory did assume a fixed bandwidth across your data, but
+there is recent work on variable-bandwidth kernels. See the work by <a href="https://arxiv.org/abs/1406.5064">Berry and Harlim</a> if you are
+of a more theoretical inclination than me.</p>
+<div id="self-loops-dealing-with-the-diagonal" class="section level3">
+<h3>Self-loops: Dealing with the Diagonal</h3>
 <p>If your <span class="math inline">\(W\)</span> matrix is derived from
 a graph and you don’t have loops (i.e. no edges from a node to itself),
 then the diagonal of <span class="math inline">\(W\)</span> will be all
@@ -1618,7 +1621,9 @@ normalized Laplacian, which makes this naming ambiguous.</p>
 called the (symmetrized) normalized adjacency matrix.</p>
 <p>You will often see this normalization written as:</p>
 <p><span class="math display">\[L_{sym \left(ij\right)} =
-\frac{W_{ij}}{\sqrt{D_i D_j}}\]</span></p>
+-\frac{W_{ij}}{\sqrt{D_i D_j}}\]</span></p>
+<p>with <span class="math display">\[L_{sym \left(ii\right)} =
+1\]</span>.</p>
 </div>
 <div id="random-walk-normalized-laplacian" class="section level3">
 <h3>Random Walk Normalized Laplacian</h3>
@@ -1643,7 +1648,7 @@ rows add up to 1).</p>
 <p><span class="math display">\[L_{sym} = I - D^{1/2} P
 D^{-1/2}\]</span></p>
 <p>The matrix <span class="math inline">\(P_{sym} = D^{1/2} P
-D^{-1/2}\)</span> shows up in the discussion of diffusion maps. The
+D^{-1/2}\)</span> shows up in the discussion of diffusion maps. There
 doesn’t seem to be a fixed name or symbol for it, so I will go with
 <span class="math inline">\(P_{sym}\)</span> here in analogy with <span class="math inline">\(L_{sym}\)</span> to indicate it’s a symmetrized
 version of <span class="math inline">\(P\)</span>.</p>
@@ -1685,7 +1690,7 @@ they have opposite meanings. Great.</p>
 <h3>Eigenvalues</h3>
 <p>Both versions of the normalized adjacency matrix <span class="math inline">\(D^{-1} W\)</span> and <span class="math inline">\(D^{-1/2} W D^{-1/2}\)</span>, have eigenvalues
 that vary between -1 and 1.</p>
-<p>For graph Laplacians, the the smallest eigenvalue is 0. For the
+<p>For graph Laplacians, the smallest eigenvalue is 0. For the
 normalized Laplacians <span class="math inline">\(L_{sym}\)</span> and
 <span class="math inline">\(L_{rw}\)</span>, the maximum value an
 eigenvalue can attain is 2. <em>December 9 2021</em>: For proof, see <a href="http://www.math.ucsd.edu/~fan/research/revised.html">Spectral
@@ -1808,8 +1813,7 @@ term “normalized”).</li>
 <li>Normalized (<a href="https://papers.nips.cc/paper/2001/hash/801272ee79cfde7fa5960571fee36b9b-Abstract.html">Ng,
 Jordan and Weiss</a>): compute the first <span class="math inline">\(k\)</span> eigenvectors of <span class="math inline">\(L_{sym}\)</span>. This version requires an
 additional row normalization step of the output matrix, <span class="math inline">\(Y\)</span>, before you can do clustering:
-normalize the rows so each row sums to one (unit norm
-normalization).</li>
+normalize the rows so each row has length 1 (normalization to unit <span class="math inline">\(l_2\)</span> norm).</li>
 </ol>
 <p>After some additional theoretical discussions, von Luxburg concludes
 that clustering on the un-normalized graph Laplacian has some
@@ -1829,19 +1833,6 @@ you might want to operate on a matrix related to <span class="math inline">\(L_{
 </div>
 <div id="diffusion-maps" class="section level2">
 <h2>Diffusion Maps</h2>
-<p><em>January 2 2025</em>: Before we go any further, I should point out
-that the <a href="https://doi.org/10.1146/annurev-statistics-040522-115238">Meilă
-and Zhang review</a> describes a slightly different procedure for the
-diffusion map than what follows. Their Algorithm 1 (“Laplacian”)
-describes a normalization and graph Laplacian that is defined as <span class="math inline">\(L = I - DWD\)</span>, but they write it out as a
-series of summations, despite using the matrix notation to describe
-<span class="math inline">\(L_{sym}\)</span> two lines above this
-definition. The <span class="math inline">\(L\)</span> matrix is then
-divided (presumably element-wise) by a bandwidth scalar. So what follows
-is based on my understanding of the other diffusion map sources listed
-in the “Further Reading” section below, but if I have got this terribly
-wrong, please let me know, and sorry in advance, let’s hope future AIs
-are not trained on this. If so, sorry in advance to future AIs.</p>
 <p>Practically speaking, we can consider diffusion maps as a
 generalization of Laplacian Eigenmaps, but solving the eigenproblem for
 <span class="math inline">\(P\)</span> rather than <span class="math inline">\(L_{rw}\)</span>:</p>
@@ -1933,7 +1924,7 @@ you can get a sense of the geometry of the data at different scales by
 seeing how the probability changes over time. And there’s not even that
 much extra work to do: the eigenvectors of the iterated matrix are the
 same as the original matrix <span class="math inline">\(P\)</span>, and
-the eigenvalues</p>
+the eigenvalues are <span class="math inline">\(\mu_i^t\)</span>.</p>
 <p>For a given value of <span class="math inline">\(t\)</span>, the 2D
 diffusion map at time <span class="math inline">\(t\)</span> is
 therefore:</p>
@@ -1951,18 +1942,45 @@ are in increasing order, this makes it easier to see that the effect of
 contribution of later eigenvectors in determining the distance between
 points on the map.</p>
 </div>
+<div id="why-do-all-this" class="section level3">
+<h3>Why Do All This?</h3>
+<p>So Diffusion Maps are just like Laplacian Eigenmaps but with some
+slight stretching of the axes. Big deal! And that’s true if you are just
+planning to visualize the diffusion map in 2D or 3D, although I am sure
+anyone who has tried this has been a bit disappointed.</p>
+<p>It’s really more about using the distances in the embedded space,
+which you can think of as having been “smoothed” or “denoised”. The
+diffusion distance effectively averages over multiple paths between
+points, which makes it more robust to noise. This may be better than
+trying to measure the distance between points via geodesics using
+shortest paths in the k-nearest neighbor graph in the original space.
+You can also tune <span class="math inline">\(t\)</span> to increase
+emphasis from local to more global structure. Once you have these
+distances, you can re-use them to e.g. create a new k-nearest neighbor
+graph and so on.</p>
+<p>The trick is to make sure you include enough dimensions for these
+distances to be meaningful. Probably two or three dimensions isn’t
+enough. I’ll come back to this point in the “A Truncated SVD recipe”
+section below.</p>
+</div>
 <div id="anisotropic-diffusion" class="section level3">
 <h3>Anisotropic Diffusion</h3>
-<p>So Diffusion Maps are just like Laplacian Eigenmaps but with some
-slight stretching of the axes. Big deal! Actually, there’s a bit more to
-them than that. You can also define different diffusion operators. At
-this point, sadly, I’ve never actually seen the procedure written down
-unambiguously. Both the Socher report and Wikipedia page seem to leave
-out some steps. Here’s my attempt. I’ll try and stick with the notation
-I’ve seen used elsewhere, which is truly unfortunate.</p>
+<p>And actually, there’s a bit more to them than even that. You can also
+define different diffusion operators. At this point, sadly, I’ve never
+actually seen the procedure written down unambiguously. Both the Socher
+report and Wikipedia page seem to leave out some steps. Here’s my
+attempt. I’ll try and stick with the notation I’ve seen used elsewhere,
+which is truly unfortunate.</p>
 <p><em>December 8 2021</em>: The <a href="https://github.com/DiffusionMapsAcademics/pyDiffMap">pyDiffMap</a>
 package seems to carry out a procedure very close to what follows, so
 this should be reasonably reliable.</p>
+<p><em>October 12 2025</em>: Having spent more time with the Coifman and
+Lafon diffusion maps paper, I have corrected the procedure below. The
+only change is that originally I used the degree matrix <span class="math inline">\(D\)</span> to form the symmetrized diffusion
+operator matrix and I should have used the degree matrix formed from the
+alpha-normalized kernel matrix. To be generous to my past self, I later
+mentioned this making conceptually more sense to me, but it’s actually
+just the correct thing to do.</p>
 <p>The full procedure is something like:</p>
 <ul>
 <li>Form <span class="math inline">\(W\)</span> and <span class="math inline">\(D\)</span> as usual.</li>
@@ -1992,30 +2010,63 @@ eigenvectors with the eigenvalues as described above.</p></li>
 form:</p></li>
 </ul>
 <p><span class="math display">\[P^{\left( \alpha \right)}_{sym} =
-D^{1/2} P^{\left( \alpha \right)} D^{-1/2} \]</span></p>
-<p>and remember to convert the the eigenvectors back via:</p>
-<p><span class="math display">\[v_{P\left(\alpha\right)} = D^{-1/2}
-v_{P\left(\alpha\right)sym}\]</span></p>
-<p>As far as I can tell, you could also define <span class="math inline">\(P^{\left( \alpha \right)}_{sym} =
 D^{\left(\alpha\right)1/2} P^{\left( \alpha \right)}
-D^{\left(\alpha\right)-1/2}\)</span>, as long as you remember to convert
-back by <span class="math inline">\(v_{P\left(\alpha\right)} =
-D^{\left(\alpha\right)-1/2} v_{P\left(\alpha\right)sym}\)</span>, so you
-could just choose whichever is most computationally convenient to you.
-Conceptually it seems like it would make more sense to use the degree
-matrix after the alpha-normalization.</p>
+D^{\left(\alpha\right)-1/2}\]</span></p>
+<p>and remember to convert the eigenvectors back via:</p>
+<p><span class="math display">\[v_{P\left(\alpha\right)} =
+D^{\left(\alpha\right)-1/2} v_{P\left(\alpha\right)sym}\]</span></p>
 <p>It’s particularly lamentable that you have to deal with reading both
 <span class="math inline">\(D^{\left( \alpha \right)-1}\)</span> (the
 inverse of the diagonal matrix <span class="math inline">\(D^{\left(
 \alpha \right)})\)</span> <em>and</em> the entirely different <span class="math inline">\(D^{-\alpha}\)</span> (invert the diagonal matrix
 <span class="math inline">\(D\)</span>, then raise the resulting
 diagonal values to the power of <span class="math inline">\(\alpha\)</span>).</p>
-<p>When <span class="math inline">\(\alpha = 0\)</span>, you get back
-the diffusion map based on the random walk-style diffusion operator (and
-Laplacian Eigenmaps). For <span class="math inline">\(\alpha =
-1\)</span>, the diffusion operator approximates the Laplace-Beltrami
-operator and for <span class="math inline">\(\alpha = 0.5\)</span>, you
-get Fokker-Planck diffusion.</p>
+</div>
+<div id="choice-of-alpha" class="section level3">
+<h3>Choice of <span class="math inline">\(\alpha\)</span></h3>
+<p><em>October 12 2025</em>: A new section that goes into a bit more
+detail about why being able to choose <span class="math inline">\(\alpha\)</span> is useful.</p>
+<p>There are three canonical choices for <span class="math inline">\(\alpha\)</span> which correspond to
+interpretations of partial differential equations:</p>
+<ul>
+<li><span class="math inline">\(\alpha = 0\)</span>, you get back the
+diffusion map based on the random walk-style diffusion operator (and
+Laplacian Eigenmaps). This includes the <em>density</em> of sampling in
+the embedding. Probably useful for clustering.</li>
+<li><span class="math inline">\(\alpha = 1\)</span> approximates the
+Laplace-Beltrami operator. This “corrects” for the density of sampling,
+so the embedding reflects the <em>geometry</em> of the underlying
+manifold without the effect of sampling density.</li>
+<li><span class="math inline">\(\alpha = 0.5\)</span> Fokker-Planck
+diffusion for a Langevin system.</li>
+</ul>
+<p>In terms of <em>why</em> you want to do this, you may or may not want
+the effect of density to affect the embedding. Imagine your manifold is
+a nice simple 2D sheet embedded in a higher-dimensional space, but for
+some reason your data is sampled from one part of the sheet more densely
+than another, then <span class="math inline">\(\alpha = 0\)</span> would
+reflect that density difference in the embedding, causing a distortion.
+<span class="math inline">\(\alpha = 1\)</span> would show the geometry
+of the sheet without the effect of the sampling density. Values of <span class="math inline">\(\alpha\)</span> between 0 and 1 give a compromise
+between these two extremes.</p>
+<p>What about the Fokker-Planck business? This is a rather specific case
+where you have data that is generated by some dynamic process. Imagine a
+molecular dynamics simulation of something like a protein where each
+item in the data is a “snapshot” of the protein structure at a
+particular time. The protein will spend most of its time in a few
+low-energy states, but occasionally jump between those states via
+transition states which are much higher in energy and hence not sampled
+as often. So a density-based approach is going to capture the low_energy
+states well but not the transition states. A geometry-based approach
+will better capture the low energy states joined by these “valley-like”
+transition states but you would lose the knowledge that the protein
+spends most of its time in the low-energy states. Intermediate values of
+<span class="math inline">\(\alpha\)</span> give a compromise. What
+would be special about using <span class="math inline">\(\alpha =
+0.5\)</span> is that you could have a more physical interpretation of
+the distances between points in the embedding space, e.g. the kinetics
+of the transitions between states can be revealed by the random
+walk.</p>
 </div>
 </div>
 <div id="using-truncated-svd" class="section level2">
@@ -2076,8 +2127,8 @@ therefore <span class="math inline">\(\alpha + \mu\)</span>. Picking
 forms a similar matrix, but adds <span class="math inline">\(\epsilon
 I\)</span> (with <span class="math inline">\(\epsilon = 2\)</span>) to
 ensure the smallest eigenvalue is larger than zero and hence the matrix
-is positive definite rather than positive semi-definite (see See
-comments in the <a href="https://github.com/mmp2/megaman/blob/ebf7b6f38c512be22d35ddf69c109506e62cac5b/megaman/embedding/spectral_embedding.py#L103">spectral_embedding</a>.
+is positive definite rather than positive semi-definite (see comments in
+the <a href="https://github.com/mmp2/megaman/blob/ebf7b6f38c512be22d35ddf69c109506e62cac5b/megaman/embedding/spectral_embedding.py#L103">spectral_embedding</a>.
 Probably the reason is that a positive definite matrix is a requirement
 for using the <a href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.linalg.lobpcg.html">LOBPCG</a>
 eigensolver, so this shouldn’t be an issue with the SVD approach I
@@ -2129,15 +2180,71 @@ singular value, <span class="math inline">\(d_k\)</span> are related by
 <span class="math inline">\(\lambda_{k} = 2 - d_{k}\)</span>.</li>
 <li>Just as the case with the <em>smallest</em> eigenvector, the
 singular vector associated with the <em>largest</em> singular value is
-constant.</li>
+the trivial (degree-weighted) vector.</li>
 </ul></li>
 <li>If you want the eigenvectors of <span class="math inline">\(L_{rw}\)</span>, convert in the normal way, i.e. 
 <span class="math inline">\(v_{rw} = D^{-1/2} v_{sym}\)</span>.</li>
 <li>The diffusion map eigenvalues are <span class="math inline">\(\mu_{k} = 1 - \lambda_{k} = d_{k} -
 1\)</span>.</li>
 </ol>
-<p>Is this actually worth considering, especially given that none of the
-diffusion map packages I looked at in R or Python use SVD directly?</p>
+</div>
+<div id="how-many-coordinates" class="section level3">
+<h3>How Many Coordinates?</h3>
+<p>If you use this sort of embedding as initialization for something
+like UMAP or t-SNE, then you always have a fixed number of dimensions to
+work with (very likely 2 or 3). But if you decide to work with diffusion
+maps more directly and want the diffusion distances to be as useful as
+possible you will have to decide how many dimensions to keep.</p>
+<p>Probably something in the style of the “fraction of variance
+explained” or thresholding as used in PCA is appropriate, but using the
+eigenvalues rather than the variance. But I would argue that the correct
+quantity to look at is the square of each eigenvalue because the
+distance calculation in the embedded space is:</p>
+<p><span class="math display">\[
+d(i,j)= \left( \sum_{k=1}^{N} \mu_k^2 (v_{i,k} - v_{j,k})^2
+\right)^{1/2}
+\]</span></p>
+<p>so the contribution of each dimension to the distance is proportional
+to the square of the eigenvalue. So I would suggest picking <span class="math inline">\(k\)</span> such that:</p>
+<p><span class="math display">\[
+\frac{\sum_{i=1}^{k} \mu^2_i}{\sum_{i=1}^{N} \mu^2_i} \geq
+\text{threshold}
+\]</span></p>
+<p>But we need to know how to calculate the total sum of the square of
+the eigenvalues. We know that the sum of the eigenvalues of a square
+matrix is the trace, but alas we need the sum of the squares of the
+eigenvalues. We don’t want to be calculating the square explicitly, but
+fortunately it’s also true that the squared Frobenius norm of a
+symmetric matrix equals the trace of the matrix’s square, i.e. we can
+just sum the squares of the elements of <span class="math inline">\(I +
+P_{sym}\)</span> to get the denominator in that expression.</p>
+<p><em>But</em> we also have to take into account that we always discard
+the trivial eigenvector/eigenvalue, and we know that <span class="math inline">\(\mu_1 = 1\)</span>. So the final expression is
+more like:</p>
+<p><span class="math display">\[
+\frac{\sum_{i=2}^{k} \mu^2_i}{\|I + P_{sym}\|_F^2 - 1} \geq
+\text{threshold}
+\]</span></p>
+<p>For <span class="math inline">\(t &gt; 1\)</span> things are harder
+because there is no nice way to get the sum of the squares of the
+eigenvalues of <span class="math inline">\(I + P_{sym}\)</span> without
+calculating it directly. But in general as <span class="math inline">\(t\)</span> increases most of the contributions to
+the distance tend to concentrate in a smaller number of eigenvectors so
+using the choice of the number of eigenvectors at <span class="math inline">\(t = 1\)</span> is still ok (and in fact
+conservative). So you can just pick the number of eigenvectors to keep
+at <span class="math inline">\(t = 1\)</span> and then exploring the
+effect of increasing <span class="math inline">\(t\)</span> will not
+require do any further eigenvector calculations.</p>
+<p>All of the above should still apply to the anisotropic case, using
+the <span class="math inline">\(P^{\left(\alpha\right)}_{sym}\)</span>
+matrix in place of <span class="math inline">\(P_{sym}\)</span> (the
+trivial eigenvalue remains 1).</p>
+</div>
+<div id="truncated-svd-in-practice" class="section level3">
+<h3>Truncated SVD in Practice</h3>
+<p>Is the truncated SVD approach worth doing, especially given that none
+of the diffusion map packages I looked at in R or Python use SVD
+directly?</p>
 <p>When comparing this approach using <a href="https://cran.r-project.org/package=irlba">irlba</a> versus getting
 the eigenvalues more directly via <a href="https://cran.r-project.org/package=RSpectra">RSpectra</a>, I
 didn’t notice any slowdown. However this was in the context of
@@ -2163,7 +2270,11 @@ SVD is the best choice. For example, in 2001 Inderjit Dhillon published
 a paper on <a href="https://dl.acm.org/doi/10.1145/502512.502550">bipartite spectral
 graph clustering</a>, where SVD can be applied to a smaller matrix than
 would be needed if solving a generalized eigenvalue problem directly
-(the difference in matrix size doesn’t seem that big, though).</p>
+(the difference in matrix size doesn’t seem that big, though). I would
+also say that in the bipartite case, the eigenvalues can be negative, so
+the truncated SVD approach would need to be adapted: maybe also look at
+<span class="math inline">\(I - P_{sym}\)</span>, keep sufficiently
+large singular values, deduplicate and merge with the <span class="math inline">\(I + P_{sym}\)</span> results?</p>
 </div>
 </div>
 <div id="repeated-eigendirections" class="section level2">
@@ -2218,7 +2329,7 @@ clustering with kernel PCA and <a href="https://dl.acm.org/doi/10.1145/1015330.1
 co-workers</a> describe how graph Laplacians can themselves be
 considered kernels.</p>
 <p>Standard linear PCA fits into Kernel PCA by using the “linear
-kernel”, i.e. the dot product of the the input vectors: you can get the
+kernel”, i.e. the dot product of the input vectors: you can get the
 principal components or loadings or whatever you are looking for whether
 you use the scatter/covariance matrix (<span class="math inline">\(W&#39;W\)</span>) or the Gram matrix (<span class="math inline">\(WW&#39;\)</span>), subject to some scaling of
 eigenvalues here or a matrix multiplication with <span class="math inline">\(W\)</span> there. If you are doing PCA, you
@@ -2326,7 +2437,9 @@ learning</a> that has references to other papers that connect kernel PCA
 to spectral methods.</p></li>
 <li><p>A <a href="https://doi.org/10.1146/annurev-statistics-040522-115238">review
 of manifold learning</a> which connects spectral methods with
-dimensionality reduction in general.</p></li>
+dimensionality reduction in general. Note that their definition of
+diffusion maps assumes <span class="math inline">\(\alpha =
+1\)</span>.</p></li>
 </ul>
 </div>
 <div id="some-code" class="section level2">
