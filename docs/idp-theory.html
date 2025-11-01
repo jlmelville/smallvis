@@ -2064,6 +2064,17 @@ probability distributions as part of manifold learning, but when they
 estimate the intrinsic dimensionality, they use the classic <a href="https://papers.nips.cc/paper_files/paper/2004/hash/74934548253bcab8490ebd74afed7031-Abstract.html">Levina
 and Bickel</a> maximum likelihood estimator. I would be interested to
 hear if anyone knows of any other work that makes this connection.</p>
+<p><em>November 1 2025</em>: I should note that the equation I came up
+with here isn’t ideal for calculations of intrinsic dimensionality for
+large datasets. In t-SNE calibration for large datasets, usually only
+<span class="math inline">\(3U\)</span> nearest neighbors are kept for
+each point which has an effect on the calculated values of <span class="math inline">\(\beta\)</span> and the affinities. The consequence
+of this is that the intrinsic dimensionality estimate is biased
+downards. In practice, the Levina-Bickel method is more robust,
+especially when combined with the modification suggested by <a href="https://www.inference.org.uk/mackay/dimension/">Mackay and
+Ghahramani</a>. This is less of an issue with the datasets used in
+smallvis, where there is no truncation. This critique also applies to
+the finite difference method originated by Lee and co-workers.</p>
 <p>For a practical application, see <a href="https://jlmelville.github.io/smallvis/idp.html">part 2</a>.</p>
 <p>Up: <a href="https://jlmelville.github.io/smallvis/">Documentation
 Home</a>.</p>

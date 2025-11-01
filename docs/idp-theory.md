@@ -638,6 +638,18 @@ they use the classic
 maximum likelihood estimator. I would be interested to hear if anyone knows of
 any other work that makes this connection.
 
+*November 1 2025*: I should note that the equation I came up with here isn't
+ideal for calculations of intrinsic dimensionality for large datasets. In t-SNE
+calibration for large datasets, usually only $3U$ nearest neighbors are kept for
+each point which has an effect on the calculated values of $\beta$ and the
+affinities. The consequence of this is that the intrinsic dimensionality
+estimate is biased downards. In practice, the Levina-Bickel method is more
+robust, especially when combined with the modification suggested by
+[Mackay and Ghahramani](https://www.inference.org.uk/mackay/dimension/). This
+is less of an issue with the datasets used in smallvis, where there is no
+truncation. This critique also applies to the finite difference method 
+originated by Lee and co-workers.
+
 For a practical application, see [part 2](https://jlmelville.github.io/smallvis/idp.html).
 
 Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
