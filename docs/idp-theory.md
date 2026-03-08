@@ -628,15 +628,23 @@ $$
 \delta_{i,U} = 2 \beta_i^2 I
 $$
 
-I have searched the literature but was unable to find any Fisher
-Information-based approach to intrinsic dimensionality estimation. The closest I
-got was [Carter, Raich and Hero](https://doi.org/10.1109/TSP.2009.2031722) who
+*March 8 2026*: There are a few related literature results I was able to find.
+[Sun and Marchand-Maillet](https://proceedings.mlr.press/v32/suna14.html)
+define a "Locally Accumulated Information" by calculating the (square root) of
+the Fisher Information across multiple values of $\beta_i$ and then integrating
+across those values. So rather than pick a single $\beta_i$ for a given 
+perplexity, they consider the intrinsic dimensionality to be the value
+taken from combining the Fisher Information at multiple values of $\beta_i$.
+[Vladymyrov and Carreira-Perpinan](https://proceedings.mlr.press/v28/vladymyrov13.html)
+also calculate the Fisher Information but use it as part of the root-finding
+procedure they use to calibrate perplexity as an alternative to the typical
+binary search routine, not for intrinsic dimensionality calculation.
+[Carter, Raich and Hero](https://doi.org/10.1109/TSP.2009.2031722)
 use a proxy to Fisher Information distance between probability distributions as
 part of manifold learning, but when they estimate the intrinsic dimensionality,
 they use the classic
 [Levina and Bickel](https://papers.nips.cc/paper_files/paper/2004/hash/74934548253bcab8490ebd74afed7031-Abstract.html) 
-maximum likelihood estimator. I would be interested to hear if anyone knows of
-any other work that makes this connection.
+maximum likelihood estimator.
 
 *November 1 2025*: I should note that the equation I came up with here isn't
 ideal for calculations of intrinsic dimensionality for large datasets. In t-SNE
