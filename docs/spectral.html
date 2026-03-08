@@ -1578,7 +1578,11 @@ from that affinity matrix, uses <a href="https://docs.scipy.org/doc/scipy/refere
 csgraph.laplacian function</a>. This returns a symmetrized normalized
 graph Laplacian (see below) calculated under the assumption that there
 are all zeros on the diagonal. This doesn’t have an enormous numerical
-effect on the output, but caused me some bewilderment.</p>
+effect on the output, but caused me some bewilderment. <em>March 7
+2026</em>: At some point the documentation for
+<code>scipy.sparse.csgraph.laplacian</code> was updated to mention that
+the diagonal is replaced by zeroes so no more bewilderment for future
+readers.</p>
 <p><em>December 11 2021</em>: I just noticed that the spectral
 clustering method of Ng, Jordan and Weiss explicitly calls for setting
 the diagonal of the affinity matrix to zero. The Shi and Malik spectral
@@ -1661,12 +1665,14 @@ be mentioned below. Usually the eigenvectors are sorted according to the
 associated eigenvalues.</p>
 <div id="smallest-and-largest" class="section level3">
 <h3>Smallest and Largest</h3>
-<p>When I talk about “largest” and “smallest” eigenvectors, I am
-referring to the eigenvectors associated with the largest and smallest
-eigenvalues, respectively. The eigenvalues of interest are all
-non-negative and real, so there shouldn’t be any ambiguity about whether
-I mean a big negative or positive eigenvalue (none of them are negative
-except close to zero due to numerical issues).</p>
+<p>Most of the time, when I talk about “largest” and “smallest”
+eigenvectors, I am referring to the eigenvectors associated with the
+largest and smallest eigenvalues, respectively. For graph Laplacians,
+the eigenvalues of interest are all non-negative and real, so there
+shouldn’t be any ambiguity about whether I mean a big negative or
+positive eigenvalue (none of them are negative except close to zero due
+to numerical issues). However, I do discuss the eigenvalues of <span class="math inline">\(P\)</span> a bit as well, and those <em>can</em>
+be negative.</p>
 </div>
 <div id="top-eigenvectors" class="section level3">
 <h3>“Top” Eigenvectors</h3>
@@ -1891,18 +1897,14 @@ changing sign.</p>
 about ordering the eigenvectors (or specifically what “largest” means),
 but diffusion maps are usually positioned in these papers as being a
 generalization or extension of spectral methods on graph Laplacians, so
-following the same ordering would make sense there. Muddying the waters
-a bit for me is this <a href="https://arxiv.org/abs/math/0506090">early
-paper on diffusion maps</a> which says the eigenvalues of <span class="math inline">\(P\)</span> (called <span class="math inline">\(M\)</span> in the paper) “form a non-increasing
-sequence of non-negative numbers”, which confuses me: while if that was
-true it would remove the ambiguity of ordering the eigenvalues, it
-doesn’t seem to be true. I must be missing something there.</p>
-<p>Anyway, I am fairly sure that the eigenvectors you use in diffusion
-maps are the same ones you use with Laplacian Eigenmaps, but let’s hold
-onto the possibility that I am wrong about that and you should actually
-order the eigenvectors based on the largest magnitude of the eigenvalues
-of <span class="math inline">\(P\)</span>, which would be an interesting
-departure from the Laplacian Eigenmap approach.</p>
+following the same ordering would make sense there. You should be a bit
+careful when going from a dense kernel setting to a sparse matrix
+setting. For example, this <a href="https://arxiv.org/abs/math/0506090">early paper on diffusion
+maps</a> states the eigenvalues of <span class="math inline">\(P\)</span> (called <span class="math inline">\(M\)</span> in the paper) “form a non-increasing
+sequence of non-negative numbers”. True in that case, because of the
+dense kernel used, i.e. non-zero affinities everywhere. In the sparse
+graph setting, negative eigenvalues can appear, so you should be
+explicit about the order convention used by your eigensolver.</p>
 </div>
 <div id="scaling-the-eigenvectors-1" class="section level3">
 <h3>Scaling the Eigenvectors</h3>
@@ -1939,8 +1941,9 @@ v_{i,3}\right]\]</span></p>
 <p>Because the values of <span class="math inline">\(\lambda\)</span>
 are in increasing order, this makes it easier to see that the effect of
 <span class="math inline">\(t\)</span> is to relatively upweight the
-contribution of later eigenvectors in determining the distance between
-points on the map.</p>
+contribution of earlier eigenvectors in determining the distance between
+points on the map. So larger diffusion times increasingly emphasize the
+slowest, most global modes.</p>
 </div>
 <div id="why-do-all-this" class="section level3">
 <h3>Why Do All This?</h3>
@@ -2216,25 +2219,29 @@ matrix is the trace, but alas we need the sum of the squares of the
 eigenvalues. We don’t want to be calculating the square explicitly, but
 fortunately it’s also true that the squared Frobenius norm of a
 symmetric matrix equals the trace of the matrix’s square, i.e. we can
-just sum the squares of the elements of <span class="math inline">\(I +
-P_{sym}\)</span> to get the denominator in that expression.</p>
+just sum the squares of the elements of <span class="math inline">\(P_{sym}\)</span> to get the denominator in that
+expression. Equivalently, because we are working with the shifted
+version <span class="math inline">\(I + P_{sym}\)</span>, we can use
+<span class="math inline">\(\|I + P_{sym}\|_F^2 - N\)</span>,
+subtracting <span class="math inline">\(N\)</span> to remove the
+contribution of the identity matrix.</p>
 <p><em>But</em> we also have to take into account that we always discard
 the trivial eigenvector/eigenvalue, and we know that <span class="math inline">\(\mu_1 = 1\)</span>. So the final expression is
 more like:</p>
 <p><span class="math display">\[
-\frac{\sum_{i=2}^{k} \mu^2_i}{\|I + P_{sym}\|_F^2 - 1} \geq
+\frac{\sum_{i=2}^{k} \mu^2_i}{\|I + P_{sym}\|_F^2 - N - 1} \geq
 \text{threshold}
 \]</span></p>
 <p>For <span class="math inline">\(t &gt; 1\)</span> things are harder
-because there is no nice way to get the sum of the squares of the
-eigenvalues of <span class="math inline">\(I + P_{sym}\)</span> without
-calculating it directly. But in general as <span class="math inline">\(t\)</span> increases most of the contributions to
-the distance tend to concentrate in a smaller number of eigenvectors so
-using the choice of the number of eigenvectors at <span class="math inline">\(t = 1\)</span> is still ok (and in fact
+because there is no cheap way to get the sum of the squares of the
+eigenvalues of <span class="math inline">\(P^{t}_{sym}\)</span>. But in
+general as <span class="math inline">\(t\)</span> increases most of the
+contributions to the distance tend to concentrate in a smaller number of
+eigenvectors so using the choice of the number of eigenvectors at <span class="math inline">\(t = 1\)</span> is still ok (and in fact
 conservative). So you can just pick the number of eigenvectors to keep
 at <span class="math inline">\(t = 1\)</span> and then exploring the
 effect of increasing <span class="math inline">\(t\)</span> will not
-require do any further eigenvector calculations.</p>
+require you to do any further eigenvector calculations.</p>
 <p>All of the above should still apply to the anisotropic case, using
 the <span class="math inline">\(P^{\left(\alpha\right)}_{sym}\)</span>
 matrix in place of <span class="math inline">\(P_{sym}\)</span> (the
@@ -2277,8 +2284,8 @@ the truncated SVD approach would need to be adapted: maybe also look at
 large singular values, deduplicate and merge with the <span class="math inline">\(I + P_{sym}\)</span> results?</p>
 </div>
 </div>
-<div id="repeated-eigendirections" class="section level2">
-<h2>Repeated Eigendirections</h2>
+<div id="repeated-eigendirections-and-other-problems" class="section level2">
+<h2>Repeated Eigendirections and Other Problems</h2>
 <p>In the previous section I mentioned getting the Laplacian Eigenmap
 for a 1D line embedded in 3D. Assuming you get a good converged result,
 the output using the first two eigenvectors is a parabola. This is a
@@ -2287,14 +2294,19 @@ i.e. the manifold extends much more in one direction than another.
 Successive eigenvectors will contain information about the same
 coordinate. This problem was described as “repeated eigendirections” by
 <a href="https://dl.acm.org/doi/abs/10.1145/1273496.1273532">Gerber and
-co-workers</a> and is also discussed at length by <a href="https://arxiv.org/abs/0806.2646">Goldberg and co-workers</a>. For
-more on this, see the discussion by <a href="https://www.jmlr.org/papers/v22/21-0131.html">Kohli and
+co-workers</a> and is also discussed at length by <a href="https://arxiv.org/abs/0806.2646">Goldberg and co-workers</a>.</p>
+<p>Apart from repeated eigendirections, there are also related problems
+like near-degenerate eigenspaces where the eigenvalues are very close
+together and the corresponding eigenvectors get mixed together, and also
+distortions can occur near boundaries and holes. This all adds up to
+making the resulting embedding looking twisted.</p>
+<p>For more on this, see the discussion by <a href="https://www.jmlr.org/papers/v22/21-0131.html">Kohli and
 co-workers</a> and especially the references they point to (under
 ‘Laplacian Eigenmaps’ in section 1.3). At this point I’d love to say
 “and here’s the easy solution that’s been discovered”, but that doesn’t
 seem to be the case, so see the above papers and the references therein
 for more suggested fixes.</p>
-<p><em>2 January 2025</em>: Here’s a nice <a href="https://doi.org/10.1146/annurev-statistics-040522-115238">review
+<p><em>2 January 2025</em>: here’s a nice <a href="https://doi.org/10.1146/annurev-statistics-040522-115238">review
 of manifold learning</a> which devotes an entire section to the
 (surprisingly limited) literature on repeated eigenvectors. No easy
 fixes are presented though.</p>
