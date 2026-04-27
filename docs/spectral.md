@@ -606,9 +606,10 @@ considering.
 
 ### Connection Between SVD and Spectral Decomposition
 
-For a symmetric real matrices like $W$ and $L_{sym}$, the complete set of
-singular vectors and the complete set of eigenvectors are the same. Also,
-the singular values and the *absolute* values of the eigenvalues coincide.
+For symmetric real positive semidefinite matrices like $W$ and $L_{sym}$, the 
+complete set of singular vectors and the complete set of eigenvectors are the
+same. Also, the singular values and the *absolute* values of the eigenvalues 
+coincide.
 
 Can we use this to our advantage? To a certain extent, yes. If we are able to do
 a full SVD on $L_{sym}$, we can replace the spectral decomposition. However, as
@@ -734,7 +735,10 @@ more like:
 $$
 \frac{\sum_{i=2}^{k} \mu^2_i}{\|I + P_{sym}\|_F^2 - N - 1} \geq \text{threshold}
 $$
-
+As a further wrinkle, this denominator only holds when 
+$\mathrm{tr}\left(P_{sym}\right) = 0$, i.e. no self-loops. If you are working
+with dense diffusion kernel where $w_{ii}=1$ then there should be an extra
+$-2\mathrm{tr}\left(P_{sym}\right)$ in the denominator.
 
 For $t > 1$ things are harder because there is no cheap way to get the sum of the
 squares of the eigenvalues of $P^{t}_{sym}$. But in general as $t$ increases 
@@ -862,6 +866,9 @@ to be all positive, but attempting to construct a graph Laplacian matrix from
 that won't give a matrix with the properties we need. There seems to be a small
 amount of literature on graph Laplacians with negative edge weights but it
 doesn't seem like something I would get very excited about at the moment.
+
+Also be aware that sparse affinity matrices are not necessarily positive 
+semidefinite Gram matrices, and would not therefore be kernels.
 
 ## Further Reading
 

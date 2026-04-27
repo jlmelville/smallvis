@@ -2090,7 +2090,7 @@ fast SVD routines, but not to eigenvalue problem solvers, this might be
 worth considering.</p>
 <div id="connection-between-svd-and-spectral-decomposition" class="section level3">
 <h3>Connection Between SVD and Spectral Decomposition</h3>
-<p>For a symmetric real matrices like <span class="math inline">\(W\)</span> and <span class="math inline">\(L_{sym}\)</span>, the complete set of singular
+<p>For symmetric real positive semidefinite matrices like <span class="math inline">\(W\)</span> and <span class="math inline">\(L_{sym}\)</span>, the complete set of singular
 vectors and the complete set of eigenvectors are the same. Also, the
 singular values and the <em>absolute</em> values of the eigenvalues
 coincide.</p>
@@ -2231,7 +2231,11 @@ more like:</p>
 <p><span class="math display">\[
 \frac{\sum_{i=2}^{k} \mu^2_i}{\|I + P_{sym}\|_F^2 - N - 1} \geq
 \text{threshold}
-\]</span></p>
+\]</span> As a further wrinkle, this denominator only holds when <span class="math inline">\(\mathrm{tr}\left(P_{sym}\right) = 0\)</span>,
+i.e. no self-loops. If you are working with dense diffusion kernel where
+<span class="math inline">\(w_{ii}=1\)</span> then there should be an
+extra <span class="math inline">\(-2\mathrm{tr}\left(P_{sym}\right)\)</span> in the
+denominator.</p>
 <p>For <span class="math inline">\(t &gt; 1\)</span> things are harder
 because there is no cheap way to get the sum of the squares of the
 eigenvalues of <span class="math inline">\(P^{t}_{sym}\)</span>. But in
@@ -2358,6 +2362,9 @@ won’t give a matrix with the properties we need. There seems to be a
 small amount of literature on graph Laplacians with negative edge
 weights but it doesn’t seem like something I would get very excited
 about at the moment.</p>
+<p>Also be aware that sparse affinity matrices are not necessarily
+positive semidefinite Gram matrices, and would not therefore be
+kernels.</p>
 </div>
 <div id="further-reading" class="section level2">
 <h2>Further Reading</h2>
