@@ -39,7 +39,7 @@ intrinsic dimensionality of the input data and relating that to perplexity.
 ## Some Definitions
 
 This discussion of dimensionality involves the input probabilities, so we will 
-assume the use of gaussian similarities (or affinities), $v_{j|i}$, which 
+assume the use of Gaussian similarities (or affinities), $v_{j|i}$, which 
 represents the similarity between two observations in the dataset, $i$ and $j$.
 
 $$
@@ -47,7 +47,8 @@ v_{j|i} = \exp(-\beta_{i} r_{ij}^{2})
 $$
 
 where $r_{ij}^{2}$ is the squared distance between point $i$ and $j$ in the 
-input space and $\beta_i$ is the precision (inverse of the bandwidth) 
+input space and $\beta_i$ is the Gaussian precision, the inverse of the 
+variance (or the inverse of the squared bandwidth up to a factor of 2) 
 associated with point $i$. $\beta_i$ is the parameter that is directly optimized
 to reproduce a specific perplexity during the t-SNE initialization.
 
@@ -69,7 +70,9 @@ $$
 H_U = -\sum_{j} p_{j|i} \log p_{j|i}
 $$
 
-and the perplexity, $U$, in units of nats is:
+where $H_U$ is measured in nats, due to the use of natural logarithms. The 
+dimensionless quantity perplexity, $U$, often interpreted as an effective 
+number of neighbors, is:
 
 $$
 U = \exp(H_U)
@@ -83,20 +86,83 @@ $$
 U \propto \beta_i^{-\left(\delta_{i, U} / 2 \right)}
 $$
 
-This suggests that if you did a log-log plot of the perplexity against
-the precision for multiple perplexities, the graph should be linear and the
-gradient would be $-\delta_{i, U}/2$.
+If the local uniformity assumption holds up and over a scale range where the
+effective dimension is approximately constant, then a log-log plot of the 
+perplexity against the precision for multiple perplexities should be
+approximately linear and the gradient would be $-\delta_{i, U}/2$.
 
-where $\beta_{i, U}$ is the precision parameter for the gaussian function which
-generates the $i$th similarity/weight for some perplexity, $U$.
+### Some Theoretical Assumptions
+
+*9 May 2026*: A basic sketch of why this relationship is expected to hold is: 
+suppose the data are locally uniform in $d$ Euclidean dimensions. The volume of
+a thin radial shell between radius $r$ and $r + dr$ is proportional to 
+$r^{d-1}dr$. If we introduce $E=r^2$ (a pretty standard change of variables
+when working with Gaussian functions) then since $dr = dE/(2\sqrt{E})$ the
+radial volume is proportional to $E^{\frac{d}{2}-1}dE$.
+
+In an idealized continuum model, if points are locally uniformly distributed
+and sampled with probability proportional to a Gaussian weighting, the density
+of the sampled $E$ is proportional to the product of the geometry (the volume 
+element above) and the weight, so 
+$p(E) \propto E^{\frac{d}{2}-1} \exp (-\beta E)$. 
+
+The Gamma distribution is defined as:
+
+$$
+f(x) \propto x^{k - 1} \exp (-\lambda x)
+$$
+
+where $k$ is the shape parameter and $\lambda$ is the rate parameter. So under
+Gaussian weighting the squared distances follow a Gamma distribution with 
+shape parameter $d/2$ and rate parameter $\beta$.
+
+The variance of the Gamma distribution is defined as $k/\lambda^2$ so
+
+$$
+\operatorname{Var}(E) = \frac{d/2}{\beta^2} = \frac{d}{2\beta^2}
+$$
+
+then solving for $d$:
+
+$$
+d = 2\beta^2\operatorname{Var}(E)
+$$
+
+So for a continuum model, the Gaussian-weighted variance of the squared
+distances recovers the local dimension.
+
+I've been careful to talk about an idealized continuum model here. In the real 
+t-SNE setting we only have finite samples, so this becomes an approximation. 
+Note that we are assuming the data is locally uniform *and* we use a Gaussian
+probability on nearby points *and* the metric space behaves like Euclidean 
+space.
+
+The important thing about the metric space is a local volume growth law: the 
+volume of a ball of radius $r$ should scale proportionally to $r^d$. This is 
+true for other Minkowski metrics (e.g. Chebyshev, Manhattan). 
+
+But things get hairier with other metrics. If your data is distributed on a 
+smooth manifold, then if you use distances that are locally equivalent to 
+geodesic or Euclidean distances on the manifold, you are still OK, although the 
+approximation would be best for small neighborhoods. But consider the cosine 
+dissimilarity $1 - \cos \theta$. At small $\theta$, 
+$1 - \cos \theta \approx \theta^2/2$, and not $\theta$. A squared distance
+for use in a Gaussian takes us even further from a local Euclidean radial
+calculation.
+
+For discrete spaces, like bitstrings with the Hamming distance and sets using 
+Jaccard/Tanimoto distance, then there is no continuous radial shell volume in
+the same sense. The ball sizes change in integer jumps and may follow a
+combinatorial rather than a power-law scaling. The smooth Gamma derivation
+*definitely* doesn't apply there.
 
 ## Estimating Intrinsic Dimensionality
 
 For estimating the intrinsic dimensionality of the input data, Lee and
 co-workers give the following scheme:
 
-* Calculate a "soft" correlation dimension, $\delta_{i,U}$ at each point $i$ for a 
-given perplexity, $U$. The term "soft" here refers to the fact that the
+* Calculate a "soft" correlation dimension, $\delta_{i,U}$ at each point $i$
+for a given perplexity, $U$. The term "soft" here refers to the fact that the
 calculation uses the Gaussian input weights as usually calculated in t-SNE and
 related methods, rather than the hard sphere usually used in correlation
 dimension calculations. The calculation itself is based on one-sided finite
@@ -106,27 +172,31 @@ calculate the input probabilities for multiple perplexities:
 $$
 \delta_{i,U} = \frac{2}{\log_{2}\beta_{i,U} - \log_{2}\beta_{i,U^{+}}}
 $$
-
 $\beta_{i,U}$ is the Gaussian function precision for input function
 associated with point $i$ and perplexity $U$. The precision is the parameter
 that is directly calibrated when trying to create probabilities at the target
-perplexity during the t-SNE perplexity calibration procedure. $U^{+}$ just
-represents some other (larger) perplexity. In the multi-scaling procedure,
-a standard set of perplexities (increasing in powers of 2) is used, so $U^{+}$
-is whatever the next-highest perplexity in the list is.
+perplexity during the t-SNE perplexity calibration procedure. $U^{+} = 2U$.
+In the multi-scaling procedure, a standard set of perplexities increasing in 
+powers of 2 is used, so $U^{+}$ is whatever the next-highest perplexity in the
+list is. If you wanted to use an arbitrary larger $U^+$ and any logarithm base 
+$b$ then the formula would be:
+$$
+\delta_{i,U} = \frac{2\left(\log_b U^+ - \log_bU \right)} {\log_b \beta_{i,U} - \log_b \beta_{i,U^+}}
+$$
 
 * The correlation dimension for the entire dataset and a specific perplexity,
-$\hat{\delta}_{U}$, is then calculated as the mean average of all the point-wise 
+$\hat{\delta}_{U}$, is then calculated as the mean of all the point-wise 
 estimates.
 
 $$
 \hat{\delta}_{U} = \frac{1}{N} \sum_{i}^{N} \delta_{i,U}
 $$
 
-* The maximum value that the mean correlation dimension achieves is the estimate
-of the intrinsic dimensionality, $D$:
-
+* The maximum value that the mean correlation dimension achieves is used as the
+estimate of the intrinsic dimensionality, $D$:
 $$D = \max_{U} \hat{\delta}_{U}$$
+although you should treat that as a useful heuristic rather than a generic
+consistent estimator of intrinsic dimension.
 
 ## An Analytical Expression for Correlation Dimension
 
@@ -134,7 +204,8 @@ The purpose of the rest of this document is to derive an analytical expression
 for the per-point correlation dimension, $\delta_{i,U}$ rather than a finite
 difference, so you only need the current perplexity calibration to generate the
 correlation dimension. The calculation of the of $\hat{\delta}_{U}$ and $D$
-remains the same.
+remains the same. If the curve is smooth and linear over the interval between
+successive perplexities, the values should be close.
 
 I should say that the following is something I just came up with myself. It's
 *not* in the paper by Lee and co-workers, so take it for what it's worth
@@ -157,9 +228,9 @@ $$
 \delta_{i, U} = -2 \beta_{i, U} \frac{\partial H_U}{\partial \beta_{i, U}} 
 $$
 
-For the rest of this discussion, we're doing all these calculations at a fixed
-perplexity $U$, so for clarity I will drop the $U$ subscript on $\beta_{i, U}$
-and $H_U$.
+For the rest of this discussion, we're evaluating derivatives at values of 
+$\beta_i$ that have been calibrated to a target perplexity $U$, so for 
+clarity I will drop the $U$ subscript on $\beta_{i, U}$ and $H_U$.
 
 We need to find an expression for $\partial H / \partial \beta_{i}$.
 This calls for use of the chain rule. It's going to be tedious, but not that
@@ -329,7 +400,7 @@ $$
  \right]
 $$
 
-The only thing to left to do is to multiply this expression by $-2 \beta_{i}$
+The only thing left to do is to multiply this expression by $-2 \beta_{i}$
 to get this expression for the correlation dimension:
 
 $$
@@ -465,7 +536,7 @@ $$
  \right)
 $$
 
-and lets expand the parentheses:
+and let's expand the parentheses:
 
 $$
 \delta_{i,U} = 2 \left[
@@ -499,7 +570,10 @@ $$
 $$
 
 where the subscript on the $\mathrm{Var}$ indicates that the variance is
-weighted by whatever's in the subscript.
+weighted by whatever is in the subscript. This is a non-standard way of writing 
+what would be more precisely expressed as $\mathrm{Var}_{j \sim p_{\cdot|i}}$,
+which would make the random variable explicit, i.e. $j$ is sampled from the
+conditional distribution around point $i$. Forgive me, statisticians.
 
 It's also true that subtracting a constant from every value in a variance
 doesn't change it, so because $\log p_{j|i} = \log v_{j|i} - \log V_i$, we can
@@ -528,12 +602,13 @@ $$
 \right]
 $$
 
-The probability-weighted variance part turns out to be the Fisher Information 
-for $\beta_i$. This may not be immediately obvious even if you are familiar with
-Fisher Information. To prove it, let's go through the derivation. I am going to
-play a bit fast and loose with notation because in all the examples I see, there
-are a ton of parentheses and semi-colons which seems unnecessary for the fairly
-simple distribution we have here. Apologies to any statisticians reading this.
+The term $\mathrm{Var}_{p_{j|i}}(r_{ij}^2)$ is the Fisher Information for the
+precision $\beta_i$. This may not be immediately obvious even if you are 
+familiar with Fisher Information. To prove it, let's go through the derivation.
+I am going to play a bit fast and loose with notation because in all the 
+examples I see, there are a ton of parentheses and semi-colons which seems 
+unnecessary for the fairly simple distribution we have here. Apologies to any 
+statisticians reading this.
 
 The likelihood, $L$ of picking point $j$ given point $i$ is just the probability:
 
@@ -573,7 +648,7 @@ $j$ (the "support") do not depend on $\beta_i$ (they don't). So if we now
 explicitly write out the expectation of the score it had better be zero:
 
 $$
-E\left[ s \right]
+\mathbb{E}\left[ s \right]
 = \sum_j p_{j|i} \left( -r_{ij}^2 + \sum_k p_{k|i} r_{ik}^2 \right) \\
 = \left(\sum_j p_{j|i} (-r_{ij}^2) \right) + \left(\sum_k p_{k|i} r_{ik}^2 \sum_j p_{j|i} \right) \\
 = -\sum_j p_{j|i} r_{ij}^2 + \sum_k p_{k|i} r_{ik}^2 \\
@@ -586,21 +661,23 @@ Now we can define the Fisher Information. The Fisher Information, $I$, is the
 variance of the score, which we can write as the sum of two expectations:
 
 $$
-I = \mathrm{Var}(s) = E[s^2] - (E[s])^2
+I = \mathrm{Var}(s) = \mathbb{E}[s^2] - (\mathbb{E}[s])^2
 $$
 
-But didn't we just say that $E[s] = 0$? We did! So the second term is zero and
-we are left with:
+But didn't we just say that $\mathbb{E[s]} = 0$? We did! So the second term is 
+zero and we are left with:
 
 $$
-I = E[s^2]
+I = \mathbb{E}[s^2]
 $$
 
 And I already prepared us for how to deal with an expectation: we'll square the
-sum and multiply by the probabilities. So:
+sum and multiply by the probabilities. I will now bring back the
+parameterization of $I$ in our case so it's clear that the Fisher Information
+we are dealing with is with respect to the parameter $\beta_i$. So:
 
 $$
-I = \sum_j p_{j|i} \left( -r_{ij}^2 + \sum_k p_{k|i} r_{ik}^2 \right)^2 \\
+I_{\beta_i} = \sum_j p_{j|i} \left( -r_{ij}^2 + \sum_k p_{k|i} r_{ik}^2 \right)^2 \\
 = \sum_j p_{j|i} \left( (r_{ij}^2)^2 - 2 r_{ij}^2 \sum_k p_{k|i} r_{ik}^2 + \left( \sum_k p_{k|i}
  r_{ik}^2 \right)^2 \right) \\
 = \sum_j p_{j|i} (r_{ij}^2)^2
@@ -613,7 +690,7 @@ use $j$ everywhere and the second and third terms can therefore be combined,
 leaving us with:
 
 $$
-I = \sum_j p_{j|i} (r_{ij}^2)^2
+I_{\beta_i} = \sum_j p_{j|i} (r_{ij}^2)^2
  - \left( \sum_j p_{j|i} r_{ij}^2 \right)^2
 $$
 
@@ -625,20 +702,54 @@ you say "oh, yeah").
 So another way to express the correlation dimension is:
 
 $$
-\delta_{i,U} = 2 \beta_i^2 I
+\delta_{i,U} = 2 \beta_i^2 I_{\beta_i}
 $$
 
+and to make the connection with the log-log plot clearer, we can reparameterize
+by the log precision $\theta_i = \log \beta_i$ and then
+
+$$
+I_{\theta_i} = \beta_i^2 I_{\beta_i}
+$$
+
+so
+
+$$
+\delta_{i,U} = 2 I_{\theta_i}
+$$
+
+you may find this interpretation ("the soft correlation dimension is twice the
+Fisher Information along the log-precision scale path") more elegant.
+
+### The Varentropy Connection
+
+*May 9 2026*: Yet another way to think about the soft correlation dimension when
+written as $2\mathrm{Var_{p_{j|i}}}(\log p_{j|i})$ is that it's twice the 
+varentropy of the local conditional distribution $p_{\cdot|i}$. This is an 
+information theoretic interpretation of the intrinsic dimensionality. Usually 
+varentropy is defined with respect to $-\log p(X)$, which is the "self 
+information" or "surprisal" of an event in information theory, but the sign 
+doesn't matter here given that variance isn't affected by multiplying by -1.
+
+## Some Related Literature
+
 *March 8 2026*: There are a few related literature results I was able to find.
+
 [Sun and Marchand-Maillet](https://proceedings.mlr.press/v32/suna14.html)
 define a "Locally Accumulated Information" by calculating the (square root) of
 the Fisher Information across multiple values of $\beta_i$ and then integrating
 across those values. So rather than pick a single $\beta_i$ for a given 
 perplexity, they consider the intrinsic dimensionality to be the value
 taken from combining the Fisher Information at multiple values of $\beta_i$.
+
 [Vladymyrov and Carreira-Perpinan](https://proceedings.mlr.press/v28/vladymyrov13.html)
-also calculate the Fisher Information but use it as part of the root-finding
-procedure they use to calibrate perplexity as an alternative to the typical
-binary search routine, not for intrinsic dimensionality calculation.
+also derive the same variance term, and provide a much quicker derivation than
+my chain rule slog above (if you are familiar with a standard identity for
+parameterized probability distributions). They use it as part of an efficient 
+root-finding procedure for the perplexity calibration step as an alternative to 
+the typical binary search process. As far as I can tell, they do not connect it
+to the Fisher Information or for intrinsic dimensionality calculation.
+
 [Carter, Raich and Hero](https://doi.org/10.1109/TSP.2009.2031722)
 use a proxy to Fisher Information distance between probability distributions as
 part of manifold learning, but when they estimate the intrinsic dimensionality,
@@ -647,17 +758,22 @@ they use the classic
 maximum likelihood estimator.
 
 *November 1 2025*: I should note that the equation I came up with here isn't
-ideal for calculations of intrinsic dimensionality for large datasets. In t-SNE
-calibration for large datasets, usually only $3U$ nearest neighbors are kept for
-each point which has an effect on the calculated values of $\beta$ and the
-affinities. The consequence of this is that the intrinsic dimensionality
-estimate is biased downards. In practice, the Levina-Bickel method is more
+ideal for calculations of intrinsic dimensionality for large datasets. In all 
+the t-SNE implementations suitable for large datasets that I know about, in the 
+perplexity calibration by default only $3U$ nearest neighbors are kept for
+each point. This has an effect on the calculated values of $\beta$ and the
+affinities, the consequence of which is that the intrinsic dimensionality
+estimate is biased downwards. In practice, the Levina-Bickel method is more
 robust, especially when combined with the modification suggested by
 [Mackay and Ghahramani](https://www.inference.org.uk/mackay/dimension/). This
 is less of an issue with the datasets used in smallvis, where there is no
 truncation. This critique also applies to the finite difference method 
-originated by Lee and co-workers.
+originated by Lee and co-workers. In terms of theoretical applicability, the
+Levina-Bickel approach does not require a Gaussian kernel model, but it still
+assumes an approximately power-law ball growth, so the reservations around
+non-Euclidean metrics (and especially discrete metrics) still hold.
 
-For a practical application, see [part 2](https://jlmelville.github.io/smallvis/idp.html).
+For a practical application of perplexity-based intrinsic dimensionality
+estimation, see [part 2](https://jlmelville.github.io/smallvis/idp.html).
 
 Up: [Documentation Home](https://jlmelville.github.io/smallvis/).
