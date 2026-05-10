@@ -1639,15 +1639,13 @@ smooth Gamma derivation <em>definitely</em> doesn’t apply there.</p>
 <p>For estimating the intrinsic dimensionality of the input data, Lee
 and co-workers give the following scheme:</p>
 <ul>
-<li>Calculate a “soft” correlation dimension, <span class="math inline">\(\delta_{i,U}\)</span> at each point <span class="math inline">\(i\)</span> for a given perplexity, <span class="math inline">\(U\)</span>. The term “soft” here refers to the
+<li><p>Calculate a “soft” correlation dimension, <span class="math inline">\(\delta_{i,U}\)</span> at each point <span class="math inline">\(i\)</span> for a given perplexity, <span class="math inline">\(U\)</span>. The term “soft” here refers to the
 fact that the calculation uses the Gaussian input weights as usually
 calculated in t-SNE and related methods, rather than the hard sphere
 usually used in correlation dimension calculations. The calculation
 itself is based on one-sided finite differences, which is convenient for
 multi-scaled neighbor embedding because you calculate the input
-probabilities for multiple perplexities:</li>
-</ul>
-<p><span class="math display">\[
+probabilities for multiple perplexities: <span class="math display">\[
 \delta_{i,U} = \frac{2}{\log_{2}\beta_{i,U} - \log_{2}\beta_{i,U^{+}}}
 \]</span> <span class="math inline">\(\beta_{i,U}\)</span> is the
 Gaussian function precision for input function associated with point
@@ -1662,21 +1660,20 @@ logarithm base <span class="math inline">\(b\)</span> then the formula
 would be: <span class="math display">\[
 \delta_{i,U} = \frac{2\left(\log_b U^+ - \log_bU \right)} {\log_b
 \beta_{i,U} - \log_b \beta_{i,U^+}}
-\]</span></p>
-<ul>
-<li>The correlation dimension for the entire dataset and a specific
+\]</span></p></li>
+<li><p>The correlation dimension for the entire dataset and a specific
 perplexity, <span class="math inline">\(\hat{\delta}_{U}\)</span>, is
-then calculated as the mean of all the point-wise estimates.</li>
+then calculated as the mean of all the point-wise estimates.</p></li>
 </ul>
 <p><span class="math display">\[
 \hat{\delta}_{U} = \frac{1}{N} \sum_{i}^{N} \delta_{i,U}
 \]</span></p>
 <ul>
 <li>The maximum value that the mean correlation dimension achieves is
-used as the estimate of the intrinsic dimensionality, <span class="math inline">\(D\)</span>: <span class="math display">\[D =
-\max_{U} \hat{\delta}_{U}\]</span> although you should treat that as a
-useful heuristic rather than a generic consistent estimator of intrinsic
-dimension.</li>
+used as the estimate of the intrinsic dimensionality, <span class="math inline">\(D\)</span>: <span class="math display">\[
+D = \max_{U} \hat{\delta}_{U}
+\]</span> although you should treat that as a useful heuristic rather
+than a generic consistent estimator of intrinsic dimension.</li>
 </ul>
 </div>
 <div id="an-analytical-expression-for-correlation-dimension" class="section level2">
@@ -1996,25 +1993,26 @@ never thought about variances before, but it’s not any more outlandish
 than a weighted mean.</p>
 <p>So a compact way of expressing the correlation dimension is:</p>
 <p><span class="math display">\[
-\delta_{i,U} = 2 \, \mathrm{Var}_{p_{j|i}}(\log v_{j|i})
+\delta_{i,U} = 2 \, \operatorname{Var}_{p_{j|i}}(\log v_{j|i})
 \]</span></p>
-<p>where the subscript on the <span class="math inline">\(\mathrm{Var}\)</span> indicates that the variance
-is weighted by whatever is in the subscript. This is a non-standard way
-of writing what would be more precisely expressed as <span class="math inline">\(\mathrm{Var}_{j \sim p_{\cdot|i}}\)</span>, which
-would make the random variable explicit, i.e. <span class="math inline">\(j\)</span> is sampled from the conditional
-distribution around point <span class="math inline">\(i\)</span>.
-Forgive me, statisticians.</p>
+<p>where the subscript on the <span class="math inline">\(\operatorname{Var}\)</span> indicates that the
+variance is weighted by whatever is in the subscript. This is a
+non-standard way of writing what would be more precisely expressed as
+<span class="math inline">\(\operatorname{Var}_{j \sim
+p_{\cdot|i}}\)</span>, which would make the random variable explicit,
+i.e. <span class="math inline">\(j\)</span> is sampled from the
+conditional distribution around point <span class="math inline">\(i\)</span>. Forgive me, statisticians.</p>
 <p>It’s also true that subtracting a constant from every value in a
 variance doesn’t change it, so because <span class="math inline">\(\log
 p_{j|i} = \log v_{j|i} - \log V_i\)</span>, we can also write:</p>
 <p><span class="math display">\[
-\delta_{i,U} = 2 \, \mathrm{Var}_{p_{j|i}}(\log p_{j|i})
+\delta_{i,U} = 2 \, \operatorname{Var}_{p_{j|i}}(\log p_{j|i})
 \]</span></p>
 <p>and you can do the calculation entirely with probabilities.</p>
 <p>Finally, because <span class="math inline">\(\log v_{j|i} = -\beta_i
 r_{ij}^2\)</span>, we can <em>also</em> write:</p>
 <p><span class="math display">\[
-\delta_{i,U} = 2 \beta_i^2 \, \mathrm{Var}_{p_{j|i}}(r_{ij}^2)
+\delta_{i,U} = 2 \beta_i^2 \, \operatorname{Var}_{p_{j|i}}(r_{ij}^2)
 \]</span></p>
 <p>I’m going to write this out in full again, because hopefully later
 you are going to scroll back up to here and go “oh, yeah”:</p>
@@ -2025,14 +2023,14 @@ you are going to scroll back up to here and go “oh, yeah”:</p>
 \right)^2
 \right]
 \]</span></p>
-<p>The term <span class="math inline">\(\mathrm{Var}_{p_{j|i}}(r_{ij}^2)\)</span> is the
-Fisher Information for the precision <span class="math inline">\(\beta_i\)</span>. This may not be immediately
+<p>The term <span class="math inline">\(\operatorname{Var}_{p_{j|i}}(r_{ij}^2)\)</span> is
+the Fisher Information with respect to the precision <span class="math inline">\(\beta_i\)</span>. This may not be immediately
 obvious even if you are familiar with Fisher Information. To prove it,
 let’s go through the derivation. I am going to play a bit fast and loose
 with notation because in all the examples I see, there are a ton of
 parentheses and semi-colons which seems unnecessary for the fairly
-simple distribution we have here. Apologies to any statisticians reading
-this.</p>
+simple distribution we have here. Apologies once more to any
+statisticians reading this.</p>
 <p>The likelihood, <span class="math inline">\(L\)</span> of picking
 point <span class="math inline">\(j\)</span> given point <span class="math inline">\(i\)</span> is just the probability:</p>
 <p><span class="math display">\[
@@ -2083,7 +2081,7 @@ r_{ik}^2 \sum_j p_{j|i} \right) \\
 <span class="math inline">\(I\)</span>, is the variance of the score,
 which we can write as the sum of two expectations:</p>
 <p><span class="math display">\[
-I = \mathrm{Var}(s) = \mathbb{E}[s^2] - (\mathbb{E}[s])^2
+I = \operatorname{Var}(s) = \mathbb{E}[s^2] - (\mathbb{E}[s])^2
 \]</span></p>
 <p>But didn’t we just say that <span class="math inline">\(\mathbb{E[s]}
 = 0\)</span>? We did! So the second term is zero and we are left
@@ -2139,9 +2137,9 @@ elegant.</p>
 <div id="the-varentropy-connection" class="section level3">
 <h3>The Varentropy Connection</h3>
 <p><em>May 9 2026</em>: Yet another way to think about the soft
-correlation dimension when written as <span class="math inline">\(2\mathrm{Var_{p_{j|i}}}(\log p_{j|i})\)</span> is
-that it’s twice the varentropy of the local conditional distribution
-<span class="math inline">\(p_{\cdot|i}\)</span>. This is an information
+correlation dimension when written as <span class="math inline">\(2\operatorname{Var_{p_{j|i}}}(\log
+p_{j|i})\)</span> is that it’s twice the varentropy of the local
+conditional distribution <span class="math inline">\(p_{\cdot|i}\)</span>. This is an information
 theoretic interpretation of the intrinsic dimensionality. Usually
 varentropy is defined with respect to <span class="math inline">\(-\log
 p(X)\)</span>, which is the “self information” or “surprisal” of an
@@ -2168,7 +2166,8 @@ distributions). They use it as part of an efficient root-finding
 procedure for the perplexity calibration step as an alternative to the
 typical binary search process. As far as I can tell, they do not connect
 it to the Fisher Information or for intrinsic dimensionality
-calculation.</p>
+calculation. A t-SNE implementation that used this method would get the
+intrinsic dimensionality estimate at essentially no extra cost.</p>
 <p><a href="https://doi.org/10.1109/TSP.2009.2031722">Carter, Raich and
 Hero</a> use a proxy to Fisher Information distance between probability
 distributions as part of manifold learning, but when they estimate the

@@ -168,7 +168,6 @@ related methods, rather than the hard sphere usually used in correlation
 dimension calculations. The calculation itself is based on one-sided finite
 differences, which is convenient for multi-scaled neighbor embedding because you
 calculate the input probabilities for multiple perplexities:
-
 $$
 \delta_{i,U} = \frac{2}{\log_{2}\beta_{i,U} - \log_{2}\beta_{i,U^{+}}}
 $$
@@ -194,7 +193,9 @@ $$
 
 * The maximum value that the mean correlation dimension achieves is used as the
 estimate of the intrinsic dimensionality, $D$:
-$$D = \max_{U} \hat{\delta}_{U}$$
+$$
+D = \max_{U} \hat{\delta}_{U}
+$$
 although you should treat that as a useful heuristic rather than a generic
 consistent estimator of intrinsic dimension.
 
@@ -566,12 +567,12 @@ not any more outlandish than a weighted mean.
 So a compact way of expressing the correlation dimension is:
 
 $$
-\delta_{i,U} = 2 \, \mathrm{Var}_{p_{j|i}}(\log v_{j|i})
+\delta_{i,U} = 2 \, \operatorname{Var}_{p_{j|i}}(\log v_{j|i})
 $$
 
-where the subscript on the $\mathrm{Var}$ indicates that the variance is
+where the subscript on the $\operatorname{Var}$ indicates that the variance is
 weighted by whatever is in the subscript. This is a non-standard way of writing 
-what would be more precisely expressed as $\mathrm{Var}_{j \sim p_{\cdot|i}}$,
+what would be more precisely expressed as $\operatorname{Var}_{j \sim p_{\cdot|i}}$,
 which would make the random variable explicit, i.e. $j$ is sampled from the
 conditional distribution around point $i$. Forgive me, statisticians.
 
@@ -580,7 +581,7 @@ doesn't change it, so because $\log p_{j|i} = \log v_{j|i} - \log V_i$, we can
 also write:
 
 $$
-\delta_{i,U} = 2 \, \mathrm{Var}_{p_{j|i}}(\log p_{j|i})
+\delta_{i,U} = 2 \, \operatorname{Var}_{p_{j|i}}(\log p_{j|i})
 $$
 
 and you can do the calculation entirely with probabilities.
@@ -588,7 +589,7 @@ and you can do the calculation entirely with probabilities.
 Finally, because $\log v_{j|i} = -\beta_i r_{ij}^2$, we can *also* write:
 
 $$
-\delta_{i,U} = 2 \beta_i^2 \, \mathrm{Var}_{p_{j|i}}(r_{ij}^2)
+\delta_{i,U} = 2 \beta_i^2 \, \operatorname{Var}_{p_{j|i}}(r_{ij}^2)
 $$
 
 I'm going to write this out in full again, because hopefully later you are
@@ -602,15 +603,16 @@ $$
 \right]
 $$
 
-The term $\mathrm{Var}_{p_{j|i}}(r_{ij}^2)$ is the Fisher Information for the
-precision $\beta_i$. This may not be immediately obvious even if you are 
-familiar with Fisher Information. To prove it, let's go through the derivation.
-I am going to play a bit fast and loose with notation because in all the 
-examples I see, there are a ton of parentheses and semi-colons which seems 
-unnecessary for the fairly simple distribution we have here. Apologies to any 
-statisticians reading this.
+The term $\operatorname{Var}_{p_{j|i}}(r_{ij}^2)$ is the Fisher Information with
+respect to the precision $\beta_i$. This may not be immediately obvious even if
+you are familiar with Fisher Information. To prove it, let's go through the 
+derivation. I am going to play a bit fast and loose with notation because in
+all the examples I see, there are a ton of parentheses and semi-colons which 
+seems unnecessary for the fairly simple distribution we have here. Apologies
+once more to any statisticians reading this.
 
-The likelihood, $L$ of picking point $j$ given point $i$ is just the probability:
+The likelihood, $L$ of picking point $j$ given point $i$ is just the
+probability:
 
 $$
 L = p_{j|i}
@@ -661,7 +663,7 @@ Now we can define the Fisher Information. The Fisher Information, $I$, is the
 variance of the score, which we can write as the sum of two expectations:
 
 $$
-I = \mathrm{Var}(s) = \mathbb{E}[s^2] - (\mathbb{E}[s])^2
+I = \operatorname{Var}(s) = \mathbb{E}[s^2] - (\mathbb{E}[s])^2
 $$
 
 But didn't we just say that $\mathbb{E[s]} = 0$? We did! So the second term is 
@@ -724,7 +726,7 @@ Fisher Information along the log-precision scale path") more elegant.
 ### The Varentropy Connection
 
 *May 9 2026*: Yet another way to think about the soft correlation dimension when
-written as $2\mathrm{Var_{p_{j|i}}}(\log p_{j|i})$ is that it's twice the 
+written as $2\operatorname{Var_{p_{j|i}}}(\log p_{j|i})$ is that it's twice the 
 varentropy of the local conditional distribution $p_{\cdot|i}$. This is an 
 information theoretic interpretation of the intrinsic dimensionality. Usually 
 varentropy is defined with respect to $-\log p(X)$, which is the "self 
@@ -748,7 +750,9 @@ my chain rule slog above (if you are familiar with a standard identity for
 parameterized probability distributions). They use it as part of an efficient 
 root-finding procedure for the perplexity calibration step as an alternative to 
 the typical binary search process. As far as I can tell, they do not connect it
-to the Fisher Information or for intrinsic dimensionality calculation.
+to the Fisher Information or for intrinsic dimensionality calculation. A t-SNE
+implementation that used this method would get the intrinsic dimensionality
+estimate at essentially no extra cost.
 
 [Carter, Raich and Hero](https://doi.org/10.1109/TSP.2009.2031722)
 use a proxy to Fisher Information distance between probability distributions as
