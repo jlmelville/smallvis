@@ -561,7 +561,7 @@ $$
 At the cost of mixing probabilities and the un-normalized weights, we now have
 a much less cluttered expression. It also looks a lot like a variance. In fact,
 it's the weighted variance of $\log v_{j|i}$, where the weights are provided by 
-$p_{j|i}$. I admit I had never thought about variances before, but it's
+$p_{j|i}$. I admit I had never thought about weighted variances before, but it's
 not any more outlandish than a weighted mean.
 
 So a compact way of expressing the correlation dimension is:
@@ -666,7 +666,7 @@ $$
 I = \operatorname{Var}(s) = \mathbb{E}[s^2] - (\mathbb{E}[s])^2
 $$
 
-But didn't we just say that $\mathbb{E[s]} = 0$? We did! So the second term is 
+But didn't we just say that $\mathbb{E}[s] = 0$? We did! So the second term is 
 zero and we are left with:
 
 $$
