@@ -32,6 +32,7 @@ calc_d <- function(X,
 safe_dist2 <- function(X) {
   D2 <- dist2(X)
   D2[D2 < 0] <- 0
+  diag(D2) <- 0
   D2
 }
 

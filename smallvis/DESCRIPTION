@@ -26,6 +26,6 @@ LazyData: true
 Date: 2017-11-28
 URL: http://github.com/jlmelville/smallvis
 BugReports: http://github.com/jlmelville/smallvis/issues
-RoxygenNote: 7.3.2
 LinkingTo: 
     Rcpp
+Config/roxygen2/version: 8.1.0

@@ -82,7 +82,7 @@
 #'       \code{"gauss"} (the default), \code{"exp"} or \code{"knn"}.
 #'       \code{"exp"} uses unsquared distances to calculate similarities and is
 #'       not the usual literature function, but matches the implementation
-#'       in \code{\link[tsne]{tsne}} (and probably doesn't matter very much).
+#'       in the \pkg{tsne} package (and probably doesn't matter very much).
 #'       \code{"knn"} uses the symmetric k-nearest neighbors graph with
 #'       element (i, j) being set to one if i is one of j's k-nearest
 #'       neighbors or vice versa. Other elements are set to zero. Note that no
