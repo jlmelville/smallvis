@@ -37,3 +37,13 @@ test_that("laplacian eigenmap", {
   expect_equal(abs(res), abs(expected_lap_eig), tolerance = 1e-4)
 })
 
+test_that("spectral initialization accepts sparse affinity matrices", {
+  affinity <- Matrix::Matrix(x2d(iris[1:10, ]), sparse = TRUE)
+
+  for (init in list(laplacian_eigenmap, normalized_spectral_init)) {
+    dense <- init(as.matrix(affinity), use_RSpectra = FALSE)
+    sparse <- init(affinity, use_RSpectra = FALSE)
+
+    expect_equal(abs(sparse), abs(dense), tolerance = 1e-10)
+  }
+})

@@ -53,7 +53,7 @@ laplacian_eigenmap <- function(A,
   # Equivalent to: D <- diag(colSums(A)); M <- solve(D) %*% A
   # This effectively row-normalizes A: colSums is normally faster than rowSums
   # and because A is symmetric, they're equivalent
-  M <- A / colSums(A)
+  M <- A / Matrix::colSums(A)
   if (use_RSpectra &&
     requireNamespace("RSpectra", quietly = TRUE, warn.conflicts = FALSE)) {
     tsmessage("Using RSpectra for eigenvectors")
@@ -75,9 +75,9 @@ normalized_spectral_init <- function(A,
   # L <- I - D %*% A %*% D
 
   # A lot faster (order of magnitude when n = 1000)
-  Dsq <- sqrt(colSums(A))
-  L <- -t(A / Dsq) / Dsq
-  diag(L) <- 1 + diag(L)
+  Dsq <- sqrt(Matrix::colSums(A))
+  L <- -Matrix::t(A / Dsq) / Dsq
+  Matrix::diag(L) <- 1 + Matrix::diag(L)
 
   if (use_RSpectra &&
     requireNamespace("RSpectra", quietly = TRUE, warn.conflicts = FALSE)) {
