@@ -1039,6 +1039,18 @@ smallvis <- function(X,
   }
   opt <- opt_create(opt_list, verbose = verbose)
 
+  if (nnat(opt$smallvis_uses_function) &&
+      !is.null(cost_fn$exaggerate) &&
+      (exaggeration_factor != 1 || late_exaggeration_factor != 1)) {
+    stop(
+      "Optimizer '", opt$name,
+      "' cannot be used with early or late exaggeration because smallvis ",
+      "does not provide a matching cost function for exaggerated gradients. ",
+      "Set exaggeration_factor and late_exaggeration_factor to 1, or use a ",
+      "gradient-only optimizer such as 'dbd' or 'adam'."
+    )
+  }
+
   # Initialize the cost function and create P
   cost_fn <- cost_init(
     cost_fn,

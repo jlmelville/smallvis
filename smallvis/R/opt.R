@@ -13,6 +13,7 @@ opt_create <- function(optlist, verbose = FALSE) {
     optlist$verbose <- verbose
     opt <- do.call(get(name), optlist)
     opt$smallvis_step <- opt_step_internal
+    opt$smallvis_uses_function <- FALSE
   }
   else {
     if (tolower(name) == "specd") {
@@ -27,6 +28,7 @@ opt_create <- function(optlist, verbose = FALSE) {
     opt <- do.call(mize::make_mize, optlist)
     opt$name <- name
     opt$smallvis_step <- opt_step_mize
+    opt$smallvis_uses_function <- TRUE
     if (tolower(name) %in% c("specd")) {
       opt$requires_B <- TRUE
     }

@@ -354,6 +354,39 @@ test_that("tsne with L-BFGS", {
   expect_equal(final_cost(res), 0.02590, tolerance = 1e-4)
 })
 
+test_that("function-based optimizers reject exaggeration", {
+  error <- "cannot be used with early or late exaggeration"
+
+  expect_error(
+    smallvis(iris10, perplexity = 5, max_iter = 1,
+             opt = list("L-BFGS"), exaggeration_factor = 4,
+             epoch_callback = NULL, verbose = FALSE),
+    error
+  )
+  expect_error(
+    smallvis(iris10, perplexity = 5, max_iter = 1, bh = TRUE,
+             opt = list("L-BFGS"), late_exaggeration_factor = 2,
+             start_late_lying_iter = 1,
+             epoch_callback = NULL, verbose = FALSE),
+    error
+  )
+  expect_error(
+    smallvis(iris10, perplexity = 5, max_iter = 1, method = "umap",
+             opt = list("L-BFGS"), exaggeration_factor = 4,
+             epoch_callback = NULL, verbose = FALSE),
+    error
+  )
+})
+
+test_that("L-BFGS accepts spectral initialization without exaggeration", {
+  res <- smallvis(iris[1:20, ], Y_init = "normlaplacian", perplexity = 5,
+                  max_iter = 2, opt = list("L-BFGS"),
+                  epoch_callback = NULL, verbose = FALSE)
+
+  expect_equal(dim(res), c(20, 2))
+  expect_true(all(is.finite(res)))
+})
+
 test_that("Miscellany", {
   res <- smallvis(iris10, Y_init = iris10_Y, method = "bnerv", eta = 0.1,
                   perplexity = 5,
