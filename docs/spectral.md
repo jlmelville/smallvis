@@ -58,18 +58,10 @@ Laplacians, we only need $W$ to be:
 - Symmetric.
 - Contain all non-negative values.
 
-If $N$ is large then it is usual to sparsify $W$ by only keeping the $k$-largest off-diagonal values
-in each column. This creates the k-nearest neighbor similarity graph, which must then be
-resymmetrized (e.g. by adding its transpose). There are several ways to do this, which give slightly
-different graphs.
-
-It would be natural to try a different kernel, let the bandwidth vary from point to point, or use a
-sparse graph like those used in t-SNE and UMAP. These are all reasonable choices, but they may lose
-the PSD property of our full Gaussian matrix. Density alone doesn't settle this: a dense affinity
-matrix can have negative eigenvalues, while kernels can be designed to remain PSD with variable
-bandwidths, exact zeros, or both. For examples and ways to combine kernels, see chapter 4 of
-[Rasmussen and Williams (PDF)](https://gaussianprocess.org/gpml/chapters/RW4.pdf). We can leave the
-consequences until we get to diffusion maps.
+Other choices of kernels are perfectly reasonable, e.g. variable bandwidths or inducing sparsity
+when $N$ is large by only keeping the $k$-largest off-diagonal values in each column, followed by
+resymmetrization. However, the $W$ matrix may lose its PSD property. The consequences become
+important when looking at diffusion maps, so we'll return to this point later.
 
 If your data is naturally a graph, then you skip all of the above, you already have the data you
 need to create $W$, which is now an adjacency matrix. It's likely that in that case $W$ is a sparse
@@ -101,8 +93,9 @@ generates an affinity matrix (i.e. the diagonal contains all 1s), but to create 
 derived from that affinity matrix, uses [scipy's csgraph.laplacian
 function](https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.csgraph.laplacian.html).
 This returns a symmetrized normalized graph Laplacian (see below) calculated under the assumption
-that there are all zeros on the diagonal. This doesn't have an enormous numerical effect on the
-output, but caused me some bewilderment. *March 7 2026*: At some point the documentation for
+that there are all zeros on the diagonal. This didn't have an enormous numerical effect in my
+experiments, but caused me some bewilderment and I assume there is no reason it couldn't have a
+larger effect in other cases. *March 7 2026*: At some point the documentation for
 `scipy.sparse.csgraph.laplacian` was updated to mention that the diagonal is replaced by zeroes so
 no more bewilderment for future readers.
 
@@ -124,7 +117,7 @@ $$d_{ii} = \sum_{j} w_{ij}$$
 We will be inverting $D$ below, so we need $d_{ii}>0$: if you have isolated vertices, you will need
 to remove them or decide how to handle them separately. I will also assume that the graph is
 connected. Otherwise, with positive degrees, you get one zero Laplacian eigenvalue per connected
-component, so there is more than one trivial eigenvector to discard.
+component. Your best bet is to deal with each connected component separately.
 
 ## Some Graph Laplacians
 
@@ -284,13 +277,13 @@ this refers to the eigenvector of $L_{rw}$.
 ### Scaling the Eigenvectors
 
 Eigenvectors aren't defined to have any particular length. Different software will return the
-eigenvectors with different lengths, so you will need to make a decision about their length. The
-Laplacian Eigenmaps literature often refers to the smallest eigenvector $v_{rw,1}$ as a vector of
-1s, so you could do that. The actual length will then depend on the dimensions of your matrices. The
-other obvious choice is to scale all the vectors to unit length.
+eigenvectors with different lengths, but once we use their entries as coordinates, we need to
+choose the lengths consistently. The normalizations for Laplacian Eigenmaps and diffusion distances
+are given below.
 
 Because of the relationship between the eigenvectors of $L_{rw}$ and $L_{sym}$ described above, if
-you go with all 1s for $L_{rw}$ then the smallest eigenvector of $L_{sym}$ is $D^{1/2}\mathbf{1}$.
+we scale the smallest eigenvector of $L_{rw}$ to all 1s, then the corresponding eigenvector of
+$L_{sym}$ is $D^{1/2}\mathbf{1}$.
 Knowing this may have some practical value: most eigenvector software routines let you supply a
 guess for at least one of the eigenvectors so this is an easy choice involving numbers you already
 have to hand.
@@ -343,12 +336,6 @@ To fix the axis scales, the usual Laplacian Eigenmaps normalization is $Y^{\math
 start with orthogonal unit-length eigenvectors of $L_{sym}$, multiplying them by $D^{-1/2}$ already
 takes care of this.
 
-### The Connection with Locally Linear Embedding
-
-The Laplacian Eigenmap paper demonstrates a connection between LE and LLE, in that LLE is
-approximately computing the eigenvectors of $L^2$, which has the same eigenvectors as $L$ (and the
-square of the eigenvalues).
-
 ## Spectral Clustering and Normalization
 
 von Luxburg describes three different spectral clustering algorithms, which all involve forming a
@@ -357,14 +344,21 @@ from column-stacking the eigenvectors.
 
 1.  Un-normalized: compute the first $k$ eigenvectors of $L$.
 2.  Normalized ([Shi and Malik](https://ieeexplore.ieee.org/document/868688)): compute the first $k$
-    *generalized* eigenvectors of $L$. This is just what Laplacian Eigenmaps do, so from the above
-    discussion we know that it is equivalent to computing the first $k$ eigenvectors of $L_{rw}$
-    (hence justifying the term "normalized").
+    *generalized* eigenvectors of $L$. This is the same eigenproblem as Laplacian Eigenmaps, so from
+    the above discussion we know that it is equivalent to computing the first $k$ eigenvectors of
+    $L_{rw}$ (hence justifying the term "normalized").
 3.  Normalized ([Ng, Jordan and
     Weiss](https://papers.nips.cc/paper/2001/hash/801272ee79cfde7fa5960571fee36b9b-Abstract.html)):
     compute the first $k$ eigenvectors of $L_{sym}$. This version requires an additional row
     normalization step of the output matrix, $Y$, before you can do clustering: normalize the rows
     so each row has length 1 (normalization to unit $l_2$ norm).
+
+The spectral clustering approach isn't *quite* as simple as "do Laplacian Eigenmaps, then run
+k-means on that coordinate space". All these approaches keep the first eigenvector rather than
+discarding it. Like with Laplacian Eigenmaps, you could discard the first eigenvector if applying
+Shi-Malik clustering, because it's a constant entry per observation and adds no useful information.
+In the Ng-Jordan-Weiss approach the trivial eigenvector of $L_{sym}$ isn't generally constant and
+anyway you are also row normalizing, so dropping it could change the clustering.
 
 After some additional theoretical discussions, von Luxburg concludes that clustering on the
 un-normalized graph Laplacian has some undesirable properties, so you definitely want to use one of
@@ -447,10 +441,10 @@ increasingly emphasize the slowest, most global modes.
 
 ### Diffusion Distances
 
-I was a bit dismissive about scaling the eigenvectors when we were talking about Laplacian
-Eigenmaps. With diffusion maps we want to use the coordinates to calculate diffusion distances, so
-we need to be a bit more principled. We will now briefly get a little bit into the weeds about the
-stationary distribution of the random walk: a set of probabilities for being at each vertex which
+For diffusion maps, a consistent normalization of the eigenvectors is important. Specifically, it's
+chosen so that Euclidean distances between the coordinates agree with diffusion distances. We will
+now briefly get a little bit into the weeds about the stationary distribution of the random walk:
+a set of probabilities for being at each vertex which
 stays the same after another step. Writing these probabilities as a column vector $\pi$, this means
 $\pi^{\mathsf{T}}P=\pi^{\mathsf{T}}$.
 
@@ -512,19 +506,12 @@ recipe" section below.
 
 ### What If the Affinities Give Negative Eigenvalues?
 
-There are perfectly reasonable choices of kernel to build an affinity matrix that lose the PSD
-guarantee. For example, maybe you want to use the self-tuning kernel for spectral clustering
-described by [Zelnik-Manor and
-Perona](https://proceedings.neurips.cc/paper/2004/hash/40173ea48d9567f1f393b20c855bb40b-Abstract.html).
-Maybe you want a sparse kernel. Maybe you have decided to remove all self-loops and hence the
-affinity matrix has a diagonal of all zeros. All of this can lead to PSD being lost. As an aside,
-there is research in the field of Gaussian Processes (GP) about the task of designing kernels that
-are PSD, sparse and with variable bandwidths, but it seems non-trivial.
-
-These choices still define a valid random walk, provided $W$ is symmetric and non-negative and the
-degrees are positive. If the resulting $W$ is no longer PSD, then $P$ has negative eigenvalues too.
-At this point we can no longer assume that diffusion maps select the same eigenvectors as Laplacian
-Eigenmaps.
+At the beginning, I mentioned that entirely reasonable choices of kernel can result in an affinity
+matrix that has lost its PSD guarantee. Now it's time to consider the consequences. The resulting
+affinity matrices still define a valid random walk, provided $W$ is symmetric and non-negative and
+the degrees are positive. The difference is that if the resulting $W$ is no longer PSD, then $P$
+has negative eigenvalues too. At this point we can no longer assume that diffusion maps select the
+same eigenvectors as Laplacian Eigenmaps.
 
 The distance formula tells us what to do: each contribution is weighted by $\mu_\ell^{2t}$, so
 select the largest eigenvalue *magnitudes*. For example, a Laplacian eigenvalue $\lambda=1.99$ gives
@@ -629,9 +616,7 @@ sampling and how the bandwidth changes as the sample size grows:
 - $\alpha = 0$, you get back the diffusion map based on the random walk-style diffusion operator
   (and Laplacian Eigenmaps). This includes the *density* of sampling in the embedding. Probably
   useful for clustering.
-- $\alpha = 1$ approximates the Laplace-Beltrami operator. This "corrects" for the density of
-  sampling, so in the limit the embedding reflects the *geometry* of the underlying manifold without
-  the effect of sampling density.
+- $\alpha = 1$ approximates the Laplace-Beltrami operator, removing the sampling-density dependence.
 - $\alpha = 0.5$ gives a weighted, Fokker-Planck-type operator in the limit, under an appropriate
   sampling model.
 
@@ -639,8 +624,8 @@ In terms of *why* you want to do this, you may or may not want the effect of den
 embedding. Imagine your manifold is a nice simple 2D sheet embedded in a higher-dimensional space,
 but for some reason your data is sampled from one part of the sheet more densely than another, then
 $\alpha = 0$ would reflect that density difference in the embedding, causing a distortion.
-$\alpha = 1$ would show the geometry of the sheet without the effect of the sampling density. Values
-of $\alpha$ between 0 and 1 give a compromise between these two extremes.
+Choosing $\alpha = 1$ aims to reduce the influence of uneven sampling on the embedding. Values of
+$\alpha$ between 0 and 1 give a compromise between these two extremes.
 
 What about the Fokker-Planck business? This is a rather specific case where you have data that is
 generated by some dynamic process. Imagine a molecular dynamics simulation of something like a
@@ -651,9 +636,9 @@ So a density-based approach is going to capture the low-energy states well but n
 states. A geometry-based approach will better capture the low energy states joined by these
 "valley-like" transition states but you would lose the knowledge that the protein spends most of its
 time in the low-energy states. Intermediate values of $\alpha$ give a compromise. What would be
-special about using $\alpha = 0.5$ is that you could have a more physical interpretation of the
-distances between points in the embedding space, e.g. the kinetics of the transitions between states
-can be revealed by the random walk. But that requires the random walk to represent the actual
+special about using $\alpha = 0.5$ is that it corresponds to a particular equilibrium diffusion
+model, giving a possible physical interpretation of the distances between points in the embedding
+space. Interpreting the walk in terms of transition kinetics requires it to represent the actual
 dynamics, or to be calibrated against them. Geometric proximity alone doesn't tell you how quickly
 the protein moves between states.
 
@@ -734,6 +719,7 @@ eigenvalues and singular values are converted easily).
 2.  Form the symmetric matrix $I + D^{-1/2} W D^{-1/2} = I + P_{sym}=2I-L_{sym}$, or
     $I + P^{\left(\alpha\right)}_{sym}$ for diffusion maps.
 3.  Via truncated SVD find the top $k + 1$ singular vectors.
+    - Discard the first singular vector, leaving the $k$ nontrivial vectors.
     - The top singular vectors correspond to the smallest eigenvectors of $L_{sym}$.
     - To put it another way: the kth *largest* singular vector is the same as the kth *smallest*
       eigenvector.
@@ -800,9 +786,9 @@ of the eigenvalues. We don't want to be calculating the square explicitly, but f
 true that the squared Frobenius norm of a symmetric matrix equals the trace of the matrix's square,
 i.e. we can just sum the squares of the elements of $P_{sym}$.
 
-*But* we also have to take into account that we always discard the trivial eigenvector/eigenvalue,
-and we know that $\mu_1 = 1$. So the denominator is $\|P_{sym}\|_F^2-1$. Equivalently, because we
-are working with the shifted version $I + P_{sym}$, we can use:
+*But* we also have to take into account that the trivial eigenvector contributes nothing to
+distances and we know that $\mu_1 = 1$. So the denominator is $\|P_{sym}\|_F^2-1$. Equivalently,
+because we are working with the shifted version $I + P_{sym}$, we can use:
 
 $$\|I + P_{sym}\|_F^2 - N - 2\operatorname{tr}(P_{sym}) - 1.$$
 
@@ -863,20 +849,21 @@ was inspired by a [bug report in the UMAP project](https://github.com/lmcinnes/u
 may not be representative of real-world data.
 
 There could be some more advanced uses of spectral clustering where SVD is the best choice. For
-example, in 2001 [Inderjit Dhillon](https://dl.acm.org/doi/10.1145/502512.502550) published a paper on
-bipartite spectral graph clustering, where SVD is applied to the normalized rectangular affinity
+example, in 2001 [Inderjit Dhillon](https://dl.acm.org/doi/10.1145/502512.502550) published a paper
+on bipartite spectral graph clustering, where SVD is applied to the normalized rectangular affinity
 matrix between the two sets. If the sets have $m$ and $n$ vertices, this is an $m$ by $n$ matrix,
 rather than the $(m+n)$ by $(m+n)$ matrix needed for the full graph eigenvalue problem.
 
 ## Repeated Eigendirections and Other Problems
 
 In the previous section I mentioned getting the Laplacian Eigenmap for a 1D line embedded in 3D.
-Assuming you get a good converged result, the output using the first two eigenvectors is a parabola.
-This is a generic problem when there is a high "aspect ratio" in a dataset, i.e. the manifold
-extends much more in one direction than another. Successive eigenvectors will contain information
-about the same coordinate. This problem was described as "repeated eigendirections" by [Gerber and
-co-workers](https://dl.acm.org/doi/abs/10.1145/1273496.1273532) and is also discussed at length by
-[Goldberg and co-workers](https://arxiv.org/abs/0806.2646).
+Assuming you get a good converged result, the output using the first two nontrivial eigenvectors is
+a parabola. Both eigenvectors contain information about the same coordinate, which is all there is
+for a line. This becomes a problem for a 2D manifold with a high "aspect ratio", i.e. one which
+extends much more in one direction than another. Several eigenvectors can describe the long
+direction before we get one describing the short direction. This problem was described as "repeated
+eigendirections" by [Gerber and co-workers](https://dl.acm.org/doi/abs/10.1145/1273496.1273532) and
+is also discussed at length by [Goldberg and co-workers](https://arxiv.org/abs/0806.2646).
 
 Apart from repeated eigendirections, closely spaced eigenvalues can make individual eigenvectors
 sensitive to small changes in the graph. This matters especially when the embedding keeps some of
@@ -884,11 +871,11 @@ these directions and discards others: rotating a complete retained block doesn't
 an unweighted Euclidean embedding. Distortions can also occur near boundaries and holes, leaving
 the resulting embedding looking twisted.
 
-For more on this, see the discussion by [Kohli and
-co-workers](https://www.jmlr.org/papers/v22/21-0131.html) and especially the references they point
-to (under 'Laplacian Eigenmaps' in section 1.3). At this point I'd love to say "and here's the easy
-solution that's been discovered", but that doesn't seem to be the case, so see the above papers and
-the references therein for more suggested fixes.
+For more on this, see the discussion by
+[Kohli and co-workers](https://www.jmlr.org/papers/v22/21-0131.html) and especially the references
+they point to (under 'Laplacian Eigenmaps' in section 1.3). At this point I'd love to say "and
+here's the easy solution that's been discovered", but that doesn't seem to be the case, so see the
+above papers and the references therein for more suggested fixes.
 
 *2 January 2025*: here's a nice [review of manifold
 learning](https://doi.org/10.1146/annurev-statistics-040522-115238) which devotes an entire section
@@ -923,6 +910,10 @@ $W_{norm} = \left(I - \frac{1}{N}\mathbf{1} \right) W \left(I - \frac{1}{N}\math
 $\mathbf{1}$ is an $N$ by $N$ matrix of all 1s. This normalization results in the row and column
 means all being zero.
 
+To get the kernel PCA coordinates for the input data, decompose this centered matrix $W_{norm}$,
+then multiply each retained unit-length eigenvector by the square root of its eigenvalue. Stack
+these scaled vectors as columns, just as we did for the other embeddings.
+
 For more on this, [Bengio and co-workers
 (PDF)](http://www.iro.umontreal.ca/~lisa/pointeurs/TR1232.pdf) have a technical report connecting
 spectral clustering with kernel PCA and [Ham and
@@ -933,8 +924,8 @@ Standard linear PCA fits into Kernel PCA by using the "linear kernel", i.e. the 
 input vectors: you can get the principal components or loadings or whatever you are looking for
 whether you use the scatter/covariance matrix ($X'X$) or the Gram matrix ($XX'$), subject to some
 scaling of eigenvalues here or a matrix multiplication with $X$ there. Here $X$ is the input data
-matrix. If you are doing PCA, you usually need to center your input data anyway, and the
-double-centering that kernel PCA does has no effect on the eigendecomposition.
+matrix with each column centered to have mean zero. In that case, the Gram matrix is already
+double-centered, so the extra centering step in kernel PCA leaves it unchanged.
 
 So if the linear kernel is good enough for PCA, is it good choice for an affinity matrix for
 spectral methods? Unfortunately not because there's nothing to stop a dot product from being
