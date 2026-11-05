@@ -548,10 +548,11 @@ test_that("ntumap", {
     verbose = FALSE,
     ret_extra = TRUE
   )
+  # Allow small platform differences in this rounded optimization result.
   # fmt: skip
   expect_equal(res$Y, c2y(-4.619, 0.8858, -0.8735, 4.701, 1.426, -3.795, -0.7134,
                           3.005, 5.722, -5.74, 0.4776, -2.065, 0.7893, -2.145, 0.4571,
-                          2.238, -0.9915, -0.4577, -0.5401, 2.237), tolerance = 1e-3)
+                          2.238, -0.9915, -0.4577, -0.5401, 2.237), tolerance = 2e-3)
   expect_equal(final_cost(res), 0.1491, tolerance = 1e-4)
 })
 

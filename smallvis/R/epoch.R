@@ -30,20 +30,17 @@ do_callback <- function(cb, Y, iter, cost = NULL, cost_fn = NULL, opt = NULL) {
 
 # Create a callback for visualization
 make_smallvis_cb <- function(df) {
-  force(df)
-  # The callback reads this enclosing binding before creating its local palette.
-  palette <- NULL # nolint: object_usage_linter.
+  plot_data <- if (is.data.frame(df)) df else NULL
   function(Y, iter, cost = NULL) {
-    if (is.null(palette)) {
-      palette <- vizier:::color_helper(
-        df,
-        color_scheme = grDevices::rainbow
-      )$palette
-    }
     title <- paste0("iter: ", iter)
     if (!(is.null(cost) || is.na(cost))) {
       title <- paste0(title, " cost = ", formatC(cost))
     }
-    vizier::embed_plot(Y, df, title = title, color_scheme = palette)
+    vizier::embed_plot(
+      Y,
+      plot_data,
+      title = title,
+      color_scheme = grDevices::rainbow
+    )
   }
 }
