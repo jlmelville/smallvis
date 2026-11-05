@@ -1,15 +1,17 @@
 # UMAP --------------------------------------------------------------------
 
-umap <- function(perplexity,
-                 inp_kernel = "skd",
-                 symmetrize = "umap",
-                 spread = 1,
-                 min_dist = 0.001,
-                 gr_eps = 0.1,
-                 eps = 1e-9,
-                 row_weight = NULL,
-                 n_threads = 0,
-                 use_cpp = FALSE) {
+umap <- function(
+  perplexity,
+  inp_kernel = "skd",
+  symmetrize = "umap",
+  spread = 1,
+  min_dist = 0.001,
+  gr_eps = 0.1,
+  eps = 1e-9,
+  row_weight = NULL,
+  n_threads = 0,
+  use_cpp = FALSE
+) {
   if (!is.null(row_weight)) {
     row_normalize <- row_weight
   } else {
@@ -17,11 +19,7 @@ umap <- function(perplexity,
   }
   lreplace(
     tsne(perplexity, use_cpp = use_cpp, n_threads = n_threads),
-    init = function(cost,
-                    X,
-                    max_iter,
-                    verbose = FALSE,
-                    ret_extra = c()) {
+    init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       cost <- sne_init(
         cost,
@@ -37,7 +35,8 @@ umap <- function(perplexity,
         use_cpp = use_cpp
       )
 
-      cost <- init_ab(cost,
+      cost <- init_ab(
+        cost,
         spread = spread,
         min_dist = min_dist,
         verbose = verbose
@@ -58,13 +57,17 @@ umap <- function(perplexity,
       P <- cost$P
       eps <- cost$eps
       W <- cost$W
-      cost$pcost <- colSums(-P * log(W + eps) - (1 - P) * log1p(-W + eps)) + cost$Cp
+      cost$pcost <- colSums(-P * log(W + eps) - (1 - P) * log1p(-W + eps)) +
+        cost$Cp
       cost
     },
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
 
-      cost$G <- k2g(Y, 4 * (cost$b / (cost$D2 + cost$eps + gr_eps)) * (cost$P - cost$W))
+      cost$G <- k2g(
+        Y,
+        4 * (cost$b / (cost$D2 + cost$eps + gr_eps)) * (cost$P - cost$W)
+      )
       cost
     },
     update = function(cost, Y) {
@@ -83,14 +86,16 @@ umap <- function(perplexity,
 }
 
 # UMAP with the output kernel fixed to the t-distribution
-tumap <- function(perplexity,
-                  inp_kernel = "skd",
-                  symmetrize = "umap",
-                  gr_eps = 0.1,
-                  eps = 1e-9,
-                  row_weight = NULL,
-                  n_threads = 0,
-                  use_cpp = FALSE) {
+tumap <- function(
+  perplexity,
+  inp_kernel = "skd",
+  symmetrize = "umap",
+  gr_eps = 0.1,
+  eps = 1e-9,
+  row_weight = NULL,
+  n_threads = 0,
+  use_cpp = FALSE
+) {
   if (!is.null(row_weight)) {
     row_normalize <- row_weight
   } else {
@@ -98,11 +103,7 @@ tumap <- function(perplexity,
   }
   lreplace(
     umap(perplexity, n_threads = n_threads, use_cpp = use_cpp),
-    init = function(cost,
-                    X,
-                    max_iter,
-                    verbose = FALSE,
-                    ret_extra = c()) {
+    init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       cost$eps <- eps
 
@@ -124,7 +125,10 @@ tumap <- function(perplexity,
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
 
-      cost$G <- k2g(Y, 4 * (cost$W / ((1 - cost$W) + cost$eps + gr_eps)) * (cost$P - cost$W))
+      cost$G <- k2g(
+        Y,
+        4 * (cost$W / ((1 - cost$W) + cost$eps + gr_eps)) * (cost$P - cost$W)
+      )
       cost
     },
     update = function(cost, Y) {
@@ -139,20 +143,18 @@ tumap <- function(perplexity,
 }
 
 # t-UMAP where output and input affinities are normalized
-ntumap <- function(perplexity,
-                   inp_kernel = "skd",
-                   symmetrize = "umap",
-                   gr_eps = 0.1,
-                   eps = 1e-9,
-                   n_threads = 0,
-                   use_cpp = FALSE) {
+ntumap <- function(
+  perplexity,
+  inp_kernel = "skd",
+  symmetrize = "umap",
+  gr_eps = 0.1,
+  eps = 1e-9,
+  n_threads = 0,
+  use_cpp = FALSE
+) {
   lreplace(
     tumap(perplexity, use_cpp = use_cpp, n_threads = n_threads),
-    init = function(cost,
-                    X,
-                    max_iter,
-                    verbose = FALSE,
-                    ret_extra = c()) {
+    init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       cost$eps <- eps
       cost <- sne_init(
@@ -176,7 +178,8 @@ ntumap <- function(perplexity,
       eps <- cost$eps
       Q <- cost$Q
 
-      cost$pcost <- colSums(-P * logm(Q, eps) - (1 - P) * log1p(-Q + eps)) + cost$Cp
+      cost$pcost <- colSums(-P * logm(Q, eps) - (1 - P) * log1p(-Q + eps)) +
+        cost$Cp
       cost
     },
     gr = function(cost, Y) {
@@ -220,7 +223,10 @@ find_ab_params <- function(spread = 1, min_dist = 0.001) {
   yv[xv >= min_dist] <- exp(-(xv[xv >= min_dist] - min_dist) / spread)
   result <- try(
     {
-      stats::nls(yv ~ 1 / (1 + a * xv^(2 * b)), start = list(a = 1, b = 1))$m$getPars()
+      stats::nls(
+        yv ~ 1 / (1 + a * xv^(2 * b)),
+        start = list(a = 1, b = 1)
+      )$m$getPars()
     },
     silent = TRUE
   )
@@ -250,16 +256,18 @@ find_ab_params <- function(spread = 1, min_dist = 0.001) {
 # idiomatic (or vectorizable).
 # tol is SMOOTH_K_TOLERANCE in the Python code.
 smooth_knn_distances <-
-  function(X,
-           k,
-           n_iter = 64,
-           local_connectivity = 1.0,
-           bandwidth = 1.0,
-           tol = 1e-5,
-           min_k_dist_scale = 1e-3,
-           cardinality = log2(k),
-           n_threads = 0,
-           verbose = FALSE) {
+  function(
+    X,
+    k,
+    n_iter = 64,
+    local_connectivity = 1.0,
+    bandwidth = 1.0,
+    tol = 1e-5,
+    min_k_dist_scale = 1e-3,
+    cardinality = log2(k),
+    n_threads = 0,
+    verbose = FALSE
+  ) {
     tsmessage("Commencing smooth kNN distance calibration for k = ", formatC(k))
 
     if (methods::is(X, "dist")) {
@@ -303,8 +311,9 @@ smooth_knn_distances <-
           if (interpolation <= tol) {
             rho[i] <- non_zero_dists[index]
           } else {
-            rho[i] <- non_zero_dists[index] + interpolation *
-              (non_zero_dists[index + 1] - non_zero_dists[index])
+            rho[i] <- non_zero_dists[index] +
+              interpolation *
+                (non_zero_dists[index + 1] - non_zero_dists[index])
           }
         } else {
           rho[i] <- interpolation * non_zero_dists[1]
@@ -370,10 +379,7 @@ fuzzy_set_union <- function(X, set_op_mix_ratio = 1) {
   set_op_mix_ratio * (X + t(X) - XX) + (1 - set_op_mix_ratio) * XX
 }
 
-init_ab <- function(cost,
-                    spread = 1,
-                    min_dist = 0.001,
-                    verbose = FALSE) {
+init_ab <- function(cost, spread = 1, min_dist = 0.001, verbose = FALSE) {
   ab_params <- find_ab_params(spread = spread, min_dist = min_dist)
   a <- ab_params[1]
   b <- ab_params[2]

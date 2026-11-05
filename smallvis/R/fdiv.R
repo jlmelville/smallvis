@@ -1,23 +1,21 @@
 # f-Divergences -----------------------------------------------------------
 
 # Reverse KL divergence
-rklsne <- function(perplexity,
-                   inp_kernel = "gaussian",
-                   symmetrize = "symmetric",
-                   eps = .Machine$double.eps,
-                   n_threads = 0,
-                   use_cpp = FALSE) {
+rklsne <- function(
+  perplexity,
+  inp_kernel = "gaussian",
+  symmetrize = "symmetric",
+  eps = .Machine$double.eps,
+  n_threads = 0,
+  use_cpp = FALSE
+) {
   lreplace(
     tsne(
       perplexity = perplexity,
       use_cpp = use_cpp,
       n_threads = n_threads
     ),
-    init = function(cost,
-                    X,
-                    max_iter,
-                    verbose = FALSE,
-                    ret_extra = c()) {
+    init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       cost <- sne_init(
         cost,
@@ -70,12 +68,14 @@ rklsne <- function(perplexity,
 }
 
 # Jensen-Shannon divergence
-jssne <- function(perplexity,
-                  inp_kernel = "gaussian",
-                  symmetrize = "symmetric",
-                  eps = .Machine$double.eps,
-                  n_threads = 0,
-                  use_cpp = FALSE) {
+jssne <- function(
+  perplexity,
+  inp_kernel = "gaussian",
+  symmetrize = "symmetric",
+  eps = .Machine$double.eps,
+  n_threads = 0,
+  use_cpp = FALSE
+) {
   lreplace(
     tsne(
       perplexity = perplexity,
@@ -83,11 +83,7 @@ jssne <- function(perplexity,
       use_cpp == use_cpp,
       n_threads = n_threads
     ),
-    init = function(cost,
-                    X,
-                    max_iter,
-                    verbose = FALSE,
-                    ret_extra = c()) {
+    init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       cost <- sne_init(
         cost,
@@ -113,7 +109,8 @@ jssne <- function(perplexity,
     },
     pfn = function(cost, Y) {
       cost <- cost_update(cost, Y)
-      cost$pcost <- 0.5 * (cost$PlP + cost$QlQZ - colSums(cost$P * logm(cost$Z, cost$eps)))
+      cost$pcost <- 0.5 *
+        (cost$PlP + cost$QlQZ - colSums(cost$P * logm(cost$Z, cost$eps)))
       cost
     },
     gr = function(cost, Y) {
@@ -150,12 +147,14 @@ jssne <- function(perplexity,
 }
 
 # Chi-squared divergence
-chsne <- function(perplexity,
-                  inp_kernel = "gaussian",
-                  symmetrize = "symmetric",
-                  eps = .Machine$double.eps,
-                  n_threads = 0,
-                  use_cpp = FALSE) {
+chsne <- function(
+  perplexity,
+  inp_kernel = "gaussian",
+  symmetrize = "symmetric",
+  eps = .Machine$double.eps,
+  n_threads = 0,
+  use_cpp = FALSE
+) {
   lreplace(
     tsne(
       perplexity = perplexity,
@@ -163,11 +162,7 @@ chsne <- function(perplexity,
       use_cpp == use_cpp,
       n_threads = n_threads
     ),
-    init = function(cost,
-                    X,
-                    max_iter,
-                    verbose = FALSE,
-                    ret_extra = c()) {
+    init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       cost <- sne_init(
         cost,
@@ -209,8 +204,6 @@ chsne <- function(perplexity,
       cost
     },
     update = function(cost, Y) {
-      P <- cost$P
-
       W <- calc_d2(Y, use_cpp = use_cpp, n_threads = n_threads)
       W <- 1 / (1 + W)
       diag(W) <- 0
@@ -230,12 +223,14 @@ chsne <- function(perplexity,
 }
 
 # Hellinger distance divergence
-hlsne <- function(perplexity,
-                  inp_kernel = "gaussian",
-                  symmetrize = "symmetric",
-                  eps = .Machine$double.eps,
-                  n_threads = 0,
-                  use_cpp = FALSE) {
+hlsne <- function(
+  perplexity,
+  inp_kernel = "gaussian",
+  symmetrize = "symmetric",
+  eps = .Machine$double.eps,
+  n_threads = 0,
+  use_cpp = FALSE
+) {
   lreplace(
     tsne(
       perplexity = perplexity,
@@ -243,11 +238,7 @@ hlsne <- function(perplexity,
       use_cpp == use_cpp,
       n_threads = n_threads
     ),
-    init = function(cost,
-                    X,
-                    max_iter,
-                    verbose = FALSE,
-                    ret_extra = c()) {
+    init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       cost <- sne_init(
         cost,
@@ -291,8 +282,6 @@ hlsne <- function(perplexity,
       cost
     },
     update = function(cost, Y) {
-      P <- cost$P
-
       W <- calc_d2(Y, use_cpp = use_cpp, n_threads = n_threads)
       W <- 1 / (1 + W)
       diag(W) <- 0

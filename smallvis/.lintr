@@ -1,0 +1,5 @@
+linters: linters_with_tags(
+  tags = "correctness",
+  namespace_linter = NULL
+  )
+encoding: "UTF-8"

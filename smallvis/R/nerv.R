@@ -9,12 +9,14 @@
 # lambda = 1 gives ASNE results
 # default lambda = 0.9 from "Majorization-Minimization for Manifold Embedding"
 # Yang, Peltonen, Kaski 2015
-nerv <- function(perplexity,
-                 lambda = 0.9,
-                 inp_kernel = "gaussian",
-                 eps = .Machine$double.eps,
-                 n_threads = 0,
-                 use_cpp = FALSE) {
+nerv <- function(
+  perplexity,
+  lambda = 0.9,
+  inp_kernel = "gaussian",
+  eps = .Machine$double.eps,
+  n_threads = 0,
+  use_cpp = FALSE
+) {
   lambda2 <- 2 * lambda
   oml <- 1 - lambda
   oml2 <- 2 * oml
@@ -24,11 +26,7 @@ nerv <- function(perplexity,
       use_cpp = use_cpp,
       n_threads = n_threads
     ),
-    init = function(cost,
-                    X,
-                    max_iter,
-                    verbose = FALSE,
-                    ret_extra = c()) {
+    init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       cost <- sne_init(
         cost,
         X,
@@ -97,13 +95,15 @@ nerv <- function(perplexity,
   )
 }
 
-snerv <- function(perplexity,
-                  lambda = 0.9,
-                  inp_kernel = "gaussian",
-                  symmetrize = "symmetric",
-                  eps = .Machine$double.eps,
-                  n_threads = 0,
-                  use_cpp = FALSE) {
+snerv <- function(
+  perplexity,
+  lambda = 0.9,
+  inp_kernel = "gaussian",
+  symmetrize = "symmetric",
+  eps = .Machine$double.eps,
+  n_threads = 0,
+  use_cpp = FALSE
+) {
   lambda4 <- 4 * lambda
   oml <- 1 - lambda
   oml4 <- 4 * oml
@@ -170,11 +170,13 @@ snerv <- function(perplexity,
 
 # NeRV with input bandwidths transferred to the output kernel, as in the
 # original paper.
-bnerv <- function(perplexity,
-                  lambda = 0.9,
-                  eps = .Machine$double.eps,
-                  n_threads = 0,
-                  use_cpp = FALSE) {
+bnerv <- function(
+  perplexity,
+  lambda = 0.9,
+  eps = .Machine$double.eps,
+  n_threads = 0,
+  use_cpp = FALSE
+) {
   lambda2 <- 2 * lambda
   oml <- 1 - lambda
   oml2 <- 2 * oml
@@ -185,11 +187,7 @@ bnerv <- function(perplexity,
       use_cpp = use_cpp,
       n_threads = n_threads
     ),
-    init = function(cost,
-                    X,
-                    max_iter,
-                    verbose = FALSE,
-                    ret_extra = c()) {
+    init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       ret_extra <- unique(c(ret_extra, "beta"))
 
       cost <- sne_init(
@@ -213,7 +211,9 @@ bnerv <- function(perplexity,
       Q <- cost$Q
 
       # Total K including multiplying by 2 * beta in gradient
-      K <- cost$lambda2b * (cost$P - Q) + cost$oml2b * Q * (cost$lPQ + cost$kl_rev)
+      K <- cost$lambda2b *
+        (cost$P - Q) +
+        cost$oml2b * Q * (cost$lPQ + cost$kl_rev)
 
       cost$G <- k2g(Y, K, symmetrize = TRUE)
       cost
@@ -242,11 +242,13 @@ bnerv <- function(perplexity,
   )
 }
 
-rsrnerv <- function(perplexity,
-                    lambda = 0.9,
-                    eps = .Machine$double.eps,
-                    n_threads = 0,
-                    use_cpp = FALSE) {
+rsrnerv <- function(
+  perplexity,
+  lambda = 0.9,
+  eps = .Machine$double.eps,
+  n_threads = 0,
+  use_cpp = FALSE
+) {
   lreplace(
     nerv(
       perplexity = perplexity,
@@ -254,11 +256,7 @@ rsrnerv <- function(perplexity,
       use_cpp = use_cpp,
       n_threads = n_threads
     ),
-    init = function(cost,
-                    X,
-                    max_iter,
-                    verbose = FALSE,
-                    ret_extra = c()) {
+    init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       cost <- sne_init(
         cost,
         X,

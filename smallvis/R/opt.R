@@ -6,20 +6,33 @@
 opt_create <- function(optlist, verbose = FALSE) {
   name <- optlist[[1]]
   optlist[[1]] <- NULL
-  
-  if (tolower(name) %in% c("adagrad", "adadelta", "rmsprop", "dbd",
-                           "ndbd", "adam", "adamax", "nadam", "amsgrad",
-                           "steepd", "mom", "nag", "gmom")) {
+
+  if (
+    tolower(name) %in%
+      c(
+        "adagrad",
+        "adadelta",
+        "rmsprop",
+        "dbd",
+        "ndbd",
+        "adam",
+        "adamax",
+        "nadam",
+        "amsgrad",
+        "steepd",
+        "mom",
+        "nag",
+        "gmom"
+      )
+  ) {
     optlist$verbose <- verbose
     opt <- do.call(get(name), optlist)
     opt$smallvis_step <- opt_step_internal
     opt$smallvis_uses_function <- FALSE
-  }
-  else {
+  } else {
     if (tolower(name) == "specd") {
       optlist$method <- "PHESS"
-    }
-    else {
+    } else {
       optlist$method <- name
     }
     optlist$max_iter <- Inf
@@ -38,7 +51,7 @@ opt_create <- function(optlist, verbose = FALSE) {
       opt$requires_H <- TRUE
     }
   }
-  
+
   opt
 }
 
@@ -61,18 +74,17 @@ opt_step_internal <- function(opt, cost_fn, Y, iter) {
   if (iter == 1) {
     opt <- opt_init(opt, nrow(Y), ncol(Y))
   }
-  
+
   cost_fn <- cost_grad(cost_fn, Y)
-  
+
   opt <- opt$upd(opt, cost_fn, Y, iter, cost_fn$G)
   cost_fn <- cost_clear(cost_fn)
   if (nnat(opt$transposed)) {
     Y <- Y + t(opt$uY)
-  }
-  else {
+  } else {
     Y <- Y + opt$uY
   }
-  
+
   list(
     Y = Y,
     cost_fn = cost_fn,
@@ -89,11 +101,11 @@ mizify_cost <- function(cost, nrow) {
     dim(par) <- c(nrow, length(par) / nrow)
     cost <- cost_grad(cost, par)
     G <- cost$G
-    
+
     cost <- cost_point(cost, par)
     pcosts <- cost$pcost
     fn <- sum(pcosts)
-    
+
     dim(G) <- NULL
     list(fn = fn, gr = G)
   }
@@ -104,7 +116,9 @@ mizify_cost <- function(cost, nrow) {
     fg(par)$gr
   }
   list(
-    fn = fn, gr = gr, fg = fg
+    fn = fn,
+    gr = gr,
+    fg = fg
   )
 }
 
@@ -119,7 +133,7 @@ opt_step_mize <- function(opt, cost_fn, Y, iter) {
     # block diagonal matrix, with this block repeated d times (d being the
     # output dimension), but shamefully, mize has a hack inside the hessian solve
     # code to recognize when the Hessian is too small for exactly this case.
-    
+
     # Graph Laplacian , L+ = D+ - W+
     if (is.null(cost_fn$P)) {
       stop("No P matrix in cost for use in approximate Hessian")
@@ -127,7 +141,7 @@ opt_step_mize <- function(opt, cost_fn, Y, iter) {
     Lp <- diag(colSums(cost_fn$P)) - cost_fn$P
     mu <- min(Lp[Lp > 0]) * 1e-10
     B <- 4 * (Lp + mu)
-    
+
     fg$hs <- function(par) {
       B
     }
@@ -141,17 +155,17 @@ opt_step_mize <- function(opt, cost_fn, Y, iter) {
     }
   }
   dim(Y) <- NULL
-  
+
   if (iter == 1) {
     opt <- mize::mize_init(opt, Y, fg)
   }
   res <- mize::mize_step(opt, Y, fg)
   step_summary <- mize::mize_step_summary(res$opt, res$par, fg, par_old = Y)
   res$opt <- mize::check_mize_convergence(step_summary)
-  
+
   Y <- res$par
   dim(Y) <- c(nr, nc)
-  
+
   list(
     Y = Y,
     cost_fn = cost_fn,
@@ -250,8 +264,14 @@ rmsprop <- function(eta = 0.001, rho = 0.9, eps = 1e-6, verbose = FALSE) {
 #   \code{momentum} to \code{final_momentum}.
 # @param eta Learning rate value.
 # @param min_gain Minimum gradient descent step size.
-dbd <- function(eta = 500, momentum = 0.5, final_momentum = 0.8,
-                mom_switch_iter = 250, min_gain = 0.01, verbose = FALSE) {
+dbd <- function(
+  eta = 500,
+  momentum = 0.5,
+  final_momentum = 0.8,
+  mom_switch_iter = 250,
+  min_gain = 0.01,
+  verbose = FALSE
+) {
   list(
     eta = eta,
     mu = momentum,
@@ -280,8 +300,12 @@ dbd <- function(eta = 500, momentum = 0.5, final_momentum = 0.8,
       if (iter == opt$mom_switch_iter && opt$mu != opt$final_momentum) {
         opt$mu <- opt$final_momentum
         if (verbose) {
-          message("Iteration #", iter,
-                  " switching to final momentum = ", formatC(opt$final_momentum))
+          message(
+            "Iteration #",
+            iter,
+            " switching to final momentum = ",
+            formatC(opt$final_momentum)
+          )
         }
       }
       opt
@@ -291,10 +315,16 @@ dbd <- function(eta = 500, momentum = 0.5, final_momentum = 0.8,
 
 # Nesterov DBD ------------------------------------------------------------
 
-ndbd <- function(eta = 500, momentum = 0.5, final_momentum = 0.8,
-                 mom_switch_iter = 250, min_gain = 0.01, beta = 1,
-                 scale_grad = FALSE,
-                 verbose = FALSE) {
+ndbd <- function(
+  eta = 500,
+  momentum = 0.5,
+  final_momentum = 0.8,
+  mom_switch_iter = 250,
+  min_gain = 0.01,
+  beta = 1,
+  scale_grad = FALSE,
+  verbose = FALSE
+) {
   list(
     eta = eta,
     mu = momentum,
@@ -326,8 +356,7 @@ ndbd <- function(eta = 500, momentum = 0.5, final_momentum = 0.8,
       # Steepest Descent on first iteration
       if (is.null(old_gd)) {
         uY_new <- -gd
-      }
-      else {
+      } else {
         # Classical momentum term
         uY_new <- opt$mu * uY - gd
         if (beta != 0) {
@@ -343,8 +372,12 @@ ndbd <- function(eta = 500, momentum = 0.5, final_momentum = 0.8,
       if (iter == opt$mom_switch_iter && opt$mu != opt$final_momentum) {
         opt$mu <- opt$final_momentum
         if (verbose) {
-          message("Iteration #", iter,
-                  " switching to final momentum = ", formatC(opt$final_momentum))
+          message(
+            "Iteration #",
+            iter,
+            " switching to final momentum = ",
+            formatC(opt$final_momentum)
+          )
         }
       }
       opt
@@ -354,8 +387,13 @@ ndbd <- function(eta = 500, momentum = 0.5, final_momentum = 0.8,
 
 # Adam --------------------------------------------------------------------
 
-adam <- function(eta = 0.002, beta1 = 0.9, beta2 = 0.999, eps = 1e-8,
-                 verbose = FALSE) {
+adam <- function(
+  eta = 0.002,
+  beta1 = 0.9,
+  beta2 = 0.999,
+  eps = 1e-8,
+  verbose = FALSE
+) {
   list(
     beta1t = beta1,
     beta2t = beta2,
@@ -396,8 +434,13 @@ adam <- function(eta = 0.002, beta1 = 0.9, beta2 = 0.999, eps = 1e-8,
 
 # A correction to Adam, with better theoretical convergence properties
 # https://openreview.net/forum?id=ryQu7f-RZ
-amsgrad <- function(eta = 0.002, beta1 = 0.9, beta2 = 0.999, eps = 1e-8,
-                    verbose = FALSE) {
+amsgrad <- function(
+  eta = 0.002,
+  beta1 = 0.9,
+  beta2 = 0.999,
+  eps = 1e-8,
+  verbose = FALSE
+) {
   list(
     beta1t = beta1,
     beta2t = beta2,
@@ -440,8 +483,13 @@ amsgrad <- function(eta = 0.002, beta1 = 0.9, beta2 = 0.999, eps = 1e-8,
 
 # AdaMax ------------------------------------------------------------------
 
-adamax <- function(eta = 0.002, beta1 = 0.9, beta2 = 0.999, eps = 1e-8,
-                   verbose = FALSE) {
+adamax <- function(
+  eta = 0.002,
+  beta1 = 0.9,
+  beta2 = 0.999,
+  eps = 1e-8,
+  verbose = FALSE
+) {
   list(
     beta1 = beta1,
     beta2 = beta2,
@@ -479,8 +527,13 @@ adamax <- function(eta = 0.002, beta1 = 0.9, beta2 = 0.999, eps = 1e-8,
 
 # Nadam -------------------------------------------------------------------
 
-nadam <- function(eta = 0.002, beta1 = 0.9, beta2 = 0.999, eps = 1e-8,
-                  verbose = FALSE) {
+nadam <- function(
+  eta = 0.002,
+  beta1 = 0.9,
+  beta2 = 0.999,
+  eps = 1e-8,
+  verbose = FALSE
+) {
   list(
     beta1 = beta1,
     beta2 = beta2,
@@ -554,8 +607,7 @@ nag <- function(eta = 1, mu = 0.9, verbose = FALSE) {
     upd = function(opt, cost_fn, Y, iter, G) {
       if (!is.numeric(mu)) {
         mu_t <- 1 - 3 / (5 + iter)
-      }
-      else {
+      } else {
         mu_t <- mu
       }
 
@@ -564,8 +616,7 @@ nag <- function(eta = 1, mu = 0.9, verbose = FALSE) {
       old_gd <- opt$old_gd
       if (is.null(opt$old_gd)) {
         uY <- -gd
-      }
-      else {
+      } else {
         uY <- mu_t * (old_uY + old_gd) - (1 + mu_t) * gd
       }
 
@@ -589,16 +640,14 @@ gmom <- function(eta = 1, mu = 0.9, beta = 0.5, verbose = FALSE) {
 
       if (!is.numeric(mu)) {
         mu_t <- 1 - 3 / (5 + iter)
-      }
-      else {
+      } else {
         mu_t <- mu
       }
 
       # Steepest Descent on first iteration
       if (is.null(opt$old_gd)) {
         uY <- -gd
-      }
-      else {
+      } else {
         # Classical momentum term
         uY <- mu_t * old_uY - gd
         if (beta != 0) {

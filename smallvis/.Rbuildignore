@@ -3,3 +3,9 @@
 ^docs$
 ^img$
 ^.*DONTCHECKMEIN.*$
+^air\.toml$
+^\.lintr$
+^_pkgdown\.yml$
+^pkgdown$
+^check$
+^vignettes$

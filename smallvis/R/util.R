@@ -8,9 +8,7 @@ dist2 <- function(X) {
   D2 + sweep(X %*% t(X) * -2, 2, t(D2), `+`)
 }
 
-calc_d2 <- function(X,
-                    use_cpp = FALSE,
-                    n_threads = 1) {
+calc_d2 <- function(X, use_cpp = FALSE, n_threads = 1) {
   if (use_cpp) {
     dist2_cpp(X, n_threads = n_threads)
   } else {
@@ -18,9 +16,7 @@ calc_d2 <- function(X,
   }
 }
 
-calc_d <- function(X,
-                   use_cpp = FALSE,
-                   n_threads = 1) {
+calc_d <- function(X, use_cpp = FALSE, n_threads = 1) {
   if (use_cpp) {
     dist_cpp(X, n_threads = n_threads)
   } else {
@@ -36,9 +32,7 @@ safe_dist2 <- function(X) {
   D2
 }
 
-calc_d2tweight <- function(D2,
-                           use_cpp = FALSE,
-                           n_threads = 1) {
+calc_d2tweight <- function(D2, use_cpp = FALSE, n_threads = 1) {
   if (use_cpp) {
     d2_to_tweight_cpp(D2, n_threads = n_threads)
   } else {
@@ -46,9 +40,7 @@ calc_d2tweight <- function(D2,
   }
 }
 
-calc_tweight <- function(X,
-                         use_cpp = FALSE,
-                         n_threads = 1) {
+calc_tweight <- function(X, use_cpp = FALSE, n_threads = 1) {
   if (use_cpp) {
     tweight_cpp(X, n_threads = n_threads)
   } else {
@@ -68,11 +60,13 @@ stime <- function() {
 }
 
 # message with a time stamp
-tsmessage <- function(...,
-                      domain = NULL,
-                      appendLF = TRUE,
-                      force = FALSE,
-                      time_stamp = TRUE) {
+tsmessage <- function(
+  ...,
+  domain = NULL,
+  appendLF = TRUE,
+  force = FALSE,
+  time_stamp = TRUE
+) {
   verbose <- get0("verbose", envir = sys.parent())
 
   if (force || (!is.null(verbose) && verbose)) {
@@ -123,7 +117,11 @@ nnat <- function(x) {
 # log vector information
 summarize <- function(X, msg = "", verbose = FALSE) {
   summary_X <- summary(X, digits = max(3, getOption("digits") - 3))
-  tsmessage(msg, ": ", paste(names(summary_X), ":", summary_X, "|", collapse = ""))
+  tsmessage(
+    msg,
+    ": ",
+    paste(names(summary_X), ":", summary_X, "|", collapse = "")
+  )
 }
 
 # Format perplexity as a string. Could be a scalar or a vector. In the latter
@@ -146,10 +144,12 @@ remove_nulls <- function(l) {
   l[!vapply(l, is.null, logical(1))]
 }
 
-graph_to_sparse <- function(graph,
-                            repr = "C",
-                            drop0 = FALSE,
-                            transpose = FALSE) {
+graph_to_sparse <- function(
+  graph,
+  repr = "C",
+  drop0 = FALSE,
+  transpose = FALSE
+) {
   idx <- graph$idx
   dist <- graph$dist
   n_nbrs <- ncol(idx)

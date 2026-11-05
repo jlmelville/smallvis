@@ -35,6 +35,14 @@ This function ignores any value of \code{Y_init} you set, and uses
 \code{Y_init = "rand"}.
 }
 \examples{
+set.seed(42)
+best <- smallvis_rep(
+  nrep = 2, X = iris, perplexity = 30, max_iter = 100,
+  ret_extra = TRUE, epoch_callback = FALSE, n_threads = 1,
+  verbose = FALSE
+)
+range(best$all_costs)
+
 \dontrun{
 # Return best result out of five random initializations
 tsne_iris_best <- smallvis_rep(

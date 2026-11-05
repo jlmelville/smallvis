@@ -6,12 +6,14 @@
 # \emph{Neurocomputing}, \emph{112}, 92-108.
 # kappa = 0 behaves like ASNE
 # kappa = 1 behaves like NeRV with lambda = 0. Yes that's confusing.
-jse <- function(perplexity,
-                kappa = 0.5,
-                inp_kernel = "gaussian",
-                eps = .Machine$double.eps,
-                n_threads = 0,
-                use_cpp = FALSE) {
+jse <- function(
+  perplexity,
+  kappa = 0.5,
+  inp_kernel = "gaussian",
+  eps = .Machine$double.eps,
+  n_threads = 0,
+  use_cpp = FALSE
+) {
   eps0 <- 1e-5
   kappa <- max(kappa, eps0)
   kappa <- min(kappa, 1 - eps0)
@@ -27,11 +29,7 @@ jse <- function(perplexity,
       use_cpp = use_cpp,
       n_threads = n_threads
     ),
-    init = function(cost,
-                    X,
-                    max_iter,
-                    verbose = FALSE,
-                    ret_extra = c()) {
+    init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       cost <- sne_init(
         cost,
         X,
@@ -59,7 +57,8 @@ jse <- function(perplexity,
       eps <- cost$eps
 
       cost$pcost <-
-        om_kappa_inv * (cost$plogp - rowSums(cost$P * logm(cost$Z, eps))) +
+        om_kappa_inv *
+        (cost$plogp - rowSums(cost$P * logm(cost$Z, eps))) +
         kappa_inv * cost$QlQZc
 
       cost
@@ -98,13 +97,15 @@ jse <- function(perplexity,
 }
 
 
-sjse <- function(perplexity,
-                 kappa = 0.5,
-                 inp_kernel = "gaussian",
-                 symmetrize = "symmetric",
-                 eps = .Machine$double.eps,
-                 n_threads = 0,
-                 use_cpp = FALSE) {
+sjse <- function(
+  perplexity,
+  kappa = 0.5,
+  inp_kernel = "gaussian",
+  symmetrize = "symmetric",
+  eps = .Machine$double.eps,
+  n_threads = 0,
+  use_cpp = FALSE
+) {
   eps0 <- 1e-5
   kappa <- max(kappa, eps0)
   kappa <- min(kappa, 1 - eps0)
@@ -128,7 +129,8 @@ sjse <- function(perplexity,
       eps <- cost$eps
 
       cost$pcost <-
-        om_kappa_inv * (cost$plogp - colSums(cost$P * logm(cost$Z, eps))) +
+        om_kappa_inv *
+        (cost$plogp - colSums(cost$P * logm(cost$Z, eps))) +
         kappa_inv * cost$QlQZc
 
       cost
@@ -167,11 +169,13 @@ sjse <- function(perplexity,
   )
 }
 
-rsrjse <- function(perplexity,
-                   kappa = 0.5,
-                   eps = .Machine$double.eps,
-                   n_threads = 0,
-                   use_cpp = FALSE) {
+rsrjse <- function(
+  perplexity,
+  kappa = 0.5,
+  eps = .Machine$double.eps,
+  n_threads = 0,
+  use_cpp = FALSE
+) {
   lreplace(
     jse(
       perplexity = perplexity,
@@ -179,11 +183,7 @@ rsrjse <- function(perplexity,
       use_cpp = use_cpp,
       n_threads = n_threads
     ),
-    init = function(cost,
-                    X,
-                    max_iter,
-                    verbose = FALSE,
-                    ret_extra = c()) {
+    init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       cost <- sne_init(
         cost,
         X,

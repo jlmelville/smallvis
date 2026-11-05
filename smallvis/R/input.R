@@ -14,7 +14,8 @@ scale_input <- function(X, scale, verbose = FALSE) {
   }
   scale <- match.arg(tolower(scale), c("none", "scale", "range", "absmax"))
 
-  switch(scale,
+  switch(
+    scale,
     range = {
       tsmessage("Range scaling X")
       X <- as.matrix(X)

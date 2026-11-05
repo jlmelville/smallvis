@@ -1,22 +1,20 @@
 # global-SNE
-gsne <- function(perplexity,
-                 lambda = 1,
-                 inp_kernel = "gaussian",
-                 symmetrize = "symmetric",
-                 eps = .Machine$double.eps,
-                 use_cpp = FALSE,
-                 n_threads = 0) {
+gsne <- function(
+  perplexity,
+  lambda = 1,
+  inp_kernel = "gaussian",
+  symmetrize = "symmetric",
+  eps = .Machine$double.eps,
+  use_cpp = FALSE,
+  n_threads = 0
+) {
   lreplace(
     tsne(
       perplexity = perplexity,
       use_cpp = use_cpp,
       n_threads = n_threads
     ),
-    init = function(cost,
-                    X,
-                    max_iter,
-                    verbose = FALSE,
-                    ret_extra = c()) {
+    init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       cost <- sne_init(
         cost,
@@ -63,7 +61,8 @@ gsne <- function(perplexity,
 
       eps <- cost$eps
       kl <- cost$plogp - colSums(cost$P * logm(cost$W / cost$Z, eps))
-      klhat <- cost$phlogph - colSums(cost$Phat * logm(cost$What / cost$Zhat, eps))
+      klhat <- cost$phlogph -
+        colSums(cost$Phat * logm(cost$What / cost$Zhat, eps))
       cost$pcost <- kl + lambda * klhat
       cost
     },

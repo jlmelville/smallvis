@@ -5,3 +5,8 @@
 *.Rproj
 inst/doc
 **/*DONTCHECKMEIN*
+Rplots.pdf
+/*.Rcheck/
+/*.tar.gz
+/smallvis/check/
+/smallvis/docs/

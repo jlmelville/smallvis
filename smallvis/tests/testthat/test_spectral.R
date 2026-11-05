@@ -1,6 +1,3 @@
-library(smallvis)
-context("Spectral")
-
 test_that("normalized laplacian", {
   # These numbers come from running UMAP Python code:
   # spectral_layout(pairwise_distances(iris.data[0:10, :]))
@@ -11,6 +8,7 @@ test_that("normalized laplacian", {
   #   vector that we can't supply with either RSpectra or eigen.
   # 3. The eigenvectors are only identical up to a sign, so we take the absolute
   #   values.
+  # fmt: skip
   expected_norm_lap <-
   c2y(0.7477, -0.1292, -0.03001, 0.02127, -0.563, -0.01149, 0.1402,
     -0.2725, -0.01241, 0.1084, -0.106, -0.5723, 0.2024, -0.3082,
@@ -24,6 +22,7 @@ test_that("normalized laplacian", {
 })
 
 test_that("laplacian eigenmap", {
+  # fmt: skip
   expected_lap_eig <-
     c2y(0.3964, -0.2585, -0.297, -0.3923, 0.3905, 0.3581, -0.1268,
         0.2687, -0.356, -0.1954, 0.2775, 0.3298, 0.1282, -0.09545, 0.1503,

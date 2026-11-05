@@ -1,14 +1,16 @@
 # ABSNE -------------------------------------------------------------------
 
 # alpha-beta divergence
-absne <- function(perplexity,
-                  inp_kernel = "gaussian",
-                  symmetrize = "symmetric",
-                  alpha = 1,
-                  lambda = 1,
-                  eps = .Machine$double.eps,
-                  n_threads = 0,
-                  use_cpp = FALSE) {
+absne <- function(
+  perplexity,
+  inp_kernel = "gaussian",
+  symmetrize = "symmetric",
+  alpha = 1,
+  lambda = 1,
+  eps = .Machine$double.eps,
+  n_threads = 0,
+  use_cpp = FALSE
+) {
   beta <- lambda - alpha
 
   eps0 <- 1e-5
@@ -69,11 +71,7 @@ absne <- function(perplexity,
       use_cpp = TRUE,
       n_threads = n_threads
     ),
-    init = function(cost,
-                    X,
-                    max_iter,
-                    verbose = FALSE,
-                    ret_extra = c()) {
+    init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       if (verbose) {
         tsmessage(
@@ -117,8 +115,13 @@ absne <- function(perplexity,
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
       Q <- cost$Q
-      cost$G <- k2g(Y, cost$inva4 * cost$Z * Q *
-        (cost$PaQb - cost$Ql + Q * (cost$Qls - cost$PaQbs)))
+      cost$G <- k2g(
+        Y,
+        cost$inva4 *
+          cost$Z *
+          Q *
+          (cost$PaQb - cost$Ql + Q * (cost$Qls - cost$PaQbs))
+      )
       cost
     },
     update = function(cost, Y) {
@@ -145,24 +148,22 @@ absne <- function(perplexity,
 }
 
 # alpha != 0, beta = 0 => lambda = alpha
-absneb0 <- function(perplexity,
-                    inp_kernel = "gaussian",
-                    symmetrize = "symmetric",
-                    alpha = 1,
-                    eps = .Machine$double.eps,
-                    n_threads = 0,
-                    use_cpp = FALSE) {
+absneb0 <- function(
+  perplexity,
+  inp_kernel = "gaussian",
+  symmetrize = "symmetric",
+  alpha = 1,
+  eps = .Machine$double.eps,
+  n_threads = 0,
+  use_cpp = FALSE
+) {
   lreplace(
     tsne(
       perplexity = perplexity,
       use_cpp = use_cpp,
       n_threads = n_threads
     ),
-    init = function(cost,
-                    X,
-                    max_iter,
-                    verbose = FALSE,
-                    ret_extra = c()) {
+    init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       if (verbose) {
         tsmessage("Using ABSNE with alpha = ", formatC(alpha), " beta = 0")
@@ -200,16 +201,23 @@ absneb0 <- function(perplexity,
     pfn = function(cost, Y) {
       cost <- cost_update(cost, Y)
       cost$pcost <- cost$inva2 *
-        (cost$PlPac - colSums(cost$Pa * logm(cost$Qa, cost$eps)) -
-          cost$Pac + cost$Qac)
+        (cost$PlPac -
+          colSums(cost$Pa * logm(cost$Qa, cost$eps)) -
+          cost$Pac +
+          cost$Qac)
       cost
     },
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
       Q <- cost$Q
 
-      cost$G <- k2g(Y, cost$invam4 * Q * cost$Z *
-        (cost$Pa - cost$Qa + Q * (cost$Qas - cost$Pas)))
+      cost$G <- k2g(
+        Y,
+        cost$invam4 *
+          Q *
+          cost$Z *
+          (cost$Pa - cost$Qa + Q * (cost$Qas - cost$Pas))
+      )
       cost
     },
     update = function(cost, Y) {
@@ -234,24 +242,22 @@ absneb0 <- function(perplexity,
 }
 
 # alpha = -beta != 0 => lambda = 0
-absneamb <- function(perplexity,
-                     inp_kernel = "gaussian",
-                     symmetrize = "symmetric",
-                     alpha = 1,
-                     eps = .Machine$double.eps,
-                     n_threads = 0,
-                     use_cpp = FALSE) {
+absneamb <- function(
+  perplexity,
+  inp_kernel = "gaussian",
+  symmetrize = "symmetric",
+  alpha = 1,
+  eps = .Machine$double.eps,
+  n_threads = 0,
+  use_cpp = FALSE
+) {
   lreplace(
     tsne(
       perplexity = perplexity,
       use_cpp = use_cpp,
       n_threads = n_threads
     ),
-    init = function(cost,
-                    X,
-                    max_iter,
-                    verbose = FALSE,
-                    ret_extra = c()) {
+    init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       if (verbose) {
         tsmessage(
@@ -294,15 +300,21 @@ absneamb <- function(perplexity,
     },
     pfn = function(cost, Y) {
       cost <- cost_update(cost, Y)
-      cost$pcost <- cost$inva2 * (cost$lQac - cost$lPac + cost$PadivQac - cost$N)
+      cost$pcost <- cost$inva2 *
+        (cost$lQac - cost$lPac + cost$PadivQac - cost$N)
       cost
     },
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
       Q <- cost$Q
 
-      cost$G <- k2g(Y, cost$invam4 * Q * cost$Z *
-        (cost$PadivQa - 1 + Q * (cost$N2 - cost$PadivQas)))
+      cost$G <- k2g(
+        Y,
+        cost$invam4 *
+          Q *
+          cost$Z *
+          (cost$PadivQa - 1 + Q * (cost$N2 - cost$PadivQas))
+      )
       cost
     },
     update = function(cost, Y) {
@@ -327,24 +339,22 @@ absneamb <- function(perplexity,
 }
 
 # alpha = 0, beta != 0 => lambda = beta
-absnea0 <- function(perplexity,
-                    inp_kernel = "gaussian",
-                    symmetrize = "symmetric",
-                    beta = 1,
-                    eps = .Machine$double.eps,
-                    n_threads = 0,
-                    use_cpp = FALSE) {
+absnea0 <- function(
+  perplexity,
+  inp_kernel = "gaussian",
+  symmetrize = "symmetric",
+  beta = 1,
+  eps = .Machine$double.eps,
+  n_threads = 0,
+  use_cpp = FALSE
+) {
   lreplace(
     tsne(
       perplexity = perplexity,
       use_cpp = use_cpp,
       n_threads = n_threads
     ),
-    init = function(cost,
-                    X,
-                    max_iter,
-                    verbose = FALSE,
-                    ret_extra = c()) {
+    init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       if (verbose) {
         tsmessage("Using ABSNE with alpha = 0, beta = ", formatC(beta))
@@ -380,7 +390,6 @@ absnea0 <- function(perplexity,
     },
     pfn = function(cost, Y) {
       cost <- cost_update(cost, Y)
-      Qb <- cost$Qb
       cost$pcost <- cost$invb2 *
         (cost$QblQbc - cost$QblPbc + cost$Pbc - cost$Qbc)
       cost
@@ -389,8 +398,13 @@ absnea0 <- function(perplexity,
       cost <- cost_update(cost, Y)
       Q <- cost$Q
 
-      cost$G <- k2g(Y, cost$invbm4 * Q * cost$Z *
-        (cost$QblPb - cost$QblQb + Q * (cost$QblQbs - cost$QblPbs)))
+      cost$G <- k2g(
+        Y,
+        cost$invbm4 *
+          Q *
+          cost$Z *
+          (cost$QblPb - cost$QblQb + Q * (cost$QblQbs - cost$QblPbs))
+      )
       cost
     },
     update = function(cost, Y) {
@@ -420,23 +434,21 @@ absnea0 <- function(perplexity,
 }
 
 # alpha = 0, beta = 0 => lambda = 0
-absne00 <- function(perplexity,
-                    inp_kernel = "gaussian",
-                    symmetrize = "symmetric",
-                    eps = .Machine$double.eps,
-                    n_threads = 0,
-                    use_cpp = FALSE) {
+absne00 <- function(
+  perplexity,
+  inp_kernel = "gaussian",
+  symmetrize = "symmetric",
+  eps = .Machine$double.eps,
+  n_threads = 0,
+  use_cpp = FALSE
+) {
   lreplace(
     tsne(
       perplexity = perplexity,
       use_cpp = use_cpp,
       n_threads = n_threads
     ),
-    init = function(cost,
-                    X,
-                    max_iter,
-                    verbose = FALSE,
-                    ret_extra = c()) {
+    init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       if (verbose) {
         tsmessage("Using ABSNE with alpha = 0, beta = 0")
@@ -476,8 +488,10 @@ absne00 <- function(perplexity,
       cost <- cost_update(cost, Y)
       Q <- cost$Q
 
-      cost$G <- k2g(Y, 4 * Q * cost$Z *
-        (cost$lP - cost$lQ + Q * (cost$lQs - cost$lPs)))
+      cost$G <- k2g(
+        Y,
+        4 * Q * cost$Z * (cost$lP - cost$lQ + Q * (cost$lQs - cost$lPs))
+      )
       cost
     },
     update = function(cost, Y) {
@@ -500,14 +514,16 @@ absne00 <- function(perplexity,
 }
 
 # alpha-beta divergence
-abssne <- function(perplexity,
-                   inp_kernel = "gaussian",
-                   symmetrize = "symmetric",
-                   alpha = 1,
-                   lambda = 1,
-                   eps = .Machine$double.eps,
-                   n_threads = 0,
-                   use_cpp = FALSE) {
+abssne <- function(
+  perplexity,
+  inp_kernel = "gaussian",
+  symmetrize = "symmetric",
+  alpha = 1,
+  lambda = 1,
+  eps = .Machine$double.eps,
+  n_threads = 0,
+  use_cpp = FALSE
+) {
   beta <- lambda - alpha
 
   eps0 <- 1e-5
@@ -527,11 +543,7 @@ abssne <- function(perplexity,
       use_cpp = use_cpp,
       n_threads = n_threads
     ),
-    init = function(cost,
-                    X,
-                    max_iter,
-                    verbose = FALSE,
-                    ret_extra = c()) {
+    init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       if (verbose) {
         tsmessage(
@@ -576,8 +588,11 @@ abssne <- function(perplexity,
     },
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
-      cost$G <- k2g(Y, cost$inva4 *
-        (cost$PaQb - cost$Ql + cost$Q * (cost$Qls - cost$PaQbs)))
+      cost$G <- k2g(
+        Y,
+        cost$inva4 *
+          (cost$PaQb - cost$Ql + cost$Q * (cost$Qls - cost$PaQbs))
+      )
       cost
     },
     update = function(cost, Y) {

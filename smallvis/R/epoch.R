@@ -16,14 +16,10 @@ do_epoch <- function(opt, cost, iter, Y, fn_val) {
 
 # Helper function for epoch callback, allowing user to supply callbacks with
 # multiple arities.
-do_callback <- function(cb,
-                        Y,
-                        iter,
-                        cost = NULL,
-                        cost_fn = NULL,
-                        opt = NULL) {
+do_callback <- function(cb, Y, iter, cost = NULL, cost_fn = NULL, opt = NULL) {
   nfs <- length(formals(cb))
-  switch(nfs,
+  switch(
+    nfs,
     "1" = cb(Y),
     "2" = cb(Y, iter),
     "3" = cb(Y, iter, cost),
@@ -35,10 +31,14 @@ do_callback <- function(cb,
 # Create a callback for visualization
 make_smallvis_cb <- function(df) {
   force(df)
-  palette <- NULL
+  # The callback reads this enclosing binding before creating its local palette.
+  palette <- NULL # nolint: object_usage_linter.
   function(Y, iter, cost = NULL) {
     if (is.null(palette)) {
-      palette <- vizier:::color_helper(df, color_scheme = grDevices::rainbow)$palette
+      palette <- vizier:::color_helper(
+        df,
+        color_scheme = grDevices::rainbow
+      )$palette
     }
     title <- paste0("iter: ", iter)
     if (!(is.null(cost) || is.na(cost))) {

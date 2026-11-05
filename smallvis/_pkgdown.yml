@@ -1,0 +1,28 @@
+url: https://jlmelville.github.io/smallvis/package/
+
+template:
+  bootstrap: 5
+
+development:
+  mode: unreleased
+
+navbar:
+  structure:
+    left: [reference, articles, research]
+    right: [search, github]
+  components:
+    research:
+      text: Research articles
+      href: https://jlmelville.github.io/smallvis/
+
+reference:
+  - title: Create embeddings
+    contents:
+      - smallvis
+      - smallvis_rep
+      - smallvis_perpstep
+
+articles:
+  - title: Using smallvis
+    contents:
+      - articles/usage

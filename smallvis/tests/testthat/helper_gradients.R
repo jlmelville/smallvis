@@ -1,4 +1,4 @@
-gradient_fd <- function(Y, cost_fn, diff = .Machine$double.eps ^ (1 / 3)) {
+gradient_fd <- function(Y, cost_fn, diff = .Machine$double.eps^(1 / 3)) {
   cost <- function(Y) {
     cost_fn <- cost_clear(cost_fn)
     cost_fn <- cost_fn$gr(cost_fn, Y)
@@ -30,28 +30,31 @@ gradient_fd <- function(Y, cost_fn, diff = .Machine$double.eps ^ (1 / 3)) {
   Gfd
 }
 
-expect_grad <- function(cost_fn,
-                        Y,
-                        label = "",
-                        info = label,
-                        diff = .Machine$double.eps ^ (1 / 3),
-                        tolerance = 1e-6,
-                        scale = 1) {
-
+expect_grad <- function(
+  cost_fn,
+  Y,
+  label = "",
+  info = label,
+  diff = .Machine$double.eps^(1 / 3),
+  tolerance = 1e-6
+) {
   cost_fn <- cost_clear(cost_fn)
   cost_fn <- cost_grad(cost_fn, Y)
   gan <- cost_fn$G
-  gfd <- gradient_fd(Y, cost_fn)
-  
+  gfd <- gradient_fd(Y, cost_fn, diff = diff)
+
   expect_false(any(is.nan(gan)))
   expect_false(any(is.nan(gfd)))
-  expect_equal(gan, gfd, tolerance = tolerance, scale = scale,
-               label = label, info = info,
-               expected.label = "finite difference gradient")
+  expect_equal_abs(gan, gfd, tolerance = tolerance, info = info)
 }
 
-test_grad <- function(method_name, tolerance = 1e-6, X = iris10, Y = iris10_Y,
-                      ...) {
+test_grad <- function(
+  method_name,
+  tolerance = 1e-6,
+  X = iris10,
+  Y = iris10_Y,
+  ...
+) {
   if (!exists(method_name)) {
     return(testthat::fail(paste0("No method called '", method_name, "'")))
   }
@@ -59,8 +62,12 @@ test_grad <- function(method_name, tolerance = 1e-6, X = iris10, Y = iris10_Y,
   args <- list(...)
   cost_fn <- do.call(get(method_name), args)
   cost_fn <- cost_init(cost_fn, X, verbose = FALSE)
-  expect_grad(cost_fn, Y, tolerance = tolerance,
-              label = paste0(method_name, " ", l2s(args)))
+  expect_grad(
+    cost_fn,
+    Y,
+    tolerance = tolerance,
+    label = paste0(method_name, " ", l2s(args))
+  )
 }
 
 l2s <- function(l) {

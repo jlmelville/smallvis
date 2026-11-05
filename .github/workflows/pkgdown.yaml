@@ -1,0 +1,81 @@
+name: pkgdown
+
+on:
+  push:
+    branches: [master, "codex/**"]
+    paths:
+      - smallvis/**
+      - README.md
+      - .github/workflows/pkgdown.yaml
+  pull_request:
+    paths:
+      - smallvis/**
+      - README.md
+      - .github/workflows/pkgdown.yaml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-site:
+    name: Build package reference
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: r-lib/actions/setup-pandoc@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
+      - uses: r-lib/actions/setup-r@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
+        with:
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
+        with:
+          working-directory: smallvis
+          extra-packages: local::.
+          needs: website
+      - name: Build package reference
+        working-directory: smallvis
+        run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)
+        shell: Rscript {0}
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: package-reference
+          path: smallvis/docs
+          include-hidden-files: true
+          if-no-files-found: error
+
+  deploy-site:
+    name: Publish package reference
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+    needs: build-site
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # zizmor: ignore[undocumented-permissions] publish docs/package on master
+      pages: write # zizmor: ignore[undocumented-permissions] rebuild the existing branch-based site
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: package-reference
+          path: package-reference
+      # Pages already publishes master:/docs. Limit generated output to docs/package.
+      - uses: JamesIves/github-pages-deploy-action@fa24774553152dd7873cd16ebd8d959b010c5445 # v4.9.0
+        with:
+          branch: master
+          folder: package-reference
+          target-folder: docs/package
+          clean: true
+      # Commits made with GITHUB_TOKEN need an explicit Pages build request.
+      - name: Rebuild GitHub Pages
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh api --method POST "repos/$GITHUB_REPOSITORY/pages/builds"

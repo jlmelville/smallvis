@@ -541,8 +541,8 @@
 #'   the \code{Rtsne} package. Set to 0.0 for exact t-SNE. Applies only for
 #'   \code{bh = "TRUE"}.
 #' @param bh if \code{TRUE} use the Barnes-Hut method to approximate
-#'   repulsive interactions (van der Maaten, 2014), which allows neighbor 
-#'   embedding methods to scale to larger datasets. For large datasets, you will 
+#'   repulsive interactions (van der Maaten, 2014), which allows neighbor
+#'   embedding methods to scale to larger datasets. For large datasets, you will
 #'   also want to set \code{inp_kernel} to use only k-nearest neighbors for the
 #'   input similarities, i.e. one of \code{"nngaussian"} or \code{"knn"}.
 #'   You may also want to set \code{nn = "approximate"}. Not all methods support
@@ -555,7 +555,7 @@
 #'   \item{\code{"nngaussian"}} Gaussian kernel using the target
 #'   \code{perplexity} but similarities beyond the nearest neighbors of each
 #'   observation are set to zero. The number of nearest neighbors is three
-#'   times the \code{perplexity}. For large datasets, this is faster than 
+#'   times the \code{perplexity}. For large datasets, this is faster than
 #'   \code{"gaussian"}, with only a negligible loss of accuracy.
 #'   \item \code{"knn"}} k-nearest neighbors kernel. Only the \code{perplexity}
 #'   nearest neighbors of each observation are considered and each are given
@@ -648,6 +648,12 @@
 #' }
 #'
 #' @examples
+#' embedding <- smallvis(
+#'   iris, Y_init = "spca", perplexity = 30, max_iter = 250,
+#'   epoch_callback = FALSE, n_threads = 1, verbose = FALSE
+#' )
+#' plot(embedding, col = as.integer(iris$Species), pch = 19)
+#'
 #' \dontrun{
 #'
 #' # tsne is the default. verbose = TRUE logs progress to console
@@ -671,7 +677,7 @@
 #' largevis_iris <- smallvis(iris, method = "largevis", epoch_callback = ecb,
 #'                           perplexity = 50, verbose = TRUE)
 #'
-#' # Use a list with the method paramter for more control over LargeVis
+#' # Use a list with the method parameter for more control over LargeVis
 #' largevis_iris <- smallvis(iris, method = list("largevis", gamma = 1),
 #'                           epoch_callback = ecb, perplexity = 50, verbose = TRUE)
 #'
@@ -729,7 +735,8 @@
 #'                        epoch_callback = function(Y) { plot(Y, col = iris$Species) },
 #'                        method = "gmmds", max_iter = 200, perplexity = 8, eta = 1e-4,
 #'                        Y_init = "spca")
-#' The above should give equivalent results to this non-distance matrix version
+#' # The above should give equivalent results to the following version,
+#' # which uses the original data rather than a distance matrix.
 #' iris_gmmds <- smallvis(iris, method = "gmmds", max_iter = 400, perplexity = 8, eta = 1e-4,
 #'                        Y_init = "spca")
 #'
@@ -743,15 +750,15 @@
 #'                           Y_init = "spca", exaggeration_factor = 4)
 #'
 #' # Early Exaggeration
-#' tsne_early_ex <- smallvis(iris, exaggeraton_factor = 4, stop_lying_iter = 100)
+#' tsne_early_ex <- smallvis(iris, exaggeration_factor = 4, stop_lying_iter = 100)
 #'
 #' # Also late exaggeration to improve cluster separation
-#' tsne_late_ex <- smallvis(iris, exaggeraton_factor = 4, stop_lying_iter = 100,
+#' tsne_late_ex <- smallvis(iris, exaggeration_factor = 4, stop_lying_iter = 100,
 #'                          late_exaggeration_factor = 1.5, start_late_lying_iter = 900)
-#'                          
+#'
 #' # Barnes-Hut, approximate nearest neighbors, multi-threading settings
 #' # recommended for large datasets
-#' bhtsne_iris <- smallvis(iris, bh = TRUE, n_threads = 4, perplexity = 30, 
+#' bhtsne_iris <- smallvis(iris, bh = TRUE, n_threads = 4, perplexity = 30,
 #'                         nn = "approximate", inp_kernel = "knn",
 #'                         exaggeration_factor = 12, stop_lying_iter = 250,
 #'                         Y_init = "spca")
@@ -848,7 +855,7 @@
 #' \emph{Journal of Machine Learning Research}, \emph{9} (2579-2605).
 #' \url{http://www.jmlr.org/papers/v9/vandermaaten08a.html}
 #'
-#' Van der Maaten, L. (2014). 
+#' Van der Maaten, L. (2014).
 #' Accelerating t-SNE using tree-based algorithms.
 #' \emph{Journal of Machine Learning Research}, \emph{15}(1) (3221-3245).
 #' \url{https://jmlr.org/papers/v15/vandermaaten14a.html}
@@ -884,45 +891,47 @@
 #' \url{https://doi.org/10.1101/331611}
 #'
 #' @export
-smallvis <- function(X,
-                     k = 2,
-                     scale = "absmax",
-                     Y_init = "rand",
-                     Y_init_sdev = NULL,
-                     perplexity = 30,
-                     max_iter = 1000,
-                     pca = FALSE,
-                     initial_dims = 50,
-                     method = "tsne",
-                     epoch_callback = TRUE,
-                     epoch = max(1, base::round(max_iter / 10)),
-                     min_cost = 0,
-                     tol = 1e-7,
-                     g2tol = NULL,
-                     momentum = 0.5,
-                     final_momentum = 0.8,
-                     mom_switch_iter = stop_lying_iter + 150,
-                     eta = 500,
-                     min_gain = 0.01,
-                     opt = list("dbd"),
-                     exaggeration_factor = 1,
-                     stop_lying_iter = max(1, floor(max_iter / 10)),
-                     late_exaggeration_factor = 1,
-                     start_late_lying_iter = max_iter - max(1, floor(max_iter / 10)),
-                     iter0_cost = FALSE,
-                     ee_mon_epoch = NULL,
-                     ee_mon_wait = 15,
-                     ee_mon_buffer = 2,
-                     tol_wait = 15,
-                     ret_extra = FALSE,
-                     n_threads = 0,
-                     use_cpp = FALSE,
-                     bh = FALSE,
-                     theta = 1.0,
-                     eps = .Machine$double.eps,
-                     inp_kernel = NULL,
-                     nn = NULL,
-                     verbose = TRUE) {
+smallvis <- function(
+  X,
+  k = 2,
+  scale = "absmax",
+  Y_init = "rand",
+  Y_init_sdev = NULL,
+  perplexity = 30,
+  max_iter = 1000,
+  pca = FALSE,
+  initial_dims = 50,
+  method = "tsne",
+  epoch_callback = TRUE,
+  epoch = max(1, base::round(max_iter / 10)),
+  min_cost = 0,
+  tol = 1e-7,
+  g2tol = NULL,
+  momentum = 0.5,
+  final_momentum = 0.8,
+  mom_switch_iter = stop_lying_iter + 150,
+  eta = 500,
+  min_gain = 0.01,
+  opt = list("dbd"),
+  exaggeration_factor = 1,
+  stop_lying_iter = max(1, floor(max_iter / 10)),
+  late_exaggeration_factor = 1,
+  start_late_lying_iter = max_iter - max(1, floor(max_iter / 10)),
+  iter0_cost = FALSE,
+  ee_mon_epoch = NULL,
+  ee_mon_wait = 15,
+  ee_mon_buffer = 2,
+  tol_wait = 15,
+  ret_extra = FALSE,
+  n_threads = 0,
+  use_cpp = FALSE,
+  bh = FALSE,
+  theta = 1.0,
+  eps = .Machine$double.eps,
+  inp_kernel = NULL,
+  nn = NULL,
+  verbose = TRUE
+) {
   if (is.logical(epoch_callback)) {
     if (epoch_callback) {
       epoch_callback <- make_smallvis_cb(X)
@@ -945,7 +954,7 @@ smallvis <- function(X,
     nn = nn,
     bh = bh
   )
-  
+
   if (exaggeration_factor != 1) {
     if (stop_lying_iter < 1) {
       stop("stop_lying_iter must be >= 1")
@@ -1039,11 +1048,14 @@ smallvis <- function(X,
   }
   opt <- opt_create(opt_list, verbose = verbose)
 
-  if (nnat(opt$smallvis_uses_function) &&
+  if (
+    nnat(opt$smallvis_uses_function) &&
       !is.null(cost_fn$exaggerate) &&
-      (exaggeration_factor != 1 || late_exaggeration_factor != 1)) {
+      (exaggeration_factor != 1 || late_exaggeration_factor != 1)
+  ) {
     stop(
-      "Optimizer '", opt$name,
+      "Optimizer '",
+      opt$name,
       "' cannot be used with early or late exaggeration because smallvis ",
       "does not provide a matching cost function for exaggerated gradients. ",
       "Set exaggeration_factor and late_exaggeration_factor to 1, or use a ",
@@ -1077,7 +1089,8 @@ smallvis <- function(X,
         if (non_spectral_init == "spca") {
           non_spectral_init <- "pca"
         }
-        Y <- init_out(non_spectral_init,
+        Y <- init_out(
+          non_spectral_init,
           X,
           n,
           k,
@@ -1119,8 +1132,11 @@ smallvis <- function(X,
         }
       }
     }
-    if (!is.null(Y_init_sdev) ||
-      Y_init == "spca" || Y_init == "rand") {
+    if (
+      !is.null(Y_init_sdev) ||
+        Y_init == "spca" ||
+        Y_init == "rand"
+    ) {
       if (is.null(Y_init_sdev)) {
         Y_init_sdev <- 1e-4
       }
@@ -1164,8 +1180,12 @@ smallvis <- function(X,
         start_time = start_time,
         optionals = ret_optionals,
         pca = ifelse(pca && !whiten, initial_dims, 0),
-        whiten = ifelse(pca &&
-          whiten, initial_dims, 0),
+        whiten = ifelse(
+          pca &&
+            whiten,
+          initial_dims,
+          0
+        ),
         use_cpp = use_cpp,
         n_threads = n_threads
       )
@@ -1219,8 +1239,9 @@ smallvis <- function(X,
     cost_fn <- opt_res$cost_fn
     Y <- opt_res$Y
 
-    if (!is.null(cost_fn$P) && iter == stop_lying_iter &&
-      exaggeration_factor != 1) {
+    if (
+      !is.null(cost_fn$P) && iter == stop_lying_iter && exaggeration_factor != 1
+    ) {
       tsmessage("Switching off exaggeration at iter ", iter)
       cost_fn <- stop_exaggerating(cost_fn, exaggeration_factor)
       opt_stage_idx <- opt_stage_idx + 1
@@ -1228,8 +1249,11 @@ smallvis <- function(X,
       tol <- opt_tol
     }
 
-    if (!is.null(cost_fn$P) && iter == start_late_lying_iter &&
-      late_exaggeration_factor != 1) {
+    if (
+      !is.null(cost_fn$P) &&
+        iter == start_late_lying_iter &&
+        late_exaggeration_factor != 1
+    ) {
       tsmessage(
         "Starting late exaggeration = ",
         formatC(late_exaggeration_factor),
@@ -1283,7 +1307,8 @@ smallvis <- function(X,
         }
 
         if (!is.null(opt$counts)) {
-          message(" nf = ",
+          message(
+            " nf = ",
             opt$counts$fn,
             " ng = ",
             opt$counts$gr,
@@ -1325,11 +1350,16 @@ smallvis <- function(X,
       if (!is.null(ee_mon_epoch)) {
         cdiff <- old_cost - cost
         cdiffrc <- cdiff / old_cost
-        if (length(cdiffrc) > 0 &&
-          opt_stages[opt_stage_idx] == "early") {
-          if (iter > ee_mon_wait &&
-            length(cdiffrc) > 0 && length(old_cdiffrc) > 0 &&
-            cdiffrc < old_cdiffrc) {
+        if (
+          length(cdiffrc) > 0 &&
+            opt_stages[opt_stage_idx] == "early"
+        ) {
+          if (
+            iter > ee_mon_wait &&
+              length(cdiffrc) > 0 &&
+              length(old_cdiffrc) > 0 &&
+              cdiffrc < old_cdiffrc
+          ) {
             if (ee_mon_buffer < 1) {
               stop_early <- TRUE
               tsmessage("Stopping early: EE relative change reached maximum")
@@ -1345,10 +1375,14 @@ smallvis <- function(X,
         tsmessage("Stopping early: cost fell below min_cost")
       }
 
-      if (!nnat(opt$is_terminated) && !is.null(tolval) &&
-        tolval < tol && cost <= old_cost &&
-        (iter > stop_lying_iter + tol_wait ||
-          opt_stages[opt_stage_idx] != "opt")) {
+      if (
+        !nnat(opt$is_terminated) &&
+          !is.null(tolval) &&
+          tolval < tol &&
+          cost <= old_cost &&
+          (iter > stop_lying_iter + tol_wait ||
+            opt_stages[opt_stage_idx] != "opt")
+      ) {
         stop_early <- TRUE
         tsmessage(
           "Stopping early: relative tolerance (",
@@ -1361,10 +1395,13 @@ smallvis <- function(X,
       # (Use this for certain settings with e.g. LargeVis where numerical issues
       # can cause the cost function to increase almost negligibly)
       g2tolval <- (norm2(opt_res$G))
-      if (!nnat(opt$is_terminated) &&
-        !is.null(g2tol) && g2tolval < g2tol &&
-        (iter > stop_lying_iter + tol_wait ||
-          opt_stages[opt_stage_idx] != "opt")) {
+      if (
+        !nnat(opt$is_terminated) &&
+          !is.null(g2tol) &&
+          g2tolval < g2tol &&
+          (iter > stop_lying_iter + tol_wait ||
+            opt_stages[opt_stage_idx] != "opt")
+      ) {
         stop_early <- TRUE
         tsmessage(
           "Stopping early: ||G||2 tolerance (",
@@ -1394,7 +1431,8 @@ smallvis <- function(X,
         # break earlier
         next_opt_stage <- opt_stages[opt_stage_idx + 1]
 
-        switch(next_opt_stage,
+        switch(
+          next_opt_stage,
           opt = tsmessage("Proceeding to main optimization stage"),
           late = {
             n_late_exagg_iters <- max_iter - start_late_lying_iter
@@ -1457,15 +1495,17 @@ smallvis <- function(X,
   res
 }
 
-create_cost <- function(method,
-                        perplexity,
-                        eps,
-                        n_threads,
-                        use_cpp,
-                        theta,
-                        inp_kernel,
-                        nn,
-                        bh) {
+create_cost <- function(
+  method,
+  perplexity,
+  eps,
+  n_threads,
+  use_cpp,
+  theta,
+  inp_kernel,
+  nn,
+  bh
+) {
   method_names <- c(
     "tsne",
     "largevis",
@@ -1518,12 +1558,13 @@ create_cost <- function(method,
   )
   if (is.character(method)) {
     method <- match.arg(tolower(method), method_names)
-    
+
     if (method == "tsne" && bh) {
       method <- "bhtsne"
     }
-    
-    cost_fn <- switch(method,
+
+    invisible(switch(
+      method,
       tsne = tsne(
         perplexity = perplexity,
         n_threads = n_threads,
@@ -1817,7 +1858,7 @@ create_cost <- function(method,
         use_cpp = use_cpp
       ),
       stop("BUG: someone forgot to implement option: '", method, "'")
-    )
+    ))
   } else {
     if (is.list(method)) {
       methodlist <- method
@@ -1843,7 +1884,7 @@ create_cost <- function(method,
     if ("k" %in% param_names) {
       methodlist$k <- perplexity
     }
-    cost_fn <- do.call(fn, methodlist)
+    invisible(do.call(fn, methodlist))
   }
 }
 
@@ -1856,29 +1897,31 @@ create_cost <- function(method,
 # If ret_extra is TRUE and iter > 0, then all the NULL-default parameters are
 # expected to be present. If iter == 0 then the return list will contain only
 # scaling and initialization information.
-ret_value <- function(Y,
-                      ret_extra,
-                      method,
-                      X,
-                      scale,
-                      Y_init,
-                      iter,
-                      start_time = NULL,
-                      cost_fn = NULL,
-                      G = NULL,
-                      perplexity = NULL,
-                      pca = 0,
-                      whiten = 0,
-                      itercosts = NULL,
-                      stop_lying_iter = NULL,
-                      start_late_lying_iter = NULL,
-                      opt_input = NULL,
-                      opt_res = NULL,
-                      exaggeration_factor = 1,
-                      late_exaggeration_factor = 1,
-                      optionals = c(),
-                      use_cpp = FALSE,
-                      n_threads = 1) {
+ret_value <- function(
+  Y,
+  ret_extra,
+  method,
+  X,
+  scale,
+  Y_init,
+  iter,
+  start_time = NULL,
+  cost_fn = NULL,
+  G = NULL,
+  perplexity = NULL,
+  pca = 0,
+  whiten = 0,
+  itercosts = NULL,
+  stop_lying_iter = NULL,
+  start_late_lying_iter = NULL,
+  opt_input = NULL,
+  opt_res = NULL,
+  exaggeration_factor = 1,
+  late_exaggeration_factor = 1,
+  optionals = c(),
+  use_cpp = FALSE,
+  n_threads = 1
+) {
   attr(Y, "dimnames") <- NULL
   if (ret_extra) {
     end_time <- Sys.time()
@@ -1925,7 +1968,6 @@ ret_value <- function(Y,
       }
     }
 
-
     # Don't report exaggeration settings if they didn't do anything
     if (exaggeration_factor == 1 || late_exaggeration_factor == 1) {
       if (exaggeration_factor == 1) {
@@ -1962,7 +2004,6 @@ ret_value <- function(Y,
       res$perplexity <- cost_fn$idp
     }
 
-
     optionals <- tolower(unique(optionals))
     for (o in optionals) {
       exported <- NULL
@@ -1976,9 +2017,8 @@ ret_value <- function(Y,
         } else {
           res[[o]] <- exported
         }
-      }
-      # For DX and DY, we can calculate if not done so already
-      else if (o == "dx") {
+      } else if (o == "dx") {
+        # For DX and DY, we can calculate if not done so already
         if (methods::is(X, "dist")) {
           res$DX <- X
         } else {

@@ -21,6 +21,14 @@
 #' each result will have an extra entry \code{best_rep}, giving the index of the
 #' result with the lowest cost.
 #' @examples
+#' set.seed(42)
+#' best <- smallvis_rep(
+#'   nrep = 2, X = iris, perplexity = 30, max_iter = 100,
+#'   ret_extra = TRUE, epoch_callback = FALSE, n_threads = 1,
+#'   verbose = FALSE
+#' )
+#' range(best$all_costs)
+#'
 #' \dontrun{
 #' # Return best result out of five random initializations
 #' tsne_iris_best <- smallvis_rep(
@@ -42,9 +50,7 @@
 #' best_iris <- tsne_iris_rep[[tsne_iris_rep[[1]]$best_rep]]
 #' }
 #' @export
-smallvis_rep <- function(nrep = 10,
-                         keep_all = FALSE,
-                         ...) {
+smallvis_rep <- function(nrep = 10, keep_all = FALSE, ...) {
   if (nrep < 1) {
     stop("nrep must be 1 or greater")
   }
@@ -95,9 +101,8 @@ smallvis_rep <- function(nrep = 10,
         ret[[i]]$all_costs <- all_costs
         ret[[i]]$best_rep <- best_rep
       }
-    }
-    # otherwise just store the Y-coordinates of each result
-    else {
+    } else {
+      # otherwise just store the Y-coordinates of each result
       for (i in 1:nrep) {
         ret[[i]] <- ret[[i]]$Y
       }
@@ -166,11 +171,18 @@ should_ret_extra <- function(ret_extra) {
 #' @return The result of the final run of \code{\link{smallvis}} at the target
 #'   perplexity.
 #' @examples
+#' embedding <- smallvis_perpstep(
+#'   X = iris, perplexity = 30, Y_init = "spca",
+#'   step_iter = 25, max_iter = 100, epoch_callback = FALSE,
+#'   n_threads = 1, verbose = FALSE
+#' )
+#' dim(embedding)
+#'
 #' \dontrun{
 #' # t-SNE on the iris with L-BFGS optimization
 #' # The 1000 max_iter is split between 250 iterations at perplexity = 64
 #' # and then 750 iterations at perplexity = 40.
-#' iris_lbfgs_pstep <- smallvis_perpscale(
+#' iris_lbfgs_pstep <- smallvis_perpstep(
 #'   step_iter = 250, X = iris, scale = FALSE, verbose = TRUE, Y_init = "spca",
 #'   ret_extra = c("DX", "DY"), perplexity = 40, max_iter = 1000, opt = list("l-bfgs")
 #' )

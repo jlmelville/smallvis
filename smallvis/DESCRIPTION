@@ -5,7 +5,7 @@ Version: 0.0.2.9001
 Authors@R: person("James", "Melville", email = "jlmelville@gmail.com",
     role = c("aut", "cre"))
 Description: Neighborhood embedding methods for small scale visualization, such
-    as t-distributed Stochastic Neighbor Embedding and the largeVis cost 
+    as t-distributed Stochastic Neighbor Embedding and the largeVis cost
     function.
 License: GPL (>= 2)
 Imports:
@@ -19,13 +19,14 @@ Imports:
     vizier
 Suggests:
     RSpectra,
-    testthat
+    testthat (>= 3.0.0)
 Remotes: jlmelville/vizier
 Encoding: UTF-8
-LazyData: true
-Date: 2017-11-28
-URL: http://github.com/jlmelville/smallvis
-BugReports: http://github.com/jlmelville/smallvis/issues
-LinkingTo: 
+URL: https://jlmelville.github.io/smallvis/package/,
+    https://github.com/jlmelville/smallvis
+BugReports: https://github.com/jlmelville/smallvis/issues
+LinkingTo:
     Rcpp
 Config/roxygen2/version: 8.1.0
+Config/testthat/edition: 3
+Config/Needs/website: pkgdown, knitr, rmarkdown

@@ -1,13 +1,9 @@
 # Output Initialization ---------------------------------------------------
 
 # Initialization of the output coordinates
-init_out <- function(Y_init,
-                     X,
-                     n,
-                     ndim,
-                     pca_preprocessed,
-                     verbose = FALSE) {
-  switch(Y_init,
+init_out <- function(Y_init, X, n, ndim, pca_preprocessed, verbose = FALSE) {
+  switch(
+    Y_init,
     pca = {
       tsmessage("Initializing from PCA scores")
       pca_init(X, ndim, pca_preprocessed, verbose)
@@ -47,15 +43,15 @@ pca_init <- function(X, ndim, pca_preprocessed, verbose = FALSE) {
 # top eigenvectors to be extracted. Otherwise, use the slower eigen routine.
 # A must be symmetric and positive semi definite, but not necessarily
 # normalized in any specific way.
-laplacian_eigenmap <- function(A,
-                               ndim = 2,
-                               use_RSpectra = TRUE) {
+laplacian_eigenmap <- function(A, ndim = 2, use_RSpectra = TRUE) {
   # Equivalent to: D <- diag(colSums(A)); M <- solve(D) %*% A
   # This effectively row-normalizes A: colSums is normally faster than rowSums
   # and because A is symmetric, they're equivalent
   M <- A / Matrix::colSums(A)
-  if (use_RSpectra &&
-    requireNamespace("RSpectra", quietly = TRUE, warn.conflicts = FALSE)) {
+  if (
+    use_RSpectra &&
+      requireNamespace("RSpectra", quietly = TRUE, warn.conflicts = FALSE)
+  ) {
     tsmessage("Using RSpectra for eigenvectors")
     Re(RSpectra::eigs(M, k = ndim + 1)$vectors[, 2:(ndim + 1)])
   } else {
@@ -65,9 +61,7 @@ laplacian_eigenmap <- function(A,
 }
 
 # Use a normalized Laplacian. The UMAP approach, taken from version 0.2.1.
-normalized_spectral_init <- function(A,
-                                     ndim = 2,
-                                     use_RSpectra = TRUE) {
+normalized_spectral_init <- function(A, ndim = 2, use_RSpectra = TRUE) {
   n <- nrow(A)
   # Normalized Laplacian: clear and close to UMAP code, but very slow in R
   # I <- diag(1, nrow = n, ncol = n)
@@ -79,8 +73,10 @@ normalized_spectral_init <- function(A,
   L <- -Matrix::t(A / Dsq) / Dsq
   Matrix::diag(L) <- 1 + Matrix::diag(L)
 
-  if (use_RSpectra &&
-    requireNamespace("RSpectra", quietly = TRUE, warn.conflicts = FALSE)) {
+  if (
+    use_RSpectra &&
+      requireNamespace("RSpectra", quietly = TRUE, warn.conflicts = FALSE)
+  ) {
     tsmessage("Using RSpectra for eigenvectors")
     k <- ndim + 1
     ncv <- max(2 * k + 1, floor(sqrt(n)))
@@ -89,11 +85,7 @@ normalized_spectral_init <- function(A,
       maxitr = 5 * n,
       tol = 1e-4
     )
-    res <- RSpectra::eigs(L,
-      k = k,
-      which = "SM",
-      opt = opt
-    )
+    res <- RSpectra::eigs(L, k = k, which = "SM", opt = opt)
     vec_indices <- rev(order(res$values, decreasing = TRUE)[1:ndim])
     res <- Re(res$vectors[, vec_indices])
   } else {
@@ -117,20 +109,17 @@ shrink_coords <- function(X, sdev = 1e-4) {
 
 # PCA ---------------------------------------------------------------------
 
-
 # Calculates a matrix containing the first ncol columns of the PCA scores.
 # Returns the score matrix unless ret_extra is TRUE, in which case a list
 # is returned also containing the eigenvalues
-pca_scores <- function(X,
-                       ncol = min(dim(X)),
-                       verbose = FALSE,
-                       ret_extra = FALSE) {
+pca_scores <- function(
+  X,
+  ncol = min(dim(X)),
+  verbose = FALSE,
+  ret_extra = FALSE
+) {
   if (methods::is(X, "dist")) {
-    res_mds <- stats::cmdscale(X,
-      x.ret = TRUE,
-      eig = TRUE,
-      k = ncol
-    )
+    res_mds <- stats::cmdscale(X, x.ret = TRUE, eig = TRUE, k = ncol)
 
     if (ret_extra || verbose) {
       lambda <- res_mds$eig
@@ -194,14 +183,7 @@ pca_scores <- function(X,
 # Whiten the data by PCA. This both reduces the dimensionality, but also
 # scales the scores by the inverse square root of the equivalent eigenvalue
 # so that the variance of each column is 1.
-pca_whiten <- function(X,
-                       ncol = min(dim(X)),
-                       eps = 1e-5,
-                       verbose = FALSE) {
-  pca <- pca_scores(X,
-    ncol = ncol,
-    verbose = verbose,
-    ret_extra = TRUE
-  )
+pca_whiten <- function(X, ncol = min(dim(X)), eps = 1e-5, verbose = FALSE) {
+  pca <- pca_scores(X, ncol = ncol, verbose = verbose, ret_extra = TRUE)
   sweep(pca$scores, 2, sqrt(pca$lambda + eps), "/")
 }

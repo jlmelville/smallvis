@@ -1,13 +1,15 @@
 # Distance Preserving Methods ---------------------------------------------
 
-mmds_init <- function(cost,
-                      X,
-                      max_iter,
-                      eps = .Machine$double.eps,
-                      verbose = FALSE,
-                      ret_extra = c(),
-                      use_cpp = FALSE,
-                      n_threads = 1) {
+mmds_init <- function(
+  cost,
+  X,
+  max_iter,
+  eps = .Machine$double.eps,
+  verbose = FALSE,
+  ret_extra = c(),
+  use_cpp = FALSE,
+  n_threads = 1
+) {
   tsmessage("Calculating pairwise distances")
   if (methods::is(X, "dist")) {
     cost$R <- as.matrix(X)
@@ -19,15 +21,9 @@ mmds_init <- function(cost,
 }
 
 # Metric MDS, minimizing strain.
-mmds <- function(eps = .Machine$double.eps,
-                 use_cpp = FALSE,
-                 n_threads = 1) {
+mmds <- function(eps = .Machine$double.eps, use_cpp = FALSE, n_threads = 1) {
   list(
-    init = function(cost,
-                    X,
-                    max_iter,
-                    verbose = FALSE,
-                    ret_extra = c()) {
+    init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       cost <- mmds_init(
         cost,
         X,
@@ -48,7 +44,13 @@ mmds <- function(eps = .Machine$double.eps,
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
       if (use_cpp) {
-        cost$G <- mmds_grad_cpp(cost$R, cost$D, Y, eps = eps, n_threads = n_threads)
+        cost$G <- mmds_grad_cpp(
+          cost$R,
+          cost$D,
+          Y,
+          eps = eps,
+          n_threads = n_threads
+        )
       } else {
         cost$G <- k2g(Y, -4 * (cost$R - cost$D) / (cost$D + cost$eps))
       }
@@ -61,7 +63,8 @@ mmds <- function(eps = .Machine$double.eps,
     sentinel = "D",
     export = function(cost, val) {
       res <- NULL
-      switch(val,
+      switch(
+        val,
         dx = {
           res <- cost$R
         },
@@ -74,17 +77,17 @@ mmds <- function(eps = .Machine$double.eps,
   )
 }
 
-smmds <- function(eps = .Machine$double.eps,
-                  use_cpp = FALSE,
-                  n_threads = 1) {
+smmds <- function(eps = .Machine$double.eps, use_cpp = FALSE, n_threads = 1) {
   lreplace(
     mmds(use_cpp = use_cpp, n_threads = n_threads),
-    init = function(cost,
-                    X,
-                    max_iter,
-                    eps = .Machine$double.eps,
-                    verbose = FALSE,
-                    ret_extra = c()) {
+    init = function(
+      cost,
+      X,
+      max_iter,
+      eps = .Machine$double.eps,
+      verbose = FALSE,
+      ret_extra = c()
+    ) {
       cost <- mmds_init(
         cost,
         X,
@@ -111,7 +114,8 @@ smmds <- function(eps = .Machine$double.eps,
     },
     export = function(cost, val) {
       res <- NULL
-      switch(val,
+      switch(
+        val,
         dx = {
           res <- cost$R2
           res[res < 0] <- 0
@@ -133,20 +137,14 @@ smmds <- function(eps = .Machine$double.eps,
   )
 }
 
-sammon <- function(eps = .Machine$double.eps,
-                   use_cpp = FALSE,
-                   n_threads = 1) {
+sammon <- function(eps = .Machine$double.eps, use_cpp = FALSE, n_threads = 1) {
   lreplace(
     mmds(
       eps = eps,
       use_cpp = use_cpp,
       n_threads = n_threads
     ),
-    init = function(cost,
-                    X,
-                    max_iter,
-                    verbose = FALSE,
-                    ret_extra = c()) {
+    init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       cost <- mmds_init(
         cost,
         X,
@@ -162,30 +160,33 @@ sammon <- function(eps = .Machine$double.eps,
     },
     pfn = function(cost, Y) {
       cost <- cost_update(cost, Y)
-      cost$pcost <- colSums((cost$R - cost$D)^2 / (cost$R + cost$eps)) * cost$rsum_inv
+      cost$pcost <- colSums((cost$R - cost$D)^2 / (cost$R + cost$eps)) *
+        cost$rsum_inv
       cost
     },
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
-      cost$G <- k2g(Y, -4 * cost$rsum_inv * (cost$R - cost$D) / (cost$R * cost$D + cost$eps))
+      cost$G <- k2g(
+        Y,
+        -4 * cost$rsum_inv * (cost$R - cost$D) / (cost$R * cost$D + cost$eps)
+      )
       cost
     }
   )
 }
 
 
-gmmds <- function(k,
-                  eps = .Machine$double.eps,
-                  use_cpp = FALSE,
-                  n_threads = 0) {
+gmmds <- function(
+  k,
+  eps = .Machine$double.eps,
+  use_cpp = FALSE,
+  n_threads = 0
+) {
   lreplace(
     mmds(use_cpp = use_cpp, n_threads = n_threads),
-    init = function(cost,
-                    X,
-                    max_iter,
-                    verbose = FALSE,
-                    ret_extra = c()) {
-      cost$R <- geodesic(X,
+    init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
+      cost$R <- geodesic(
+        X,
         k,
         n_threads = n_threads,
         use_cpp = use_cpp,
@@ -196,7 +197,8 @@ gmmds <- function(k,
     },
     export = function(cost, val) {
       res <- NULL
-      switch(val,
+      switch(
+        val,
         geo = {
           res <- cost$R
         },
@@ -212,17 +214,15 @@ gmmds <- function(k,
 # Define neighborhoods using a radius based on a fraction (f) of all input
 # distances (sorted by increasing length), don't correct non-neighborhood
 # distances unless they smaller than the input distance
-ballmmds <- function(f = 0.1,
-                     eps = .Machine$double.eps,
-                     use_cpp = FALSE,
-                     n_threads = 1) {
+ballmmds <- function(
+  f = 0.1,
+  eps = .Machine$double.eps,
+  use_cpp = FALSE,
+  n_threads = 1
+) {
   lreplace(
     mmds(use_cpp = use_cpp, n_threads = n_threads),
-    init = function(cost,
-                    X,
-                    max_iter,
-                    verbose = FALSE,
-                    ret_extra = c()) {
+    init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       cost <- mmds_init(
         cost = cost,
         X = X,
@@ -269,7 +269,8 @@ ballmmds <- function(f = 0.1,
     },
     export = function(cost, val) {
       res <- NULL
-      switch(val,
+      switch(
+        val,
         geo = {
           res <- cost$R
         },
@@ -288,17 +289,15 @@ ballmmds <- function(f = 0.1,
 
 # Create the symmetrized knn graph, don't correct non-neighborhood distances
 # unless they are smaller than the input distance
-knnmmds <- function(k,
-                    eps = .Machine$double.eps,
-                    use_cpp = FALSE,
-                    n_threads = 0) {
+knnmmds <- function(
+  k,
+  eps = .Machine$double.eps,
+  use_cpp = FALSE,
+  n_threads = 0
+) {
   lreplace(
     mmds(use_cpp = use_cpp, n_threads = n_threads),
-    init = function(cost,
-                    X,
-                    max_iter,
-                    verbose = FALSE,
-                    ret_extra = c()) {
+    init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       cost <- mmds_init(
         cost = cost,
         X = X,
@@ -349,7 +348,8 @@ knnmmds <- function(k,
     },
     export = function(cost, val) {
       res <- NULL
-      switch(val,
+      switch(
+        val,
         geo = {
           res <- cost$R
         },
@@ -368,12 +368,14 @@ knnmmds <- function(k,
 
 # Given data X and k nearest neighbors, return a geodisic distance matrix
 # Disconnections are treated by using the Euclidean distance.
-geodesic <- function(X,
-                     k,
-                     fill = TRUE,
-                     use_cpp = FALSE,
-                     n_threads = 0,
-                     verbose = FALSE) {
+geodesic <- function(
+  X,
+  k,
+  fill = TRUE,
+  use_cpp = FALSE,
+  n_threads = 0,
+  verbose = FALSE
+) {
   tsmessage("Calculating geodesic distances with k = ", k)
 
   R <- knn_dist(X, k, n_threads = n_threads, verbose = verbose)

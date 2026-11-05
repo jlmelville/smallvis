@@ -210,8 +210,8 @@ calculations. Default is \code{FALSE}. This won't speed up all steps and
 you will want to use this in conjunction with \code{n_threads}.}
 
 \item{bh}{if \code{TRUE} use the Barnes-Hut method to approximate
-repulsive interactions (van der Maaten, 2014), which allows neighbor 
-embedding methods to scale to larger datasets. For large datasets, you will 
+repulsive interactions (van der Maaten, 2014), which allows neighbor
+embedding methods to scale to larger datasets. For large datasets, you will
 also want to set \code{inp_kernel} to use only k-nearest neighbors for the
 input similarities, i.e. one of \code{"nngaussian"} or \code{"knn"}.
 You may also want to set \code{nn = "approximate"}. Not all methods support
@@ -235,7 +235,7 @@ similarities are calculated. Possible values are:
 \item{\code{"nngaussian"}} Gaussian kernel using the target
 \code{perplexity} but similarities beyond the nearest neighbors of each
 observation are set to zero. The number of nearest neighbors is three
-times the \code{perplexity}. For large datasets, this is faster than 
+times the \code{perplexity}. For large datasets, this is faster than
 \code{"gaussian"}, with only a negligible loss of accuracy.
 \item \code{"knn"}} k-nearest neighbors kernel. Only the \code{perplexity}
 nearest neighbors of each observation are considered and each are given
@@ -749,6 +749,12 @@ function with these optimizers.
 }
 
 \examples{
+embedding <- smallvis(
+  iris, Y_init = "spca", perplexity = 30, max_iter = 250,
+  epoch_callback = FALSE, n_threads = 1, verbose = FALSE
+)
+plot(embedding, col = as.integer(iris$Species), pch = 19)
+
 \dontrun{
 
 # tsne is the default. verbose = TRUE logs progress to console
@@ -772,7 +778,7 @@ tsne_iris <- smallvis(iris, epoch_callback = FALSE, perplexity = 50, verbose = T
 largevis_iris <- smallvis(iris, method = "largevis", epoch_callback = ecb,
                           perplexity = 50, verbose = TRUE)
 
-# Use a list with the method paramter for more control over LargeVis
+# Use a list with the method parameter for more control over LargeVis
 largevis_iris <- smallvis(iris, method = list("largevis", gamma = 1),
                           epoch_callback = ecb, perplexity = 50, verbose = TRUE)
 
@@ -830,7 +836,8 @@ iris_gmmds <- smallvis(dist(iris[, -5]),
                        epoch_callback = function(Y) { plot(Y, col = iris$Species) },
                        method = "gmmds", max_iter = 200, perplexity = 8, eta = 1e-4,
                        Y_init = "spca")
-The above should give equivalent results to this non-distance matrix version
+# The above should give equivalent results to the following version,
+# which uses the original data rather than a distance matrix.
 iris_gmmds <- smallvis(iris, method = "gmmds", max_iter = 400, perplexity = 8, eta = 1e-4,
                        Y_init = "spca")
 
@@ -844,15 +851,15 @@ tsne_iris_idp <- smallvis(iris, epoch_callback = ecb, perplexity = list("idp", 3
                           Y_init = "spca", exaggeration_factor = 4)
 
 # Early Exaggeration
-tsne_early_ex <- smallvis(iris, exaggeraton_factor = 4, stop_lying_iter = 100)
+tsne_early_ex <- smallvis(iris, exaggeration_factor = 4, stop_lying_iter = 100)
 
 # Also late exaggeration to improve cluster separation
-tsne_late_ex <- smallvis(iris, exaggeraton_factor = 4, stop_lying_iter = 100,
+tsne_late_ex <- smallvis(iris, exaggeration_factor = 4, stop_lying_iter = 100,
                          late_exaggeration_factor = 1.5, start_late_lying_iter = 900)
-                         
+
 # Barnes-Hut, approximate nearest neighbors, multi-threading settings
 # recommended for large datasets
-bhtsne_iris <- smallvis(iris, bh = TRUE, n_threads = 4, perplexity = 30, 
+bhtsne_iris <- smallvis(iris, bh = TRUE, n_threads = 4, perplexity = 30,
                         nn = "approximate", inp_kernel = "knn",
                         exaggeration_factor = 12, stop_lying_iter = 250,
                         Y_init = "spca")
@@ -950,7 +957,7 @@ Visualizing data using t-SNE.
 \emph{Journal of Machine Learning Research}, \emph{9} (2579-2605).
 \url{http://www.jmlr.org/papers/v9/vandermaaten08a.html}
 
-Van der Maaten, L. (2014). 
+Van der Maaten, L. (2014).
 Accelerating t-SNE using tree-based algorithms.
 \emph{Journal of Machine Learning Research}, \emph{15}(1) (3221-3245).
 \url{https://jmlr.org/papers/v15/vandermaaten14a.html}

@@ -54,11 +54,18 @@ Any value of \code{tol}, \code{exaggeration_factor} and
 \code{stop_lying_iter} provided is used only with the final optimization.
 }
 \examples{
+embedding <- smallvis_perpstep(
+  X = iris, perplexity = 30, Y_init = "spca",
+  step_iter = 25, max_iter = 100, epoch_callback = FALSE,
+  n_threads = 1, verbose = FALSE
+)
+dim(embedding)
+
 \dontrun{
 # t-SNE on the iris with L-BFGS optimization
 # The 1000 max_iter is split between 250 iterations at perplexity = 64
 # and then 750 iterations at perplexity = 40.
-iris_lbfgs_pstep <- smallvis_perpscale(
+iris_lbfgs_pstep <- smallvis_perpstep(
   step_iter = 250, X = iris, scale = FALSE, verbose = TRUE, Y_init = "spca",
   ret_extra = c("DX", "DY"), perplexity = 40, max_iter = 1000, opt = list("l-bfgs")
 )

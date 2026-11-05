@@ -44,14 +44,16 @@ exp_shift <- function(X) {
   X <- exp(sweep(X, 2, apply(X, 2, max)))
 }
 
-expQ <- function(Y,
-                 eps = .Machine$double.eps,
-                 beta = NULL,
-                 A = NULL,
-                 is_symmetric = FALSE,
-                 matrix_normalize = FALSE,
-                 use_cpp = FALSE,
-                 n_threads = 1) {
+expQ <- function(
+  Y,
+  eps = .Machine$double.eps,
+  beta = NULL,
+  A = NULL,
+  is_symmetric = FALSE,
+  matrix_normalize = FALSE,
+  use_cpp = FALSE,
+  n_threads = 1
+) {
   W <- calc_d2(Y, use_cpp = use_cpp, n_threads = n_threads)
 
   if (!is.null(beta)) {
@@ -109,11 +111,7 @@ kl_cost <- function(cost, Y) {
   cost
 }
 
-cost_init <- function(cost,
-                      X,
-                      max_iter,
-                      verbose = FALSE,
-                      ret_extra = c()) {
+cost_init <- function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
   if (!is.null(cost$init)) {
     cost <- cost$init(
       cost,

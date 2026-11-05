@@ -6,19 +6,21 @@
 # sigma
 # gaussian: standard gaussian kernel with perplexity over all observations
 # nngaussian: gaussian kernel with perplexity over nearest neighbors
-sne_init <- function(cost,
-                     X,
-                     perplexity,
-                     kernel = "gaussian",
-                     symmetrize = "symmetric",
-                     row_normalize = TRUE,
-                     normalize = TRUE,
-                     n_threads = 0,
-                     use_cpp = FALSE,
-                     sparse = FALSE,
-                     nn = "exact",
-                     verbose = FALSE,
-                     ret_extra = c()) {
+sne_init <- function(
+  cost,
+  X,
+  perplexity,
+  kernel = "gaussian",
+  symmetrize = "symmetric",
+  row_normalize = TRUE,
+  normalize = TRUE,
+  n_threads = 0,
+  use_cpp = FALSE,
+  sparse = FALSE,
+  nn = "exact",
+  verbose = FALSE,
+  ret_extra = c()
+) {
   if (tolower(kernel) == "knn") {
     if (is.character(perplexity) || is.list(perplexity)) {
       stop("Can't use intrinsic dimensionality with knn kernel")
@@ -52,11 +54,7 @@ sne_init <- function(cost,
       perplexities <- perplexity[[2]]
     }
 
-    x2ares <- idp(X,
-      perplexities = perplexities,
-      tol = 1e-5,
-      verbose = verbose
-    )
+    x2ares <- idp(X, perplexities = perplexities, tol = 1e-5, verbose = verbose)
     P <- x2ares$W
     ret_extra <- unique(c(ret_extra, "idp"))
   } else if (perp_method(perplexity) == "multiscale") {
@@ -179,7 +177,8 @@ sne_init <- function(cost,
     }
 
     for (r in unique(tolower(ret_extra))) {
-      switch(r,
+      switch(
+        r,
         v = {
           cost$V <- x2ares$W
         },
@@ -224,12 +223,14 @@ sne_init <- function(cost,
 # NB set default kernel to "exp" to get results closer to the tsne package.
 # This differs from the procedure in the t-SNE paper by exponentially weighting
 # the distances, rather than the squared distances.
-x2aff <- function(X,
-                  perplexity = 15,
-                  tol = 1e-5,
-                  kernel = "gauss",
-                  verbose = FALSE,
-                  guesses = NULL) {
+x2aff <- function(
+  X,
+  perplexity = 15,
+  tol = 1e-5,
+  kernel = "gauss",
+  verbose = FALSE,
+  guesses = NULL
+) {
   x_is_dist <- methods::is(X, "dist")
   if (x_is_dist) {
     D <- X
@@ -380,11 +381,13 @@ shannon <- function(D2, beta) {
   list(W = W, Z = Z, H = H)
 }
 
-x2aff_sigma <- function(X,
-                        sigma = 1e-3,
-                        verbose = FALSE,
-                        use_cpp = FALSE,
-                        n_threads = 1) {
+x2aff_sigma <- function(
+  X,
+  sigma = 1e-3,
+  verbose = FALSE,
+  use_cpp = FALSE,
+  n_threads = 1
+) {
   x_is_dist <- methods::is(X, "dist")
   if (x_is_dist) {
     D <- X
@@ -453,12 +456,14 @@ knn_dist <- function(X, k, n_threads, verbose) {
 # i is NOT considered a neighbor of itself.
 # No symmetrization is carried out.
 # Used by knnmmds and knn kernel for SNE
-knn_graph <- function(X,
-                      k,
-                      exact = TRUE,
-                      ret_sparse = FALSE,
-                      n_threads = 0,
-                      verbose = FALSE) {
+knn_graph <- function(
+  X,
+  k,
+  exact = TRUE,
+  ret_sparse = FALSE,
+  n_threads = 0,
+  verbose = FALSE
+) {
   if (methods::is(X, "dist")) {
     if (ret_sparse) {
       stop("distance matrix to sparse knn graph not supported")
@@ -482,7 +487,8 @@ knn_graph <- function(X,
       stop("k must be not be > n - 1")
     }
 
-    knn <- get_nn(X,
+    knn <- get_nn(
+      X,
       k = k + 1,
       exact = exact,
       n_threads = n_threads,
@@ -502,11 +508,7 @@ knn_graph <- function(X,
   D
 }
 
-get_nn <- function(X,
-                   k,
-                   exact = FALSE,
-                   n_threads = 0,
-                   verbose = FALSE) {
+get_nn <- function(X, k, exact = FALSE, n_threads = 0, verbose = FALSE) {
   if (exact) {
     tsmessage(
       "Finding exact nearest neighbors with k = ",
@@ -531,14 +533,16 @@ get_nn <- function(X,
 # perplexities
 # as described by de Bodt et al in
 # Perplexity-free t-SNE and twice Student tt-SNE (2018)
-msp <- function(X,
-                perplexities = NULL,
-                tol = 1e-5,
-                symmetrize = "symmetric",
-                row_normalize = TRUE,
-                normalize = TRUE,
-                verbose = FALSE,
-                guesses = NULL) {
+msp <- function(
+  X,
+  perplexities = NULL,
+  tol = 1e-5,
+  symmetrize = "symmetric",
+  row_normalize = TRUE,
+  normalize = TRUE,
+  verbose = FALSE,
+  guesses = NULL
+) {
   if (methods::is(X, "dist")) {
     n <- attr(X, "Size")
   } else {
@@ -601,11 +605,13 @@ msp <- function(X,
 # Scan through the provided perplexities and use the result which maximizes
 # the mean correlation dimension (which is an estimate for the intrinsic
 # dimensionality). Stops at the first maxmimum found.
-idp <- function(X,
-                perplexities = NULL,
-                tol = 1e-5,
-                verbose = FALSE,
-                guesses = NULL) {
+idp <- function(
+  X,
+  perplexities = NULL,
+  tol = 1e-5,
+  verbose = FALSE,
+  guesses = NULL
+) {
   if (methods::is(X, "dist")) {
     n <- attr(X, "Size")
   } else {
@@ -709,10 +715,12 @@ true_symmetrize_options <- function() {
   c("symmetric", "average", "mutual", "umap", "fuzzy")
 }
 
-scale_affinities <- function(P,
-                             symmetrize = "symmetric",
-                             row_normalize = TRUE,
-                             normalize = TRUE) {
+scale_affinities <- function(
+  P,
+  symmetrize = "symmetric",
+  row_normalize = TRUE,
+  normalize = TRUE
+) {
   # row normalization before anything else
   if (nnat(row_normalize)) {
     if (symmetrize == "rowsymm") {
@@ -724,7 +732,8 @@ scale_affinities <- function(P,
     P <- row_normalize * P / Matrix::rowSums(P)
   }
   # Symmetrize
-  P <- switch(symmetrize,
+  P <- switch(
+    symmetrize,
     none = P,
     symmetric = 0.5 * (P + Matrix::t(P)),
     average = 0.5 * (P + Matrix::t(P)),

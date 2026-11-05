@@ -7,20 +7,18 @@
 # lambda control the strength of repulsive vs attractive forces
 # if neg_weights is true, the repulsive contribution is weighted based on the
 # squared input distances. Otherwise, no weighting is applied.
-ee <- function(perplexity,
-               lambda = 100,
-               neg_weights = TRUE,
-               inp_kernel = "gaussian",
-               symmetrize = "symmetric",
-               eps = .Machine$double.eps,
-               use_cpp = FALSE,
-               n_threads = 0) {
+ee <- function(
+  perplexity,
+  lambda = 100,
+  neg_weights = TRUE,
+  inp_kernel = "gaussian",
+  symmetrize = "symmetric",
+  eps = .Machine$double.eps,
+  use_cpp = FALSE,
+  n_threads = 0
+) {
   list(
-    init = function(cost,
-                    X,
-                    max_iter,
-                    verbose = FALSE,
-                    ret_extra = c()) {
+    init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       if (neg_weights) {
         if (methods::is(X, "dist")) {
@@ -88,24 +86,22 @@ ee <- function(perplexity,
 # t-Distributed Elastic Embedding
 # EE-like cost function in terms of I-Divergence
 # Scaled to give a gradient similar in form to t-SNE
-tee <- function(perplexity,
-                inp_kernel = "gaussian",
-                symmetrize = "symmetric",
-                lambda = 0.01,
-                eps = .Machine$double.eps,
-                n_threads = 0,
-                use_cpp = FALSE) {
+tee <- function(
+  perplexity,
+  inp_kernel = "gaussian",
+  symmetrize = "symmetric",
+  lambda = 0.01,
+  eps = .Machine$double.eps,
+  n_threads = 0,
+  use_cpp = FALSE
+) {
   lreplace(
     tsne(
       perplexity = perplexity,
       use_cpp = use_cpp,
       n_threads = n_threads
     ),
-    init = function(cost,
-                    X,
-                    max_iter,
-                    verbose = FALSE,
-                    ret_extra = c()) {
+    init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       ret_extra <- unique(c(ret_extra, "V", "dint"))
       cost <- sne_init(
@@ -127,12 +123,16 @@ tee <- function(perplexity,
       cost$lambda <- lambda
 
       V[V < eps] <- eps
-      cost$constV <- cost$invN * (colSums(V * logm(V, eps)) - lambda * colSums(V))
+      cost$constV <- cost$invN *
+        (colSums(V * logm(V, eps)) - lambda * colSums(V))
       cost
     },
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
-      cost$G <- k2g(Y, cost$gradconst * cost$W * (cost$P - cost$W * cost$lambda))
+      cost$G <- k2g(
+        Y,
+        cost$gradconst * cost$W * (cost$P - cost$W * cost$lambda)
+      )
       cost
     },
     update = function(cost, Y) {

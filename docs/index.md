@@ -6,29 +6,26 @@ output:
 ---
 
 Documentation related to the [smallvis](https://github.com/jlmelville/smallvis) 
-R package:
+R package. The [package reference](https://jlmelville.github.io/smallvis/package/) covers installation,
+API documentation, and usage examples.
 
 ## Installing
 
 ```R
-install.packages("devtools")
-devtools::install_github("jlmelville/smallvis/smallvis")
+install.packages("pak")
+pak::pak("jlmelville/smallvis/smallvis")
 library(smallvis)
 ```
 
 ## Prerequisites
 
-* The [vizier](https://github.com/jlmelville/vizier)
-package to plot the coordinates during optimization. It's not on CRAN, and 
-therefore requires a fairly new version of 
-[devtools](https://cran.r-project.org/package=devtools) (1.9 or greater) to 
-install this as a dependency from github. 
-* Similarly, the [mize](https://github.com/jlmelville/mize) package (which is
-on CRAN but not in a sufficiently advanced state currently).
-* Optionally, [RSpectra](https://cran.r-project.org/package=RSpectra) package, 
-which is used only if you want to initialize from a spectral method (`Y_init = "laplacian"` 
-or `Y_init = "normlaplacian"`). If not present, then the standard R function 
-`eigen` is used, but it's a *lot* slower.
+Installation from source requires an R-compatible C++ toolchain, such as Rtools on Windows.
+The installation command above includes dependencies, including the GitHub package
+[vizier](https://github.com/jlmelville/vizier) for plotting during optimization.
+
+[RSpectra](https://cran.r-project.org/package=RSpectra) is optional and speeds up spectral
+initialization (`Y_init = "laplacian"` or `Y_init = "normlaplacian"`). Without it, the standard
+R function `eigen` is used.
 
 ## Explorations of `smallvis`
 

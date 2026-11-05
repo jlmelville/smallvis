@@ -1,15 +1,17 @@
 # LargeVis ----------------------------------------------------------------
 
-largevis <- function(perplexity,
-                     inp_kernel = "gaussian",
-                     symmetrize = "symmetric",
-                     gamma = 1,
-                     gr_eps = 0.1,
-                     normalize = TRUE,
-                     eps = 1e-9,
-                     row_weight = NULL,
-                     use_cpp = FALSE,
-                     n_threads = 0) {
+largevis <- function(
+  perplexity,
+  inp_kernel = "gaussian",
+  symmetrize = "symmetric",
+  gamma = 1,
+  gr_eps = 0.1,
+  normalize = TRUE,
+  eps = 1e-9,
+  row_weight = NULL,
+  use_cpp = FALSE,
+  n_threads = 0
+) {
   if (!is.null(row_weight)) {
     row_normalize <- row_weight
   } else {
@@ -17,11 +19,7 @@ largevis <- function(perplexity,
   }
   lreplace(
     tsne(perplexity, use_cpp = use_cpp, n_threads = n_threads),
-    init = function(cost,
-                    X,
-                    max_iter,
-                    verbose = FALSE,
-                    ret_extra = c()) {
+    init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       cost <- sne_init(
         cost,
@@ -53,9 +51,7 @@ largevis <- function(perplexity,
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
       W <- cost$W
-      cost$G <- k2g(Y, 4 * W * (cost$P - ((gamma * W) / (
-        1 + cost$greps1 * W
-      ))))
+      cost$G <- k2g(Y, 4 * W * (cost$P - ((gamma * W) / (1 + cost$greps1 * W))))
       cost
     },
     update = function(cost, Y) {
