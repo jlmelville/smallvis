@@ -51,5 +51,6 @@ Use `smallvis_rep()` to select the lowest-cost embedding from repeated random st
 
 ## License
 
-GPL version 2 or later. LargeVis-specific code is also available under Apache 2.0, and Barnes-Hut
-and UMAP-related code under the BSD 3-clause license. See the source files for their notices.
+GPL version 2 or later. LargeVis-specific code is also available under
+[Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0), and Barnes-Hut and UMAP-related code under
+the BSD 3-clause license. See the [code origins and copyright notices](smallvis/inst/COPYRIGHTS).

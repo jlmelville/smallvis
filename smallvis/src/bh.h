@@ -1,5 +1,6 @@
 // BSD 3-Clause License
 //
+// Copyright (c) 2018, Pavlin Poličar
 // Copyright (c) 2024, James Melville
 // All rights reserved.
 //

@@ -1,11 +1,10 @@
 # smallvis correctness and maintenance implementation plan
 
-**Status** Phases 1 through 4 are complete. Phase 5 native cleanup and validation are complete
-on 2026-11-05. Capability and licensing documentation are held for owner review, as requested.
+**Status** Phases 1 through 4 and Phase 5 native cleanup are complete and validated. Minimal
+copyright and licensing notices have been added. The capability table remains a local draft.
 
-**Next work** Review the local documentation proposal, kept uncommitted at the owner’s request.
-The native changes are ready for review. Apply public documentation and notices after the owner
-accepts the proposed scope, then render and check those artifacts.
+**Next work** The capability proposal remains held for owner review. The native work is committed
+in `79c7aea`; the minimum attribution follow-up is recorded below.
 
 The [full repository review](smallvis-repository-review-2026-11-05.md) records the observations and
 source locations at `3382ecf`. Its clean Linux package check and 579 passing test expectations are
@@ -464,9 +463,9 @@ remain in stash `1bc0e8f888be8064874928e86dde501b8ae41958` and were not restored
 ## Phase 5 native implementation and validation
 
 The allocation and unused-conversion work is complete against base revision `c74089a`. The owner
-asked to see capability, licensing, and attribution recommendations at the end. Those are captured
-in the local, uncommitted documentation proposal; the README, usage
-article, and source notices have not been changed in this phase.
+asked to see capability, licensing, and attribution recommendations at the end. Those were captured
+in a local, uncommitted documentation proposal. The minimum attribution follow-up is recorded below;
+the capability table remains held for review.
 
 Dense native t-SNE gradients now borrow read-only P and W storage after obtaining their pointers on
 the R thread. The owning arguments remain protected until all workers join. The coordinate copy and
@@ -561,9 +560,21 @@ files expire. The native check commands earlier in this plan also exercise the n
 
 Applied package files were compared byte for byte with the tested candidate. The earlier stash
 remains untouched. The original audit's active runtime correctness, resource-safety, and identified
-quadratic-copy work is now addressed. The remaining planned items are the capability and attribution
-changes held for review. Optional public APIs, optional plotting dependencies, recurring native CI,
-and larger architecture changes remain the separate decisions listed below.
+quadratic-copy work is now addressed. The capability table remains held for review, and the minimum
+attribution follow-up is recorded below. Optional public APIs, optional plotting dependencies,
+recurring native CI, and larger architecture changes remain the separate decisions listed below.
+
+## Minimum copyright and licensing follow-up
+
+At the owner's request, the licensing changes are limited to three files: the README now links to
+the existing Apache terms and a new `smallvis/inst/COPYRIGHTS` file, that file retains the UMAP and
+openTSNE BSD notices and code origins, and `bh.h` retains Pavlin Poličar's 2018 copyright alongside
+James Melville's 2024 notice. The existing GPL, Apache, and BSD grants are preserved.
+
+A clean source build and `R CMD check --no-manual` passed with status OK. The source tarball and
+installed package contain byte-identical copies of the notices. Diff and header-format checks
+passed. Evidence is in `/tmp/smallvis-notices.nwkim34s`. The capability table and local proposal
+remain unchanged.
 
 ## Completion and deferred decisions
 
@@ -585,5 +596,5 @@ The following are separate choices after the fixes:
   distributed execution, and broad benchmark infrastructure until a concrete workload calls for
   them.
 
-**Progress on 2026-11-05** Phases 1 through 4 and Phase 5 native work are complete and validated.
-The capability and licensing proposal is ready for owner review before public documentation changes.
+**Progress on 2026-11-05** Phases 1 through 4, Phase 5 native work, and the minimum copyright and
+licensing follow-up are complete. The capability table remains held for owner review.
