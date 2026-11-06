@@ -234,13 +234,13 @@ sne_init <- function(
           }
         },
         adegc = {
-          cost$adegc <- 0.5 * rowSums(x2ares$W) + colSums(x2ares$W)
+          cost$adegc <- 0.5 * (rowSums(x2ares$W) + colSums(x2ares$W))
         },
         adegin = {
-          cost$adegin <- rowSums(x2ares$W)
+          cost$adegin <- colSums(x2ares$W)
         },
         adegout = {
-          cost$adegout <- colSums(x2ares$W)
+          cost$adegout <- rowSums(x2ares$W)
         },
         pdeg = {
           cost$pdeg <- colSums(P)

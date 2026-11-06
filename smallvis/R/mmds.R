@@ -119,12 +119,12 @@ smmds <- function(eps = .Machine$double.eps, use_cpp = FALSE, n_threads = 1) {
         dx = {
           res <- cost$R2
           res[res < 0] <- 0
-          sqrt(res)
+          res <- sqrt(res)
         },
         dy = {
           res <- cost$D2
           res[res < 0] <- 0
-          sqrt(res)
+          res <- sqrt(res)
         }
       )
       res

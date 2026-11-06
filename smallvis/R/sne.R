@@ -234,6 +234,12 @@ asne <- function(
       cost$eps <- eps
       cost
     },
+    cache_input = function(cost) {
+      P <- cost$P
+      P[P < cost$eps] <- cost$eps
+      cost$plogp <- rowSums(P * logm(P, cost$eps))
+      cost
+    },
     pfn = kl_costQr,
     gr = function(cost, Y) {
       cost <- cost$update(cost, Y)
@@ -1033,7 +1039,7 @@ btasne <- function(
       n_threads = n_threads,
       use_cpp = use_cpp
     ),
-    pfn = kl_cost,
+    pfn = kl_costr,
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
       W <- cost$W

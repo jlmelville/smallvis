@@ -512,10 +512,10 @@ adamax <- function(
 
       m <- beta1 * m + (1 - beta1) * G
       # element-wise max(beta2 * u, |G|)
-      u <- apply(cbind(beta2 * u, base::abs(G)), 1, base::max)
+      u <- pmax(beta2 * u, abs(G))
       m_hat <- m / (1 - beta1t)
 
-      opt$uY <- -eta * (m_hat / u)
+      opt$uY <- -eta * (m_hat / (u + opt$eps))
       opt$m <- m
       opt$u <- u
       opt$beta1t <- beta1t * beta1

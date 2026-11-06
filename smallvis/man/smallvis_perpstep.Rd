@@ -8,7 +8,8 @@ smallvis_perpstep(step_iter = 250, ...)
 }
 \arguments{
 \item{step_iter}{Number of iterations to carry out the perplexity
-stepping. Must be < the value of \code{max_iter}.}
+stepping. Must be < the value of \code{max_iter} when preliminary runs
+are needed. Zero skips stepping.}
 
 \item{...}{Arguments to be passed to \code{\link{smallvis}}. See 'Details'
 for information on which arguments may be modified or ignored during certain
@@ -50,8 +51,12 @@ the optimization at the target perplexity is carried out, e.g. if
 \code{max_iter = 1000} and \code{step_iter = 250}, the final
 optimization will run for 750 iterations only.
 
-Any value of \code{tol}, \code{exaggeration_factor} and
-\code{stop_lying_iter} provided is used only with the final optimization.
+Any value of \code{tol}, early or late exaggeration, and their iteration
+controls is used only with the final optimization. Final-run defaults are
+evaluated using its remaining iteration budget. An explicit perplexity in a
+method list defines the target and is temporarily overridden for preliminary
+runs. If there are no larger perplexities, or \code{step_iter = 0}, the call
+is equivalent to a direct \code{smallvis} run.
 }
 \examples{
 embedding <- smallvis_perpstep(

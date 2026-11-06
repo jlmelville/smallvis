@@ -6,6 +6,13 @@
 #' This function ignores any value of \code{Y_init} you set, and uses
 #' \code{Y_init = "rand"}.
 #'
+#' Built-in methods prepare input scaling, PCA, and affinities once. All starts
+#' share that input graph, including when using approximate neighbors, and
+#' each start resets its coordinates and optimizer state. Custom constructors
+#' prepare their input separately for each run. Runs are ranked by the sum of
+#' \code{costs} at their returned coordinates, independently of epoch history.
+#' Per-run \code{time_secs} excludes the shared input preparation.
+#'
 #' @param nrep Number of repeats.
 #' @param keep_all If \code{TRUE}, then the return value is a list of lists,
 #' indexed from 1 .. \code{nrep}, with each entry the result from each
@@ -54,7 +61,7 @@ smallvis_rep <- function(nrep = 10, keep_all = FALSE, ...) {
   if (nrep < 1) {
     stop("nrep must be 1 or greater")
   }
-  varargs <- list(...)
+  varargs <- match_smallvis_args(list(...))
   best_res <- NULL
   best_cost <- Inf
   all_costs <- c()
@@ -68,19 +75,27 @@ smallvis_rep <- function(nrep = 10, keep_all = FALSE, ...) {
 
   varargs$Y_init <- "rand"
   ret <- list()
+  prepared <- NULL
+  if (!is.function(varargs$method)) {
+    prepared <- do.call(smallvis_run, c(varargs, list(prepare_only = TRUE)))
+  }
 
   for (i in 1:nrep) {
     # If verbose is not explicitly set to FALSE, it's TRUE by default
     if (nnat(varargs$verbose) || is.null(varargs$verbose)) {
       tsmessage("Starting embedding # ", i, " of ", nrep)
     }
-    res <- do.call(smallvis, varargs)
+    if (is.null(prepared)) {
+      res <- do.call(smallvis, varargs)
+    } else {
+      res <- do.call(smallvis_run, c(varargs, list(prepared = prepared)))
+    }
 
     if (keep_all) {
       ret[[i]] <- res
     }
 
-    final_cost <- res$itercosts[length(res$itercosts)]
+    final_cost <- sum(res$costs)
     names(final_cost) <- NULL
     all_costs <- c(all_costs, final_cost)
 
@@ -160,11 +175,16 @@ should_ret_extra <- function(ret_extra) {
 #' \code{max_iter = 1000} and \code{step_iter = 250}, the final
 #' optimization will run for 750 iterations only.
 #'
-#' Any value of \code{tol}, \code{exaggeration_factor} and
-#' \code{stop_lying_iter} provided is used only with the final optimization.
+#' Any value of \code{tol}, early or late exaggeration, and their iteration
+#' controls is used only with the final optimization. Final-run defaults are
+#' evaluated using its remaining iteration budget. An explicit perplexity in a
+#' method list defines the target and is temporarily overridden for preliminary
+#' runs. If there are no larger perplexities, or \code{step_iter = 0}, the call
+#' is equivalent to a direct \code{smallvis} run.
 #'
 #' @param step_iter Number of iterations to carry out the perplexity
-#'  stepping. Must be < the value of \code{max_iter}.
+#'  stepping. Must be < the value of \code{max_iter} when preliminary runs
+#'  are needed. Zero skips stepping.
 #' @param ... Arguments to be passed to \code{\link{smallvis}}. See 'Details'
 #'  for information on which arguments may be modified or ignored during certain
 #'  parts of the embedding.
@@ -199,92 +219,78 @@ should_ret_extra <- function(ret_extra) {
 #' dimensionality reduction based on similarity preservation.
 #' \emph{Neurocomputing}, \emph{112}, 92-108.
 smallvis_perpstep <- function(step_iter = 250, ...) {
-  varargs <- list(...)
-  max_iter <- varargs$max_iter
+  final_args <- match_smallvis_args(list(...))
+  max_iter <- final_args$max_iter
   if (is.null(max_iter)) {
     max_iter <- 1000
   }
-  if (max_iter <= step_iter) {
-    stop("max_iter must be > step_iter")
+  target_perplexity <- final_args$perplexity
+  if (is.list(final_args$method) && !is.null(final_args$method$perplexity)) {
+    target_perplexity <- final_args$method$perplexity
   }
-
-  target_perplexity <- varargs$perplexity
   if (is.null(target_perplexity)) {
     target_perplexity <- 30
   }
 
-  X <- varargs$X
-  if (methods::is(X, "dist")) {
-    n <- attr(X, "Size")
-  } else {
-    n <- nrow(X)
+  X <- final_args$X
+  n <- if (methods::is(X, "dist")) attr(X, "Size") else nrow(X)
+  validate_perplexity(target_perplexity, n)
+  if (length(target_perplexity) != 1) {
+    stop("Perplexity stepping requires a scalar target perplexity")
   }
   perps <- scale_perps(n = n, target_perp = target_perplexity)
-
-  nperps <- length(perps)
-  if (nperps > 0) {
-    max_iter_step <- max(1, floor(step_iter / nperps))
-    max_iter_target <- max(1, max_iter - step_iter)
-
-    # Save/Modify some options between step iterations and final optimization
-    ret_extra <- varargs$ret_extra
-    varargs$ret_extra <- FALSE
-    varargs$max_iter <- max_iter_step
-    tol <- varargs$tol
-    varargs$tol <- 0
-    exaggeration_factor <- varargs$exaggeration_factor
-    varargs$exaggeration_factor <- 1
-
-    epoch <- varargs$epoch
-    varargs$epoch <- max_iter_step
-
-    # Loop over initial perplexities
-    res <- NULL
-    for (i in 1:nperps) {
-      if (nnat(varargs$verbose)) {
+  if (length(perps) > 0 && step_iter > 0) {
+    if (max_iter <= step_iter) {
+      stop("max_iter must be > step_iter")
+    }
+    max_iter_step <- max(1, floor(step_iter / length(perps)))
+    preliminary <- final_args
+    preliminary$ret_extra <- FALSE
+    preliminary$max_iter <- max_iter_step
+    preliminary$tol <- 0
+    preliminary$exaggeration_factor <- 1
+    preliminary$late_exaggeration_factor <- 1
+    preliminary$epoch <- max_iter_step
+    if (is.list(preliminary$method)) {
+      preliminary$method$perplexity <- NULL
+    }
+    for (perp in perps) {
+      if (nnat(final_args$verbose)) {
         tsmessage(
           "Optimizing at step perplexity ",
-          formatC(perps[i]),
+          formatC(perp),
           " for ",
           max_iter_step,
           " iterations"
         )
       }
-      varargs$perplexity <- perps[i]
-      if (i > 1) {
-        varargs$Y_init <- res
-      }
-      res <- do.call(smallvis, varargs)
+      preliminary$perplexity <- perp
+      Y <- do.call(smallvis, preliminary)
+      preliminary$Y_init <- Y
     }
-
-    varargs$Y_init <- res
-    varargs$max_iter <- max_iter_target
-    # Put the old arguments back before final optimization
-    varargs$perplexity <- target_perplexity
-    if (!is.null(ret_extra)) {
-      varargs$ret_extra <- ret_extra
-    }
-    if (!is.null(tol)) {
-      varargs$tol <- tol
-    }
-    if (!is.null(epoch)) {
-      varargs$epoch <- epoch
-    }
-    if (!is.null(exaggeration_factor)) {
-      varargs$exaggeration_factor <- exaggeration_factor
-    }
+    final_args$Y_init <- Y
+    final_args$max_iter <- max_iter - step_iter
+    max_iter <- final_args$max_iter
   }
 
-  if (nnat(varargs$verbose)) {
+  if (nnat(final_args$verbose)) {
     tsmessage(
       "Optimizing at target perplexity ",
       formatC(target_perplexity),
       " for ",
-      max_iter_target,
+      max_iter,
       " iterations"
     )
   }
-  do.call(smallvis, varargs)
+  do.call(smallvis, final_args)
+}
+
+# Match positional and named arguments against the public API before adding
+# private runner controls. Keep omitted arguments omitted so dependent defaults
+# such as epoch and stop_lying_iter are evaluated for each actual run.
+match_smallvis_args <- function(args) {
+  call <- as.call(c(list(quote(smallvis)), args))
+  as.list(match.call(definition = smallvis, call = call))[-1]
 }
 
 # Utility function for perplexity step
@@ -292,6 +298,7 @@ scale_perps <- function(n, target_perp) {
   max_perp <- n / 2
   max_perp <- 2^floor(log(max_perp, 2))
   perp <- max_perp
+  perps <- numeric(0)
 
   if (max_perp > target_perp) {
     perps <- c()

@@ -33,6 +33,13 @@ embedding with the lowest cost.
 \details{
 This function ignores any value of \code{Y_init} you set, and uses
 \code{Y_init = "rand"}.
+
+Built-in methods prepare input scaling, PCA, and affinities once. All starts
+share that input graph, including when using approximate neighbors, and
+each start resets its coordinates and optimizer state. Custom constructors
+prepare their input separately for each run. Runs are ranked by the sum of
+\code{costs} at their returned coordinates, independently of epoch history.
+Per-run \code{time_secs} excludes the shared input preparation.
 }
 \examples{
 set.seed(42)

@@ -19,6 +19,7 @@ umap <- function(
   }
   lreplace(
     tsne(perplexity, use_cpp = use_cpp, n_threads = n_threads),
+    gradient_only = gr_eps != 0,
     init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       cost <- sne_init(
@@ -103,6 +104,7 @@ tumap <- function(
   }
   lreplace(
     umap(perplexity, n_threads = n_threads, use_cpp = use_cpp),
+    gradient_only = gr_eps != 0,
     init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       cost$eps <- eps
@@ -154,6 +156,7 @@ ntumap <- function(
 ) {
   lreplace(
     tumap(perplexity, use_cpp = use_cpp, n_threads = n_threads),
+    gradient_only = FALSE,
     init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       cost$eps <- eps

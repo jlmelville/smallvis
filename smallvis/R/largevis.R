@@ -19,6 +19,7 @@ largevis <- function(
   }
   lreplace(
     tsne(perplexity, use_cpp = use_cpp, n_threads = n_threads),
+    gradient_only = gr_eps != 0,
     init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       cost <- sne_init(

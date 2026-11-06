@@ -399,6 +399,11 @@
 #' evaluation) settings in the list to keep the number of calculations these
 #' optimization methods use comparable to the default settings.
 #'
+#' Function-based optimizers require a matching objective and gradient.
+#' For UMAP, t-UMAP, and LargeVis, set method option \code{gr_eps = 0};
+#' their default stabilized forces require a gradient-only optimizer. Early
+#' and late exaggeration also require a gradient-only optimizer.
+#'
 #' See the examples for the use of alternative optimizers interface. For best
 #' results, you may also consider using the \code{\link{smallvis_perpstep}}
 #' function with these optimizers.
@@ -603,11 +608,14 @@
 #' \item{\code{time_secs}} Time taken for the embedding, in seconds.
 #' \item{\code{perplexity}} Target perplexity of the input probabilities, as
 #'   specified by the \code{perplexity} parameter.
-#' \item{\code{costs}} Embedding error associated with each observation. This is
-#'   the sum of the absolute value of each component of the KL cost that the
-#'   observation is associated with, so don't expect these to sum to the
-#'   reported KL cost.
-#' \item{\code{itercosts}} KL cost at each epoch.
+#' \item{\code{costs}} Contributions to the objective evaluated at the returned
+#'   coordinates, after removing exaggeration. Their sum is the final objective.
+#'   ASNE and its bandwidth variants report one conditional KL divergence per
+#'   row. Other dense methods generally group pairwise terms by column.
+#'   Barnes-Hut t-SNE returns a single scalar objective.
+#' \item{\code{itercosts}} Objective values recorded at epochs. This history
+#'   can be empty if an optimizer stops before the first epoch. Values recorded
+#'   during exaggeration need not match the final unexaggerated objective.
 #' \item{\code{opt}} List containing optimization parameters. For the default
 #'   delta-bar-delta method, \code{mom_switch_iter}, \code{momentum},
 #'   \code{final_momentum} and \code{eta}. Otherwise, the contents of the
@@ -950,6 +958,54 @@ smallvis <- function(
   nn = NULL,
   verbose = TRUE
 ) {
+  do.call(smallvis_run, as.list(match.call())[-1], envir = parent.frame())
+}
+
+# The public entry point keeps its signature; repeats supply a prepared input
+# only through this private runner.
+smallvis_run <- function(
+  X,
+  k = 2,
+  scale = "absmax",
+  Y_init = "rand",
+  Y_init_sdev = NULL,
+  perplexity = 30,
+  max_iter = 1000,
+  pca = FALSE,
+  initial_dims = 50,
+  method = "tsne",
+  epoch_callback = TRUE,
+  epoch = max(1, base::round(max_iter / 10)),
+  min_cost = 0,
+  tol = 1e-7,
+  g2tol = NULL,
+  momentum = 0.5,
+  final_momentum = 0.8,
+  mom_switch_iter = stop_lying_iter + 150,
+  eta = 500,
+  min_gain = 0.01,
+  opt = list("dbd"),
+  exaggeration_factor = 1,
+  stop_lying_iter = max(1, floor(max_iter / 10)),
+  late_exaggeration_factor = 1,
+  start_late_lying_iter = max_iter - max(1, floor(max_iter / 10)),
+  iter0_cost = FALSE,
+  ee_mon_epoch = NULL,
+  ee_mon_wait = 15,
+  ee_mon_buffer = 2,
+  tol_wait = 15,
+  ret_extra = FALSE,
+  n_threads = 0,
+  use_cpp = FALSE,
+  bh = FALSE,
+  theta = 1.0,
+  eps = .Machine$double.eps,
+  inp_kernel = NULL,
+  nn = NULL,
+  verbose = TRUE,
+  prepared = NULL,
+  prepare_only = FALSE
+) {
   if (is.logical(epoch_callback)) {
     if (epoch_callback) {
       epoch_callback <- make_smallvis_cb(X)
@@ -958,36 +1014,6 @@ smallvis <- function(
     }
   } else if (is.function(epoch_callback)) {
     force(epoch_callback)
-  }
-
-  # The embedding method
-  cost_fn <- create_cost(
-    method,
-    perplexity,
-    eps,
-    n_threads,
-    use_cpp,
-    theta = theta,
-    inp_kernel = inp_kernel,
-    nn = nn,
-    bh = bh,
-    supplied = names(match.call())
-  )
-
-  controls <- lmerge(
-    cost_fn$smallvis_controls,
-    list(
-      perplexity = perplexity,
-      use_cpp = use_cpp,
-      n_threads = n_threads
-    )
-  )
-  perplexity <- controls$perplexity
-  use_cpp <- controls$use_cpp
-  n_threads <- controls$n_threads
-
-  if (!is.null(cost_fn$ndim) && k != cost_fn$ndim) {
-    stop("Barnes-Hut requires k = 2")
   }
 
   if (exaggeration_factor != 1) {
@@ -1008,19 +1034,6 @@ smallvis <- function(
     }
   }
 
-  if (methods::is(pca, "character") && pca == "whiten") {
-    pca <- TRUE
-    whiten <- TRUE
-  } else {
-    whiten <- FALSE
-  }
-  if (pca && initial_dims < k) {
-    stop(
-      "Initial PCA dimensionality must be larger than desired output ",
-      "dimension"
-    )
-  }
-
   start_time <- NULL
   ret_optionals <- c()
   if (methods::is(ret_extra, "character")) {
@@ -1032,38 +1045,36 @@ smallvis <- function(
     start_time <- Sys.time()
   }
 
-  original_dims <- NULL
-  if (methods::is(X, "dist")) {
-    n <- attr(X, "Size")
-    pca <- FALSE
-  } else {
-    if (methods::is(X, "data.frame")) {
-      indexes <- which(vapply(X, is.numeric, logical(1)))
-      tsmessage("Found ", length(indexes), " numeric columns")
-      if (length(indexes) == 0) {
-        stop("No numeric columns found")
-      }
-      X <- X[, indexes, drop = FALSE]
-    }
-
-    original_dims <- ncol(X)
-    X <- scale_input(X, scale, verbose = verbose)
-    preprocessed <- pca_preprocess(
+  initialize_cost <- is.null(prepared)
+  if (initialize_cost) {
+    prepared <- prepare_smallvis_input(
       X,
+      method,
+      perplexity,
+      k,
+      scale,
       pca,
-      whiten,
       initial_dims,
+      eps,
+      n_threads,
+      use_cpp,
+      theta,
+      inp_kernel,
+      nn,
+      bh,
+      supplied = names(match.call()),
       verbose = verbose
     )
-    X <- preprocessed$X
-    pca <- preprocessed$pca
-    n <- nrow(X)
   }
-
-  # Check for NA
-  if (any(is.na(X))) {
-    stop("Input data contains NA: missing data is not allowed")
-  }
+  X <- prepared$X
+  n <- prepared$n
+  pca <- prepared$pca
+  whiten <- prepared$whiten
+  original_dims <- prepared$original_dims
+  cost_fn <- prepared$cost_fn
+  perplexity <- prepared$perplexity
+  use_cpp <- prepared$use_cpp
+  n_threads <- prepared$n_threads
 
   # Fail early as possible if matrix initializer is invalid
   if (methods::is(Y_init, "matrix")) {
@@ -1109,14 +1120,32 @@ smallvis <- function(
     )
   }
 
-  # Initialize the cost function and create P
-  cost_fn <- cost_init(
-    cost_fn,
-    X,
-    max_iter = max_iter,
-    verbose = verbose,
-    ret_extra = ret_optionals
-  )
+  if (nnat(opt$smallvis_uses_function) && nnat(cost_fn$gradient_only)) {
+    stop(
+      "Optimizer '",
+      opt$name,
+      "' requires a matching objective and gradient. ",
+      "Set method option gr_eps = 0, or use a gradient-only optimizer ",
+      "such as 'dbd' or 'adam' with stabilized forces."
+    )
+  }
+
+  # A repeat receives a pristine initialized cost list. R's copy-on-modify
+  # semantics keep exaggeration and optimizer updates local to each run.
+  if (initialize_cost) {
+    cost_fn <- cost_init(
+      cost_fn,
+      X,
+      max_iter = max_iter,
+      verbose = verbose,
+      ret_extra = ret_optionals
+    )
+    prepared$cost_fn <- cost_fn
+  }
+  if (prepare_only) {
+    return(prepared)
+  }
+  prepared <- NULL
 
   # Output Initialization
   if (!is.null(Y_init)) {
@@ -1542,6 +1571,115 @@ smallvis <- function(
   res
 }
 
+# Prepare method and input state without drawing output coordinates. The
+# initialized copy is retained by smallvis_rep and reused across built-in runs.
+prepare_smallvis_input <- function(
+  X,
+  method,
+  perplexity,
+  k,
+  scale,
+  pca,
+  initial_dims,
+  eps,
+  n_threads,
+  use_cpp,
+  theta,
+  inp_kernel,
+  nn,
+  bh,
+  supplied,
+  verbose
+) {
+  # The embedding method
+  cost_fn <- create_cost(
+    method,
+    perplexity,
+    eps,
+    n_threads,
+    use_cpp,
+    theta = theta,
+    inp_kernel = inp_kernel,
+    nn = nn,
+    bh = bh,
+    supplied = supplied
+  )
+
+  controls <- lmerge(
+    cost_fn$smallvis_controls,
+    list(
+      perplexity = perplexity,
+      use_cpp = use_cpp,
+      n_threads = n_threads
+    )
+  )
+  perplexity <- controls$perplexity
+  use_cpp <- controls$use_cpp
+  n_threads <- controls$n_threads
+
+  if (!is.null(cost_fn$ndim) && k != cost_fn$ndim) {
+    stop("Barnes-Hut requires k = 2")
+  }
+
+  if (methods::is(pca, "character") && pca == "whiten") {
+    pca <- TRUE
+    whiten <- TRUE
+  } else {
+    whiten <- FALSE
+  }
+  if (pca && initial_dims < k) {
+    stop(
+      "Initial PCA dimensionality must be larger than desired output ",
+      "dimension"
+    )
+  }
+
+  original_dims <- NULL
+  if (methods::is(X, "dist")) {
+    n <- attr(X, "Size")
+    pca <- FALSE
+  } else {
+    if (methods::is(X, "data.frame")) {
+      indexes <- which(vapply(X, is.numeric, logical(1)))
+      tsmessage("Found ", length(indexes), " numeric columns")
+      if (length(indexes) == 0) {
+        stop("No numeric columns found")
+      }
+      X <- X[, indexes, drop = FALSE]
+    }
+
+    original_dims <- ncol(X)
+    X <- scale_input(X, scale, verbose = verbose)
+    preprocessed <- pca_preprocess(
+      X,
+      pca,
+      whiten,
+      initial_dims,
+      verbose = verbose
+    )
+    X <- preprocessed$X
+    pca <- preprocessed$pca
+    n <- nrow(X)
+  }
+
+  # Check for NA
+  if (any(is.na(X))) {
+    stop("Input data contains NA: missing data is not allowed")
+  }
+
+  list(
+    X = X,
+    n = n,
+    pca = pca,
+    whiten = whiten,
+    original_dims = original_dims,
+    cost_fn = cost_fn,
+    perplexity = perplexity,
+    use_cpp = use_cpp,
+    n_threads = n_threads
+  )
+}
+
 create_cost <- function(
   method,
   perplexity,
@@ -1741,10 +1879,7 @@ ret_value <- function(
       res$whiten_dims <- whiten
     }
 
-    if (is.null(cost_fn$pcost)) {
-      cost_fn <- cost_grad(cost_fn, Y)
-      cost_fn <- cost_point(cost_fn, Y)
-    }
+    cost_fn <- cost_point(cost_clear(cost_fn), Y)
     res$costs <- cost_fn$pcost
 
     if (!is.null(opt_input)) {

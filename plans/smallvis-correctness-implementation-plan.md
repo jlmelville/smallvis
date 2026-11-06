@@ -1,9 +1,9 @@
 # smallvis correctness and maintenance implementation plan
 
-**Status** Phases 1 through 3 completed on 2026-11-05. Implementation stops before Phase 4, as
-requested.
+**Status** Phases 1 through 4 completed on 2026-11-05. Implementation stops before Phase 5.
 
-**Next work** Phase 4 remains pending. Resume its optimizer and diagnostic work only when requested.
+**Next work** Phase 5 remains pending. Resume its allocation and maintenance work only when
+requested.
 
 The [full repository review](smallvis-repository-review-2026-11-05.md) records the observations and
 source locations at `3382ecf`. Its clean Linux package check and 579 passing test expectations are
@@ -362,6 +362,85 @@ must resolve the intended target together rather than silently retaining a neste
   distances. Check each ASNE observation's KL against its own row of P and Q as well as the total.
   Document the current scalar BH cost alongside the per-observation results of other methods.
 
+## Phase 4 implementation and validation
+
+All five Phase 4 groups are implemented against base revision `eb23762`. Phase 5 allocations, bridge
+cleanup, capability documentation, and licensing work remain pending.
+
+Final result construction clears coordinate-dependent caches and evaluates the objective at the
+returned coordinates after undoing exaggeration. It keeps the epoch history separate, including an
+empty history when L-BFGS stops before the first epoch. Repeated starts rank the sum of these final
+contributions, so zero-iteration runs and immediate optimizer termination now have usable scores. A
+forced stop after an earlier epoch checks that ranking cannot reuse that epoch's score.
+
+Built-in repeats prepare scaling, PCA, and input affinities once, then reuse the pristine
+initialized cost list while resetting coordinates and optimizer state. The private preparation and
+run functions keep the existing public signature and method-specific cost lists. No public affinity-
+cache API or new result field was added. Custom constructors retain independent preparation for each
+run. Per-run timing excludes shared input preparation, as documented. Tests count one neighbor
+search across approximate-neighbor repeats, require identical P across starts, independently rescore
+each embedding, and compare fresh runs from captured initial coordinates to detect optimizer or
+exaggeration state leaking between starts. Both matrix returns and `keep_all` are covered.
+
+Perplexity stepping builds preliminary arguments from a copy of the final arguments. Omitted final
+controls remain omitted so epoch, tolerance, and dependent defaults are evaluated for the final
+run's remaining iteration budget. Preliminary runs disable both early and late exaggeration. An
+empty schedule and an explicit zero stepping budget match direct calls. Explicit method-list
+perplexity sets the final target and is temporarily removed for preliminary steps, addressing the
+Phase 3 handoff. Tests compare nonempty schedules with manually composed calls under default and
+explicit controls, and check the observed nested target sequence.
+
+AdaMax now uses an elementwise maximum with a matrix-shaped accumulator and the configured epsilon
+in its denominator. A two-step unequal-gradient oracle includes an always-zero component. UMAP,
+t-UMAP, and LargeVis declare when their force stabilization prevents use with a function-based
+optimizer. Those combinations fail with an actionable error before affinity construction. `gr_eps =
+0` remains supported: directional derivatives agree at three finite-difference scales, and L-BFGS
+runs produce finite output. The normalized t-UMAP variant overrides the inherited restriction
+because it supplies its own matching gradient. The existing exaggeration guard and its regressions
+remain in place.
+
+t-EE now exaggerates P, the attractive weight matrix consumed by its force, instead of changing an
+unused V field. Independent pairwise sums verify factors 1 and 12, restoring P restores the force,
+and a public optimization distinguishes exaggerated and ordinary runs. Gaussian output weights
+exclude self from the exponent shift. Conditional probabilities shift each row, globally normalized
+probabilities use one shared shift, and optional multiplicative weights enter before shifting. The
+existing probability floor is retained. Widely separated ASNE and SSNE coordinates yield finite
+probabilities and costs matching independent shifted-weight calculations.
+
+Affinity diagnostics now report incoming column sums, outgoing row sums, and half their sum. Squared
+MDS exports the square roots of its stored squared distances. ASNE caches row entropy for row KL
+costs; its bandwidth variants use the same axis, including Student-output btasne. Regression
+fixtures verify each row contribution, since the former mixed-axis result could pass a total-cost
+check. Help describes final contributions, epoch history, and the scalar Barnes–Hut objective.
+
+The new regressions are in [final results](../smallvis/tests/testthat/test_final_results.R),
+[repeated inputs](../smallvis/tests/testthat/test_repeated_inputs.R),
+[perplexity stepping](../smallvis/tests/testthat/test_perpstep.R),
+[optimizer contracts](../smallvis/tests/testthat/test_optimizer_contracts.R), and
+[output diagnostics](../smallvis/tests/testthat/test_output_diagnostics.R).
+The small [objective helper](../smallvis/tests/testthat/helper_objectives.R) evaluates t-SNE from
+ordinary distances without using the package cost implementation.
+
+Validation used R 4.5.2 and GCC 15.2 on Linux.
+
+- `testthat::test_local()` passed 931 expectations with no failures, errors, or skips. The 129 new
+  expectations pass without warnings. The full suite's seven partial-argument warnings are the
+  established baseline warnings. Existing numerical trajectory fixtures remain unchanged.
+- The new regression groups were also run against archived Phase 3 source and reproduced failures in
+  all five groups, including missing/stale scores, repeat preparation, wrapper controls, optimizer
+  arithmetic and compatibility, and probability/diagnostic calculations.
+- A clean source build and `R CMD check --no-manual` passed with status OK. This checks the
+  installed package, examples, and complete packaged tests. Dependencies were already installed.
+- Air, the repository's loaded-namespace lintr check, and `git diff --check` passed. Roxygen help
+  was regenerated from source. No C++ source or generated Rcpp bridge changed. Windows was not
+  checked locally.
+
+The temporary evidence directory is `/tmp/smallvis-phase4.620cgjja`. It contains `suite.log`,
+`focused.log`, `before-tests.log`, `format.log`, `lint.log`, `roxygen.log`, and
+`check/smallvis.Rcheck/00check.log`. The package check commands below remain applicable. Applied
+files were compared byte for byte with the tested candidate. The earlier t-ASNE and experiment files
+remain in stash `1bc0e8f888be8064874928e86dde501b8ae41958` and were not restored.
+
 ## Phase 5. Reduce allocations and document supported behavior
 
 - Measure dense t-SNE peak memory and iteration time in fresh processes on the same fixed input,
@@ -400,5 +479,5 @@ The following are separate choices after the fixes:
   distributed execution, and broad benchmark infrastructure until a concrete workload calls for
   them.
 
-**Progress on 2026-11-05** Phases 1 through 3, their regressions, native validation for the
-first two phases, and Phase 3 package checks are complete. Phases 4 and 5 are pending.
+**Progress on 2026-11-05** Phases 1 through 4, their regressions, native validation for the
+first two phases, and package checks are complete. Phase 5 is pending.

@@ -154,7 +154,7 @@ tee <- function(
       cost
     },
     exaggerate = function(cost, exaggeration_factor) {
-      cost$V <- cost$V * exaggeration_factor
+      cost$P <- cost$P * exaggeration_factor
       cost
     }
   )

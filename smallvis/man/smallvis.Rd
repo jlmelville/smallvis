@@ -287,11 +287,14 @@ If \code{ret_extra} is \code{FALSE}, the embedded output coordinates
 \item{\code{time_secs}} Time taken for the embedding, in seconds.
 \item{\code{perplexity}} Target perplexity of the input probabilities, as
   specified by the \code{perplexity} parameter.
-\item{\code{costs}} Embedding error associated with each observation. This is
-  the sum of the absolute value of each component of the KL cost that the
-  observation is associated with, so don't expect these to sum to the
-  reported KL cost.
-\item{\code{itercosts}} KL cost at each epoch.
+\item{\code{costs}} Contributions to the objective evaluated at the returned
+  coordinates, after removing exaggeration. Their sum is the final objective.
+  ASNE and its bandwidth variants report one conditional KL divergence per
+  row. Other dense methods generally group pairwise terms by column.
+  Barnes-Hut t-SNE returns a single scalar objective.
+\item{\code{itercosts}} Objective values recorded at epochs. This history
+  can be empty if an optimizer stops before the first epoch. Values recorded
+  during exaggeration need not match the final unexaggerated objective.
 \item{\code{opt}} List containing optimization parameters. For the default
   delta-bar-delta method, \code{mom_switch_iter}, \code{momentum},
   \code{final_momentum} and \code{eta}. Otherwise, the contents of the
@@ -760,6 +763,11 @@ one gradient calculation), you may wish to set the \code{"step_tol"}
 (minimum step size) and/or \code{"max_gr"} (maximum number of gradient
 evaluation) settings in the list to keep the number of calculations these
 optimization methods use comparable to the default settings.
+
+Function-based optimizers require a matching objective and gradient.
+For UMAP, t-UMAP, and LargeVis, set method option \code{gr_eps = 0};
+their default stabilized forces require a gradient-only optimizer. Early
+and late exaggeration also require a gradient-only optimizer.
 
 See the examples for the use of alternative optimizers interface. For best
 results, you may also consider using the \code{\link{smallvis_perpstep}}
