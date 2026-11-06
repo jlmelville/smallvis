@@ -15,7 +15,9 @@ combination of the two will balance global and local structure.
 
 The g-SNE cost function is:
 
-$$C = \sum_{ij} p_{ij} \log \frac{p_{ij}}{q_{ij}} + \lambda \sum_{ij} \hat{p}_{ij} \log \frac{\hat{p_{ij}}}{\hat{q}_{ij}}$$
+$$
+C = \sum_{ij} p_{ij} \log \frac{p_{ij}}{q_{ij}} + \lambda \sum_{ij} \hat{p}_{ij} \log \frac{\hat{p}_{ij}}{\hat{q}_{ij}}
+$$
 
 with $\lambda$ being a weighting factor as in NeRV, the un-hatted part of the
 cost function being the same as t-SNE, and the hatted quantities referring to
@@ -25,14 +27,15 @@ $$\hat{w}_{ij} = 1 + d_{ij}^2 = \frac{1}{w_{ij}}$$
 
 The gradient is:
 
-$$\frac{\partial C}{\partial \mathbf{y_i}} =
+$$
+\frac{\partial C}{\partial \mathbf{y}_i} =
   4
   \sum_j
   \left[
     \left(p_{ij} - q_{ij}\right) -\lambda \left( \hat{p}_{ij} - \hat{q}_{ij} \right)
   \right]w_{ij}
   \left(
-   \mathbf{y_i - y_j}
+   \mathbf{y}_i - \mathbf{y}_j
   \right)
 $$
 

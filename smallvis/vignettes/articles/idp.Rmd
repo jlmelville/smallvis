@@ -82,8 +82,7 @@ $$D = \max_{U} \hat{\delta}_U$$
 The IDP is then:
 
 $$
-\DeclareMathOperator*{\argmax}{arg\,max}
-IDP = \argmax_{U} \hat{\delta}_{U}
+\mathrm{IDP} = \operatorname*{arg\,max}_{U} \hat{\delta}_{U}
 $$
 
 ### Multiple IDPs?

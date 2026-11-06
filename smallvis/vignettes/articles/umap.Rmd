@@ -54,7 +54,7 @@ function to `1`.
 The gradient for t-UMAP is therefore:
 
 $$
-\frac{\partial C_{t-UMAP}}{\partial \mathbf{y_i}} =
+\frac{\partial C_{\text{t-UMAP}}}{\partial \mathbf{y}_i} =
   4\sum_j^N
 \left(
    v_{ij}
@@ -62,12 +62,12 @@ $$
   w_{ij}
 \right)
    \frac{1}{d_{ij}^2}
-   \left(\mathbf{y_i - y_j}\right)
+   \left(\mathbf{y}_i - \mathbf{y}_j\right)
 $$
 which can also be written as:
 
 $$
-\frac{\partial C_{t-UMAP}}{\partial \mathbf{y_i}} =
+\frac{\partial C_{\text{t-UMAP}}}{\partial \mathbf{y}_i} =
   4\sum_j^N
 \left(
    v_{ij}
@@ -75,7 +75,7 @@ $$
   w_{ij}
 \right)
    \frac{w_{ij}}{1 - w_{ij}}
-   \left(\mathbf{y_i - y_j}\right)
+   \left(\mathbf{y}_i - \mathbf{y}_j\right)
 $$
 
 ### Normalized t-UMAP
@@ -88,7 +88,7 @@ the results and the ease of optimization was.
 The gradient for normalized t-UMAP is:
 
 $$
-\frac{\partial C_{nt-UMAP}}{\partial \mathbf{y_i}} =
+\frac{\partial C_{\text{nt-UMAP}}}{\partial \mathbf{y}_i} =
   4\sum_j^N
 \left(
    \frac{p_{ij} - q_{ij}}{1 - q_{ij}}
@@ -97,7 +97,7 @@ $$
     q_{ij}
 \right)
    w_{ij}
-   \left(\mathbf{y_i - y_j}\right)
+   \left(\mathbf{y}_i - \mathbf{y}_j\right)
 $$
 
 I'm sure there's a nicer or clearer or more efficient way to express that, but

@@ -108,9 +108,9 @@ $$
 and the gradient is:
 
 $$
-\frac{\partial C_{EE}}{\partial \mathbf{y_i}} =
+\frac{\partial C_{\mathrm{EE}}}{\partial \mathbf{y}_i} =
 4\sum_j^N \left( v_{ij}^{+} - \lambda v_{ij}^{-}{w_{ij}} \right)
-\left(\mathbf{y_i - y_j}\right)
+\left(\mathbf{y}_i - \mathbf{y}_j\right)
 $$
 
 

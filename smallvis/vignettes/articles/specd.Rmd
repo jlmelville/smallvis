@@ -49,7 +49,7 @@ subsequent values of $\alpha$ with the final result from the previous iteration.
 This is, as the authors note, a conservative strategy because the line search
 can never grow again, and if one iteration rejects the Newton step, it can
 never be tried again. van der Maarten's experiments use a normal Wolfe line
-search, with $c1 = 0.02$ and $c2 = 0.9$. The
+search, with $c_1 = 0.02$ and $c_2 = 0.9$. The
 [L-BFGS](opt.html) results hardly shone
 when using a full Wolfe line search (which is a requirement for the
 quasi-Newton methods). So we will try two strategies: the first will be to use

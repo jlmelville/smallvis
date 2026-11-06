@@ -26,7 +26,7 @@ least not a very popular or well-known technique.
 The generic elastic embedding cost function is:
 
 $$
-C_{EE} = -\sum_{ij}^{N} v_{ij}^{+} \log w_{ij} + \lambda \sum_{ij}^{N} v_{ij}^{-} w_{ij}
+C_{\mathrm{EE}} = -\sum_{ij}^{N} v_{ij}^{+} \log w_{ij} + \lambda \sum_{ij}^{N} v_{ij}^{-} w_{ij}
 $$
 
 where $N$ is the number of observations in the dataset, $i$ and $j$ are indexes
@@ -45,7 +45,7 @@ Here, I propose a simplified cost function for t-distributed Elastic Embedding
 (t-EE)
 
 $$
-C_{t-EE} = -\frac{1}{N}\sum_{ij}^{N} v_{ij} \log w_{ij} + \frac{\lambda}{N} \sum_{ij}^{N} w_{ij}
+C_{\text{t-EE}} = -\frac{1}{N}\sum_{ij}^{N} v_{ij} \log w_{ij} + \frac{\lambda}{N} \sum_{ij}^{N} w_{ij}
 $$
 
 The t-EE cost function differs from EE by:
@@ -65,12 +65,15 @@ we will see below.
 It would be nice if the cost function was zero when the output weights perfectly
 reproduce the input weights, as with the Kullback-Leibler divergence used by
 t-SNE. As long as we don't add any terms involving $w_{ij}$, we can make this
-happen without affecting the EE gradient. We would like $C_{t-EE} = 0$ when
+happen without affecting the EE gradient. We would like $C_{\text{t-EE}} = 0$ when
 $v_{ij} = w_{ij}$. Let's add an extra constant, $C_{v}$, that only involves
 $v_{ij}$ (and maybe $\lambda$), and we can write:
 
 $$
-C_{t-EE} = -\frac{1}{N}\sum_{ij}^{N} v_{ij} \log v_{ij} + \frac{\lambda}{N} \sum_{ij}^{N} v_{ij} + C_{v} = 0
+\begin{aligned}
+C_{\text{t-EE}} &= -\frac{1}{N}\sum_{ij}^{N} v_{ij} \log v_{ij} + \frac{\lambda}{N} \sum_{ij}^{N} v_{ij} + C_{v} \\
+ &= 0
+\end{aligned}
 $$
 and then, knowing that $\sum_{ij}^{N} v_{ij} = N$, we have:
 
@@ -81,14 +84,14 @@ $$
 so the cost function can be written as:
 
 $$
-C_{t-EE} = \frac{1}{N}\sum_{ij}^{N} v_{ij} \log v_{ij} -\frac{1}{N}\sum_{ij}^{N} v_{ij} \log w_{ij} + \frac{\lambda}{N}  \sum_{ij}^{N} w_{ij} - \lambda
+C_{\text{t-EE}} = \frac{1}{N}\sum_{ij}^{N} v_{ij} \log v_{ij} -\frac{1}{N}\sum_{ij}^{N} v_{ij} \log w_{ij} + \frac{\lambda}{N}  \sum_{ij}^{N} w_{ij} - \lambda
 $$
 The first two terms can be combined to give a Kullback-Leibler-like expression,
 and we can group the $\lambda$ expressions too (and I have also rewritten
 $N$ as $\sum_{ij}^{N} v_{ij}$)
 
 $$
-C_{t-EE} = \frac{1}{N} \left[ \sum_{ij}^{N} v_{ij} \log \frac{v_{ij}}{w_{ij}} + \lambda \left(\sum_{ij}^{N} w_{ij} - \sum_{ij}^{N} v_{ij}\right) \right]
+C_{\text{t-EE}} = \frac{1}{N} \left[ \sum_{ij}^{N} v_{ij} \log \frac{v_{ij}}{w_{ij}} + \lambda \left(\sum_{ij}^{N} w_{ij} - \sum_{ij}^{N} v_{ij}\right) \right]
 $$
 
 This expression is basically the same as the I-divergence (also called the
@@ -103,10 +106,10 @@ at least set a lower bound on $\lambda$.
 ### Gradient
 
 Whichever version of the cost function you prefer the gradient of t-EE with
-respect to the output coordinate of point $i$, $\mathbf{y_i}$, is:
+respect to the output coordinate of point $i$, $\mathbf{y}_i$, is:
 
 $$
-\frac{\partial C_{t-EE}}{\partial \mathbf{y_i}} = \frac{4}{N} \sum_{j}^N \left(v_{ij} - \lambda w_{ij} \right) w_{ij} \left(\mathbf{y_i - y_j}\right)
+\frac{\partial C_{\text{t-EE}}}{\partial \mathbf{y}_i} = \frac{4}{N} \sum_{j}^N \left(v_{ij} - \lambda w_{ij} \right) w_{ij} \left(\mathbf{y}_i - \mathbf{y}_j\right)
 $$
 
 If we were to define $\lambda$ at each iteration as $N / Z$ where

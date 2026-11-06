@@ -43,7 +43,8 @@ values with those tried here, take the reciprocal of their reported values.
 
 The HSSNE gradient is:
 
-$$\frac{\partial C}{\partial \mathbf{y_i}} =
+$$
+\frac{\partial C}{\partial \mathbf{y}_i} =
   4
   \sum_j
   \left(
@@ -51,7 +52,7 @@ $$\frac{\partial C}{\partial \mathbf{y_i}} =
   \right)
   w_{ij}^\alpha
   \left(
-   \mathbf{y_i - y_j}
+   \mathbf{y}_i - \mathbf{y}_j
   \right)
 $$
 

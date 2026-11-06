@@ -36,7 +36,7 @@ dataset.
 First, let's recap our current approach. For each point in the dataset, we
 calculate the un-normalized input weight matrix, $\mathbf{V}$, which is
 associated with a perplexity, $U$. From there the soft correlation dimension for
-point $i$ and perplexity $U$, $D_{i, U}$, can be written as:
+point $i$ and perplexity $U$, $\delta_{i, U}$, can be written as:
 
 $$
 \delta_{i, U} = \frac{2}{V_i}
@@ -62,8 +62,7 @@ $$D = \max_{U} \hat{\delta}_U$$
 The IDP is then:
 
 $$
-\DeclareMathOperator*{\argmax}{arg\,max}
-IDP = \argmax_{U} \hat{\delta}_U
+\mathrm{IDP} = \operatorname*{arg\,max}_{U} \hat{\delta}_U
 $$
 
 ## Class IDP

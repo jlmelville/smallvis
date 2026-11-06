@@ -23,7 +23,14 @@ Cichocki and co-workers came up with the
 [earlier paper](https://doi.org/10.3390/e12061532)), which generalizes a whole
 load of divergences:
 
-$$C =\frac{1}{\alpha \beta} \sum_{ij} -p_{ij}^{\alpha} q_{ij}^{\beta} + \frac{\alpha}{\alpha + \beta}p_{ij}^{\alpha + \beta} + \frac{\beta}{\alpha + \beta}q_{ij}^{\alpha + \beta}$$
+$$
+C = \frac{1}{\alpha \beta} \sum_{ij}
+\left[
+  -p_{ij}^{\alpha} q_{ij}^{\beta}
+  + \frac{\alpha}{\alpha + \beta}p_{ij}^{\alpha + \beta}
+  + \frac{\beta}{\alpha + \beta}q_{ij}^{\alpha + \beta}
+\right]
+$$
 
 $\alpha$ and $\beta$ are free parameters. By twiddling these values, just how
 many divergences does this bad boy generalize? A LOT, including nearly all of
@@ -75,7 +82,7 @@ can also lead to simpler gradient expressions. We'll look at both below.
 The ABSNE gradient is:
 
 $$
-\frac{\partial C}{\partial \mathbf{y_i}} =
+\frac{\partial C}{\partial \mathbf{y}_i} =
   \frac{4}{\alpha} \sum_j
 \left[
   p_{ij}^{\alpha} q_{ij}^{\beta - 1} - q_{ij}^{\alpha + \beta - 1} -
@@ -83,7 +90,7 @@ $$
 \right]
 q_{ij}w_{ij}
 \left(
- \mathbf{y_i - y_j}
+ \mathbf{y}_i - \mathbf{y}_j
 \right)
 $$
 
@@ -99,7 +106,7 @@ The equation above is the form of the gradient given in the ABSNE paper, but
 computationally speaking you might prefer to write the gradient as:
 
 $$
-\frac{\partial C}{\partial \mathbf{y_i}} =
+\frac{\partial C}{\partial \mathbf{y}_i} =
   \frac{4}{\alpha} \sum_j
 \left[
     p_{ij}^{\alpha} q_{ij}^{\beta} - q_{ij}^{\lambda}
@@ -110,7 +117,7 @@ $$
 \right]
 w_{ij}
 \left(
- \mathbf{y_i - y_j}
+ \mathbf{y}_i - \mathbf{y}_j
 \right)
 $$
 
@@ -131,12 +138,13 @@ with the special forms of the cost functions.
 ABSNE always uses the t-SNE kernel, so the generic gradient can be written
 as:
 
-$$\frac{\partial C}{\partial \mathbf{y_i}} =
+$$
+\frac{\partial C}{\partial \mathbf{y}_i} =
   4
   \sum_j
     k_{ij}
   \left(
-   \mathbf{y_i - y_j}
+   \mathbf{y}_i - \mathbf{y}_j
   \right)
 $$
 
@@ -170,7 +178,7 @@ $$
 $$
 
 $$
-\frac{\partial C}{\partial \mathbf{y_i}} =
+\frac{\partial C}{\partial \mathbf{y}_i} =
   \frac{4}{\alpha} \sum_j
 \left[
     p_{ij}^{\alpha}
@@ -182,7 +190,7 @@ $$
 \right]
 w_{ij}
 \left(
- \mathbf{y_i - y_j}
+ \mathbf{y}_i - \mathbf{y}_j
 \right)
 $$
 You don't need a special version of the gradient for this expression, it falls
@@ -209,7 +217,7 @@ $$
 $$
 
 $$
-\frac{\partial C}{\partial \mathbf{y_i}} =
+\frac{\partial C}{\partial \mathbf{y}_i} =
   \frac{4}{\alpha} \sum_j
 \left[
   \frac{p_{ij}^{\alpha}}{q_{ij}^\alpha}
@@ -222,7 +230,7 @@ $$
 \right]
 w_{ij}
 \left(
- \mathbf{y_i - y_j}
+ \mathbf{y}_i - \mathbf{y}_j
 \right)
 $$
 This can also be derived from the standard gradient. The $\sum_{kl} 1$ term
@@ -253,7 +261,7 @@ $$
 $$
 
 $$
-\frac{\partial C}{\partial \mathbf{y_i}} =
+\frac{\partial C}{\partial \mathbf{y}_i} =
   \frac{4}{\beta} \sum_j
 \left[
   q_{ij}^\beta \log p_{ij}^{\beta}
@@ -266,7 +274,7 @@ $$
 \right]
 w_{ij}
 \left(
- \mathbf{y_i - y_j}
+ \mathbf{y}_i - \mathbf{y}_j
 \right)
 $$
 You could potentially simplify the $\log q_{ij}^{\beta}$ terms by pulling a
@@ -291,7 +299,7 @@ $$
 $$
 
 $$
-\frac{\partial C}{\partial \mathbf{y_i}} =
+\frac{\partial C}{\partial \mathbf{y}_i} =
   4 \sum_j
 \left[
   \log p_{ij} - \log q_{ij}
@@ -303,7 +311,7 @@ $$
 \right]
 w_{ij}
 \left(
- \mathbf{y_i - y_j}
+ \mathbf{y}_i - \mathbf{y}_j
 \right)
 $$
 
