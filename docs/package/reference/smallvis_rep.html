@@ -80,6 +80,12 @@ result with the lowest cost.</p>
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>This function ignores any value of <code>Y_init</code> you set, and uses
 <code>Y_init = "rand"</code>.</p>
+<p>Built-in methods prepare input scaling, PCA, and affinities once. All starts
+share that input graph, including when using approximate neighbors, and
+each start resets its coordinates and optimizer state. Custom constructors
+prepare their input separately for each run. Runs are ranked by the sum of
+<code>costs</code> at their returned coordinates, independently of epoch history.
+Per-run <code>time_secs</code> excludes the shared input preparation.</p>
     </div>
 
     <div class="section level2">
@@ -91,7 +97,7 @@ result with the lowest cost.</p>
 <span class="r-in"><span>  verbose <span class="op">=</span> <span class="cn">FALSE</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/range.html" class="external-link">range</a></span><span class="op">(</span><span class="va">best</span><span class="op">$</span><span class="va">all_costs</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 0.1421794 0.2018069</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 0.1422566 0.2014743</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
 <span class="r-in"><span><span class="co"># Return best result out of five random initializations</span></span></span>

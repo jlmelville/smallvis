@@ -45,6 +45,14 @@ giving the index of the result with the lowest cost.
 This function ignores any value of `Y_init` you set, and uses
 `Y_init = "rand"`.
 
+Built-in methods prepare input scaling, PCA, and affinities once. All
+starts share that input graph, including when using approximate
+neighbors, and each start resets its coordinates and optimizer state.
+Custom constructors prepare their input separately for each run. Runs
+are ranked by the sum of `costs` at their returned coordinates,
+independently of epoch history. Per-run `time_secs` excludes the shared
+input preparation.
+
 ## Examples
 
 ``` r
@@ -55,7 +63,7 @@ best <- smallvis_rep(
   verbose = FALSE
 )
 range(best$all_costs)
-#> [1] 0.1421794 0.2018069
+#> [1] 0.1422566 0.2014743
 
 if (FALSE) { # \dontrun{
 # Return best result out of five random initializations

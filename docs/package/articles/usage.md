@@ -309,8 +309,8 @@ have added:
   originally authored by [Pavlin
   Poličar](https://github.com/pavlin-policar). It’s BSD 3-clause
   licensed (and can be found in `src/bh.h`). Use it with
-  `method = "bhtsne"`. The degree of approximation can be controlled
-  with `theta`. Be aware that it’s not as fast as e.g.
+  `method = "tsne", bh = TRUE`. The degree of approximation can be
+  controlled with `theta`. Be aware that it’s not as fast as e.g.
   [Rtsne](https://github.com/jkrijthe/Rtsne), at least during the
   optimization step. That package uses Laurens van der Maaten’s original
   C++ code which I am very unsure can be redistributed with R code due

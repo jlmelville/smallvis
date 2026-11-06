@@ -369,15 +369,14 @@ This uses a (2D only) C++ translation of the cython implementation in
 the Python <a href="https://github.com/pavlin-policar/openTSNE" class="external-link">openTSNE</a> package
 originally authored by <a href="https://github.com/pavlin-policar" class="external-link">Pavlin Poličar</a>. It’s BSD
 3-clause licensed (and can be found in <code>src/bh.h</code>). Use it
-with <code>method = "bhtsne"</code>. The degree of approximation can be
-controlled with <code>theta</code>. Be aware that it’s not as fast as
-e.g. <a href="https://github.com/jkrijthe/Rtsne" class="external-link">Rtsne</a>, at least
-during the optimization step. That package uses Laurens van der Maaten’s
-original C++ code which I am very unsure can be redistributed with R
-code due to its BSD 4-clause license. I would love to be wrong about
-that though! The Quad Tree implementation could be used with other
-embedding methods, but I haven’t got round to implementing that
-yet.</li>
+with <code>method = "tsne", bh = TRUE</code>. The degree of
+approximation can be controlled with <code>theta</code>. Be aware that
+it’s not as fast as e.g. <a href="https://github.com/jkrijthe/Rtsne" class="external-link">Rtsne</a>, at least during the
+optimization step. That package uses Laurens van der Maaten’s original
+C++ code which I am very unsure can be redistributed with R code due to
+its BSD 4-clause license. I would love to be wrong about that though!
+The Quad Tree implementation could be used with other embedding methods,
+but I haven’t got round to implementing that yet.</li>
 <li>A C++ multi-threaded perplexity search using only the nearest
 neighbors of each point (3 times the perplexity) is used with BH
 t-SNE.</li>

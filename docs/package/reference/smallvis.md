@@ -57,7 +57,8 @@ smallvis(
 
 - k:
 
-  Number of output dimensions for the embedding.
+  Number of output dimensions for the embedding. Barnes-Hut t-SNE
+  requires `k = 2`.
 
 - scale:
 
@@ -67,6 +68,7 @@ smallvis(
   `"absmax"`, here the columns are mean centered and then the elements
   divided by absolute maximum value; `"scale"` does the same as using
   `TRUE`. To use the input data as-is, use `FALSE`, `NULL` or `"none"`.
+  Normalizing an all-constant input produces an informative error.
 
 - Y_init:
 
@@ -85,6 +87,9 @@ smallvis(
   method `"umap"`, controls the neighborhood size for parameterizing the
   smoothed k-nearest neighbor distances. See also the 'Intrinsic
   dimensionality perplexity' and 'Multiscale perplexities' sections.
+  Gaussian calibration requires each target to be finite and between 1
+  and the number of observations minus 1. Failed native calibrations use
+  fallback affinities and report their count in a warning.
 
 - max_iter:
 
@@ -103,13 +108,19 @@ smallvis(
 - initial_dims:
 
   If carrying out PCA or whitening, the number of principal components
-  to keep. Must be no greater than the rank of the input or no PCA or
-  whitening will be carried out.
+  to keep. PCA runs when this is no greater than
+  `min(nrow(X) - 1, ncol(X))` after scaling and filtering. Otherwise
+  input preprocessing is skipped.
 
 - method:
 
   A neighbor embedding method. See "Details" and "Method-specific
-  options" for greater control.
+  options" for greater control. A string or a list starting with that
+  string uses the same constructor and shared controls. Named options in
+  the list override the corresponding top-level values.
+  Constructor-specific defaults apply to other method options. A custom
+  constructor function receives perplexity and any explicitly supplied
+  shared controls present in its formals.
 
 - epoch_callback:
 
@@ -272,7 +283,9 @@ smallvis(
 
   If `TRUE` use multi-threaded C++ code for some calculations. Default
   is `FALSE`. This won't speed up all steps and you will want to use
-  this in conjunction with `n_threads`.
+  this in conjunction with `n_threads`. The specialized gradient and
+  Student-weight kernels require two output dimensions. Other dimensions
+  use the general R calculations for those steps.
 
 - bh:
 
@@ -294,7 +307,10 @@ smallvis(
   Set epsilon for avoiding division-by-zero errors. Default is
   `.Machine$double.eps`, but if you see inconsistent convergence results
   with optimizer that should be reducing the cost each iteration, then
-  try setting this to a larger value, e.g. between `1e-3 - 1e-9`.
+  try setting this to a larger value, e.g. between `1e-3 - 1e-9`. For
+  Barnes-Hut, epsilon is added to the sum of non-self Student weights in
+  both the cost and gradient. Points share a leaf only at identical
+  coordinates.
 
 - inp_kernel:
 
@@ -318,7 +334,8 @@ smallvis(
 
 - nn:
 
-  Method for finding nearest neighbors. Possible values are:
+  Method for finding neighbors for t-SNE neighbor input kernels,
+  including Barnes-Hut t-SNE. Possible values are:
 
   - `"exact"` Exact nearest neighbors.
 
@@ -327,7 +344,7 @@ smallvis(
   Approximate nearest neighbors are faster for large datasets and
   usually the small loss in accuracy is not a problem. The default is
   `NULL`, where each method gets to choose the best method for its
-  needs.
+  needs. Precomputed distance inputs use exact neighbor lookup.
 
 - verbose:
 
@@ -358,12 +375,15 @@ Otherwise, a list with the following items:
 - `perplexity` Target perplexity of the input probabilities, as
   specified by the `perplexity` parameter.
 
-- `costs` Embedding error associated with each observation. This is the
-  sum of the absolute value of each component of the KL cost that the
-  observation is associated with, so don't expect these to sum to the
-  reported KL cost.
+- `costs` Contributions to the objective evaluated at the returned
+  coordinates, after removing exaggeration. Their sum is the final
+  objective. ASNE and its bandwidth variants report one conditional KL
+  divergence per row. Other dense methods generally group pairwise terms
+  by column. Barnes-Hut t-SNE returns a single scalar objective.
 
-- `itercosts` KL cost at each epoch.
+- `itercosts` Objective values recorded at epochs. This history can be
+  empty if an optimizer stops before the first epoch. Values recorded
+  during exaggeration need not match the final unexaggerated objective.
 
 - `opt` List containing optimization parameters. For the default
   delta-bar-delta method, `mom_switch_iter`, `momentum`,
@@ -444,7 +464,8 @@ to the `method` parameter are:
 - `"tsne"` t-Distributed Stochastic Neighbor Embedding (van der Maaten
   and Hinton, 2008).
 
-- `"bhtsne"` Barnes-Hut t-SNE (van der Maaten, 2014).
+- Barnes-Hut t-SNE (van der Maaten, 2014), selected with
+  `method = "tsne", bh = TRUE`.
 
 - `"largevis"` the cost function of the LargeVis algorithm (Tang et al,
   2016). Input affinities are calculated and symmetrized using the same
@@ -515,10 +536,9 @@ to the `method` parameter are:
 
 - `"gsne"`, The global SNE (g-SNE) method of Zhou and Sharpee (2018).
 
-Note that only the cost function is used from these methods in the
-context of creating the full distance matrix as part of the gradient
-calculation. None of the approximations or other speed-ups (e.g.
-Barnes-Hut or approximate nearest neighbors routines) are used.
+By default, these methods use dense input affinities and gradients. For
+t-SNE, `bh = TRUE` approximates repulsive interactions, and neighbor
+input kernels can use approximate nearest-neighbor search.
 
 ## Method-specific options
 
@@ -872,6 +892,11 @@ one gradient calculation), you may wish to set the `"step_tol"` (minimum
 step size) and/or `"max_gr"` (maximum number of gradient evaluation)
 settings in the list to keep the number of calculations these
 optimization methods use comparable to the default settings.
+
+Function-based optimizers require a matching objective and gradient. For
+UMAP, t-UMAP, and LargeVis, set method option `gr_eps = 0`; their
+default stabilized forces require a gradient-only optimizer. Early and
+late exaggeration also require a gradient-only optimizer.
 
 See the examples for the use of alternative optimizers interface. For
 best results, you may also consider using the

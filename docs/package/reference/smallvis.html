@@ -95,7 +95,8 @@ variety of neighbor embedding methods.</p>
 
 
 <dt id="arg-k">k<a class="anchor" aria-label="anchor" href="#arg-k"></a></dt>
-<dd><p>Number of output dimensions for the embedding.</p></dd>
+<dd><p>Number of output dimensions for the embedding. Barnes-Hut t-SNE
+requires <code>k = 2</code>.</p></dd>
 
 
 <dt id="arg-scale">scale<a class="anchor" aria-label="anchor" href="#arg-scale"></a></dt>
@@ -105,7 +106,8 @@ variance. Alternatively, you may specify one of the following strings:
 <code>"absmax"</code>, here the columns are mean centered and then the elements
 divided by absolute maximum value; <code>"scale"</code> does the same as using
 <code>TRUE</code>. To use the input data as-is, use <code>FALSE</code>, <code>NULL</code>
-or <code>"none"</code>.</p></dd>
+or <code>"none"</code>. Normalizing an all-constant input produces an
+informative error.</p></dd>
 
 
 <dt id="arg-y-init">Y_init<a class="anchor" aria-label="anchor" href="#arg-y-init"></a></dt>
@@ -124,7 +126,9 @@ standard deviation. See 'Output initialization' section.</p></dd>
 probabilities. For method <code>"umap"</code>, controls the neighborhood size
 for parameterizing the smoothed k-nearest neighbor distances. See also the
 'Intrinsic dimensionality perplexity' and 'Multiscale perplexities'
-sections.</p></dd>
+sections. Gaussian calibration requires each target to be finite and
+between 1 and the number of observations minus 1. Failed native
+calibrations use fallback affinities and report their count in a warning.</p></dd>
 
 
 <dt id="arg-max-iter">max_iter<a class="anchor" aria-label="anchor" href="#arg-max-iter"></a></dt>
@@ -143,13 +147,19 @@ equivalent eigenvalues, so that the variance of component is 1.</p></dd>
 
 <dt id="arg-initial-dims">initial_dims<a class="anchor" aria-label="anchor" href="#arg-initial-dims"></a></dt>
 <dd><p>If carrying out PCA or whitening, the number of
-principal components to keep. Must be no greater than the rank of the input
-or no PCA or whitening will be carried out.</p></dd>
+principal components to keep. PCA runs when this is no greater than
+<code>min(nrow(X) - 1, ncol(X))</code> after scaling and filtering.
+Otherwise input preprocessing is skipped.</p></dd>
 
 
 <dt id="arg-method">method<a class="anchor" aria-label="anchor" href="#arg-method"></a></dt>
 <dd><p>A neighbor embedding method. See "Details" and
-"Method-specific options" for greater control.</p></dd>
+"Method-specific options" for greater control. A string or a list starting
+with that string uses the same constructor and shared controls. Named
+options in the list override the corresponding top-level values.
+Constructor-specific defaults apply to other method options. A custom
+constructor function receives perplexity and any explicitly supplied
+shared controls present in its formals.</p></dd>
 
 
 <dt id="arg-epoch-callback">epoch_callback<a class="anchor" aria-label="anchor" href="#arg-epoch-callback"></a></dt>
@@ -315,7 +325,10 @@ nearest neighbors will be affected.</p></dd>
 <dt id="arg-use-cpp">use_cpp<a class="anchor" aria-label="anchor" href="#arg-use-cpp"></a></dt>
 <dd><p>If <code>TRUE</code> use multi-threaded C++ code for some
 calculations. Default is <code>FALSE</code>. This won't speed up all steps and
-you will want to use this in conjunction with <code>n_threads</code>.</p></dd>
+you will want to use this in conjunction with <code>n_threads</code>. The
+specialized gradient and Student-weight kernels require two output
+dimensions. Other dimensions use the general R calculations for those
+steps.</p></dd>
 
 
 <dt id="arg-bh">bh<a class="anchor" aria-label="anchor" href="#arg-bh"></a></dt>
@@ -339,7 +352,10 @@ the <code>Rtsne</code> package. Set to 0.0 for exact t-SNE. Applies only for
 <dd><p>Set epsilon for avoiding division-by-zero errors. Default is
 <code>.Machine$double.eps</code>, but if you see inconsistent convergence results
 with optimizer that should be reducing the cost each iteration, then try
-setting this to a larger value, e.g. between <code>1e-3 - 1e-9</code>.</p></dd>
+setting this to a larger value, e.g. between <code>1e-3 - 1e-9</code>. For
+Barnes-Hut, epsilon is added to the sum of non-self Student weights in
+both the cost and gradient. Points share a leaf only at identical
+coordinates.</p></dd>
 
 
 <dt id="arg-inp-kernel">inp_kernel<a class="anchor" aria-label="anchor" href="#arg-inp-kernel"></a></dt>
@@ -359,11 +375,13 @@ a similarity of <code>1/perplexity</code>. This can be a lot faster than using
 
 
 <dt id="arg-nn">nn<a class="anchor" aria-label="anchor" href="#arg-nn"></a></dt>
-<dd><p>Method for finding nearest neighbors. Possible values are:</p><ul><li><p><code>"exact"</code> Exact nearest neighbors.</p></li>
+<dd><p>Method for finding neighbors for t-SNE neighbor input kernels,
+ including Barnes-Hut t-SNE. Possible values are:</p><ul><li><p><code>"exact"</code> Exact nearest neighbors.</p></li>
 <li><p><code>"approximate"</code> Approximate nearest neighbors.</p></li>
 </ul><p>Approximate nearest neighbors are faster for large datasets and usually the
 small loss in accuracy is not a problem. The default is <code>NULL</code>, where
-each method gets to choose the best method for its needs.</p></dd>
+each method gets to choose the best method for its needs. Precomputed
+distance inputs use exact neighbor lookup.</p></dd>
 
 
 <dt id="arg-verbose">verbose<a class="anchor" aria-label="anchor" href="#arg-verbose"></a></dt>
@@ -385,11 +403,14 @@ each method gets to choose the best method for its needs.</p></dd>
 <li><p><code>time_secs</code> Time taken for the embedding, in seconds.</p></li>
 <li><p><code>perplexity</code> Target perplexity of the input probabilities, as
   specified by the <code>perplexity</code> parameter.</p></li>
-<li><p><code>costs</code> Embedding error associated with each observation. This is
-  the sum of the absolute value of each component of the KL cost that the
-  observation is associated with, so don't expect these to sum to the
-  reported KL cost.</p></li>
-<li><p><code>itercosts</code> KL cost at each epoch.</p></li>
+<li><p><code>costs</code> Contributions to the objective evaluated at the returned
+  coordinates, after removing exaggeration. Their sum is the final objective.
+  ASNE and its bandwidth variants report one conditional KL divergence per
+  row. Other dense methods generally group pairwise terms by column.
+  Barnes-Hut t-SNE returns a single scalar objective.</p></li>
+<li><p><code>itercosts</code> Objective values recorded at epochs. This history
+  can be empty if an optimizer stops before the first epoch. Values recorded
+  during exaggeration need not match the final unexaggerated objective.</p></li>
 <li><p><code>opt</code> List containing optimization parameters. For the default
   delta-bar-delta method, <code>mom_switch_iter</code>, <code>momentum</code>,
   <code>final_momentum</code> and <code>eta</code>. Otherwise, the contents of the
@@ -444,7 +465,8 @@ row sums are identical.</p></li>
     <p>Currently supported embedding methods, which can be used as an argument
 to the <code>method</code> parameter are:</p><ul><li><p><code>"tsne"</code> t-Distributed Stochastic Neighbor Embedding
   (van der Maaten and Hinton, 2008).</p></li>
-<li><p><code>"bhtsne"</code> Barnes-Hut t-SNE (van der Maaten, 2014).</p></li>
+<li><p>Barnes-Hut t-SNE (van der Maaten, 2014), selected with
+  <code>method = "tsne", bh = TRUE</code>.</p></li>
 <li><p><code>"largevis"</code> the cost function of the LargeVis algorithm
   (Tang et al, 2016). Input affinities are calculated and symmetrized using
   the same perplexity calibration method as t-SNE, but are not normalized.</p></li>
@@ -496,10 +518,9 @@ to the <code>method</code> parameter are:</p><ul><li><p><code>"tsne"</code> t-Di
   co-workers, 2018).</p></li>
 <li><p><code>"gsne"</code>, The global SNE (g-SNE) method of Zhou and Sharpee
   (2018).</p></li>
-</ul><p>Note that only the cost function is used from these methods in the context
-of creating the full distance matrix as part of the gradient calculation.
-None of the approximations or other speed-ups (e.g. Barnes-Hut or approximate
-nearest neighbors routines) are used.</p>
+</ul><p>By default, these methods use dense input affinities and gradients.
+For t-SNE, <code>bh = TRUE</code> approximates repulsive interactions, and
+neighbor input kernels can use approximate nearest-neighbor search.</p>
     </div>
     <div class="section level2">
     <h2 id="method-specific-options">Method-specific options<a class="anchor" aria-label="anchor" href="#method-specific-options"></a></h2>
@@ -785,6 +806,10 @@ one gradient calculation), you may wish to set the <code>"step_tol"</code>
 (minimum step size) and/or <code>"max_gr"</code> (maximum number of gradient
 evaluation) settings in the list to keep the number of calculations these
 optimization methods use comparable to the default settings.</p>
+<p>Function-based optimizers require a matching objective and gradient.
+For UMAP, t-UMAP, and LargeVis, set method option <code>gr_eps = 0</code>;
+their default stabilized forces require a gradient-only optimizer. Early
+and late exaggeration also require a gradient-only optimizer.</p>
 <p>See the examples for the use of alternative optimizers interface. For best
 results, you may also consider using the <code><a href="smallvis_perpstep.html">smallvis_perpstep</a></code>
 function with these optimizers.</p>

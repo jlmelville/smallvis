@@ -55,7 +55,8 @@ perplexity to avoid bad local minima.</p>
 
 <dl><dt id="arg-step-iter">step_iter<a class="anchor" aria-label="anchor" href="#arg-step-iter"></a></dt>
 <dd><p>Number of iterations to carry out the perplexity
-stepping. Must be &lt; the value of <code>max_iter</code>.</p></dd>
+stepping. Must be &lt; the value of <code>max_iter</code> when preliminary runs
+are needed. Zero skips stepping.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
@@ -93,8 +94,12 @@ that used by a single run of <code><a href="smallvis.html">smallvis</a></code>, 
 the optimization at the target perplexity is carried out, e.g. if
 <code>max_iter = 1000</code> and <code>step_iter = 250</code>, the final
 optimization will run for 750 iterations only.</p>
-<p>Any value of <code>tol</code>, <code>exaggeration_factor</code> and
-<code>stop_lying_iter</code> provided is used only with the final optimization.</p>
+<p>Any value of <code>tol</code>, early or late exaggeration, and their iteration
+controls is used only with the final optimization. Final-run defaults are
+evaluated using its remaining iteration budget. An explicit perplexity in a
+method list defines the target and is temporarily overridden for preliminary
+runs. If there are no larger perplexities, or <code>step_iter = 0</code>, the call
+is equivalent to a direct <code>smallvis</code> run.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
