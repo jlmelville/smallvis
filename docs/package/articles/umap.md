@@ -52,13 +52,13 @@ and `b` parameters of its weighting function to `1`.
 
 The gradient for t-UMAP is therefore:
 
-\frac{\partial C\_{t-UMAP}}{\partial \mathbf{y_i}} = 4\sum_j^N \left(
-v\_{ij} - w\_{ij} \right) \frac{1}{d\_{ij}^2} \left(\mathbf{y_i -
-y_j}\right) which can also be written as:
+\frac{\partial C\_{\text{t-UMAP}}}{\partial \mathbf{y}\_i} = 4\sum_j^N
+\left( v\_{ij} - w\_{ij} \right) \frac{1}{d\_{ij}^2}
+\left(\mathbf{y}\_i - \mathbf{y}\_j\right) which can also be written as:
 
-\frac{\partial C\_{t-UMAP}}{\partial \mathbf{y_i}} = 4\sum_j^N \left(
-v\_{ij} - w\_{ij} \right) \frac{w\_{ij}}{1 - w\_{ij}}
-\left(\mathbf{y_i - y_j}\right)
+\frac{\partial C\_{\text{t-UMAP}}}{\partial \mathbf{y}\_i} = 4\sum_j^N
+\left( v\_{ij} - w\_{ij} \right) \frac{w\_{ij}}{1 - w\_{ij}}
+\left(\mathbf{y}\_i - \mathbf{y}\_j\right)
 
 ### Normalized t-UMAP
 
@@ -69,10 +69,10 @@ normalization on both the results and the ease of optimization was.
 
 The gradient for normalized t-UMAP is:
 
-\frac{\partial C\_{nt-UMAP}}{\partial \mathbf{y_i}} = 4\sum_j^N \left(
-\frac{p\_{ij} - q\_{ij}}{1 - q\_{ij}} + \sum\_{kl} \frac{p\_{kl} -
-q\_{kl}}{1 - q\_{kl}} q\_{ij} \right) w\_{ij} \left(\mathbf{y_i -
-y_j}\right)
+\frac{\partial C\_{\text{nt-UMAP}}}{\partial \mathbf{y}\_i} = 4\sum_j^N
+\left( \frac{p\_{ij} - q\_{ij}}{1 - q\_{ij}} + \sum\_{kl}
+\frac{p\_{kl} - q\_{kl}}{1 - q\_{kl}} q\_{ij} \right) w\_{ij}
+\left(\mathbf{y}\_i - \mathbf{y}\_j\right)
 
 I’m sure there’s a nicer or clearer or more efficient way to express
 that, but I wasn’t motivated to find it.

@@ -36,10 +36,10 @@ to perplexity.
 
 This discussion of dimensionality involves the input probabilities, so
 we will assume the use of Gaussian similarities (or affinities),
-v\_{j\|i}, which represents the similarity between two observations in
-the dataset, i and j.
+v\_{j\mid i}, which represents the similarity between two observations
+in the dataset, i and j.
 
-v\_{j\|i} = \exp(-\beta\_{i} r\_{ij}^{2})
+v\_{j\mid i} = \exp(-\beta\_{i} r\_{ij}^{2})
 
 where r\_{ij}^{2} is the squared distance between point i and j in the
 input space and \beta_i is the Gaussian precision, the inverse of the
@@ -48,19 +48,19 @@ associated with point i. \beta_i is the parameter that is directly
 optimized to reproduce a specific perplexity during the t-SNE
 initialization.
 
-I should also stipulate here that when i = j, v\_{j\|i} = 0. In
+I should also stipulate here that when i = j, v\_{j\mid i} = 0. In
 addition, I’m slightly abusing conditional probability-style notation to
-indicate that the affinities are not symmetric: v\_{j\|i} \ne v\_{i\|j},
-because \beta_i and \beta_j are different.
+indicate that the affinities are not symmetric: v\_{j\mid i} \ne
+v\_{i\|j}, because \beta_i and \beta_j are different.
 
-We use a point-wise normalization to define a probability, p\_{j\|i}:
+We use a point-wise normalization to define a probability, p\_{j\mid i}:
 
-p\_{j\|i} = \frac{v\_{j\|i}}{\sum\_{k} v\_{k\|i}}
+p\_{j\mid i} = \frac{v\_{j\mid i}}{\sum\_{k} v\_{k\mid i}}
 
 The Shannon Entropy, H_U, of the probability distribution with
 perplexity U is:
 
-H_U = -\sum\_{j} p\_{j\|i} \log p\_{j\|i}
+H_U = -\sum\_{j} p\_{j\mid i} \log p\_{j\mid i}
 
 where H_U is measured in nats, due to the use of natural logarithms. The
 dimensionless quantity perplexity, U, often interpreted as an effective
@@ -83,11 +83,11 @@ be approximately linear and the gradient would be -\delta\_{i, U}/2.
 
 *9 May 2026*: A basic sketch of why this relationship is expected to
 hold is: suppose the data are locally uniform in d Euclidean dimensions.
-The volume of a thin radial shell between radius r and r + dr is
-proportional to r^{d-1}dr. If we introduce E=r^2 (a pretty standard
-change of variables when working with Gaussian functions) then since dr
-= dE/(2\sqrt{E}) the radial volume is proportional to
-E^{\frac{d}{2}-1}dE.
+The volume of a thin radial shell between radius r and r + \mathrm{d}r
+is proportional to r^{d-1}\\\mathrm{d}r. If we introduce E=r^2 (a pretty
+standard change of variables when working with Gaussian functions) then
+since \mathrm{d}r = \mathrm{d}E/(2\sqrt{E}) the radial volume is
+proportional to E^{\frac{d}{2}-1}\\\mathrm{d}E.
 
 In an idealized continuum model, if points are locally uniformly
 distributed and sampled with probability proportional to a Gaussian
@@ -196,8 +196,9 @@ difference values from the multi-scaling JSE paper.
 The gradient of the log-log plot of the perplexity against the precision
 is:
 
-\frac{\partial \log U}{\partial \log \beta_i} = \beta_i \frac{\partial
-H_U}{\partial \beta_i} = -\frac{\delta\_{i, U}}{2}
+\begin{aligned} \frac{\partial \log U}{\partial \log \beta_i} &= \beta_i
+\frac{\partial H_U}{\partial \beta_i} \\ &= -\frac{\delta\_{i, U}}{2}
+\end{aligned}
 
 so
 
@@ -215,86 +216,91 @@ difficult.
 To start, we can write the derivative as:
 
 \frac{\partial H}{\partial \beta_i} = \sum\_{jklm} \frac{\partial
-H}{\partial p\_{k\|j}} \frac{\partial p\_{k\|j}}{\partial v\_{m\|l}}
-\frac{\partial v\_{m\|l}}{\partial \beta\_{i}}
+H}{\partial p\_{k\mid j}} \frac{\partial p\_{k\mid j}}{\partial
+v\_{m\mid l}} \frac{\partial v\_{m\mid l}}{\partial \beta\_{i}}
 
-\partial v\_{m\|l} / \partial \beta\_{i} = 0 unless l = i. Additionally,
-due to the point-wise normalization, \partial p\_{k\|j} / \partial
-v\_{m\|l} = 0 unless j = l, allowing us to simplify the summation to:
+\partial v\_{m\mid l} / \partial \beta\_{i} = 0 unless l = i.
+Additionally, due to the point-wise normalization, \partial p\_{k\mid j}
+/ \partial v\_{m\mid l} = 0 unless j = l, allowing us to simplify the
+summation to:
 
 \frac{\partial H}{\partial \beta_i} = \sum\_{km} \frac{\partial
-H}{\partial p\_{k\|i}} \frac{\partial p\_{k\|i}}{\partial v\_{m\|i}}
-\frac{\partial v\_{m\|i}}{\partial \beta\_{i}}
+H}{\partial p\_{k\mid i}} \frac{\partial p\_{k\mid i}}{\partial
+v\_{m\mid i}} \frac{\partial v\_{m\mid i}}{\partial \beta\_{i}}
 
 Now let us regroup that double summation into two single summations, and
 also rename m to j:
 
 \frac{\partial H}{\partial \beta_i} = \sum\_{j} \left\[ \sum\_{k}
-\frac{\partial H}{\partial p\_{k\|i}} \frac{\partial p\_{k\|i}}{\partial
-v\_{j\|i}} \right\] \frac{\partial v\_{j\|i}}{\partial \beta\_{i}}
+\frac{\partial H}{\partial p\_{k\mid i}} \frac{\partial p\_{k\mid
+i}}{\partial v\_{j\mid i}} \right\] \frac{\partial v\_{j\mid
+i}}{\partial \beta\_{i}}
 
 The full details of how to derive the expression of the [gradient of the
 weight normalization](http://jlmelville.github.io/sneer/gradients.md)
 are available elsewhere, but we shall jump straight to inserting the
-result for \partial p\_{k\|i} / \partial v\_{j\|i} to get:
+result for \partial p\_{k\mid i} / \partial v\_{j\mid i} to get:
 
 \frac{\partial H}{\partial \beta_i} = \sum\_{j} \frac{1}{V\_{i}} \left\[
-\frac{\partial H}{\partial p\_{j\|i}} -\sum\_{k} \frac{\partial
-H}{\partial p\_{k\|i}} p\_{k\|i} \right\] \frac{\partial
-v\_{j\|i}}{\partial \beta\_{i}} where V\_{i} is:
+\frac{\partial H}{\partial p\_{j\mid i}} -\sum\_{k} \frac{\partial
+H}{\partial p\_{k\mid i}} p\_{k\mid i} \right\] \frac{\partial v\_{j\mid
+i}}{\partial \beta\_{i}} where V\_{i} is:
 
-V\_{i} = \sum\_{j} v\_{j\|i}
+V\_{i} = \sum\_{j} v\_{j\mid i}
 
 The gradient of the Shannon Entropy with respect to the probability is:
 
-\frac{\partial H}{\partial p\_{j\|i}} = - \log \left( p\_{j\|i}
+\frac{\partial H}{\partial p\_{j\mid i}} = - \log \left( p\_{j\mid i}
 \right) - 1 substituting into the expression in square brackets:
 
-\left\[ \frac{\partial H}{\partial p\_{j\|i}} -\sum\_{k} \frac{\partial
-H}{\partial p\_{k\|i}} p\_{k\|i} \right\] = \left\[ - \log \left(
-p\_{j\|i} \right) - 1 -\sum\_{k} \left\\ - \log \left( p\_{k\|i}
-\right) - 1 \right\\ p\_{k\|i} \right\] \\ = \left\[ - \log \left(
-p\_{j\|i} \right) - 1 +\sum\_{k} p\_{k\|i} \log \left( p\_{k\|i} \right)
-+\sum\_{k} p\_{k\|i} \right\] and because \sum_k p\_{k\|i} = 1, we
-eventually get to: \left\[ \frac{\partial H}{\partial p\_{j\|i}}
--\sum\_{k} \frac{\partial H}{\partial p\_{k\|i}} p\_{k\|i} \right\] =
-\left\[ - \log \left( p\_{j\|i} \right) - H \right\] \\ = -\left\[ \log
-\left( p\_{j\|i} \right) + H \right\] At this point:
+\begin{aligned} \left\[ \frac{\partial H}{\partial p\_{j\mid i}}
+-\sum\_{k} \frac{\partial H}{\partial p\_{k\mid i}} p\_{k\mid i}
+\right\] &= \left\[ - \log \left( p\_{j\mid i} \right) - 1 -\sum\_{k}
+\left\\ - \log \left( p\_{k\mid i} \right) - 1 \right\\ p\_{k\mid i}
+\right\] \\ &= \left\[ - \log \left( p\_{j\mid i} \right) - 1 +\sum\_{k}
+p\_{k\mid i} \log \left( p\_{k\mid i} \right) +\sum\_{k} p\_{k\mid i}
+\right\] \end{aligned} and because \sum_k p\_{k\mid i} = 1, we
+eventually get to: \begin{aligned} \left\[ \frac{\partial H}{\partial
+p\_{j\mid i}} -\sum\_{k} \frac{\partial H}{\partial p\_{k\mid i}}
+p\_{k\mid i} \right\] &= \left\[ - \log \left( p\_{j\mid i} \right) - H
+\right\] \\ &= -\left\[ \log \left( p\_{j\mid i} \right) + H \right\]
+\end{aligned} At this point:
 
 \frac{\partial H}{\partial \beta_i} = \sum\_{j} -\frac{1}{V\_{i}}
-\frac{\partial v\_{j\|i}}{\partial \beta\_{i}} \left\[ \log \left(
-p\_{j\|i} \right) + H \right\]
+\frac{\partial v\_{j\mid i}}{\partial \beta\_{i}} \left\[ \log \left(
+p\_{j\mid i} \right) + H \right\]
 
 which leads to:
 
 \delta\_{i, U} = \frac{2 \beta_i}{V_i} \sum\_{j} \frac{\partial
-v\_{j\|i}}{\partial \beta\_{i}} \left\[ \log \left( p\_{j\|i} \right) +
-H \right\]
+v\_{j\mid i}}{\partial \beta\_{i}} \left\[ \log \left( p\_{j\mid i}
+\right) + H \right\]
 
 The gradient of the exponential weight with respect to the precision
 parameter, \beta_i, is:
 
-\frac{\partial v\_{j\|i}}{\partial \beta\_{i}} = -r\_{ij}^2 v\_{j\|i}
+\frac{\partial v\_{j\mid i}}{\partial \beta\_{i}} = -r\_{ij}^2 v\_{j\mid
+i}
 
 Substituting these two sub expressions into the total gradient, we are
 left with: \frac{\partial H}{\partial \beta_i} = \sum\_{j}
-\frac{r\_{ij}^2 v\_{j\|i}}{V\_{i}} \left\[ \log \left( p\_{j\|i}
+\frac{r\_{ij}^2 v\_{j\mid i}}{V\_{i}} \left\[ \log \left( p\_{j\mid i}
 \right) + H \right\]
 
-Additionally, p\_{j\|i} = v\_{j\|i} / V\_{i}, so the final expression
-for the gradient is:
+Additionally, p\_{j\mid i} = v\_{j\mid i} / V\_{i}, so the final
+expression for the gradient is:
 
-\frac{\partial H}{\partial \beta_i} = \sum\_{j} r\_{ij}^2 p\_{j\|i}
-\left\[ \log \left( p\_{j\|i} \right) + H \right\]
+\frac{\partial H}{\partial \beta_i} = \sum\_{j} r\_{ij}^2 p\_{j\mid i}
+\left\[ \log \left( p\_{j\mid i} \right) + H \right\]
 
 The only thing left to do is to multiply this expression by -2
 \beta\_{i} to get this expression for the correlation dimension:
 
-\delta\_{i,U} = -2 \beta_i \sum_j r^2\_{ij} p\_{j\|i}
-\left\[\log\left(p\_{j\|i}\right) + H\right\]
+\delta\_{i,U} = -2 \beta_i \sum_j r^2\_{ij} p\_{j\mid i}
+\left\[\log\left(p\_{j\mid i}\right) + H\right\]
 
 which is useful if you’ve carried out the perplexity-based calibration
-on the input weights, as you have already calculated p\_{j\|i}, H and
+on the input weights, as you have already calculated p\_{j\mid i}, H and
 \beta_i.
 
 ### Un-normalized weights
@@ -303,19 +309,19 @@ If you’d rather think in terms of the un-normalized weights and the
 distances only, the usual expression for Shannon entropy can be
 rewritten in terms of weights as:
 
-H = \log V\_{i} -\frac{1}{V_i} \left( \sum_j v\_{j\|i} \log v\_{j\|i}
-\right)
+H = \log V\_{i} -\frac{1}{V_i} \left( \sum_j v\_{j\mid i} \log v\_{j\mid
+i} \right)
 
 and that can be combined with:
 
-\log \left( p\_{j\|i} \right) = \log \left( v\_{j\|i} \right) - \log
-\left(V_i \right)
+\log \left( p\_{j\mid i} \right) = \log \left( v\_{j\mid i} \right) -
+\log \left(V_i \right)
 
 to give:
 
 \delta\_{i,U} = \frac{2 \beta_i}{V_i^2} \sum\_{j} \frac{\partial
-v\_{j\|i}}{\partial \beta\_{i}} \left( V_i \log v\_{j\|i} - \sum_k
-v\_{k\|i} \log v\_{k\|i} \right)
+v\_{j\mid i}}{\partial \beta\_{i}} \left( V_i \log v\_{j\mid i} - \sum_k
+v\_{k\mid i} \log v\_{k\mid i} \right)
 
 *10 October 2025*: pausing to scold myself from seven years in the
 future, as I appear to have pulled out a factor of 1/V_i in the hope of
@@ -325,24 +331,26 @@ in again later.
 We can also express the relation between the weight and the squared
 distance as:
 
-\log \left( v\_{j\|i} \right) = -\beta_i r\_{ij}^2 and the gradient with
-respect to the precision as:
+\log \left( v\_{j\mid i} \right) = -\beta_i r\_{ij}^2 and the gradient
+with respect to the precision as:
 
-\frac{\partial v\_{j\|i}}{\partial \beta\_{i}} = -r\_{ij}^2 v\_{j\|i} =
-\frac{v\_{j\|i} \log v\_{j\|i}}{\beta_i}
+\begin{aligned} \frac{\partial v\_{j\mid i}}{\partial \beta\_{i}} &=
+-r\_{ij}^2 v\_{j\mid i} \\ &= \frac{v\_{j\mid i} \log v\_{j\mid
+i}}{\beta_i} \end{aligned}
 
 and the Shannon entropy expression as:
 
-H = \log V_i + \frac{\beta_i}{V_i} \sum_j r\_{ij}^2 v\_{j\|i}
+H = \log V_i + \frac{\beta_i}{V_i} \sum_j r\_{ij}^2 v\_{j\mid i}
 
 With all that, you can eventually get to two equivalent expressions for
 \delta\_{i, U}:
 
-\delta\_{i,U} = \frac{2}{V_i} \left\\ \sum_j v\_{j\|i} \left\[ \log
-\left( v\_{j\|i} \right) \right\] ^ 2 -\frac{1}{V_i} \left\[ \sum_j
-v\_{j\|i} \log \left( v\_{j\|i} \right) \right\]^2 \right\\ \delta\_{i,
-U} = \frac{2 \beta_i^2}{V_i} \left\[ \sum_j r\_{ij}^4 v\_{j\|i}
--\frac{1}{V_i} \left( \sum_j r\_{ij}^2 v\_{j\|i} \right)^2 \right\]
+\delta\_{i,U} = \frac{2}{V_i} \left\\ \sum_j v\_{j\mid i} \left\[ \log
+\left( v\_{j\mid i} \right) \right\] ^ 2 -\frac{1}{V_i} \left\[ \sum_j
+v\_{j\mid i} \log \left( v\_{j\mid i} \right) \right\]^2 \right\\
+\delta\_{i, U} = \frac{2 \beta_i^2}{V_i} \left\[ \sum_j r\_{ij}^4
+v\_{j\mid i} -\frac{1}{V_i} \left( \sum_j r\_{ij}^2 v\_{j\mid i}
+\right)^2 \right\]
 
 The first one only requires the \mathbf{V} matrix, although as you’ve
 been carrying out lots of exponential operations to generate the
@@ -369,76 +377,80 @@ Fisher Information without the help of AI.
 
 Let’s start with the expression that is entirely in terms of
 substituting in the different derivatives expressed as un-normalized
-affinities, v\_{j\|i}, but without any further cancellation or
+affinities, v\_{j\mid i}, but without any further cancellation or
 re-arrangement:
 
-\delta\_{i,U} = \frac{2 \beta_i}{V_i} \sum\_{j} \frac{v\_{j\|i} \log
-v\_{j\|i}}{\beta_i} \left( \log v\_{j\|i} - \frac{1}{V_i} \sum_k
-v\_{k\|i} \log v\_{k\|i} \right)
+\delta\_{i,U} = \frac{2 \beta_i}{V_i} \sum\_{j} \frac{v\_{j\mid i} \log
+v\_{j\mid i}}{\beta_i} \left( \log v\_{j\mid i} - \frac{1}{V_i} \sum_k
+v\_{k\mid i} \log v\_{k\mid i} \right)
 
 Now let’s cancel out the \beta_i terms and bring both of the 1/V_i terms
 inside the summations:
 
-\delta\_{i,U} = 2 \sum\_{j} \frac{v\_{j\|i} \log v\_{j\|i}}{V_i} \left(
-\log v\_{j\|i} - \frac{\sum_k v\_{k\|i} \log v\_{k\|i}}{V_i} \right)
+\delta\_{i,U} = 2 \sum\_{j} \frac{v\_{j\mid i} \log v\_{j\mid i}}{V_i}
+\left( \log v\_{j\mid i} - \frac{\sum_k v\_{k\mid i} \log v\_{k\mid
+i}}{V_i} \right)
 
-We can now reintroduce the normalized probabilities, p\_{j\|i} =
-v\_{j\|i}/V_i:
+We can now reintroduce the normalized probabilities, p\_{j\mid i} =
+v\_{j\mid i}/V_i:
 
-\delta\_{i,U} = 2 \sum\_{j} p\_{j\|i} \log v\_{j\|i} \left( \log
-v\_{j\|i} - \sum_k p\_{k\|i} \log v\_{k\|i} \right)
+\delta\_{i,U} = 2 \sum\_{j} p\_{j\mid i} \log v\_{j\mid i} \left( \log
+v\_{j\mid i} - \sum_k p\_{k\mid i} \log v\_{k\mid i} \right)
 
 and let’s expand the parentheses:
 
-\delta\_{i,U} = 2 \left\[ \sum\_{j} p\_{j\|i} (\log v\_{j\|i})^2 -
-\left( \sum_k p\_{k\|i} \log v\_{k\|i} \right) \left( \sum\_{j}
-p\_{j\|i} \log v\_{j\|i} \right) \right\]
+\delta\_{i,U} = 2 \left\[ \sum\_{j} p\_{j\mid i} (\log v\_{j\mid i})^2 -
+\left( \sum_k p\_{k\mid i} \log v\_{k\mid i} \right) \left( \sum\_{j}
+p\_{j\mid i} \log v\_{j\mid i} \right) \right\]
 
 and those two summations on the right are now the same, so we don’t need
 k any more:
 
-\delta\_{i,U} = 2 \left\[ \sum\_{j} p\_{j\|i} (\log v\_{j\|i})^2 -
-\left( \sum\_{j} p\_{j\|i} \log v\_{j\|i} \right)^2 \right\]
+\delta\_{i,U} = 2 \left\[ \sum\_{j} p\_{j\mid i} (\log v\_{j\mid i})^2 -
+\left( \sum\_{j} p\_{j\mid i} \log v\_{j\mid i} \right)^2 \right\]
 
 At the cost of mixing probabilities and the un-normalized weights, we
 now have a much less cluttered expression. It also looks a lot like a
-variance. In fact, it’s the weighted variance of \log v\_{j\|i}, where
-the weights are provided by p\_{j\|i}. I admit I had never thought about
-weighted variances before, but it’s not any more outlandish than a
-weighted mean.
+variance. In fact, it’s the weighted variance of \log v\_{j\mid i},
+where the weights are provided by p\_{j\mid i}. I admit I had never
+thought about weighted variances before, but it’s not any more
+outlandish than a weighted mean.
 
 So a compact way of expressing the correlation dimension is:
 
-\delta\_{i,U} = 2 \\ \operatorname{Var}\_{p\_{j\|i}}(\log v\_{j\|i})
+\delta\_{i,U} = 2 \\ \operatorname{Var}\_{p\_{j\mid i}}(\log v\_{j\mid
+i})
 
 where the subscript on the \operatorname{Var} indicates that the
 variance is weighted by whatever is in the subscript. This is a
 non-standard way of writing what would be more precisely expressed as
-\operatorname{Var}\_{j \sim p\_{\cdot\|i}}, which would make the random
-variable explicit, i.e. j is sampled from the conditional distribution
-around point i. Forgive me, statisticians.
+\operatorname{Var}\_{j \sim p\_{\cdot\mid i}}, which would make the
+random variable explicit, i.e. j is sampled from the conditional
+distribution around point i. Forgive me, statisticians.
 
 It’s also true that subtracting a constant from every value in a
-variance doesn’t change it, so because \log p\_{j\|i} = \log v\_{j\|i} -
-\log V_i, we can also write:
+variance doesn’t change it, so because \log p\_{j\mid i} = \log
+v\_{j\mid i} - \log V_i, we can also write:
 
-\delta\_{i,U} = 2 \\ \operatorname{Var}\_{p\_{j\|i}}(\log p\_{j\|i})
+\delta\_{i,U} = 2 \\ \operatorname{Var}\_{p\_{j\mid i}}(\log p\_{j\mid
+i})
 
 and you can do the calculation entirely with probabilities.
 
-Finally, because \log v\_{j\|i} = -\beta_i r\_{ij}^2, we can *also*
+Finally, because \log v\_{j\mid i} = -\beta_i r\_{ij}^2, we can *also*
 write:
 
-\delta\_{i,U} = 2 \beta_i^2 \\
-\operatorname{Var}\_{p\_{j\|i}}(r\_{ij}^2)
+\boxed{\delta\_{i,U} = 2 \beta_i^2 \\ \operatorname{Var}\_{p\_{j\mid
+i}}(r\_{ij}^2)}
 
 I’m going to write this out in full again, because hopefully later you
 are going to scroll back up to here and go “oh, yeah”:
 
-\delta\_{i,U} = 2 \beta_i^2 \left\[ \sum\_{j} p\_{j\|i} (r\_{ij}^2)^2 -
-\left( \sum\_{j} p\_{j\|i} r\_{ij}^2 \right)^2 \right\]
+\delta\_{i,U} = 2 \beta_i^2 \left\[ \sum\_{j} p\_{j\mid i}
+(r\_{ij}^2)^2 - \left( \sum\_{j} p\_{j\mid i} r\_{ij}^2 \right)^2
+\right\]
 
-The term \operatorname{Var}\_{p\_{j\|i}}(r\_{ij}^2) is the Fisher
+The term \operatorname{Var}\_{p\_{j\mid i}}(r\_{ij}^2) is the Fisher
 Information with respect to the precision \beta_i. This may not be
 immediately obvious even if you are familiar with Fisher Information. To
 prove it, let’s go through the derivation. I am going to play a bit fast
@@ -450,21 +462,22 @@ statisticians reading this.
 The likelihood, L of picking point j given point i is just the
 probability:
 
-L = p\_{j\|i}
+L = p\_{j\mid i}
 
 The log-likelihood, l is:
 
-l = \log p\_{j\|i} = \log v\_{j\|i} - \log V_i = -\beta_i r\_{ij}^2 -
-\log V_i
+l = \log p\_{j\mid i} = \log v\_{j\mid i} - \log V_i = -\beta_i
+r\_{ij}^2 - \log V_i
 
 The *score*, s, is the gradient of the log-likelihood with respect to
 the parameter in question, which is \beta_i in this case:
 
-\frac{\partial l}{\partial \beta_i} = -\frac{\partial (\beta_i
-r\_{ij}^2)}{\partial \beta_i} - \frac{\partial \log V_i}{\partial
-\beta_i} \\ =-r\_{ij}^2 - \frac{1}{V_i} \sum_k \frac{\partial
-v\_{k\|i}}{\partial \beta_i} \\ =-r\_{ij}^2 + \frac{1}{V_i} \sum_k
-v\_{k\|i} r\_{ik}^2 \\ =-r\_{ij}^2 + \sum_k p\_{k\|i} r\_{ik}^2
+\begin{aligned} \frac{\partial l}{\partial \beta_i} &= -\frac{\partial
+(\beta_i r\_{ij}^2)}{\partial \beta_i} - \frac{\partial \log
+V_i}{\partial \beta_i} \\ &=-r\_{ij}^2 - \frac{1}{V_i} \sum_k
+\frac{\partial v\_{k\mid i}}{\partial \beta_i} \\ &=-r\_{ij}^2 +
+\frac{1}{V_i} \sum_k v\_{k\mid i} r\_{ik}^2 \\ &=-r\_{ij}^2 + \sum_k
+p\_{k\mid i} r\_{ik}^2 \end{aligned}
 
 Let’s get ahead of something here and talk about expectation values, as
 we will be having to notice them to get back to our old \delta\_{i,U}
@@ -482,11 +495,11 @@ and that the possible values of j (the “support”) do not depend on
 \beta_i (they don’t). So if we now explicitly write out the expectation
 of the score it had better be zero:
 
-\mathbb{E}\left\[ s \right\] = \sum_j p\_{j\|i} \left( -r\_{ij}^2 +
-\sum_k p\_{k\|i} r\_{ik}^2 \right) \\ = \left(\sum_j p\_{j\|i}
-(-r\_{ij}^2) \right) + \left(\sum_k p\_{k\|i} r\_{ik}^2 \sum_j p\_{j\|i}
-\right) \\ = -\sum_j p\_{j\|i} r\_{ij}^2 + \sum_k p\_{k\|i} r\_{ik}^2 \\
-= 0
+\begin{aligned} \mathbb{E}\left\[ s \right\] &= \sum_j p\_{j\mid i}
+\left( -r\_{ij}^2 + \sum_k p\_{k\mid i} r\_{ik}^2 \right) \\ &=
+\left(\sum_j p\_{j\mid i} (-r\_{ij}^2) \right) + \left(\sum_k p\_{k\mid
+i} r\_{ik}^2 \sum_j p\_{j\mid i} \right) \\ &= -\sum_j p\_{j\mid i}
+r\_{ij}^2 + \sum_k p\_{k\mid i} r\_{ik}^2 \\ &= 0 \end{aligned}
 
 That’s a relief.
 
@@ -507,19 +520,20 @@ the parameterization of I in our case so it’s clear that the Fisher
 Information we are dealing with is with respect to the parameter
 \beta_i. So:
 
-I\_{\beta_i} = \sum_j p\_{j\|i} \left( -r\_{ij}^2 + \sum_k p\_{k\|i}
-r\_{ik}^2 \right)^2 \\ = \sum_j p\_{j\|i} \left( (r\_{ij}^2)^2 - 2
-r\_{ij}^2 \sum_k p\_{k\|i} r\_{ik}^2 + \left( \sum_k p\_{k\|i} r\_{ik}^2
-\right)^2 \right) \\ = \sum_j p\_{j\|i} (r\_{ij}^2)^2 - 2 \left( \sum_k
-p\_{k\|i} r\_{ik}^2 \right) \left( \sum_j p\_{j\|i} r\_{ij}^2 \right) +
-\left( \sum_k p\_{k\|i} r\_{ik}^2 \right)^2
+\begin{aligned} I\_{\beta_i} &= \sum_j p\_{j\mid i} \left( -r\_{ij}^2 +
+\sum_k p\_{k\mid i} r\_{ik}^2 \right)^2 \\ &= \sum_j p\_{j\mid i} \left(
+(r\_{ij}^2)^2 - 2 r\_{ij}^2 \sum_k p\_{k\mid i} r\_{ik}^2 + \left(
+\sum_k p\_{k\mid i} r\_{ik}^2 \right)^2 \right) \\ &= \sum_j p\_{j\mid
+i} (r\_{ij}^2)^2 - 2 \left( \sum_k p\_{k\mid i} r\_{ik}^2 \right) \left(
+\sum_j p\_{j\mid i} r\_{ij}^2 \right) + \left( \sum_k p\_{k\mid i}
+r\_{ik}^2 \right)^2 \end{aligned}
 
 Now we don’t have to worry about the k and j being different, so we can
 just use j everywhere and the second and third terms can therefore be
 combined, leaving us with:
 
-I\_{\beta_i} = \sum_j p\_{j\|i} (r\_{ij}^2)^2 - \left( \sum_j p\_{j\|i}
-r\_{ij}^2 \right)^2
+I\_{\beta_i} = \sum_j p\_{j\mid i} (r\_{ij}^2)^2 - \left( \sum_j
+p\_{j\mid i} r\_{ij}^2 \right)^2
 
 This looks a lot like a variance. In fact, yes, now is the time to
 scroll back up and see that this is exactly the variance expression we
@@ -546,9 +560,9 @@ elegant.
 ### The Varentropy Connection
 
 *May 9 2026*: Yet another way to think about the soft correlation
-dimension when written as 2\operatorname{Var\_{p\_{j\|i}}}(\log
-p\_{j\|i}) is that it’s twice the varentropy of the local conditional
-distribution p\_{\cdot\|i}. This is an information theoretic
+dimension when written as 2\operatorname{Var}\_{p\_{j\mid i}}(\log
+p\_{j\mid i}) is that it’s twice the varentropy of the local conditional
+distribution p\_{\cdot\mid i}. This is an information theoretic
 interpretation of the intrinsic dimensionality. Usually varentropy is
 defined with respect to -\log p(X), which is the “self information” or
 “surprisal” of an event in information theory, but the sign doesn’t

@@ -48,8 +48,8 @@ structure of the PCA initialization should be preserved or not.
 
 To demonstrate the influence of the mid-near weights initially, here is
 the same embedding but instead of linearly ramping the weight down from
-1000 to 3 over the first 100 iterations, we fix w\_{MN}=500 (basically
-the average over the linear ramp):
+1000 to 3 over the first 100 iterations, we fix w\_{\mathrm{MN}}=500
+(basically the average over the linear ramp):
 
 |  |  |
 |:--:|:--:|
@@ -59,9 +59,9 @@ the average over the linear ramp):
 The 1 cluster is now only moved into the center of the plot. The final
 shape of the clusters remains the same, but their relative position and
 orientation has changed. If we drop the mid-near weights an order of
-magnitude to w\_{MN}=50 (still itself an order of magnitude higher than
-the near pair weight) we can make the 1 cluster stay close to its
-location in the initial coordinates:
+magnitude to w\_{\mathrm{MN}}=50 (still itself an order of magnitude
+higher than the near pair weight) we can make the 1 cluster stay close
+to its location in the initial coordinates:
 
 |  |  |
 |:--:|:--:|
@@ -93,9 +93,9 @@ Lau](https://doi.org/10.1016/j.celrep.2020.107576).
 In terms of local neighborhood preservation, there is no difference. Of
 the global measures, neither the triplet preservation nor EMD indicate
 show a big difference either. The Pearson correlation shows a bigger
-change, favoring the w\_{MN}=500 approach. For what it’s worth, it
-*does* also show the best triplet preservation and the smallest EMD, but
-I don’t know if the size of the differences really mean anything.
+change, favoring the w\_{\mathrm{MN}}=500 approach. For what it’s worth,
+it *does* also show the best triplet preservation and the smallest EMD,
+but I don’t know if the size of the differences really mean anything.
 
 ### Turning Off Mid Pair Forces
 

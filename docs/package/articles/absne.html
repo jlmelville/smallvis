@@ -81,10 +81,14 @@ information on any quirks of the implementation anyway.</p>
 <p>Cichocki and co-workers came up with the <a href="https://doi.org/10.3390/e13010134" class="external-link">AB-divergence</a> (also see
 their <a href="https://doi.org/10.3390/e12061532" class="external-link">earlier paper</a>),
 which generalizes a whole load of divergences:</p>
-<p><span class="math display">C =\frac{1}{\alpha \beta} \sum_{ij}
--p_{ij}^{\alpha} q_{ij}^{\beta} + \frac{\alpha}{\alpha +
-\beta}p_{ij}^{\alpha + \beta} + \frac{\beta}{\alpha +
-\beta}q_{ij}^{\alpha + \beta}</span></p>
+<p><span class="math display">
+C = \frac{1}{\alpha \beta} \sum_{ij}
+\left[
+  -p_{ij}^{\alpha} q_{ij}^{\beta}
+  + \frac{\alpha}{\alpha + \beta}p_{ij}^{\alpha + \beta}
+  + \frac{\beta}{\alpha + \beta}q_{ij}^{\alpha + \beta}
+\right]
+</span></p>
 <p><span class="math inline">\alpha</span> and <span class="math inline">\beta</span> are free parameters. By twiddling these
 values, just how many divergences does this bad boy generalize? A LOT,
 including nearly all of the f-divergences used in <a href="ftsne.html">ft-SNE</a>. Here’s a sampling.</p>
@@ -185,7 +189,7 @@ below.</p>
 </h2>
 <p>The ABSNE gradient is:</p>
 <p><span class="math display">
-\frac{\partial C}{\partial \mathbf{y_i}} =
+\frac{\partial C}{\partial \mathbf{y}_i} =
   \frac{4}{\alpha} \sum_j
 \left[
   p_{ij}^{\alpha} q_{ij}^{\beta - 1} - q_{ij}^{\alpha + \beta - 1} -
@@ -194,7 +198,7 @@ below.</p>
 \right]
 q_{ij}w_{ij}
 \left(
-\mathbf{y_i - y_j}
+\mathbf{y}_i - \mathbf{y}_j
 \right)
 </span></p>
 <p>This is nearly the gradient expression given in the ABSNE paper, but
@@ -208,7 +212,7 @@ special forms to avoid singularities in as many cases.</p>
 paper, but computationally speaking you might prefer to write the
 gradient as:</p>
 <p><span class="math display">
-\frac{\partial C}{\partial \mathbf{y_i}} =
+\frac{\partial C}{\partial \mathbf{y}_i} =
   \frac{4}{\alpha} \sum_j
 \left[
     p_{ij}^{\alpha} q_{ij}^{\beta} - q_{ij}^{\lambda}
@@ -219,7 +223,7 @@ gradient as:</p>
 \right]
 w_{ij}
 \left(
-\mathbf{y_i - y_j}
+\mathbf{y}_i - \mathbf{y}_j
 \right)
 </span></p>
 <p>as you would only need to compute and store <span class="math inline">q_{ij}</span>, <span class="math inline">q_{ij}^\beta</span> and <span class="math inline">q_{ij}^{\lambda}</span> (<span class="math inline">w_{ij} = q_{ij} Z</span>, where <span class="math inline">Z = \sum_{kl} w_{ij}</span>), two of which terms are
@@ -236,12 +240,13 @@ gradients under those conditions, so I’m going to derive them here,
 along with the special forms of the cost functions.</p>
 <p>ABSNE always uses the t-SNE kernel, so the generic gradient can be
 written as:</p>
-<p><span class="math display">\frac{\partial C}{\partial \mathbf{y_i}} =
+<p><span class="math display">
+\frac{\partial C}{\partial \mathbf{y}_i} =
   4
   \sum_j
     k_{ij}
   \left(
-   \mathbf{y_i - y_j}
+   \mathbf{y}_i - \mathbf{y}_j
   \right)
 </span></p>
 <p>where:</p>
@@ -270,7 +275,7 @@ two terms cancel when <span class="math inline">P</span> and <span class="math i
 \right)
 </span></p>
 <p><span class="math display">
-\frac{\partial C}{\partial \mathbf{y_i}} =
+\frac{\partial C}{\partial \mathbf{y}_i} =
   \frac{4}{\alpha} \sum_j
 \left[
     p_{ij}^{\alpha}
@@ -282,7 +287,7 @@ two terms cancel when <span class="math inline">P</span> and <span class="math i
 \right]
 w_{ij}
 \left(
-\mathbf{y_i - y_j}
+\mathbf{y}_i - \mathbf{y}_j
 \right)
 </span> You don’t need a special version of the gradient for this
 expression, it falls out naturally by setting <span class="math inline">\beta = 0</span> in the standard gradient, but I
@@ -308,7 +313,7 @@ C = \frac{1}{\alpha^2} \sum_{ij}
 \right)
 </span></p>
 <p><span class="math display">
-\frac{\partial C}{\partial \mathbf{y_i}} =
+\frac{\partial C}{\partial \mathbf{y}_i} =
   \frac{4}{\alpha} \sum_j
 \left[
   \frac{p_{ij}^{\alpha}}{q_{ij}^\alpha}
@@ -321,7 +326,7 @@ C = \frac{1}{\alpha^2} \sum_{ij}
 \right]
 w_{ij}
 \left(
-\mathbf{y_i - y_j}
+\mathbf{y}_i - \mathbf{y}_j
 \right)
 </span> This can also be derived from the standard gradient. The <span class="math inline">\sum_{kl} 1</span> term is interesting. I rather
 lazily write the sum as being over two indices, but we really should
@@ -350,7 +355,7 @@ C = \frac{1}{\beta^2} \sum_{ij}
 \right)
 </span></p>
 <p><span class="math display">
-\frac{\partial C}{\partial \mathbf{y_i}} =
+\frac{\partial C}{\partial \mathbf{y}_i} =
   \frac{4}{\beta} \sum_j
 \left[
   q_{ij}^\beta \log p_{ij}^{\beta}
@@ -363,7 +368,7 @@ C = \frac{1}{\beta^2} \sum_{ij}
 \right]
 w_{ij}
 \left(
-\mathbf{y_i - y_j}
+\mathbf{y}_i - \mathbf{y}_j
 \right)
 </span> You could potentially simplify the <span class="math inline">\log q_{ij}^{\beta}</span> terms by pulling a factor
 of <span class="math inline">\beta</span> out of the sum, which would
@@ -387,7 +392,7 @@ C = \frac{1}{2} \sum_{ij}
 \right)
 </span></p>
 <p><span class="math display">
-\frac{\partial C}{\partial \mathbf{y_i}} =
+\frac{\partial C}{\partial \mathbf{y}_i} =
   4 \sum_j
 \left[
   \log p_{ij} - \log q_{ij}
@@ -399,7 +404,7 @@ C = \frac{1}{2} \sum_{ij}
 \right]
 w_{ij}
 \left(
-\mathbf{y_i - y_j}
+\mathbf{y}_i - \mathbf{y}_j
 \right)
 </span></p>
 </div>

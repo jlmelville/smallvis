@@ -86,8 +86,8 @@ not a very popular or well-known technique.</p>
 </h3>
 <p>The generic elastic embedding cost function is:</p>
 <p><span class="math display">
-C_{EE} = -\sum_{ij}^{N} v_{ij}^{+} \log w_{ij} + \lambda \sum_{ij}^{N}
-v_{ij}^{-} w_{ij}
+C_{\mathrm{EE}} = -\sum_{ij}^{N} v_{ij}^{+} \log w_{ij} + \lambda
+\sum_{ij}^{N} v_{ij}^{-} w_{ij}
 </span></p>
 <p>where <span class="math inline">N</span> is the number of
 observations in the dataset, <span class="math inline">i</span> and
@@ -102,7 +102,7 @@ are the output weights are Gaussian-based, as in ASNE and SSNE.</p>
 <p>Here, I propose a simplified cost function for t-distributed Elastic
 Embedding (t-EE)</p>
 <p><span class="math display">
-C_{t-EE} = -\frac{1}{N}\sum_{ij}^{N} v_{ij} \log w_{ij} +
+C_{\text{t-EE}} = -\frac{1}{N}\sum_{ij}^{N} v_{ij} \log w_{ij} +
 \frac{\lambda}{N} \sum_{ij}^{N} w_{ij}
 </span></p>
 <p>The t-EE cost function differs from EE by:</p>
@@ -124,11 +124,14 @@ below.</p></li>
 weights perfectly reproduce the input weights, as with the
 Kullback-Leibler divergence used by t-SNE. As long as we don’t add any
 terms involving <span class="math inline">w_{ij}</span>, we can make
-this happen without affecting the EE gradient. We would like <span class="math inline">C_{t-EE} = 0</span> when <span class="math inline">v_{ij} = w_{ij}</span>. Let’s add an extra constant,
+this happen without affecting the EE gradient. We would like <span class="math inline">C_{\text{t-EE}} = 0</span> when <span class="math inline">v_{ij} = w_{ij}</span>. Let’s add an extra constant,
 <span class="math inline">C_{v}</span>, that only involves <span class="math inline">v_{ij}</span> (and maybe <span class="math inline">\lambda</span>), and we can write:</p>
 <p><span class="math display">
-C_{t-EE} = -\frac{1}{N}\sum_{ij}^{N} v_{ij} \log v_{ij} +
-\frac{\lambda}{N} \sum_{ij}^{N} v_{ij} + C_{v} = 0
+\begin{aligned}
+C_{\text{t-EE}} &amp;= -\frac{1}{N}\sum_{ij}^{N} v_{ij} \log v_{ij} +
+\frac{\lambda}{N} \sum_{ij}^{N} v_{ij} + C_{v} \\
+&amp;= 0
+\end{aligned}
 </span> and then, knowing that <span class="math inline">\sum_{ij}^{N}
 v_{ij} = N</span>, we have:</p>
 <p><span class="math display">
@@ -136,14 +139,14 @@ C_{v} = \frac{1}{N}\sum_{ij}^{N} v_{ij} \log v_{ij} - \lambda
 </span></p>
 <p>so the cost function can be written as:</p>
 <p><span class="math display">
-C_{t-EE} = \frac{1}{N}\sum_{ij}^{N} v_{ij} \log v_{ij}
+C_{\text{t-EE}} = \frac{1}{N}\sum_{ij}^{N} v_{ij} \log v_{ij}
 -\frac{1}{N}\sum_{ij}^{N} v_{ij} \log w_{ij} +
 \frac{\lambda}{N}  \sum_{ij}^{N} w_{ij} - \lambda
 </span> The first two terms can be combined to give a
 Kullback-Leibler-like expression, and we can group the <span class="math inline">\lambda</span> expressions too (and I have also
 rewritten <span class="math inline">N</span> as <span class="math inline">\sum_{ij}^{N} v_{ij}</span>)</p>
 <p><span class="math display">
-C_{t-EE} = \frac{1}{N} \left[ \sum_{ij}^{N} v_{ij} \log
+C_{\text{t-EE}} = \frac{1}{N} \left[ \sum_{ij}^{N} v_{ij} \log
 \frac{v_{ij}}{w_{ij}} + \lambda \left(\sum_{ij}^{N} w_{ij} -
 \sum_{ij}^{N} v_{ij}\right) \right]
 </span></p>
@@ -160,11 +163,11 @@ least set a lower bound on <span class="math inline">\lambda</span>.</p>
 <h3 id="gradient">Gradient<a class="anchor" aria-label="anchor" href="#gradient"></a>
 </h3>
 <p>Whichever version of the cost function you prefer the gradient of
-t-EE with respect to the output coordinate of point <span class="math inline">i</span>, <span class="math inline">\mathbf{y_i}</span>, is:</p>
+t-EE with respect to the output coordinate of point <span class="math inline">i</span>, <span class="math inline">\mathbf{y}_i</span>, is:</p>
 <p><span class="math display">
-\frac{\partial C_{t-EE}}{\partial \mathbf{y_i}} = \frac{4}{N} \sum_{j}^N
-\left(v_{ij} - \lambda w_{ij} \right) w_{ij} \left(\mathbf{y_i -
-y_j}\right)
+\frac{\partial C_{\text{t-EE}}}{\partial \mathbf{y}_i} = \frac{4}{N}
+\sum_{j}^N \left(v_{ij} - \lambda w_{ij} \right) w_{ij}
+\left(\mathbf{y}_i - \mathbf{y}_j\right)
 </span></p>
 <p>If we were to define <span class="math inline">\lambda</span> at each
 iteration as <span class="math inline">N / Z</span> where <span class="math inline">Z =\sum_{ij}^{N} w_{ij}</span>, and then set <span class="math inline">p_{ij} = v_{ij} / N</span> and <span class="math inline">q_{ij} = w_{ij} / Z</span>, we would get back the

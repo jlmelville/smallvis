@@ -111,7 +111,7 @@ final result from the previous iteration. This is, as the authors note,
 a conservative strategy because the line search can never grow again,
 and if one iteration rejects the Newton step, it can never be tried
 again. van der Maarten’s experiments use a normal Wolfe line search,
-with <span class="math inline">c1 = 0.02</span> and <span class="math inline">c2 = 0.9</span>. The <a href="opt.html">L-BFGS</a>
+with <span class="math inline">c_1 = 0.02</span> and <span class="math inline">c_2 = 0.9</span>. The <a href="opt.html">L-BFGS</a>
 results hardly shone when using a full Wolfe line search (which is a
 requirement for the quasi-Newton methods). So we will try two
 strategies: the first will be to use Spectral Direction with a Wolfe

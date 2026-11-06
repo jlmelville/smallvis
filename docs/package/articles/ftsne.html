@@ -108,14 +108,15 @@ into anything nice.</p>
 <p>The reverse KL-divergence:</p>
 <p><span class="math display">C = \sum_{ij} q_{ij} \log
 \frac{q_{ij}}{p_{ij}}</span></p>
-<p><span class="math display">\frac{\partial C}{\partial \mathbf{y_i}} =
+<p><span class="math display">
+\frac{\partial C}{\partial \mathbf{y}_i} =
   4 \sum_j
   \left[
     \left\{ \log \left( \frac{p_{ij}}{q_{ij}} \right) + C \right\}
 q_{ij}w_{ij}
   \right]
     \left(
-   \mathbf{y_i - y_j}
+   \mathbf{y}_i - \mathbf{y}_j
   \right)
 </span></p>
 <p>where <span class="math inline">C</span> is the reverse KL cost
@@ -125,22 +126,27 @@ function defined above.</p>
 <h3 id="js-sne">JS-SNE<a class="anchor" aria-label="anchor" href="#js-sne"></a>
 </h3>
 <p>The Jensen-Shannon divergence:</p>
-<p><span class="math display">C = \frac{1}{2} \sum_{ij} p_{ij}
-\log{\left(\frac{p_{ij}}{z_{ij}}\right)} + q_{ij}
-\log\left({\frac{q_{ij}}{z_{ij}}}\right)</span></p>
+<p><span class="math display">
+C = \frac{1}{2} \sum_{ij}
+\left[
+  p_{ij} \log\left(\frac{p_{ij}}{z_{ij}}\right)
+  + q_{ij} \log\left(\frac{q_{ij}}{z_{ij}}\right)
+\right]
+</span></p>
 <p>where: <span class="math display">z_{ij} = \frac{1}{2} \left(p_{ij} +
 q_{ij} \right)</span></p>
-<p><span class="math display">\frac{\partial C}{\partial \mathbf{y_i}} =
+<p><span class="math display">
+\frac{\partial C}{\partial \mathbf{y}_i} =
   2 \sum_j
   \left[
-    \left\{ \log \left( \frac{z_{ij}}{q_{ij}} \right) + KL_{Q||Z}
-\right\} q_{ij}w_{ij}
+    \left\{ \log \left( \frac{z_{ij}}{q_{ij}} \right) +
+D_{\mathrm{KL}}(Q\mathbin{\|}Z) \right\} q_{ij}w_{ij}
   \right]
     \left(
-   \mathbf{y_i - y_j}
+   \mathbf{y}_i - \mathbf{y}_j
   \right)
 </span></p>
-<p>where <span class="math inline">KL_{Q||Z}</span> is the
+<p>where <span class="math inline">D_{\mathrm{KL}}(Q\mathbin{\|}Z)</span> is the
 Kullback-Leibler divergence of Z from Q. There’s a factor of one-half
 that reduces the usual 4 to 2 in the gradient.</p>
 </div>
@@ -148,16 +154,18 @@ that reduces the usual 4 to 2 in the gradient.</p>
 <h3 id="ch-sne">CH-SNE<a class="anchor" aria-label="anchor" href="#ch-sne"></a>
 </h3>
 <p>The <span class="math inline">\chi^2</span>-divergence:</p>
-<p><span class="math display">C = \sum_{ij} \frac{\left(p_{ij} -
-q_{ij}\right)^2}{q_{ij}^2}</span></p>
-<p><span class="math display">\frac{\partial C}{\partial \mathbf{y_i}} =
+<p><span class="math display">
+C = \sum_{ij} \frac{\left(p_{ij} - q_{ij}\right)^2}{q_{ij}}
+</span></p>
+<p><span class="math display">
+\frac{\partial C}{\partial \mathbf{y}_i} =
   4 \sum_j
   \left[
     \left( \frac{p_{ij}^2}{q_{ij}^2} - \sum_{kl} \frac{p_{kl}^2}{q_{kl}}
 \right) q_{ij}w_{ij}
   \right]
     \left(
-   \mathbf{y_i - y_j}
+   \mathbf{y}_i - \mathbf{y}_j
   \right)
 </span></p>
 </div>
@@ -167,14 +175,15 @@ q_{ij}\right)^2}{q_{ij}^2}</span></p>
 <p>The Hellinger distance divergence:</p>
 <p><span class="math display">C = \sum_{ij} \left(\sqrt{p_{ij}} -
 \sqrt{q_{ij}}\right)^2</span></p>
-<p><span class="math display">\frac{\partial C}{\partial \mathbf{y_i}} =
+<p><span class="math display">
+\frac{\partial C}{\partial \mathbf{y}_i} =
 4 \sum_j
 \left[
   \left( \frac{\sqrt{p_{ij}}}{\sqrt{q_{ij}}} - \sum_{kl}
 \sqrt{p_{kl}q_{kl}} \right) q_{ij}w_{ij}
 \right]
     \left(
-   \mathbf{y_i - y_j}
+   \mathbf{y}_i - \mathbf{y}_j
   \right)
 </span></p>
 </div>

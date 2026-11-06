@@ -19,12 +19,12 @@ three main suggestions:
 - Early exaggeration may need to be run for substantially longer than
   usual. Rather than stop early exaggeration after a fixed number of
   iterations, they suggest monitoring the relative rate of change of the
-  KL divergence, (KL\_{i-1} - KL\_{i}) / KL\_{i-1}, and terminate early
-  exaggeration after it reaches a maximum. Normal optimization then
-  proceeds for the rest of the iterations available. In the paper, an
-  example is given where optimal results were obtained after 750
-  iterations of early exaggeration, followed by another 750 iterations
-  of standard optimization.
+  KL divergence, (\mathrm{KL}\_{i-1} - \mathrm{KL}\_{i}) /
+  \mathrm{KL}\_{i-1}, and terminate early exaggeration after it reaches
+  a maximum. Normal optimization then proceeds for the rest of the
+  iterations available. In the paper, an example is given where optimal
+  results were obtained after 750 iterations of early exaggeration,
+  followed by another 750 iterations of standard optimization.
 
 - Because early exaggeration can last a longer than usual, it might be
   tempting to keep the ratio of early exaggeration iterations to
@@ -33,7 +33,8 @@ three main suggestions:
   exaggeration is extended, this would in turn lead to a very long run
   time for the standard optimization. Instead, the authors suggest
   monitoring the relative tolerance of the KL divergence, and terminate
-  the run when KL\_{i-1} - KL\_{i} \< KL\_{i} / 10000.
+  the run when \mathrm{KL}\_{i-1} - \mathrm{KL}\_{i} \< \mathrm{KL}\_{i}
+  / 10000.
 
 There is no suggestion that these changes are necessary or optimal for
 smaller datasets, but it would be nice if they were or at least they did
@@ -303,10 +304,10 @@ of opt-SNE slightly modifies the strategy given in the paper:
 
 - waits 15 iterations before attempting to stop.
 - checks every 5 iterations, rather than every iteration.
-- the tolerance check is \|KL\_{i-1} - KL\_{i}\| / 5 \< KL\_{i} / 5000,
-  i.e. the relative tolerance check has been loosened from `1e-4` to
-  `2e-4` (i.e. `1 / 5000`). This can be changed by the user, but `5000`
-  is the default.
+- the tolerance check is \|\mathrm{KL}\_{i-1} - \mathrm{KL}\_{i}\| / 5
+  \< \mathrm{KL}\_{i} / 5000, i.e. the relative tolerance check has been
+  loosened from `1e-4` to `2e-4` (i.e. `1 / 5000`). This can be changed
+  by the user, but `5000` is the default.
 
 This has been present in `smallvis` for a while, but by default the
 tolerance is set sufficiently low (`1e-7`) that you are unlikely to stop

@@ -96,7 +96,7 @@ to, but not the same as, notation in the paper.</li>
 </h2>
 <p>The probability matrix <span class="math inline">P</span> is
 constructed from the <span class="math inline">N</span> high-dimensional
-input data vectors <span class="math inline">\mathbf{\hat{z}_{i}}</span>
+input data vectors <span class="math inline">\hat{\mathbf{z}}_i</span>
 using the mutual (approximate) nearest neighbor adjacency matrix and
 then normalizing so the matrix sums to 1. Specifically:</p>
 <ol style="list-style-type: decimal">
@@ -118,7 +118,7 @@ v_{ij} / \sum_{i, j} v_{ij}</span>.</li>
 <p>Uses power iteration for a fixed number of iterations to generate the
 top <span class="math inline">m</span> eigenvectors of <span class="math inline">P</span> where <span class="math inline">m</span> is
 the output dimensionality. This is close to a <a href="spectral.html">graph Laplacian spectral approach</a>. The
-eigenvectors are used to initialize the output coordinates <span class="math inline">\mathbf{z_{i}}</span>.</p>
+eigenvectors are used to initialize the output coordinates <span class="math inline">\mathbf{z}_i</span>.</p>
 </div>
 <div class="section level2">
 <h2 id="the-output-similarity-kernel">The Output Similarity Kernel<a class="anchor" aria-label="anchor" href="#the-output-similarity-kernel"></a>
@@ -127,9 +127,11 @@ eigenvectors are used to initialize the output coordinates <span class="math inl
 <p><span class="math display">
 \hat{q}_{ij} = \frac{1}{1 + a d_{ij}^{2b}}
 </span></p>
-<p>where <span class="math inline">d_{ij}^2</span> is the Euclidean
-distance between <span class="math inline">\mathbf{z_i}</span> and <span class="math inline">\mathbf{z_j}</span>, i.e. the coordinates of <span class="math inline">i</span> and <span class="math inline">j</span> in
-the output space. <span class="math inline">a</span> and <span class="math inline">b</span> are user-defined parameters.</p>
+<p>where <span class="math inline">d_{ij}^2</span> is the squared
+Euclidean distance between <span class="math inline">\mathbf{z}_i</span>
+and <span class="math inline">\mathbf{z}_j</span>, i.e. the coordinates
+of <span class="math inline">i</span> and <span class="math inline">j</span> in the output space. <span class="math inline">a</span> and <span class="math inline">b</span> are
+user-defined parameters.</p>
 <div class="section level3">
 <h3 id="normalization">Normalization<a class="anchor" aria-label="anchor" href="#normalization"></a>
 </h3>
@@ -202,8 +204,10 @@ w_{ij}^+ = \frac{1}{1 + w_{ij}^{\prime}}
 <h3 id="negative-sample">Negative Sample<a class="anchor" aria-label="anchor" href="#negative-sample"></a>
 </h3>
 <p><span class="math display">
-w_{ij}^- = -\frac{1}{1 + \frac{1}{w_{ij}^{\prime}}} =
--\frac{w_{ij}^{\prime}}{1 + w_{ij}^{\prime}}
+\begin{aligned}
+w_{ij}^- &amp;= -\frac{1}{1 + \frac{1}{w_{ij}^{\prime}}} \\
+&amp;= -\frac{w_{ij}^{\prime}}{1 + w_{ij}^{\prime}}
+\end{aligned}
 </span></p>
 </div>
 <div class="section level3">
@@ -235,25 +239,27 @@ sample.</p>
 <p>The gradient is then:</p>
 <p><span class="math display">
 \nabla J_{\mathbf{z}*} =
-k_{ij}^* \left( \mathbf{z_j} - \mathbf{z_i} \right)
+k_{ij}^* \left( \mathbf{z}_j - \mathbf{z}_i \right)
 </span></p>
-<p>It’s important to note that the displacement is given as <span class="math inline">\mathbf{z_j} - \mathbf{z_i}</span>, rather than the
-usual <span class="math inline">\mathbf{z_i} - \mathbf{z_j}</span>. This
+<p>It’s important to note that the displacement is given as <span class="math inline">\mathbf{z}_j - \mathbf{z}_i</span>, rather than the
+usual <span class="math inline">\mathbf{z}_i - \mathbf{z}_j</span>. This
 changes the sign of the gradient compared to similar methods like UMAP
 and LargeVis, but you also need to bear in mind that we are doing
 gradient ascent for NCVis (like LargeVis but unlike UMAP), so there is
 another sign change in the update if you compare this expression to
 methods that minimize a cost function by gradient descent.</p>
-<p><span class="math inline">\mathbf{z_i}</span> is updated by gradient
+<p><span class="math inline">\mathbf{z}_i</span> is updated by gradient
 ascent using the <span class="math inline">\mathbf{z}</span> learning
 rate <span class="math inline">\alpha_{\mathbf{z}}</span>:</p>
 <p><span class="math display">
-\mathbf{z_i} \gets
-\mathbf{z_i} + \alpha_{\mathbf{z}}
-\nabla J_{\mathbf{z}*} \left( \mathbf{z_i} \right) \\
-\mathbf{z_j} \gets
-\mathbf{z_j} - \alpha_{\mathbf{z}}
-\nabla J_{\mathbf{z}*} \left( \mathbf{z_i} \right)
+\begin{aligned}
+\mathbf{z}_i &amp;\gets
+\mathbf{z}_i + \alpha_{\mathbf{z}}
+\nabla J_{\mathbf{z}*} \left( \mathbf{z}_i \right) \\
+\mathbf{z}_j &amp;\gets
+\mathbf{z}_j - \alpha_{\mathbf{z}}
+\nabla J_{\mathbf{z}*} \left( \mathbf{z}_i \right)
+\end{aligned}
 </span></p>
 <p>Like UMAP and LargeVis there is a clipping step to prevent too large
 an update, but it is applied to the update rather than the gradient,
@@ -279,51 +285,53 @@ q_{ij}^\prime = e^{-Q^\prime} \hat{q}_{ij}
 <p><span class="math display">
 w_{ij}^\prime = \frac{q_{ij}^\prime}{\nu}
 </span></p>
-<p>Also, we’ll use <span class="math inline">\mathbf{z_i} -
-\mathbf{z_j}</span> for the displacement in the definition of <span class="math inline">\nabla J_{\mathbf{z}*}</span>.</p>
+<p>Also, we’ll use <span class="math inline">\mathbf{z}_i -
+\mathbf{z}_j</span> for the displacement in the definition of <span class="math inline">\nabla J_{\mathbf{z}*}</span>.</p>
 <p><span class="math display">
 w_{ij}^+ = \frac{1}{1 + w_{ij}^{\prime}}
 =
 \frac{\nu}{q_{ij}^\prime + \nu}
 </span></p>
 <p><span class="math display">
-w_{ij}^- =
--\frac{w_{ij}^{\prime}}{1 + w_{ij}^{\prime}}
-=
+\begin{aligned}
+w_{ij}^- &amp;=
+-\frac{w_{ij}^{\prime}}{1 + w_{ij}^{\prime}} \\
+&amp;=
 -\frac{q_{ij}^\prime}{q_{ij}^\prime + \nu}
+\end{aligned}
 </span></p>
 <p>So the gradients are:</p>
 <p><span class="math display">
-\nabla J_{Q+} = -\frac{\nu}{q_{ij}^\prime + \nu}
-\\
-\nabla J_{Q-} = \frac{q_{ij}^\prime}{q_{ij}^\prime + \nu}
-\\
-\nabla J_{\mathbf{z}+} =
+\begin{aligned}
+\nabla J_{Q+} &amp;= -\frac{\nu}{q_{ij}^\prime + \nu} \\
+\nabla J_{Q-} &amp;= \frac{q_{ij}^\prime}{q_{ij}^\prime + \nu} \\
+\nabla J_{\mathbf{z}+} &amp;=
 -2 a b d_{ij}^{2\left(b - 1\right)}
 \hat{q}_{ij}
 \frac{\nu}{q_{ij}^\prime + \nu}
-\left( \mathbf{z_i} - \mathbf{z_j} \right)
-\\
-\nabla J_{\mathbf{z}-} =
+\left( \mathbf{z}_i - \mathbf{z}_j \right) \\
+\nabla J_{\mathbf{z}-} &amp;=
 2 a b d_{ij}^{2\left(b - 1\right)}
 \hat{q}_{ij}
 \frac{q_{ij}^\prime}{q_{ij}^\prime + \nu}
-\left( \mathbf{z_i} - \mathbf{z_j} \right)
+\left( \mathbf{z}_i - \mathbf{z}_j \right)
+\end{aligned}
 </span></p>
 </div>
 <div class="section level2">
 <h2 id="nce-objective-function-from-the-paper">NCE Objective Function from the Paper<a class="anchor" aria-label="anchor" href="#nce-objective-function-from-the-paper"></a>
 </h2>
-<p>The paper uses <span class="math inline">\mathbf{\theta}</span> to
-represent all the parameters we intend to optimize, which is the <span class="math inline">\mathbf{z}</span> vector and the scalar <span class="math inline">Q</span>.</p>
+<p>The paper uses <span class="math inline">\boldsymbol{\theta}</span>
+to represent all the parameters we intend to optimize, which is the
+<span class="math inline">\mathbf{z}</span> vector and the scalar <span class="math inline">Q</span>.</p>
 <p>The part of the NCE objective applied to positive pairs is:</p>
 <p><span class="math display">
-J^+ = \log \frac{p_m \left( \mathbf{x_i}; \mathbf{\theta} \right)}
-{p_m\left( \mathbf{x_i}; \mathbf{\theta} \right)
+J^+ = \log \frac{p_m \left( \mathbf{x}_i; \boldsymbol{\theta} \right)}
+{p_m\left( \mathbf{x}_i; \boldsymbol{\theta} \right)
 +
-\nu p_n\left( \mathbf{x_i} \right)}
+\nu p_n\left( \mathbf{x}_i \right)}
 </span></p>
-<p><span class="math inline">\mathbf{x_i}</span>, is a positive pair
+<p><span class="math inline">\mathbf{x}_i</span>, is a positive pair
 <span class="math inline">\left(i^+, j^+ \right)</span>. <span class="math inline">p_m</span> is the model probability and <span class="math inline">p_n</span> is the noise probability. Those will be
 defined below.</p>
 <p>The NCE objective applied to negative pairs is:</p>
@@ -331,15 +339,15 @@ defined below.</p>
 J^- =
 \log
 \frac{
-\nu p_n\left( \mathbf{y_i} \right)
+\nu p_n\left( \mathbf{y}_i \right)
 }
 {
-p_m\left( \mathbf{y_i}; \mathbf{\theta} \right)
+p_m\left( \mathbf{y}_i; \boldsymbol{\theta} \right)
 +
-\nu p_n\left( \mathbf{y_i} \right)
+\nu p_n\left( \mathbf{y}_i \right)
 }
 </span></p>
-<p><span class="math inline">\mathbf{y_i}</span> is a noise example,
+<p><span class="math inline">\mathbf{y}_i</span> is a noise example,
 i.e. the pair <span class="math inline">\left(i^+, j^-
 \right)</span>.</p>
 <p>The model distribution, <span class="math inline">p_m</span> is the
@@ -363,7 +371,7 @@ product of those two probabilities, i.e.</p>
 <p><span class="math display">
 p_n = \frac{1}{N - 1} \sum_{k=1}^N p_{ik}
 </span></p>
-<p>Instead of having to write <span class="math inline">p_n\left(\mathbf{y_i}\right)</span>, going forward I
+<p>Instead of having to write <span class="math inline">p_n\left(\mathbf{y}_i\right)</span>, going forward I
 am going to use <span class="math inline">p_{i}^-</span> to mean <span class="math inline">p_n</span> evaluated for the negative pair <span class="math inline">\left(i^+, j^- \right)</span>, i.e.:</p>
 <p><span class="math display">
 p_{i}^- \equiv p_n\left(i^+, j^- \right)
@@ -382,12 +390,15 @@ fact the “data” probabilities, usually written as <span class="math inline">
 <p>The gradient of the NCE objective with respect to the output
 coordinates of <span class="math inline">i</span> is:</p>
 <p><span class="math display">
-\nabla J_{\mathbf{z*}} \equiv
-\frac{\partial J_{ij}^*}{\partial \mathbf{z_i}} =
+\begin{aligned}
+\nabla J_{\mathbf{z}*} &amp;\equiv
+\frac{\partial J_{ij}^*}{\partial \mathbf{z}_i} \\
+&amp;=
 2 \frac{\partial J_{ij}^*}{\partial d_{ij}^2}
 \left(
-\mathbf{z_i} - \mathbf{z_j}
+\mathbf{z}_i - \mathbf{z}_j
 \right)
+\end{aligned}
 </span></p>
 <p>where as usual the <span class="math inline">*</span> just means it
 could be <span class="math inline">+</span> (for the positive pair) or
@@ -397,21 +408,23 @@ where it doesn’t matter whether we are referring to the positive or
 negative pairs.</p>
 <p>We can expand the gradient expression to:</p>
 <p><span class="math display">
-\frac{\partial J_{ij}}{\partial \mathbf{z_i}} =
+\frac{\partial J_{ij}}{\partial \mathbf{z}_i} =
 2
 \frac{\partial J_{ij}}{\partial q_{ij}}
 \frac{\partial q_{ij}}{\partial \hat{q}_{ij}}
 \frac{\partial \hat{q}_{ij}}{\partial d_{ij}^2}
 \left(
-\mathbf{z_i} - \mathbf{z_j}
+\mathbf{z}_i - \mathbf{z}_j
 \right)
 </span></p>
 <p>We will need the following derivatives:</p>
 <p><span class="math display">
-\frac{\partial \hat{q}_{ij}}{\partial d_{ij}^2} = \frac{-a b
+\begin{aligned}
+\frac{\partial \hat{q}_{ij}}{\partial d_{ij}^2} &amp;= \frac{-a b
 d_{ij}^{2\left(b - 1\right)}}
-{\left(a d_{ij}^2 + 1 \right)^2} = -a b d_{ij}^{2\left( b - 1\right)}
-\hat{q}_{ij}^2
+{\left(a d_{ij}^{2b} + 1 \right)^2} \\
+&amp;= -a b d_{ij}^{2\left( b - 1\right)} \hat{q}_{ij}^2
+\end{aligned}
 </span></p>
 <p>and:</p>
 <p><span class="math display">
@@ -428,7 +441,7 @@ e^{-Q}
 \frac{\partial q_{ij}}{\partial d_{ij}^2} =
 -a b d_{ij}^{2\left( b - 1\right)} \hat{q}_{ij} q_{ij}
 </span></p>
-<p>So the gradient for <span class="math inline">\mathbf{z_i}</span>
+<p>So the gradient for <span class="math inline">\mathbf{z}_i</span>
 is:</p>
 <p><span class="math display">
 \nabla J_{\mathbf{z}} =
@@ -437,7 +450,7 @@ a b d_{ij}^{2\left( b - 1\right)}
 \hat{q}_{ij} q_{ij}
 \frac{\partial J_{ij}}{\partial q_{ij}}
 \left(
-\mathbf{z_i} - \mathbf{z_j}
+\mathbf{z}_i - \mathbf{z}_j
 \right)
 </span></p>
 <p>we therefore need to calculate the derivative of the different
@@ -445,10 +458,13 @@ attractive and positive parts of the cost function with respect to <span class="
 above.</p>
 <p>For <span class="math inline">Q</span> we need:</p>
 <p><span class="math display">
-\nabla J_{Q} \equiv
-\frac{\partial J_{ij}}{\partial Q} =
+\begin{aligned}
+\nabla J_{Q} &amp;\equiv
+\frac{\partial J_{ij}}{\partial Q} \\
+&amp;=
 \frac{\partial J_{ij}}{\partial q_{ij}}
 \frac{\partial q_{ij}}{\partial Q}
+\end{aligned}
 </span></p>
 <p>and also:</p>
 <p><span class="math display">
@@ -476,16 +492,18 @@ J_{ij}^+ = \log \frac{q_{ij}}{q_{ij} + \nu p_{i}^-}
 </span></p>
 <p>So the positive gradients are:</p>
 <p><span class="math display">
-\nabla J_{\mathbf{z+}} =
+\begin{aligned}
+\nabla J_{\mathbf{z}+} &amp;=
 -2
 a b d_{ij}^{2\left( b - 1\right)}
 \hat{q}_{ij}
 \frac{\nu p_{i}^-}{q_{ij} + \nu p_{i}^-}
 \left(
-\mathbf{z_i} - \mathbf{z_j}
+\mathbf{z}_i - \mathbf{z}_j
 \right) \\
-\nabla J_{Q+} =
+\nabla J_{Q+} &amp;=
 -\frac{\nu p_{i}^-}{q_{ij} + \nu p_{i}^-}
+\end{aligned}
 </span></p>
 </div>
 <div class="section level3">
@@ -501,16 +519,18 @@ J_{ij}^- = \log \frac{\nu p_{i}^-}{q_{ij} + \nu p_{i}^-}
 </span></p>
 <p>So the negative gradients are:</p>
 <p><span class="math display">
-\nabla J_{\mathbf{z-}} =
+\begin{aligned}
+\nabla J_{\mathbf{z}-} &amp;=
 2
 a b d_{ij}^{2\left( b - 1\right)}
 \hat{q}_{ij}
 \frac{q_{ij}}{q_{ij} + \nu p_{i}^-}
 \left(
-\mathbf{z_i} - \mathbf{z_j}
+\mathbf{z}_i - \mathbf{z}_j
 \right) \\
-\nabla J_{Q-} =
+\nabla J_{Q-} &amp;=
 \frac{q_{ij}}{q_{ij} + \nu p_{i}^-}
+\end{aligned}
 </span></p>
 </div>
 </div>
@@ -523,16 +543,19 @@ derivation. So I will label that as “me” below.</p>
 <p>Let’s start with the simpler gradient for <span class="math inline">Q</span> first.</p>
 <p>Code:</p>
 <p><span class="math display">
-\nabla J_{Q+} = -\frac{\nu}{q_{ij}^\prime + \nu}
-\\
-\nabla J_{Q-} = \frac{q_{ij}^\prime}{q_{ij}^\prime + \nu}
+\begin{aligned}
+\nabla J_{Q+} &amp;= -\frac{\nu}{q_{ij}^\prime + \nu} \\
+\nabla J_{Q-} &amp;= \frac{q_{ij}^\prime}{q_{ij}^\prime + \nu}
+\end{aligned}
 </span></p>
 <p>Me:</p>
 <p><span class="math display">
-\nabla J_{Q+} =
+\begin{aligned}
+\nabla J_{Q+} &amp;=
 -\frac{\nu p_{i}^-}{q_{ij} + \nu p_{i}^-} \\
-\nabla J_{Q-} =
+\nabla J_{Q-} &amp;=
 \frac{q_{ij}}{q_{ij} + \nu p_{i}^-}
+\end{aligned}
 </span></p>
 <p>These line up if we define:</p>
 <p><span class="math display">
@@ -544,37 +567,39 @@ cancel out.</p>
 <p>Now for the gradient for <span class="math inline">\mathbf{z}</span>.</p>
 <p>Code:</p>
 <p><span class="math display">
-\nabla J_{\mathbf{z}+} =
+\begin{aligned}
+\nabla J_{\mathbf{z}+} &amp;=
 -2 a b d_{ij}^{2\left(b - 1\right)}
 \hat{q}_{ij}
 \frac{\nu}{q_{ij}^\prime + \nu}
-\left( \mathbf{z_i} - \mathbf{z_j} \right)
-\\
-\nabla J_{\mathbf{z}-} =
+\left( \mathbf{z}_i - \mathbf{z}_j \right) \\
+\nabla J_{\mathbf{z}-} &amp;=
 2 a b d_{ij}^{2\left(b - 1\right)}
 \hat{q}_{ij}
 \frac{q_{ij}^\prime}{q_{ij}^\prime + \nu}
-\left( \mathbf{z_i} - \mathbf{z_j} \right)
+\left( \mathbf{z}_i - \mathbf{z}_j \right)
+\end{aligned}
 </span></p>
 <p>Me:</p>
 <p><span class="math display">
-\nabla J_{\mathbf{z+}} =
+\begin{aligned}
+\nabla J_{\mathbf{z}+} &amp;=
 -2
 a b d_{ij}^{2\left( b - 1\right)}
 \hat{q}_{ij}
 \frac{\nu p_{i}^-}{q_{ij} + \nu p_{i}^-}
 \left(
-\mathbf{z_i} - \mathbf{z_j}
-\right)
-\\
-\nabla J_{\mathbf{z-}} =
+\mathbf{z}_i - \mathbf{z}_j
+\right) \\
+\nabla J_{\mathbf{z}-} &amp;=
 2
 a b d_{ij}^{2\left( b - 1\right)}
 \hat{q}_{ij}
 \frac{q_{ij}}{q_{ij} + \nu p_{i}^-}
 \left(
-\mathbf{z_i} - \mathbf{z_j}
+\mathbf{z}_i - \mathbf{z}_j
 \right)
+\end{aligned}
 </span></p>
 <p>Again, this all works out if we use the definition for <span class="math inline">q_{ij}^\prime</span> above.</p>
 <p>What this implies for NCVis implementation is:</p>

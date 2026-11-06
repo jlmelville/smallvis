@@ -85,7 +85,7 @@ exact gradient form.</p>
 <p>The theory of LargeVis is covered in plenty of depth over on the <a href="theory.html">theory page</a>. Here’s a summary. An exact gradient
 cost function looks like:</p>
 <p><span class="math display">
-C_{LV} =
+C_{\mathrm{LV}} =
 -\sum_{ij} p_{ij} \log w_{ij}
 -\gamma \sum_{ij} \log \left( 1 - w_{ij} \right)
 </span></p>
@@ -98,13 +98,13 @@ default value in the SGD implementation (<span class="math inline">\gamma = 7</s
 considering all pairs of points.</p>
 <p>The gradient with respect to the output coordinates, <span class="math inline">\mathbf{y}</span> is:</p>
 <p><span class="math display">
-\frac{\partial C_{LV}}{\partial \mathbf{y_i}} =
+\frac{\partial C_{\mathrm{LV}}}{\partial \mathbf{y}_i} =
   4\sum_j^N \left[
     \frac{p_{ij}}{ 1 + d_{ij}^2 }
     -\frac{\gamma }{ \left( \epsilon + d_{ij}^2 \right) \left( 1 +
 d_{ij}^2 \right) }
    \right]
-   \left(\mathbf{y_i - y_j}\right)
+   \left(\mathbf{y}_i - \mathbf{y}_j\right)
 </span></p>
 <p>where <span class="math inline">d_{ij}</span> is the Euclidean output
 distance between coordinates. <span class="math inline">\epsilon</span>
@@ -115,13 +115,13 @@ if you set <span class="math inline">\epsilon = 1</span> (practically
 that’s not a small value so you probably <em>shouldn’t</em> do this, but
 bear with us), and you can write the gradient as:</p>
 <p><span class="math display">
-\frac{\partial C_{LV}}{\partial \mathbf{y_i}} =
+\frac{\partial C_{\mathrm{LV}}}{\partial \mathbf{y}_i} =
   \frac{4}{N}\sum_j^N \left(
     v_{ij}
     -
     N\gamma w_{ij}
    \right)
-   w_{ij} \left(\mathbf{y_i - y_j}\right)
+   w_{ij} \left(\mathbf{y}_i - \mathbf{y}_j\right)
 </span></p>
 <p>I have also used the substitution <span class="math inline">p_{ij} =
 v_{ij} / N</span>. This expression resembles other methods’ gradients
@@ -149,12 +149,12 @@ sampled.</p>
 <p>If we replace <span class="math inline">p_{ij}</span> with <span class="math inline">v_{ij}</span> to create an un-normalized LargeVis,
 the gradient is now:</p>
 <p><span class="math display">
-\frac{\partial C_{ULV}}{\partial \mathbf{y_i}} =
+\frac{\partial C_{\mathrm{ULV}}}{\partial \mathbf{y}_i} =
   4\sum_j^N \left(
     v_{ij}
     -\frac{\gamma }{ \epsilon + d_{ij}^2 }
    \right)w_{ij}
-   \left(\mathbf{y_i - y_j}\right)
+   \left(\mathbf{y}_i - \mathbf{y}_j\right)
 </span></p>
 <p>and if you set <span class="math inline">\gamma = 1</span> this now
 resembles yet another method: the t-UMAP variant of UMAP, with the
@@ -968,8 +968,9 @@ give results fairly close to the “true” LargeVis results. I’m not aiming
 to reproduce the <code>lvish</code> results in <code>smallvis</code></p>
 <p>In order to make things more similar, for both <code>smallvis</code>
 and <code>lvish</code> we will use a knn kernel, where for a given
-perplexity <span class="math inline">PP</span>, the nearest <span class="math inline">PP</span> neighbors of point <span class="math inline">i</span> get an input affinity of <span class="math inline">1/PP</span> and 0 everywhere else. The resulting
-matrix is symmetrized as usual to get the final <span class="math inline">v_{ij}</span> values.</p>
+perplexity <span class="math inline">\mathrm{PP}</span>, the nearest
+<span class="math inline">\mathrm{PP}</span> neighbors of point <span class="math inline">i</span> get an input affinity of <span class="math inline">1/\mathrm{PP}</span> and 0 everywhere else. The
+resulting matrix is symmetrized as usual to get the final <span class="math inline">v_{ij}</span> values.</p>
 <p>For <code>smallvis</code>, the only difference between the previous
 set of results is adding <code>inp_kernel = "knn"</code> to the
 <code>method</code> list. For <code>lvish</code>, the settings were:</p>
@@ -1867,10 +1868,12 @@ initializations, but a lower cost.</p>
 albeit in less emphatic fashion.</p>
 <p>An obvious big difference between the smooth knn distances kernel and
 the Gaussian kernel is the attractive interactions are stronger by a
-factor of <span class="math inline">\log_2 PP</span> (where <span class="math inline">PP</span> is the perplexity), which should be the
-same as reducing <span class="math inline">\gamma</span> by the same
-amount (e.g. setting approximately <code>gamma = 0.25</code>) and then
-increasing the learning rate accordingly:</p>
+factor of <span class="math inline">\log_2 \mathrm{PP}</span> (where
+<span class="math inline">\mathrm{PP}</span> is the perplexity), which
+should be the same as reducing <span class="math inline">\gamma</span>
+by the same amount (e.g. setting approximately
+<code>gamma = 0.25</code>) and then increasing the learning rate
+accordingly:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">mnist6k_lvg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/smallvis.html">smallvis</a></span><span class="op">(</span></span>
 <span>  <span class="va">mnist6k</span>,</span>

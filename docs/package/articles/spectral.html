@@ -206,8 +206,9 @@ by the values on the diagonal.</p>
 <div class="section level3">
 <h3 id="symmetrized-normalized-laplacian">Symmetrized Normalized Laplacian<a class="anchor" aria-label="anchor" href="#symmetrized-normalized-laplacian"></a>
 </h3>
-<p><span class="math display">L_{sym} = D^{-1/2} L D^{-1/2} = I -
-D^{-1/2} W D^{-1/2}</span></p>
+<p><span class="math display">
+L_{\mathrm{sym}} = D^{-1/2} L D^{-1/2} = I - D^{-1/2} W D^{-1/2}
+</span></p>
 <p>also sometimes called just the <em>normalized</em> Laplacian and
 referred to by the nomenclature <span class="math inline">L_{n}</span>,
 but see below for another normalized Laplacian, which makes this naming
@@ -216,18 +217,22 @@ ambiguous.</p>
 called the (symmetrized) normalized adjacency matrix.</p>
 <p>For <span class="math inline">i \ne j</span>, this normalization can
 be written entrywise as:</p>
-<p><span class="math display">\left(L_{sym}\right)_{ij} =
--\frac{w_{ij}}{\sqrt{d_{ii} d_{jj}}}</span></p>
+<p><span class="math display">
+\left(L_{\mathrm{sym}}\right)_{ij} = -\frac{w_{ij}}{\sqrt{d_{ii}
+d_{jj}}}
+</span></p>
 <p>On the diagonal,</p>
-<p><span class="math display">\left(L_{sym}\right)_{ii} = 1 -
-\frac{w_{ii}}{d_{ii}},</span></p>
+<p><span class="math display">
+\left(L_{\mathrm{sym}}\right)_{ii} = 1 - \frac{w_{ii}}{d_{ii}},
+</span></p>
 <p>which equals 1 only when <span class="math inline">w_{ii}=0</span>.</p>
 </div>
 <div class="section level3">
 <h3 id="random-walk-normalized-laplacian">Random Walk Normalized Laplacian<a class="anchor" aria-label="anchor" href="#random-walk-normalized-laplacian"></a>
 </h3>
-<p><span class="math display">L_{rw} = D^{-1} L = I - D^{-1}
-W</span></p>
+<p><span class="math display">
+L_{\mathrm{rw}} = D^{-1} L = I - D^{-1} W
+</span></p>
 <p>von Luxburg notes that this is <em>also</em> sometimes referred to as
 the normalized Laplacian, so it’s best to use the longer names von
 Luxburg uses to avoid confusion. And yes, <span class="math inline">D^{-1} W</span> is <em>also</em> sometimes referred
@@ -241,18 +246,22 @@ lots of different names:</p>
 <p><span class="math display">P = D^{-1} W</span></p>
 <p>Also called the <em>Diffusion Operator</em> in Socher’s report. This
 also means you can write the Random Walk Normalized Laplacian as:</p>
-<p><span class="math display">L_{rw} = I - P</span></p>
+<p><span class="math display">
+L_{\mathrm{rw}} = I - P
+</span></p>
 <p><span class="math inline">P</span> is row-normalized (i.e. all rows
 add up to 1).</p>
 <p>It’s also pretty easy to see that:</p>
-<p><span class="math display">L_{sym} = I - D^{1/2} P
-D^{-1/2}</span></p>
+<p><span class="math display">
+L_{\mathrm{sym}} = I - D^{1/2} P D^{-1/2}
+</span></p>
 <p>The matrix</p>
-<p><span class="math display">P_{sym} = D^{1/2} P D^{-1/2} = D^{-1/2} W
-D^{-1/2}</span></p>
+<p><span class="math display">
+P_{\mathrm{sym}} = D^{1/2} P D^{-1/2} = D^{-1/2} W D^{-1/2}
+</span></p>
 <p>shows up in the discussion of diffusion maps. There doesn’t seem to
-be a fixed name or symbol for it, so I will go with <span class="math inline">P_{sym}</span> here in analogy with <span class="math inline">L_{sym}</span> to indicate it’s a symmetrized
-version of <span class="math inline">P</span>.</p>
+be a fixed name or symbol for it, so I will go with <span class="math inline">P_{\mathrm{sym}}</span> here in analogy with <span class="math inline">L_{\mathrm{sym}}</span> to indicate it’s a
+symmetrized version of <span class="math inline">P</span>.</p>
 </div>
 </div>
 <div class="section level2">
@@ -299,8 +308,10 @@ thing, but they don’t. In fact they have opposite meanings. Great.</p>
 <p>Both versions of the normalized adjacency matrix <span class="math inline">D^{-1} W</span> and <span class="math inline">D^{-1/2} W D^{-1/2}</span>, have eigenvalues that
 vary between -1 and 1.</p>
 <p>For graph Laplacians, the smallest eigenvalue is 0. For the
-normalized Laplacians <span class="math inline">L_{sym}</span> and <span class="math inline">L_{rw}</span>, the maximum value an eigenvalue can
-attain is 2. <em>December 9 2021</em>: For proof, see <a href="http://www.math.ucsd.edu/~fan/research/revised.html" class="external-link">Spectral
+normalized Laplacians <span class="math inline">L_{\mathrm{sym}}</span>
+and <span class="math inline">L_{\mathrm{rw}}</span>, the maximum value
+an eigenvalue can attain is 2. <em>December 9 2021</em>: For proof, see
+<a href="http://www.math.ucsd.edu/~fan/research/revised.html" class="external-link">Spectral
 Graph Theory</a>, Part 5 of Lemma 1.7 in Section 1.3, ‘Basic facts about
 the spectrum of a graph’. At the time I write this, chapter 1 is freely
 available at the link above.</p>
@@ -308,13 +319,14 @@ available at the link above.</p>
 eigenvalues from smallest to largest:</p>
 <p><span class="math display">0=\lambda_1 \leq \lambda_2 \leq \dots \leq
 \lambda_N,</span></p>
-<p>and use the same index for the corresponding eigenvalue of <span class="math inline">P</span> or <span class="math inline">P_{sym}</span>:</p>
+<p>and use the same index for the corresponding eigenvalue of <span class="math inline">P</span> or <span class="math inline">P_{\mathrm{sym}}</span>:</p>
 <p><span class="math display">\mu_i = 1-\lambda_i</span></p>
 <p>This means <span class="math inline">1=\mu_1 \geq \mu_2 \geq \dots
 \geq \mu_N</span>. When discussing <span class="math inline">P</span>,
 “largest” means most positive unless I explicitly say largest in
-magnitude. In particular, <span class="math inline">P</span> and <span class="math inline">P_{sym}</span> can have negative eigenvalues: any
-<span class="math inline">\lambda_i&gt;1</span> gives <span class="math inline">\mu_i&lt;0</span>, with <span class="math inline">\lambda_i=2</span> corresponding to <span class="math inline">\mu_i=-1</span>. This will matter when we get to
+magnitude. In particular, <span class="math inline">P</span> and <span class="math inline">P_{\mathrm{sym}}</span> can have negative
+eigenvalues: any <span class="math inline">\lambda_i&gt;1</span> gives
+<span class="math inline">\mu_i&lt;0</span>, with <span class="math inline">\lambda_i=2</span> corresponding to <span class="math inline">\mu_i=-1</span>. This will matter when we get to
 diffusion maps.</p>
 <p>For our full Gaussian matrix with its diagonal retained, the
 intervals are narrower: <span class="math inline">0\leq\mu_i\leq1</span>
@@ -337,25 +349,30 @@ needs, and then convert the result into what you want. You probably
 aren’t writing the software to do the linear algebra yourself so having
 flexibility over the choice of package you use for that can be very
 helpful.</p>
-<p>The eigenvalues of <span class="math inline">L_{sym}</span> and <span class="math inline">L_{rw}</span> are the same. So if you just need the
-eigenvalues it doesn’t matter which of those Laplacians you use. We can
-therefore refer to <span class="math inline">\lambda_i</span> as the ith
-eigenvalue in most cases of interest without having to worry about which
-of the two Laplacians we are referring to.</p>
-<p>The eigenvectors are also related. If <span class="math inline">v_{rw}</span> is an eigenvector of <span class="math inline">L_{rw}</span> and <span class="math inline">v_{sym}</span> is an eigenvector of <span class="math inline">L_{sym}</span>, then:</p>
-<p><span class="math display">v_{rw} = D^{-1/2} v_{sym}</span></p>
-<p>As a spoiler for later, the eigenvectors of <span class="math inline">P</span> are the same as <span class="math inline">L_{rw}</span> but the eigenvalue ordering is
-reversed, because the eigenvalues of <span class="math inline">P</span>
-are equal to <span class="math inline">1 - \lambda</span>. So the
-smallest eigenvalues of <span class="math inline">L_{rw}</span>
-correspond to the largest eigenvalues of <span class="math inline">P</span>.</p>
-<p>Further, <span class="math inline">P</span> and <span class="math inline">P_{sym}</span> have the same eigenvalues and the
-relationship between eigenvectors is the same as that between <span class="math inline">L_{rw}</span> and <span class="math inline">L_{sym}</span>:</p>
-<p><span class="math display">v_{P} = D^{-1/2} v_{Psym}</span></p>
-<p>I mainly discuss the eigenvectors of <span class="math inline">L_{rw}</span> below as these are most closely
-related to Laplacian Eigenmaps and Diffusion Maps. Assume if you see
-reference to a vector <span class="math inline">v</span> without any
-subscript that this refers to the eigenvector of <span class="math inline">L_{rw}</span>.</p>
+<p>The eigenvalues of <span class="math inline">L_{\mathrm{sym}}</span>
+and <span class="math inline">L_{\mathrm{rw}}</span> are the same. So if
+you just need the eigenvalues it doesn’t matter which of those
+Laplacians you use. We can therefore refer to <span class="math inline">\lambda_i</span> as the ith eigenvalue in most cases
+of interest without having to worry about which of the two Laplacians we
+are referring to.</p>
+<p>The eigenvectors are also related. If <span class="math inline">v_{\mathrm{rw}}</span> is an eigenvector of <span class="math inline">L_{\mathrm{rw}}</span> and <span class="math inline">v_{\mathrm{sym}}</span> is an eigenvector of <span class="math inline">L_{\mathrm{sym}}</span>, then:</p>
+<p><span class="math display">
+v_{\mathrm{rw}} = D^{-1/2} v_{\mathrm{sym}}
+</span></p>
+<p>As a spoiler for later, the eigenvectors of <span class="math inline">P</span> are the same as <span class="math inline">L_{\mathrm{rw}}</span> but the eigenvalue ordering
+is reversed, because the eigenvalues of <span class="math inline">P</span> are equal to <span class="math inline">1 -
+\lambda</span>. So the smallest eigenvalues of <span class="math inline">L_{\mathrm{rw}}</span> correspond to the largest
+eigenvalues of <span class="math inline">P</span>.</p>
+<p>Further, <span class="math inline">P</span> and <span class="math inline">P_{\mathrm{sym}}</span> have the same eigenvalues
+and the relationship between eigenvectors is the same as that between
+<span class="math inline">L_{\mathrm{rw}}</span> and <span class="math inline">L_{\mathrm{sym}}</span>:</p>
+<p><span class="math display">
+v_{P} = D^{-1/2} v_{P_{\mathrm{sym}}}
+</span></p>
+<p>I mainly discuss the eigenvectors of <span class="math inline">L_{\mathrm{rw}}</span> below as these are most
+closely related to Laplacian Eigenmaps and Diffusion Maps. Assume if you
+see reference to a vector <span class="math inline">v</span> without any
+subscript that this refers to the eigenvector of <span class="math inline">L_{\mathrm{rw}}</span>.</p>
 <div class="section level3">
 <h3 id="scaling-the-eigenvectors">Scaling the Eigenvectors<a class="anchor" aria-label="anchor" href="#scaling-the-eigenvectors"></a>
 </h3>
@@ -364,9 +381,9 @@ software will return the eigenvectors with different lengths, but once
 we use their entries as coordinates, we need to choose the lengths
 consistently. The normalizations for Laplacian Eigenmaps and diffusion
 distances are given below.</p>
-<p>Because of the relationship between the eigenvectors of <span class="math inline">L_{rw}</span> and <span class="math inline">L_{sym}</span> described above, if we scale the
-smallest eigenvector of <span class="math inline">L_{rw}</span> to all
-1s, then the corresponding eigenvector of <span class="math inline">L_{sym}</span> is <span class="math inline">D^{1/2}\mathbf{1}</span>. Knowing this may have some
+<p>Because of the relationship between the eigenvectors of <span class="math inline">L_{\mathrm{rw}}</span> and <span class="math inline">L_{\mathrm{sym}}</span> described above, if we scale
+the smallest eigenvector of <span class="math inline">L_{\mathrm{rw}}</span> to all 1s, then the
+corresponding eigenvector of <span class="math inline">L_{\mathrm{sym}}</span> is <span class="math inline">D^{1/2}\mathbf{1}</span>. Knowing this may have some
 practical value: most eigenvector software routines let you supply a
 guess for at least one of the eigenvectors so this is an easy choice
 involving numbers you already have to hand.</p>
@@ -386,30 +403,38 @@ is constant (we can scale it to be a vector of 1s), and corresponds to
 an eigenvalue of zero. So if you want to reduce to two dimensions, use
 the second-smallest and third-smallest eigenvectors.</p>
 <p>Let’s do a brief bit of rearranging:</p>
-<p><span class="math display">Lv = \lambda D v \\
-D^{-1} L v = \lambda v \\
-\left(D^{-1} D - D^{-1} W \right) v = \lambda v \\
-\left(I - P \right) v = \lambda v \\
-L_{rw} v = \lambda v</span></p>
-<p>So it turns out that the standard eigenvalue problem with <span class="math inline">L_{rw}</span> will produce the same results as the
-generalized eigenvalue problem with <span class="math inline">L</span>
-and <span class="math inline">D</span>. A non-generalized eigenvalue
-problem is preferable to the generalized problem, at least in R, because
-generalized problems require installing the CRAN package <a href="https://cran.r-project.org/package=geigen" class="external-link"><code>geigen</code></a>.
+<p><span class="math display">
+\begin{aligned}
+Lv &amp;= \lambda D v \\
+D^{-1} L v &amp;= \lambda v \\
+\left(D^{-1} D - D^{-1} W \right) v &amp;= \lambda v \\
+\left(I - P \right) v &amp;= \lambda v \\
+L_{\mathrm{rw}} v &amp;= \lambda v
+\end{aligned}
+</span></p>
+<p>So it turns out that the standard eigenvalue problem with <span class="math inline">L_{\mathrm{rw}}</span> will produce the same results
+as the generalized eigenvalue problem with <span class="math inline">L</span> and <span class="math inline">D</span>. A
+non-generalized eigenvalue problem is preferable to the generalized
+problem, at least in R, because generalized problems require installing
+the CRAN package <a href="https://cran.r-project.org/package=geigen" class="external-link"><code>geigen</code></a>.
 You could even use the eigenvectors of <span class="math inline">P</span>, although you have to bear in mind that the
-eigenvalues of <span class="math inline">P</span> differ from <span class="math inline">L_{rw}</span>. Compared to <span class="math inline">L_{rw}</span>, when using <span class="math inline">P</span> the order of the eigenvectors are reversed,
+eigenvalues of <span class="math inline">P</span> differ from <span class="math inline">L_{\mathrm{rw}}</span>. Compared to <span class="math inline">L_{\mathrm{rw}}</span>, when using <span class="math inline">P</span> the order of the eigenvectors are reversed,
 i.e. you want those associated with the <em>largest</em> eigenvalues,
 ignoring the uninformative top eigenvector. <span class="math inline">P</span> might even be preferable because it’s
-ever-so-slightly less work to calculate than <span class="math inline">L_{rw}</span>. We’ll revisit the relationship
-between <span class="math inline">L_{rw}</span> and <span class="math inline">P</span> when we talk about diffusion maps.</p>
+ever-so-slightly less work to calculate than <span class="math inline">L_{\mathrm{rw}}</span>. We’ll revisit the
+relationship between <span class="math inline">L_{\mathrm{rw}}</span>
+and <span class="math inline">P</span> when we talk about diffusion
+maps.</p>
 <div class="section level3">
 <h3 id="output">Output<a class="anchor" aria-label="anchor" href="#output"></a>
 </h3>
 <p>Now that you have <span class="math inline">k</span> nontrivial
 eigenvectors, stack them columnwise to form an <span class="math inline">N</span> x <span class="math inline">k</span>
 matrix. I’ll label it <span class="math inline">Y</span>.</p>
-<p><span class="math display">Y = \left[v_2 | v_3 | \dots | v_{k+1}
-\right]</span></p>
+<p><span class="math display">
+Y = \begin{bmatrix} v_2 &amp; v_3 &amp; \cdots &amp; v_{k+1}
+\end{bmatrix}
+</span></p>
 <p>where, as noted above, we have discarded <span class="math inline">v_1</span>. The rows of that matrix are the
 coordinates of the graph vertices in the reduced dimension, i.e. the ith
 row of the 2D Laplacian Eigenmap representing vertex i would be:</p>
@@ -417,7 +442,7 @@ row of the 2D Laplacian Eigenmap representing vertex i would be:</p>
 \right)</span></p>
 <p>To fix the axis scales, the usual Laplacian Eigenmaps normalization
 is <span class="math inline">Y^{\mathsf{T}}DY=I</span>. If you start
-with orthogonal unit-length eigenvectors of <span class="math inline">L_{sym}</span>, multiplying them by <span class="math inline">D^{-1/2}</span> already takes care of this.</p>
+with orthogonal unit-length eigenvectors of <span class="math inline">L_{\mathrm{sym}}</span>, multiplying them by <span class="math inline">D^{-1/2}</span> already takes care of this.</p>
 </div>
 </div>
 <div class="section level2">
@@ -433,11 +458,11 @@ eigenvectors of <span class="math inline">L</span>.</li>
 compute the first <span class="math inline">k</span>
 <em>generalized</em> eigenvectors of <span class="math inline">L</span>.
 This is the same eigenproblem as Laplacian Eigenmaps, so from the above
-discussion we know that it is equivalent to computing the first <span class="math inline">k</span> eigenvectors of <span class="math inline">L_{rw}</span> (hence justifying the term
+discussion we know that it is equivalent to computing the first <span class="math inline">k</span> eigenvectors of <span class="math inline">L_{\mathrm{rw}}</span> (hence justifying the term
 “normalized”).</li>
 <li>Normalized (<a href="https://papers.nips.cc/paper/2001/hash/801272ee79cfde7fa5960571fee36b9b-Abstract.html" class="external-link">Ng,
-Jordan and Weiss</a>): compute the first <span class="math inline">k</span> eigenvectors of <span class="math inline">L_{sym}</span>. This version requires an additional
-row normalization step of the output matrix, <span class="math inline">Y</span>, before you can do clustering: normalize
+Jordan and Weiss</a>): compute the first <span class="math inline">k</span> eigenvectors of <span class="math inline">L_{\mathrm{sym}}</span>. This version requires an
+additional row normalization step of the output matrix, <span class="math inline">Y</span>, before you can do clustering: normalize
 the rows so each row has length 1 (normalization to unit <span class="math inline">l_2</span> norm).</li>
 </ol>
 <p>The spectral clustering approach isn’t <em>quite</em> as simple as
@@ -446,24 +471,24 @@ these approaches keep the first eigenvector rather than discarding it.
 Like with Laplacian Eigenmaps, you could discard the first eigenvector
 if applying Shi-Malik clustering, because it’s a constant entry per
 observation and adds no useful information. In the Ng-Jordan-Weiss
-approach the trivial eigenvector of <span class="math inline">L_{sym}</span> isn’t generally constant and anyway
-you are also row normalizing, so dropping it could change the
+approach the trivial eigenvector of <span class="math inline">L_{\mathrm{sym}}</span> isn’t generally constant and
+anyway you are also row normalizing, so dropping it could change the
 clustering.</p>
 <p>After some additional theoretical discussions, von Luxburg concludes
 that clustering on the un-normalized graph Laplacian has some
 undesirable properties, so you definitely want to use one of the
 normalized Laplacians for clustering. Of the two normalized Laplacians,
-the Shi-Malik approach (once cast in terms of using <span class="math inline">L_{rw}</span>) is the least effort. A slight
-downside to <span class="math inline">L_{rw}</span> is that unlike <span class="math inline">L</span> and <span class="math inline">L_{sym}</span>, it is not symmetric, and symmetric
-matrices usually have access to slightly more methods (or more efficient
-methods) for solving the eigenproblem.</p>
-<p>Conclusion: use <span class="math inline">L_{rw}</span> (Laplacian
-Eigenmaps). <em>December 8 2021</em> Probably I should have said: use
-the <em>eigenvectors</em> of <span class="math inline">L_{rw}</span>,
-but given the straightforward conversion between the eigenvectors of
-<span class="math inline">L_{sym}</span> and those of <span class="math inline">L_{rw}</span>, you don’t need to form <span class="math inline">L_{rw}</span> directly for computational purposes.
-In fact, see the ‘Using Truncated SVD’ section below for why you might
-want to operate on a matrix related to <span class="math inline">L_{sym}</span> instead of <span class="math inline">L_{rw}</span>.</p>
+the Shi-Malik approach (once cast in terms of using <span class="math inline">L_{\mathrm{rw}}</span>) is the least effort. A
+slight downside to <span class="math inline">L_{\mathrm{rw}}</span> is
+that unlike <span class="math inline">L</span> and <span class="math inline">L_{\mathrm{sym}}</span>, it is not symmetric, and
+symmetric matrices usually have access to slightly more methods (or more
+efficient methods) for solving the eigenproblem.</p>
+<p>Conclusion: use <span class="math inline">L_{\mathrm{rw}}</span>
+(Laplacian Eigenmaps). <em>December 8 2021</em> Probably I should have
+said: use the <em>eigenvectors</em> of <span class="math inline">L_{\mathrm{rw}}</span>, but given the
+straightforward conversion between the eigenvectors of <span class="math inline">L_{\mathrm{sym}}</span> and those of <span class="math inline">L_{\mathrm{rw}}</span>, you don’t need to form <span class="math inline">L_{\mathrm{rw}}</span> directly for computational
+purposes. In fact, see the ‘Using Truncated SVD’ section below for why
+you might want to operate on a matrix related to <span class="math inline">L_{\mathrm{sym}}</span> instead of <span class="math inline">L_{\mathrm{rw}}</span>.</p>
 </div>
 <div class="section level2">
 <h2 id="diffusion-maps">Diffusion Maps<a class="anchor" aria-label="anchor" href="#diffusion-maps"></a>
@@ -488,10 +513,10 @@ become more important for diffusion maps than for spectral embedding and
 spectral clustering. For now, we’ll assume we are working with the full
 fixed-bandwidth Gaussian with its diagonal ones, so we know the
 eigenvalues of <span class="math inline">P</span> are non-negative.</p>
-<p>The calculation starts by solving the eigenproblem for <span class="math inline">P</span> rather than <span class="math inline">L_{rw}</span>:</p>
+<p>The calculation starts by solving the eigenproblem for <span class="math inline">P</span> rather than <span class="math inline">L_{\mathrm{rw}}</span>:</p>
 <p><span class="math display">P v = \mu v</span></p>
-<p>The eigenvectors are the same whether you use <span class="math inline">L_{rw}</span> or <span class="math inline">P</span>,
-but the eigenvalues are different, so I am using <span class="math inline">\mu</span> instead of <span class="math inline">\lambda</span> to differentiate them from the
+<p>The eigenvectors are the same whether you use <span class="math inline">L_{\mathrm{rw}}</span> or <span class="math inline">P</span>, but the eigenvalues are different, so I am
+using <span class="math inline">\mu</span> instead of <span class="math inline">\lambda</span> to differentiate them from the
 eigenvalues associated with Laplacian Eigenmaps and the usual spectral
 clustering algorithms. As it happens, the eigenvalues are related
 by:</p>
@@ -552,17 +577,21 @@ is the total edge weight at vertex <span class="math inline">i</span>.
 So we are normalizing the vertex degrees to sum to one. <span class="math inline">p_{ii}</span> is the probability of staying at
 vertex <span class="math inline">i</span> for one step. You can check
 the stationary distribution using the symmetry of <span class="math inline">W</span>:</p>
-<p><span class="math display">\sum_i\pi_i p_{ij}
-=\frac{\sum_i w_{ij}}{\sum_k d_{kk}}
-=\frac{d_{jj}}{\sum_k d_{kk}}=\pi_j.</span></p>
+<p><span class="math display">
+\begin{aligned}
+\sum_i\pi_i p_{ij} &amp;=\frac{\sum_i w_{ij}}{\sum_k d_{kk}} \\
+&amp;=\frac{d_{jj}}{\sum_k d_{kk}} \\
+&amp;=\pi_j.
+\end{aligned}
+</span></p>
 <p>Put the <span class="math inline">\pi_i</span> on the diagonal of a
 matrix <span class="math inline">\Pi=D/\sum_j d_{jj}</span>. The
 normalization we need is <span class="math inline">V^{\mathsf{T}}\Pi
 V=I</span>, where the columns of <span class="math inline">V</span> are
 the eigenvectors of <span class="math inline">P</span>. This is much
 like the Laplacian Eigenmaps normalization. If <span class="math inline">U</span> contains orthogonal unit-length
-eigenvectors of <span class="math inline">P_{sym}</span>, the conversion
-is</p>
+eigenvectors of <span class="math inline">P_{\mathrm{sym}}</span>, the
+conversion is</p>
 <p><span class="math display">V=\Pi^{-1/2}U=\sqrt{\sum_j
 d_{jj}}\,D^{-1/2}U.</span></p>
 <p>This also makes the trivial eigenvector a vector of all 1s, as
@@ -637,7 +666,9 @@ list, if you retain enough eigenvectors they will eventually start
 showing up with the same contribution to the distances. Another option
 is a <em>lazy walk</em>: at each step, toss a fair coin to decide
 whether to stay put or take a step using <span class="math inline">P</span>. Its matrix is</p>
-<p><span class="math display">P_{lazy}=\frac{I+P}{2}.</span></p>
+<p><span class="math display">
+P_{\mathrm{lazy}}=\frac{I+P}{2}.
+</span></p>
 <p>This keeps the eigenvectors and their normalization, but changes each
 eigenvalue to <span class="math inline">(1+\mu_i)/2</span>, which is
 between 0 and 1. The coordinate weights are now <span class="math inline">((1+\mu_i)/2)^t</span>, so the largest weights
@@ -706,13 +737,16 @@ eigenvectors with the eigenvalues as described above.</p></li>
 <li><p>If you want to use a symmetrized version of <span class="math inline">P^{\left( \alpha \right)}</span>, then
 form:</p></li>
 </ul>
-<p><span class="math display">P^{\left( \alpha \right)}_{sym} =
+<p><span class="math display">
+P^{\left( \alpha \right)}_{\mathrm{sym}} =
 \left(D^{\left(\alpha\right)}\right)^{1/2} P^{\left( \alpha \right)}
-\left(D^{\left(\alpha\right)}\right)^{-1/2}</span></p>
-<p>and remember to convert the eigenvectors back via:</p>
-<p><span class="math display">v_{P\left(\alpha\right)} =
 \left(D^{\left(\alpha\right)}\right)^{-1/2}
-v_{P\left(\alpha\right)sym}</span></p>
+</span></p>
+<p>and remember to convert the eigenvectors back via:</p>
+<p><span class="math display">
+v_{P^{(\alpha)}} = \left(D^{\left(\alpha\right)}\right)^{-1/2}
+v_{P^{(\alpha)}_{\mathrm{sym}}}
+</span></p>
 <p>It’s particularly lamentable that you have to deal with reading both
 <span class="math inline">\left(D^{\left( \alpha
 \right)}\right)^{-1}</span> (the inverse of the diagonal matrix <span class="math inline">D^{\left( \alpha \right)}</span>) <em>and</em> the
@@ -800,9 +834,9 @@ worth considering.</p>
 <div class="section level3">
 <h3 id="connection-between-svd-and-spectral-decomposition">Connection Between SVD and Spectral Decomposition<a class="anchor" aria-label="anchor" href="#connection-between-svd-and-spectral-decomposition"></a>
 </h3>
-<p>For symmetric real positive semidefinite matrices like <span class="math inline">L</span> and <span class="math inline">L_{sym}</span>, the singular vectors can be chosen
-to be the same as the eigenvectors. Also, the singular values and the
-eigenvalues coincide.</p>
+<p>For symmetric real positive semidefinite matrices like <span class="math inline">L</span> and <span class="math inline">L_{\mathrm{sym}}</span>, the singular vectors can be
+chosen to be the same as the eigenvectors. Also, the singular values and
+the eigenvalues coincide.</p>
 <p>For a symmetric matrix with negative eigenvalues, the singular values
 are the <em>absolute</em> values of the eigenvalues. That changes the
 ordering we need for Laplacian Eigenmaps, but gives exactly the
@@ -810,11 +844,11 @@ magnitude ordering we need for diffusion distances. So truncated SVD can
 be useful for both; we just need to choose the right matrix. Let’s deal
 with Laplacian Eigenmaps first.</p>
 <p>Can we use this to our advantage? To a certain extent, yes. An SVD of
-<span class="math inline">L_{sym}</span> can replace the spectral
-decomposition. However, as we want the eigenvectors with the smallest
-eigenvalues of <span class="math inline">L_{sym}</span>, the equivalent
-singular vectors are the bottom singular vectors, whereas the truncated
-SVD routines we want to use target the top ones.</p>
+<span class="math inline">L_{\mathrm{sym}}</span> can replace the
+spectral decomposition. However, as we want the eigenvectors with the
+smallest eigenvalues of <span class="math inline">L_{\mathrm{sym}}</span>, the equivalent singular
+vectors are the bottom singular vectors, whereas the truncated SVD
+routines we want to use target the top ones.</p>
 <p>It would be preferable to use the top singular vectors rather than
 the bottom singular vectors. Then we can make use of truncated SVD
 approaches like <a href="https://cran.r-project.org/package=irlba" class="external-link">irlba</a> which run in
@@ -824,22 +858,24 @@ ideal because we want the top eigenvalues from that matrix. A couple of
 minor problems to overcome though:</p>
 <ol style="list-style-type: decimal">
 <li><p><span class="math inline">P</span> isn’t symmetric, an obvious
-deal-breaker. However, <span class="math inline">P_{sym}</span>
+deal-breaker. However, <span class="math inline">P_{\mathrm{sym}}</span>
 <em>is</em> symmetric, has the same eigenvalues and it’s easy to convert
 the eigenvectors.</p></li>
 <li>
-<p>The eigenvalues of <span class="math inline">P</span> and <span class="math inline">P_{sym}</span> range from -1 to 1. This is a
-slightly subtler problem. Singular values are always non-negative,
+<p>The eigenvalues of <span class="math inline">P</span> and <span class="math inline">P_{\mathrm{sym}}</span> range from -1 to 1. This is
+a slightly subtler problem. Singular values are always non-negative,
 i.e. we lose track of the sign of the eigenvalues and only get their
 magnitudes through SVD. Unfortunately, this ruins the Laplacian ordering
 of the singular vectors. For <span class="math inline">P</span>, we want
 the most positive eigenvalues here. We can get around that by taking
 advantage of the fact that shifting a matrix by <span class="math inline">cI</span> (<span class="math inline">c</span> being
-a scalar value) shifts the eigenvalues by <span class="math inline">c</span>. The eigenvalues of <span class="math inline">cI + P_{sym}</span> are therefore <span class="math inline">c + \mu</span>. Picking <span class="math inline">c=1</span> means the eigenvalues of <span class="math inline">I + P_{sym}</span> are in the range of 0-2, which is
-safe for us to run SVD on: the matrix is positive semidefinite, so the
-singular values now have the order we want. Another way to write this
-is</p>
-<p><span class="math display">I+P_{sym}=2I-L_{sym}.</span></p>
+a scalar value) shifts the eigenvalues by <span class="math inline">c</span>. The eigenvalues of <span class="math inline">cI + P_{\mathrm{sym}}</span> are therefore <span class="math inline">c + \mu</span>. Picking <span class="math inline">c=1</span> means the eigenvalues of <span class="math inline">I + P_{\mathrm{sym}}</span> are in the range of 0-2,
+which is safe for us to run SVD on: the matrix is positive semidefinite,
+so the singular values now have the order we want. Another way to write
+this is</p>
+<p><span class="math display">
+I+P_{\mathrm{sym}}=2I-L_{\mathrm{sym}}.
+</span></p>
 </li>
 <li><p>Ordering the vectors is now very confusing: for graph Laplacians,
 we were talking about the <span class="math inline">k</span>th
@@ -873,14 +909,14 @@ matrix <span class="math inline">D^{\left( \alpha \right)}</span>.</li>
 </li>
 <li>Form the symmetric matrix <span class="math inline">I + D^{-1/2} W
 D^{-1/2}</span>, equivalently <span class="math inline">I +
-P_{sym}=2I-L_{sym}</span>, or <span class="math inline">I +
-P^{\left(\alpha\right)}_{sym}</span> for diffusion maps.</li>
+P_{\mathrm{sym}}=2I-L_{\mathrm{sym}}</span>, or <span class="math inline">I + P^{\left(\alpha\right)}_{\mathrm{sym}}</span>
+for diffusion maps.</li>
 <li>Via truncated SVD find the top <span class="math inline">k +
 1</span> singular vectors.
 <ul>
 <li>Discard the first singular vector, leaving the <span class="math inline">k</span> nontrivial vectors.</li>
 <li>The top singular vectors correspond to the smallest eigenvectors of
-<span class="math inline">L_{sym}</span>.</li>
+<span class="math inline">L_{\mathrm{sym}}</span>.</li>
 <li>To put it another way: the kth <em>largest</em> singular vector is
 the same as the kth <em>smallest</em> eigenvector.</li>
 <li>The kth <em>smallest</em> eigenvalue <span class="math inline">\lambda_k</span> and the kth <em>largest</em>
@@ -891,7 +927,9 @@ singular vector associated with the <em>largest</em> singular value is
 the trivial (degree-weighted) vector.</li>
 </ul>
 </li>
-<li>If you want the eigenvectors of <span class="math inline">L_{rw}</span>, convert in the normal way, i.e. <span class="math inline">v_{rw} = D^{-1/2} v_{sym}</span>.</li>
+<li>If you want the eigenvectors of <span class="math inline">L_{\mathrm{rw}}</span>, convert in the normal way,
+i.e. <span class="math inline">v_{\mathrm{rw}} = D^{-1/2}
+v_{\mathrm{sym}}</span>.</li>
 <li>The diffusion map eigenvalues are <span class="math inline">\mu_{k}
 = 1 - \lambda_{k} = d_{k} - 1</span>.</li>
 </ol>
@@ -904,9 +942,10 @@ diffusion-distance normalization described above.</p>
 <h4 id="truncated-svd-for-diffusion-distances">Truncated SVD for Diffusion Distances<a class="anchor" aria-label="anchor" href="#truncated-svd-for-diffusion-distances"></a>
 </h4>
 <p>For the original walk, there is an even simpler option: run truncated
-SVD on <span class="math inline">P_{sym}</span> without the identity
-shift. This works whether or not <span class="math inline">W</span> is
-PSD. Keep the leading left singular vectors <span class="math inline">u_\ell</span>, with singular values <span class="math inline">s_\ell</span>, and form coordinates</p>
+SVD on <span class="math inline">P_{\mathrm{sym}}</span> without the
+identity shift. This works whether or not <span class="math inline">W</span> is PSD. Keep the leading left singular
+vectors <span class="math inline">u_\ell</span>, with singular values
+<span class="math inline">s_\ell</span>, and form coordinates</p>
 <p><span class="math display">y_{i,\ell}=s_\ell^t\frac{u_{i,\ell}}{\sqrt{\pi_i}}.</span></p>
 <p>The signs of the eigenvalues don’t matter if we just want the
 diffusion distances.</p>
@@ -918,9 +957,9 @@ distances. If we cut through a tie, the truncated map is not unique.</p>
 contributes nothing to distances, so we can leave it in for this
 calculation. We may carry an extra coordinate, but we save ourselves the
 trouble of identifying and removing it from the SVD.</p>
-<p>So we can use <span class="math inline">I+P_{sym}</span> for the
-Laplacian ordering, and <span class="math inline">P_{sym}</span> for the
-original walk’s magnitude ordering.</p>
+<p>So we can use <span class="math inline">I+P_{\mathrm{sym}}</span> for
+the Laplacian ordering, and <span class="math inline">P_{\mathrm{sym}}</span> for the original walk’s
+magnitude ordering.</p>
 </div>
 </div>
 <div class="section level3">
@@ -955,21 +994,24 @@ matrix is the trace, but alas we need the sum of the squares of the
 eigenvalues. We don’t want to be calculating the square explicitly, but
 fortunately it’s also true that the squared Frobenius norm of a
 symmetric matrix equals the trace of the matrix’s square, i.e. we can
-just sum the squares of the elements of <span class="math inline">P_{sym}</span>.</p>
+just sum the squares of the elements of <span class="math inline">P_{\mathrm{sym}}</span>.</p>
 <p><em>But</em> we also have to take into account that the trivial
-eigenvector contributes nothing to distances and we know that <span class="math inline">\mu_1 = 1</span>. So the denominator is <span class="math inline">\|P_{sym}\|_F^2-1</span>. Equivalently, because we
-are working with the shifted version <span class="math inline">I +
-P_{sym}</span>, we can use:</p>
-<p><span class="math display">\|I + P_{sym}\|_F^2 - N -
-2\operatorname{tr}(P_{sym}) - 1.</span></p>
+eigenvector contributes nothing to distances and we know that <span class="math inline">\mu_1 = 1</span>. So the denominator is <span class="math inline">\|P_{\mathrm{sym}}\|_F^2-1</span>. Equivalently,
+because we are working with the shifted version <span class="math inline">I + P_{\mathrm{sym}}</span>, we can use:</p>
+<p><span class="math display">
+\|I + P_{\mathrm{sym}}\|_F^2 - N - 2\operatorname{tr}(P_{\mathrm{sym}})
+- 1.
+</span></p>
 <p>As a further wrinkle, the trace term is zero only when there are no
 self-loops. If you are working with a dense diffusion kernel where <span class="math inline">w_{ii}=1</span>, you need to keep it.</p>
 <p>For integer <span class="math inline">t&gt;1</span>, replace each
 <span class="math inline">\mu_\ell^2</span> in the fraction by <span class="math inline">\mu_\ell^{2t}</span>. The denominator becomes</p>
-<p><span class="math display">\sum_{\ell=2}^{N}\mu_\ell^{2t}
-=\operatorname{tr}\left(P_{sym}^{2t}\right)-1.</span></p>
-<p>This looks more expensive, but we don’t have to form <span class="math inline">P_{sym}^{2t}</span>. There is a standard randomized
-trace estimator due to <a href="https://doi.org/10.1080/03610919008812866" class="external-link">Hutchinson</a>; section
+<p><span class="math display">
+\sum_{\ell=2}^{N}\mu_\ell^{2t}
+=\operatorname{tr}\left(P_{\mathrm{sym}}^{2t}\right)-1.
+</span></p>
+<p>This looks more expensive, but we don’t have to form <span class="math inline">P_{\mathrm{sym}}^{2t}</span>. There is a standard
+randomized trace estimator due to <a href="https://doi.org/10.1080/03610919008812866" class="external-link">Hutchinson</a>; section
 1.1 of the paper by <a href="https://arxiv.org/abs/2010.09649" class="external-link">Meyer and
 co-workers</a> gives a recent explanation. Applied to our matrix, the
 recipe is:</p>
@@ -977,27 +1019,33 @@ recipe is:</p>
 <li>Generate a vector <span class="math inline">z</span> of length <span class="math inline">N</span>, choosing each entry independently to be 1
 or -1 with equal probability. These entries have what is called a
 Rademacher distribution.</li>
-<li>Multiply <span class="math inline">z</span> by <span class="math inline">P_{sym}</span> a total of <span class="math inline">t</span> times, then take the squared length of the
+<li>Multiply <span class="math inline">z</span> by <span class="math inline">P_{\mathrm{sym}}</span> a total of <span class="math inline">t</span> times, then take the squared length of the
 result.</li>
 <li>Repeat with several independently generated vectors and average the
 results.</li>
 </ol>
 <p>With <span class="math inline">s</span> random vectors, this
 gives</p>
-<p><span class="math display">\operatorname{tr}\left(P_{sym}^{2t}\right)
-\approx\frac{1}{s}\sum_{r=1}^{s}\left\|P_{sym}^{t}z_r\right\|^2.</span></p>
+<p><span class="math display">
+\operatorname{tr}\left(P_{\mathrm{sym}}^{2t}\right)
+\approx\frac{1}{s}\sum_{r=1}^{s}\left\|P_{\mathrm{sym}}^{t}z_r\right\|^2.
+</span></p>
 <p>Then subtract 1 for the trivial eigenvalue. The squared length works
-because <span class="math inline">P_{sym}</span> is symmetric, so <span class="math inline">z^{\mathsf{T}}P_{sym}^{2t}z</span> equals <span class="math inline">\|P_{sym}^t z\|^2</span>. Each vector costs <span class="math inline">t</span> sparse matrix-vector products, so you can
-trade accuracy against the number of vectors you use.</p>
+because <span class="math inline">P_{\mathrm{sym}}</span> is symmetric,
+so <span class="math inline">z^{\mathsf{T}}P_{\mathrm{sym}}^{2t}z</span>
+equals <span class="math inline">\|P_{\mathrm{sym}}^t z\|^2</span>. Each
+vector costs <span class="math inline">t</span> sparse matrix-vector
+products, so you can trade accuracy against the number of vectors you
+use.</p>
 <p>As <span class="math inline">t</span> increases, the contributions
 tend to concentrate in fewer eigenvectors. If you kept the largest
 magnitudes at <span class="math inline">t=1</span>, that choice remains
 conservative for this fraction as you increase <span class="math inline">t</span>. So exploring larger diffusion times
 needn’t require further eigenvector calculations.</p>
 <p>All of the above should still apply to the anisotropic case, using
-the <span class="math inline">P^{\left(\alpha\right)}_{sym}</span>
-matrix in place of <span class="math inline">P_{sym}</span> (the trivial
-eigenvalue remains 1).</p>
+the <span class="math inline">P^{\left(\alpha\right)}_{\mathrm{sym}}</span> matrix
+in place of <span class="math inline">P_{\mathrm{sym}}</span> (the
+trivial eigenvalue remains 1).</p>
 </div>
 <div class="section level3">
 <h3 id="truncated-svd-in-practice">Truncated SVD in Practice<a class="anchor" aria-label="anchor" href="#truncated-svd-in-practice"></a>
@@ -1076,10 +1124,12 @@ matrix), but instead of forming a graph Laplacian matrix from it, do SVD
 on the kernel matrix directly. This relies on the “kernel trick” (I
 don’t actually know who first coined that phrase): the value of the
 kernel matrix element <span class="math inline">w_{ij}</span> can be
-seen as the result of transforming <span class="math inline">\mathbf{x_i}</span> and <span class="math inline">\mathbf{x_j}</span> into some high-dimensional space
+seen as the result of transforming <span class="math inline">\mathbf{x}_i</span> and <span class="math inline">\mathbf{x}_j</span> into some high-dimensional space
 (this mapping function is usually labelled as <span class="math inline">\Phi</span>), and then taking the dot product:</p>
-<p><span class="math display">w_{ij}=k(\mathbf{x_i},\mathbf{x_j})
-=\langle\Phi(\mathbf{x_i}),\Phi(\mathbf{x_j})\rangle.</span></p>
+<p><span class="math display">
+w_{ij}=k(\mathbf{x}_i,\mathbf{x}_j)
+=\langle\Phi(\mathbf{x}_i),\Phi(\mathbf{x}_j)\rangle.
+</span></p>
 <p>Here <span class="math inline">\Phi</span> is the feature map, and
 <span class="math inline">k</span> is the positive-definite kernel: the
 function which gives us the dot product without having to calculate the
@@ -1093,14 +1143,15 @@ normalization of <span class="math inline">W</span>. Doing PCA requires
 mean-centered data and in kernel PCA this means the transformed data
 should also be mean-centered. But the whole point of the kernel trick is
 to avoid having to actually form the transformed data. Instead, the
-kernel matrix is double centered: <span class="math inline">W_{norm} =
-\left(I - \frac{1}{N}\mathbf{1} \right) W \left(I -
-\frac{1}{N}\mathbf{1} \right)</span> where <span class="math inline">\mathbf{1}</span> is an <span class="math inline">N</span> by <span class="math inline">N</span>
+kernel matrix is double centered: <span class="math inline">W_{\mathrm{norm}} = \left(I - \frac{1}{N}\mathbf{1}
+\right) W \left(I - \frac{1}{N}\mathbf{1}
+\right)</span> where <span class="math inline">\mathbf{1}</span> is an
+<span class="math inline">N</span> by <span class="math inline">N</span>
 matrix of all 1s. This normalization results in the row and column means
 all being zero.</p>
 <p>To get the kernel PCA coordinates for the input data, decompose this
-centered matrix <span class="math inline">W_{norm}</span>, then multiply
-each retained unit-length eigenvector by the square root of its
+centered matrix <span class="math inline">W_{\mathrm{norm}}</span>, then
+multiply each retained unit-length eigenvector by the square root of its
 eigenvalue. Stack these scaled vectors as columns, just as we did for
 the other embeddings.</p>
 <p>For more on this, <a href="http://www.iro.umontreal.ca/~lisa/pointeurs/TR1232.pdf" class="external-link">Bengio and
@@ -1159,7 +1210,7 @@ eigenvectors. Doesn’t get into Diffusion Maps, though.</p></li>
 <li><p>Radu Horaud’s <a href="https://csustan.csustan.edu/~tom/Lecture-Notes/Clustering/GraphLaplacian-tutorial.pdf" class="external-link">Graph
 Laplacian tutorial (PDF)</a> also covers some of the ground of the Von
 Luxburg tutorial and expresses the relationship between the eigenvectors
-of <span class="math inline">L_{sym}</span> and <span class="math inline">L_{rw}</span>.</p></li>
+of <span class="math inline">L_{\mathrm{sym}}</span> and <span class="math inline">L_{\mathrm{rw}}</span>.</p></li>
 <li><p>Another <a href="https://arxiv.org/abs/1901.10204" class="external-link">review on
 spectral clustering</a> by Tremblay and Loukas.</p></li>
 <li><p>The <a href="https://cs.nyu.edu/~roweis/lle/" class="external-link">Locally Linear
@@ -1190,7 +1241,7 @@ diffusion maps as a generalization of ideas expressed in Laplacian
 eigenmaps.</p></li>
 <li><p>An <a href="https://inside.mines.edu/~whereman/papers/delaPorte-Herbst-Hereman-vanderWalt-PRASA-2008.pdf" class="external-link">introduction
 to diffusion maps (PDF)</a> which has a fairly clear appendix laying out
-the definition and properties of <span class="math inline">P_{sym}</span>.</p></li>
+the definition and properties of <span class="math inline">P_{\mathrm{sym}}</span>.</p></li>
 <li><p>The <a href="https://doi.org/10.1109/34.868688" class="external-link">Shi and Malik</a>
 paper on spectral clustering.</p></li>
 <li><p>The <a href="https://papers.nips.cc/paper/2092-on-spectral-clustering-analysis-and-an-algorithm" class="external-link">Ng,

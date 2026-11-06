@@ -39,8 +39,9 @@ reported values.
 
 The HSSNE gradient is:
 
-\frac{\partial C}{\partial \mathbf{y_i}} = 4 \sum_j \left( p\_{ij} -
-q\_{ij} \right) w\_{ij}^\alpha \left( \mathbf{y_i - y_j} \right)
+\frac{\partial C}{\partial \mathbf{y}\_i} = 4 \sum_j \left( p\_{ij} -
+q\_{ij} \right) w\_{ij}^\alpha \left( \mathbf{y}\_i - \mathbf{y}\_j
+\right)
 
 ## Datasets
 

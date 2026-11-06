@@ -96,9 +96,9 @@ v\_{ij}^{-} w\_{ij}
 
 and the gradient is:
 
-\frac{\partial C\_{EE}}{\partial \mathbf{y_i}} = 4\sum_j^N \left(
-v\_{ij}^{+} - \lambda v\_{ij}^{-}{w\_{ij}} \right) \left(\mathbf{y_i -
-y_j}\right)
+\frac{\partial C\_{\mathrm{EE}}}{\partial \mathbf{y}\_i} = 4\sum_j^N
+\left( v\_{ij}^{+} - \lambda v\_{ij}^{-}{w\_{ij}} \right)
+\left(\mathbf{y}\_i - \mathbf{y}\_j\right)
 
 ## Datasets
 

@@ -20,9 +20,9 @@ Cichocki and co-workers came up with the
 [earlier paper](https://doi.org/10.3390/e12061532)), which generalizes a
 whole load of divergences:
 
-C =\frac{1}{\alpha \beta} \sum\_{ij} -p\_{ij}^{\alpha} q\_{ij}^{\beta} +
-\frac{\alpha}{\alpha + \beta}p\_{ij}^{\alpha + \beta} +
-\frac{\beta}{\alpha + \beta}q\_{ij}^{\alpha + \beta}
+C = \frac{1}{\alpha \beta} \sum\_{ij} \left\[ -p\_{ij}^{\alpha}
+q\_{ij}^{\beta} + \frac{\alpha}{\alpha + \beta}p\_{ij}^{\alpha +
+\beta} + \frac{\beta}{\alpha + \beta}q\_{ij}^{\alpha + \beta} \right\]
 
 \alpha and \beta are free parameters. By twiddling these values, just
 how many divergences does this bad boy generalize? A LOT, including
@@ -75,11 +75,11 @@ We’ll look at both below.
 
 The ABSNE gradient is:
 
-\frac{\partial C}{\partial \mathbf{y_i}} = \frac{4}{\alpha} \sum_j
+\frac{\partial C}{\partial \mathbf{y}\_i} = \frac{4}{\alpha} \sum_j
 \left\[ p\_{ij}^{\alpha} q\_{ij}^{\beta - 1} - q\_{ij}^{\alpha + \beta -
 1} - \sum\_{kl} p\_{kl}^{\alpha} q\_{kl}^{\beta} + \sum\_{kl}
-q\_{kl}^{\alpha + \beta} \right\] q\_{ij}w\_{ij} \left( \mathbf{y_i -
-y_j} \right)
+q\_{kl}^{\alpha + \beta} \right\] q\_{ij}w\_{ij} \left( \mathbf{y}\_i -
+\mathbf{y}\_j \right)
 
 This is nearly the gradient expression given in the ABSNE paper, but I
 end up with an extra 1 / \alpha. In a lot of SNE implementations, these
@@ -92,11 +92,11 @@ special forms to avoid singularities in as many cases.
 The equation above is the form of the gradient given in the ABSNE paper,
 but computationally speaking you might prefer to write the gradient as:
 
-\frac{\partial C}{\partial \mathbf{y_i}} = \frac{4}{\alpha} \sum_j
+\frac{\partial C}{\partial \mathbf{y}\_i} = \frac{4}{\alpha} \sum_j
 \left\[ p\_{ij}^{\alpha} q\_{ij}^{\beta} - q\_{ij}^{\lambda} + q\_{ij}
 \left( \sum\_{kl} q\_{kl}^{\lambda} - \sum\_{kl} p\_{kl}^{\alpha}
-q\_{kl}^{\beta} \right) \right\] w\_{ij} \left( \mathbf{y_i - y_j}
-\right)
+q\_{kl}^{\beta} \right) \right\] w\_{ij} \left( \mathbf{y}\_i -
+\mathbf{y}\_j \right)
 
 as you would only need to compute and store q\_{ij}, q\_{ij}^\beta and
 q\_{ij}^{\lambda} (w\_{ij} = q\_{ij} Z, where Z = \sum\_{kl} w\_{ij}),
@@ -115,8 +115,8 @@ derive them here, along with the special forms of the cost functions.
 ABSNE always uses the t-SNE kernel, so the generic gradient can be
 written as:
 
-\frac{\partial C}{\partial \mathbf{y_i}} = 4 \sum_j k\_{ij} \left(
-\mathbf{y_i - y_j} \right)
+\frac{\partial C}{\partial \mathbf{y}\_i} = 4 \sum_j k\_{ij} \left(
+\mathbf{y}\_i - \mathbf{y}\_j \right)
 
 where:
 
@@ -140,13 +140,13 @@ terms cancel when P and Q are probabilities.
 \frac{p\_{ij}^{\alpha}}{q\_{ij}} - \frac{q\_{ij}^{\alpha}}{q\_{ij}}
 \right)
 
-\frac{\partial C}{\partial \mathbf{y_i}} = \frac{4}{\alpha} \sum_j
+\frac{\partial C}{\partial \mathbf{y}\_i} = \frac{4}{\alpha} \sum_j
 \left\[ p\_{ij}^{\alpha} - q\_{ij}^{\alpha} + q\_{ij} \left( \sum\_{kl}
 q\_{kl}^{\alpha} - \sum\_{kl} p\_{kl}^{\alpha} \right) \right\] w\_{ij}
-\left( \mathbf{y_i - y_j} \right) You don’t need a special version of
-the gradient for this expression, it falls out naturally by setting
-\beta = 0 in the standard gradient, but I have pulled a q\_{ij} into the
-4-term expression.
+\left( \mathbf{y}\_i - \mathbf{y}\_j \right) You don’t need a special
+version of the gradient for this expression, it falls out naturally by
+setting \beta = 0 in the standard gradient, but I have pulled a q\_{ij}
+into the 4-term expression.
 
 #### alpha = -beta != 0
 
@@ -158,13 +158,13 @@ C = \frac{1}{\alpha^2} \sum\_{ij} \left( \log
 \frac{p\_{ij}^{\alpha}}{q\_{ij}^{\alpha + 1}} - \frac{1}{q\_{ij}}
 \right)
 
-\frac{\partial C}{\partial \mathbf{y_i}} = \frac{4}{\alpha} \sum_j
+\frac{\partial C}{\partial \mathbf{y}\_i} = \frac{4}{\alpha} \sum_j
 \left\[ \frac{p\_{ij}^{\alpha}}{q\_{ij}^\alpha} - 1 + q\_{ij} \left(
 \sum\_{kl} 1 - \sum\_{kl} \frac{p\_{kl}^{\alpha}}{q\_{kl}^\alpha}
-\right) \right\] w\_{ij} \left( \mathbf{y_i - y_j} \right) This can also
-be derived from the standard gradient. The \sum\_{kl} 1 term is
-interesting. I rather lazily write the sum as being over two indices,
-but we really should ignore q\_{ii}, i.e. the N diagonal “self”
+\right) \right\] w\_{ij} \left( \mathbf{y}\_i - \mathbf{y}\_j \right)
+This can also be derived from the standard gradient. The \sum\_{kl} 1
+term is interesting. I rather lazily write the sum as being over two
+indices, but we really should ignore q\_{ii}, i.e. the N diagonal “self”
 probabilities. So should that sum be N^2 or N^2 - N? In my tests, to get
 finite difference and analytical gradients to agree, I had to treat the
 sum in the cost function to be N^2, but the sum in the gradient to be
@@ -180,14 +180,14 @@ p\_{ij}^{\beta} \right)
 \frac{\partial C}{\partial q\_{ij}} = -\frac{1}{\beta} \left(
 q\_{ij}^{\beta - 1} \log \frac{p\_{ij}^\beta}{q\_{ij}^\beta} \right)
 
-\frac{\partial C}{\partial \mathbf{y_i}} = \frac{4}{\beta} \sum_j
+\frac{\partial C}{\partial \mathbf{y}\_i} = \frac{4}{\beta} \sum_j
 \left\[ q\_{ij}^\beta \log p\_{ij}^{\beta} - q\_{ij}^\beta \log
 q\_{ij}^{\beta} + q\_{ij} \left( \sum\_{kl} q\_{kl}^\beta \log
 q\_{kl}^{\beta} - \sum\_{kl} q\_{kl}^\beta \log p\_{kl}^{\beta} \right)
-\right\] w\_{ij} \left( \mathbf{y_i - y_j} \right) You could potentially
-simplify the \log q\_{ij}^{\beta} terms by pulling a factor of \beta out
-of the sum, which would then also handily cancel with the 4 / \beta bit.
-But this doesn’t save you any time or storage.
+\right\] w\_{ij} \left( \mathbf{y}\_i - \mathbf{y}\_j \right) You could
+potentially simplify the \log q\_{ij}^{\beta} terms by pulling a factor
+of \beta out of the sum, which would then also handily cancel with the 4
+/ \beta bit. But this doesn’t save you any time or storage.
 
 #### alpha = 0, beta = 0
 
@@ -197,10 +197,10 @@ C = \frac{1}{2} \sum\_{ij} \left( \log p\_{ij} - \log q\_{ij} \right) ^
 \frac{\partial C}{\partial q\_{ij}} = - \left( \frac{\log
 p\_{ij}}{q\_{ij}} - \frac{\log q\_{ij}}{q\_{ij}} \right)
 
-\frac{\partial C}{\partial \mathbf{y_i}} = 4 \sum_j \left\[ \log
+\frac{\partial C}{\partial \mathbf{y}\_i} = 4 \sum_j \left\[ \log
 p\_{ij} - \log q\_{ij} + q\_{ij} \left( \sum\_{kl} \log q\_{kl} -
-\sum\_{kl} \log p\_{kl} \right) \right\] w\_{ij} \left( \mathbf{y_i -
-y_j} \right)
+\sum\_{kl} \log p\_{kl} \right) \right\] w\_{ij} \left( \mathbf{y}\_i -
+\mathbf{y}\_j \right)
 
 ## Datasets
 

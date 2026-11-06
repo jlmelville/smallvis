@@ -75,8 +75,7 @@ that the correlation dimension attains as the perplexity is varied.
 
 D = \max\_{U} \hat{\delta}\_U The IDP is then:
 
-\DeclareMathOperator\*{\argmax}{arg\\max} IDP = \argmax\_{U}
-\hat{\delta}\_{U}
+\mathrm{IDP} = \operatorname\*{arg\\max}\_{U} \hat{\delta}\_{U}
 
 ### Multiple IDPs?
 

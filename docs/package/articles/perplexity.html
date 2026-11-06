@@ -83,9 +83,10 @@ Bayesian Information Criterion in model selection, they call the
 pseudo-BIC (pBIC). This adds an extra term penalizing larger
 perplexities to the final error:</p>
 <p><span class="math display">
-pBIC = 2KL(P||Q) + \frac{Perp}{N} \log N
-</span> Here <span class="math inline">KL(P||Q)</span> is the final
-error (Kullback-Leibler divergence) from the embedding, <span class="math inline">Perp</span> is the perplexity, and <span class="math inline">N</span> is the number of observations in the
+\mathrm{pBIC} = 2\operatorname{KL}(P\mathbin{\|}Q) +
+\frac{\mathrm{Perp}}{N} \log N
+</span> Here <span class="math inline">\operatorname{KL}(P\mathbin{\|}Q)</span> is the
+final error (Kullback-Leibler divergence) from the embedding, <span class="math inline">\mathrm{Perp}</span> is the perplexity, and <span class="math inline">N</span> is the number of observations in the
 dataset you’re embedding.</p>
 <p>Otherwise, the general advice is to try different perplexities over
 the usual 5-50 range and see if there’s one embedding that looks more

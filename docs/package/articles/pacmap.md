@@ -19,11 +19,11 @@ structure while maintaining the good clustering behavior of UMAP.
 
 ## The Usual Preliminaries
 
-The output coordinates of points i is the vector \mathbf{y_i}. The
+The output coordinates of points i is the vector \mathbf{y}\_i. The
 distance between two output points i and j is the Euclidean distance
 given as d\_{ij}. But we usually work with the squared distances:
 
-d\_{ij}^2 = \\ \mathbf{y_i} - \mathbf{y_j} \\\_2^2
+d\_{ij}^2 = \\ \mathbf{y}\_i - \mathbf{y}\_j \\\_2^2
 
 Output similarities/weights are like those used in t-SNE, using a
 Cauchy-like function:
@@ -32,17 +32,17 @@ w\_{ij} = \frac{1}{1 + d\_{ij}^2}
 
 Some derivatives:
 
-\begin{aligned} &\frac{\partial{d\_{ij}}}{\partial{\mathbf{y_i}}} =
-\frac{1}{d\_{ij}} \left( \mathbf{y_i} - \mathbf{y_j} \right) \\
-&\frac{\partial{w\_{ij}}}{\partial{d\_{ij}}} = -2 d\_{ij} w\_{ij}^2 \\
-&\frac{\partial{w\_{ij}}}{\partial{\mathbf{y_i}}} = -2 w\_{ij}^2 \left(
-\mathbf{y_i} - \mathbf{y_j} \right) \end{aligned}
+\begin{aligned} \frac{\partial{d\_{ij}}}{\partial{\mathbf{y}\_i}} &=
+\frac{1}{d\_{ij}} \left( \mathbf{y}\_i - \mathbf{y}\_j \right) \\
+\frac{\partial{w\_{ij}}}{\partial{d\_{ij}}} &= -2 d\_{ij} w\_{ij}^2 \\
+\frac{\partial{w\_{ij}}}{\partial{\mathbf{y}\_i}} &= -2 w\_{ij}^2 \left(
+\mathbf{y}\_i - \mathbf{y}\_j \right) \end{aligned}
 
 and the gradient of the cost function is:
 
-\frac{\partial{C}}{\partial{\mathbf{y_i}}} = -2
-\frac{\partial{C}}{\partial{w\_{ij}}} w\_{ij}^2 \left(\mathbf{y_i} -
-\mathbf{y_j}\right)
+\frac{\partial{C}}{\partial{\mathbf{y}\_i}} = -2
+\frac{\partial{C}}{\partial{w\_{ij}}} w\_{ij}^2 \left(\mathbf{y}\_i -
+\mathbf{y}\_j\right)
 
 As the cost function for this kind of dimensionality reduction method is
 usually given in terms of w\_{ij}, we can concentrate on the form of
@@ -52,17 +52,17 @@ if we want to write an actual implementation.
 ## Cost Function
 
 In the PaCMAP paper, the cost function is defined in terms of
-\tilde{d\_{ij}}, which is defined as:
+\tilde{d}\_{ij}, which is defined as:
 
-\tilde{d\_{ij}} = 1 + d\_{ij}^2
+\tilde{d}\_{ij} = 1 + d\_{ij}^2
 
-I will be working with w\_{ij} rather than \tilde{d\_{ij}} where
+I will be working with w\_{ij} rather than \tilde{d}\_{ij} where
 possible.
 
 Near neighbor and mid-near attractive interactions are of the form:
 
-C^{+}\_{PaCMAP} = \frac{a\tilde{d\_{ij}}}{b + \tilde{d\_{ij}}} =
-\frac{a}{1 + bw\_{ij}}
+\begin{aligned} C^{+}\_{\mathrm{PaCMAP}} &= \frac{a\tilde{d}\_{ij}}{b +
+\tilde{d}\_{ij}} \\ &= \frac{a}{1 + bw\_{ij}} \end{aligned}
 
 where a is a positive scalar weight that changes over the course of the
 optimization to put different emphasis on local vs global pairs, and b
@@ -71,8 +71,8 @@ is a fixed positive value.
 For non-neighbors (also referred to as “further” or “far” pairs), the
 repulsive interactions are:
 
-C^{-}\_{PaCMAP} = \frac{1}{1 + \tilde{d\_{ij}}} = \frac{w\_{ij}}{1 +
-w\_{ij}}
+C^{-}\_{\mathrm{PaCMAP}} = \frac{1}{1 + \tilde{d}\_{ij}} =
+\frac{w\_{ij}}{1 + w\_{ij}}
 
 In the paper, the repulsive interaction does have a weight associated it
 (i.e. the numerator can be \> 1) but in practice the optimization
@@ -86,25 +86,25 @@ that is defined over all possible pairs of points.
 
 The derivative of the attractive interaction is:
 
-\frac{\partial C\_{PaCMAP}^+}{\partial{w\_{ij}}} = -\frac{ab}{\left(1 +
-bw\_{ij}\right)^2}
+\frac{\partial C\_{\mathrm{PaCMAP}}^+}{\partial{w\_{ij}}} =
+-\frac{ab}{\left(1 + bw\_{ij}\right)^2}
 
 and therefore the gradient is:
 
-\frac{\partial C\_{PaCMAP}^+}{\partial{\mathbf{y_i}}} =
-2\frac{abw\_{ij}^2}{\left(1 + bw\_{ij}\right)^2} \left(\mathbf{y_i} -
-\mathbf{y_j}\right)
+\frac{\partial C\_{\mathrm{PaCMAP}}^+}{\partial{\mathbf{y}\_i}} =
+2\frac{abw\_{ij}^2}{\left(1 + bw\_{ij}\right)^2} \left(\mathbf{y}\_i -
+\mathbf{y}\_j\right)
 
 The derivative of the repulsive interaction is:
 
-\frac{\partial C\_{PaCMAP}^-}{\partial{w\_{ij}}} = \frac{1}{\left(1 +
-w\_{ij}\right)^2}
+\frac{\partial C\_{\mathrm{PaCMAP}}^-}{\partial{w\_{ij}}} =
+\frac{1}{\left(1 + w\_{ij}\right)^2}
 
 hence the gradient is:
 
-\frac{\partial C\_{PaCMAP}^-}{\partial{\mathbf{y_i}}} =
--2\frac{w\_{ij}^2}{\left(1 + w\_{ij}\right)^2} \left(\mathbf{y_i} -
-\mathbf{y_j}\right)
+\frac{\partial C\_{\mathrm{PaCMAP}}^-}{\partial{\mathbf{y}\_i}} =
+-2\frac{w\_{ij}^2}{\left(1 + w\_{ij}\right)^2} \left(\mathbf{y}\_i -
+\mathbf{y}\_j\right)
 
 (if you wanted to include an a and b in the repulsive contribution, the
 form of the gradient would look identical to the attractive interaction,
@@ -114,10 +114,11 @@ but with a difference in sign).
 
 The equivalent gradients for UMAP are:
 
-\begin{aligned} & \frac{\partial C\_{UMAP}^+}{\partial{\mathbf{y_i}}} =
-2 w\_{ij} \left(\mathbf{y_i} - \mathbf{y_j}\right) \\ & \frac{\partial
-C\_{UMAP}^-}{\partial{\mathbf{y_i}}} = -2\frac{w\_{ij}^2}{1 - w\_{ij}}
-\left(\mathbf{y_i} - \mathbf{y_j}\right) \end{aligned}
+\begin{aligned} \frac{\partial
+C\_{\mathrm{UMAP}}^+}{\partial{\mathbf{y}\_i}} &= 2 w\_{ij}
+\left(\mathbf{y}\_i - \mathbf{y}\_j\right) \\ \frac{\partial
+C\_{\mathrm{UMAP}}^-}{\partial{\mathbf{y}\_i}} = -2\frac{w\_{ij}^2}{1 -
+w\_{ij}} \left(\mathbf{y}\_i - \mathbf{y}\_j\right) \end{aligned}
 
 I have made a simplifying assumption in the case of UMAP that the
 sampling of positive edges is uniform and the output weight function
@@ -130,43 +131,43 @@ looks in the PaCMAP code.
 
 This requires the following derivatives:
 
-\begin{aligned} &\frac{\partial{d\_{ij}}}{\partial{\mathbf{y_i}}} =
-\frac{1}{d\_{ij}} \left( \mathbf{y_i} - \mathbf{y_j} \right) \\
-&\frac{\partial{\tilde{d\_{ij}}}}{\partial{d\_{ij}}} = 2 d\_{ij} \\
-&\frac{\partial{\tilde{d\_{ij}}}}{\partial{\mathbf{y_i}}} = 2 \left(
-\mathbf{y_i} - \mathbf{y_j} \right) \\
-&\frac{\partial{C}}{\partial{\mathbf{y_i}}} = 2
-\frac{\partial{C}}{\partial{\tilde{d\_{ij}}}} \left(\mathbf{y_i} -
-\mathbf{y_j}\right) \end{aligned}
+\begin{aligned} \frac{\partial{d\_{ij}}}{\partial{\mathbf{y}\_i}} &=
+\frac{1}{d\_{ij}} \left( \mathbf{y}\_i - \mathbf{y}\_j \right) \\
+\frac{\partial{\tilde{d}\_{ij}}}{\partial{d\_{ij}}} &= 2 d\_{ij} \\
+\frac{\partial{\tilde{d}\_{ij}}}{\partial{\mathbf{y}\_i}} &= 2 \left(
+\mathbf{y}\_i - \mathbf{y}\_j \right) \\
+\frac{\partial{C}}{\partial{\mathbf{y}\_i}} &= 2
+\frac{\partial{C}}{\partial{\tilde{d}\_{ij}}} \left(\mathbf{y}\_i -
+\mathbf{y}\_j\right) \end{aligned}
 
 The attractive derivative is:
 
-\frac{\partial C\_{PaCMAP}^+}{\partial{\tilde{d\_{ij}}}} =
-\frac{ab}{\left(b + \tilde{d\_{ij}}\right)^2}
+\frac{\partial C\_{\mathrm{PaCMAP}}^+}{\partial{\tilde{d}\_{ij}}} =
+\frac{ab}{\left(b + \tilde{d}\_{ij}\right)^2}
 
 leading to the gradient:
 
-\frac{\partial C\_{PaCMAP}^+}{\partial{\mathbf{y_i}}} =
-2\frac{ab}{\left(b + \tilde{d\_{ij}}\right)^2} \left(\mathbf{y_i} -
-\mathbf{y_j}\right)
+\frac{\partial C\_{\mathrm{PaCMAP}}^+}{\partial{\mathbf{y}\_i}} =
+2\frac{ab}{\left(b + \tilde{d}\_{ij}\right)^2} \left(\mathbf{y}\_i -
+\mathbf{y}\_j\right)
 
 The repulsive derivative is:
 
-\frac{\partial C\_{PaCMAP}^-}{\partial{\tilde{d\_{ij}}}} =
--\frac{1}{\left(1 + \tilde{d\_{ij}}\right)^2}
+\frac{\partial C\_{\mathrm{PaCMAP}}^-}{\partial{\tilde{d}\_{ij}}} =
+-\frac{1}{\left(1 + \tilde{d}\_{ij}\right)^2}
 
 giving:
 
-\frac{\partial C\_{PaCMAP}^-}{\partial{\mathbf{y_i}}} =
--2\frac{1}{\left(1 + \tilde{d\_{ij}}\right)^2} \left(\mathbf{y_i} -
-\mathbf{y_j}\right)
+\frac{\partial C\_{\mathrm{PaCMAP}}^-}{\partial{\mathbf{y}\_i}} =
+-2\frac{1}{\left(1 + \tilde{d}\_{ij}\right)^2} \left(\mathbf{y}\_i -
+\mathbf{y}\_j\right)
 
 ### Some R functions
 
 To convince myself that have correctly expressed these gradients are
 equivalent, here are two R functions that calculate the “force constant”
-part of the gradients (i.e. everything that isn’t the \mathbf{y_i} -
-\mathbf{y_j} part):
+part of the gradients (i.e. everything that isn’t the \mathbf{y}\_i -
+\mathbf{y}\_j part):
 
 ``` r
 
@@ -196,9 +197,10 @@ pacmap_kd <- function(dij, a = 1, b = 1) {
 ## Weight Schedule
 
 For neighbors, b = 10. For mid-near pairs, b = 10000. The a weights
-(referred to as w\_{NB}, w\_{MN} and w\_{FP} for “near pairs”, “mid-near
-pairs” and “further pairs” respectively in the paper) have different
-values at different points in the optimization schedule:
+(referred to as w\_{\mathrm{NB}}, w\_{\mathrm{MN}} and w\_{\mathrm{FP}}
+for “near pairs”, “mid-near pairs” and “further pairs” respectively in
+the paper) have different values at different points in the optimization
+schedule:
 
 | Iteration   | near | mid        | further |
 |:------------|:-----|:-----------|:--------|
@@ -211,7 +213,7 @@ even though as you can see, far pair weights are always 1. For the
 mid-near pairs during the first 100 iterations, `1000 -> 3` means the
 weight is linearly decayed from 1000 to 3 (to be completely precise, it
 starts at 1000 and drops by ~10 at each iteration so at iteration 100,
-w\_{MN} \approx 13).
+w\_{\mathrm{MN}} \approx 13).
 
 Neither the a or b parameters of the cost function can be modified by
 the user in the PaCMAP implementation. The number of iterations can be
@@ -252,13 +254,13 @@ attracted.
 ## Force Constant Plots
 
 To help compare with UMAP, I have plotted the attractive and repulsive
-“force constants”, k\_{attr} and k\_{rep}, over the range of w\_{ij}.
-The force constant is the bit of the gradient that isn’t the
-\left(\mathbf{y_i} - \mathbf{y_j}\right) part, i.e. if you consider the
-layout to be about finding an equilibrium of points attached to springs,
-this is the stiffness of the spring between two points. Alternatively,
-consider this a gradient plot, given a fixed displacement of
-\left(\mathbf{y_i} - \mathbf{y_j}\right) = 1.
+“force constants”, k\_{\mathrm{attr}} and k\_{\mathrm{rep}}, over the
+range of w\_{ij}. The force constant is the bit of the gradient that
+isn’t the \left(\mathbf{y}\_i - \mathbf{y}\_j\right) part, i.e. if you
+consider the layout to be about finding an equilibrium of points
+attached to springs, this is the stiffness of the spring between two
+points. Alternatively, consider this a gradient plot, given a fixed
+displacement of \left(\mathbf{y}\_i - \mathbf{y}\_j\right) = 1.
 
 First, the attractive interactions of near neighbors:
 
@@ -270,18 +272,19 @@ The blue line is UMAP with default settings. The red line is UMAP with
 the output function chosen to give the same w\_{ij} values as PaCMAP.
 This version of UMAP I will refer to as t-UMAP as it shares the same
 output weights as t-SNE as well as PaCMAP. The green line is PaCMAP with
-a = w\_{NB} = 1, which occurs during the final part of the optimization,
-and the yellow is with a = w\_{NB} = 3, which occurs during the middle
-part of the optimization. The UMAP forces are not only much higher, at
-least for the default settings, the attractive forces rapidly accelerate
-in magnitude for high w (i.e. neighboring points in the embedding which
-are supposed to be close). For t-UMAP, the relationship between w\_{ij}
-and k\_{attr} is linear. For PaCMAP, there is a much more gentle
-increase in force as w\_{ij} increases, and the rate of change decreases
-rather than increases. For PaCMAP, a w\_{ij} \>= 0.62 feels at least 90%
-of the maximum attractive force whereas for UMAP, w\_{ij} \>= 0.96. To
-be pedantic, if we take into account UMAP’s gradient clipping, it’s
-actually w\_{ij} \>= 0.92, but the overall message stays the same.
+a = w\_{\mathrm{NB}} = 1, which occurs during the final part of the
+optimization, and the yellow is with a = w\_{\mathrm{NB}} = 3, which
+occurs during the middle part of the optimization. The UMAP forces are
+not only much higher, at least for the default settings, the attractive
+forces rapidly accelerate in magnitude for high w (i.e. neighboring
+points in the embedding which are supposed to be close). For t-UMAP, the
+relationship between w\_{ij} and k\_{\mathrm{attr}} is linear. For
+PaCMAP, there is a much more gentle increase in force as w\_{ij}
+increases, and the rate of change decreases rather than increases. For
+PaCMAP, a w\_{ij} \ge 0.62 feels at least 90% of the maximum attractive
+force whereas for UMAP, w\_{ij} \ge 0.96. To be pedantic, if we take
+into account UMAP’s gradient clipping, it’s actually w\_{ij} \ge 0.92,
+but the overall message stays the same.
 
 We’ll come back to the mid-pairs after we have looked at the repulsive
 forces:
@@ -315,18 +318,18 @@ Mid Pair Attractive Forces
 
 This plot doesn’t have any contributions from UMAP. The yellow, green
 and grey lines are the attractive interactions from the “near” pairs
-with a = w\_{NB} = 3, a = w\_{NB} = 2 and a = w\_{NB} = 1 respectively.
-The green and yellow lines are the same as those from the first plot.
-The mid near forces are the cyan line with w\_{MN} = 1000, which is the
-value at which the optimization starts, and purple with w\_{MN} = 3, the
-value at the end of the first part of the optimization, the force
-constant being linear scaled in between. The grey line is the force
-constant that applies to the near pairs over the same part of the
-optimization. The force constant is effectively uniform over the entire
-range of w\_{ij} and by the end of the first part of the optimization,
-k\_{attr} \approx 0.0006 and never increases thereafter, so it doesn’t
-seem like it plays a major organizing role after the first 100
-iterations.
+with a = w\_{\mathrm{NB}} = 3, a = w\_{\mathrm{NB}} = 2 and a =
+w\_{\mathrm{NB}} = 1 respectively. The green and yellow lines are the
+same as those from the first plot. The mid near forces are the cyan line
+with w\_{\mathrm{MN}} = 1000, which is the value at which the
+optimization starts, and purple with w\_{\mathrm{MN}} = 3, the value at
+the end of the first part of the optimization, the force constant being
+linear scaled in between. The grey line is the force constant that
+applies to the near pairs over the same part of the optimization. The
+force constant is effectively uniform over the entire range of w\_{ij}
+and by the end of the first part of the optimization, k\_{\mathrm{attr}}
+\approx 0.0006 and never increases thereafter, so it doesn’t seem like
+it plays a major organizing role after the first 100 iterations.
 
 Overall, this seems to point to why UMAP can “tear” manifolds or promote
 clustering vs PaCMAP: forces (attractive or repulsive) which are much
@@ -405,23 +408,23 @@ The number of nearest neighbors is scaled according to dataset size. For
 N \< 10000, the number of neighbors = 10. For N \> 10000 the following
 formula is used:
 
-n\_{nbrs} = \left \lfloor 10 + 15 \left(\log\_{10}n - 4\right) \right
-\rceil
+n\_{\mathrm{nbrs}} = \left \lfloor 10 + 15 \left(\log\_{10}n - 4\right)
+\right \rceil
 
 where \left \lfloor \cdot \right \rceil indicates my cumbersome attempt
 to communicate “round to the nearest integer”.
 
 Perhaps some examples would help:
 
-| N         | n\_{nbrs} |
-|:----------|:----------|
-| 10 000    | 10        |
-| 20 000    | 15        |
-| 50 000    | 20        |
-| 60 000    | 22        |
-| 70 000    | 23        |
-| 100 000   | 25        |
-| 1 000 000 | 40        |
+| N         | n\_{\mathrm{nbrs}} |
+|:----------|:-------------------|
+| 10 000    | 10                 |
+| 20 000    | 15                 |
+| 50 000    | 20                 |
+| 60 000    | 22                 |
+| 70 000    | 23                 |
+| 100 000   | 25                 |
+| 1 000 000 | 40                 |
 
 If you didn’t want to think about it, it seems like setting
 `n_neighbors = 20` would be fine.
@@ -503,8 +506,8 @@ pairs once before the optimization begins and re-uses them at each
 epoch. This saves on repeated random number generation, at the cost of
 increased memory usage for storing the indices of the pairs. With
 default settings we can expect an extra storage cost of 2.5 \* N \*
-n\_{nbrs}, which technically would make PaCMAP’s memory costs scale as
-O(N \log N).
+n\_{\mathrm{nbrs}}, which technically would make PaCMAP’s memory costs
+scale as O(N \log N).
 
 ## Output Initialization
 

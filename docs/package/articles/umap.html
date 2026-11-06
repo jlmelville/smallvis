@@ -111,7 +111,7 @@ Cauchy distribution, which arises naturally in UMAP by setting the
 to <code>1</code>.</p>
 <p>The gradient for t-UMAP is therefore:</p>
 <p><span class="math display">
-\frac{\partial C_{t-UMAP}}{\partial \mathbf{y_i}} =
+\frac{\partial C_{\text{t-UMAP}}}{\partial \mathbf{y}_i} =
   4\sum_j^N
 \left(
    v_{ij}
@@ -119,10 +119,10 @@ to <code>1</code>.</p>
   w_{ij}
 \right)
    \frac{1}{d_{ij}^2}
-   \left(\mathbf{y_i - y_j}\right)
+   \left(\mathbf{y}_i - \mathbf{y}_j\right)
 </span> which can also be written as:</p>
 <p><span class="math display">
-\frac{\partial C_{t-UMAP}}{\partial \mathbf{y_i}} =
+\frac{\partial C_{\text{t-UMAP}}}{\partial \mathbf{y}_i} =
   4\sum_j^N
 \left(
    v_{ij}
@@ -130,7 +130,7 @@ to <code>1</code>.</p>
   w_{ij}
 \right)
    \frac{w_{ij}}{1 - w_{ij}}
-   \left(\mathbf{y_i - y_j}\right)
+   \left(\mathbf{y}_i - \mathbf{y}_j\right)
 </span></p>
 </div>
 <div class="section level3">
@@ -142,7 +142,7 @@ justification for doing this, but I was curious to see the effect of
 normalization on both the results and the ease of optimization was.</p>
 <p>The gradient for normalized t-UMAP is:</p>
 <p><span class="math display">
-\frac{\partial C_{nt-UMAP}}{\partial \mathbf{y_i}} =
+\frac{\partial C_{\text{nt-UMAP}}}{\partial \mathbf{y}_i} =
   4\sum_j^N
 \left(
    \frac{p_{ij} - q_{ij}}{1 - q_{ij}}
@@ -151,7 +151,7 @@ normalization on both the results and the ease of optimization was.</p>
     q_{ij}
 \right)
    w_{ij}
-   \left(\mathbf{y_i - y_j}\right)
+   \left(\mathbf{y}_i - \mathbf{y}_j\right)
 </span></p>
 <p>I’m sure there’s a nicer or clearer or more efficient way to express
 that, but I wasn’t motivated to find it.</p>

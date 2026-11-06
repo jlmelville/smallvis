@@ -93,7 +93,7 @@ over subsets of the entire dataset.</p>
 dataset, we calculate the un-normalized input weight matrix, <span class="math inline">\mathbf{V}</span>, which is associated with a
 perplexity, <span class="math inline">U</span>. From there the soft
 correlation dimension for point <span class="math inline">i</span> and
-perplexity <span class="math inline">U</span>, <span class="math inline">D_{i, U}</span>, can be written as:</p>
+perplexity <span class="math inline">U</span>, <span class="math inline">\delta_{i, U}</span>, can be written as:</p>
 <p><span class="math display">
 \delta_{i, U} = \frac{2}{V_i}
 \left\{
@@ -117,8 +117,7 @@ dimension attains as the perplexity is varied.</p>
 <p><span class="math display">D = \max_{U} \hat{\delta}_U</span> The IDP
 is then:</p>
 <p><span class="math display">
-\DeclareMathOperator*{\argmax}{arg\,max}
-IDP = \argmax_{U} \hat{\delta}_U
+\mathrm{IDP} = \operatorname*{arg\,max}_{U} \hat{\delta}_U
 </span></p>
 </div>
 <div class="section level2">

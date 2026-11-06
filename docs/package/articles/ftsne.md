@@ -50,9 +50,9 @@ The reverse KL-divergence:
 
 C = \sum\_{ij} q\_{ij} \log \frac{q\_{ij}}{p\_{ij}}
 
-\frac{\partial C}{\partial \mathbf{y_i}} = 4 \sum_j \left\[ \left\\ \log
-\left( \frac{p\_{ij}}{q\_{ij}} \right) + C \right\\ q\_{ij}w\_{ij}
-\right\] \left( \mathbf{y_i - y_j} \right)
+\frac{\partial C}{\partial \mathbf{y}\_i} = 4 \sum_j \left\[ \left\\
+\log \left( \frac{p\_{ij}}{q\_{ij}} \right) + C \right\\ q\_{ij}w\_{ij}
+\right\] \left( \mathbf{y}\_i - \mathbf{y}\_j \right)
 
 where C is the reverse KL cost function defined above.
 
@@ -60,29 +60,31 @@ where C is the reverse KL cost function defined above.
 
 The Jensen-Shannon divergence:
 
-C = \frac{1}{2} \sum\_{ij} p\_{ij}
-\log{\left(\frac{p\_{ij}}{z\_{ij}}\right)} + q\_{ij}
-\log\left({\frac{q\_{ij}}{z\_{ij}}}\right)
+C = \frac{1}{2} \sum\_{ij} \left\[ p\_{ij}
+\log\left(\frac{p\_{ij}}{z\_{ij}}\right) + q\_{ij}
+\log\left(\frac{q\_{ij}}{z\_{ij}}\right) \right\]
 
 where: z\_{ij} = \frac{1}{2} \left(p\_{ij} + q\_{ij} \right)
 
-\frac{\partial C}{\partial \mathbf{y_i}} = 2 \sum_j \left\[ \left\\ \log
-\left( \frac{z\_{ij}}{q\_{ij}} \right) + KL\_{Q\|\|Z} \right\\
-q\_{ij}w\_{ij} \right\] \left( \mathbf{y_i - y_j} \right)
+\frac{\partial C}{\partial \mathbf{y}\_i} = 2 \sum_j \left\[ \left\\
+\log \left( \frac{z\_{ij}}{q\_{ij}} \right) +
+D\_{\mathrm{KL}}(Q\mathbin{\\}Z) \right\\ q\_{ij}w\_{ij} \right\] \left(
+\mathbf{y}\_i - \mathbf{y}\_j \right)
 
-where KL\_{Q\|\|Z} is the Kullback-Leibler divergence of Z from Q.
-There’s a factor of one-half that reduces the usual 4 to 2 in the
-gradient.
+where D\_{\mathrm{KL}}(Q\mathbin{\\}Z) is the Kullback-Leibler
+divergence of Z from Q. There’s a factor of one-half that reduces the
+usual 4 to 2 in the gradient.
 
 ### CH-SNE
 
 The \chi^2-divergence:
 
-C = \sum\_{ij} \frac{\left(p\_{ij} - q\_{ij}\right)^2}{q\_{ij}^2}
+C = \sum\_{ij} \frac{\left(p\_{ij} - q\_{ij}\right)^2}{q\_{ij}}
 
-\frac{\partial C}{\partial \mathbf{y_i}} = 4 \sum_j \left\[ \left(
+\frac{\partial C}{\partial \mathbf{y}\_i} = 4 \sum_j \left\[ \left(
 \frac{p\_{ij}^2}{q\_{ij}^2} - \sum\_{kl} \frac{p\_{kl}^2}{q\_{kl}}
-\right) q\_{ij}w\_{ij} \right\] \left( \mathbf{y_i - y_j} \right)
+\right) q\_{ij}w\_{ij} \right\] \left( \mathbf{y}\_i - \mathbf{y}\_j
+\right)
 
 ### HL-SNE
 
@@ -90,9 +92,10 @@ The Hellinger distance divergence:
 
 C = \sum\_{ij} \left(\sqrt{p\_{ij}} - \sqrt{q\_{ij}}\right)^2
 
-\frac{\partial C}{\partial \mathbf{y_i}} = 4 \sum_j \left\[ \left(
+\frac{\partial C}{\partial \mathbf{y}\_i} = 4 \sum_j \left\[ \left(
 \frac{\sqrt{p\_{ij}}}{\sqrt{q\_{ij}}} - \sum\_{kl} \sqrt{p\_{kl}q\_{kl}}
-\right) q\_{ij}w\_{ij} \right\] \left( \mathbf{y_i - y_j} \right)
+\right) q\_{ij}w\_{ij} \right\] \left( \mathbf{y}\_i - \mathbf{y}\_j
+\right)
 
 ## Datasets
 

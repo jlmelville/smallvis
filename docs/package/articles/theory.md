@@ -39,7 +39,7 @@ A bit of nomenclature first:
   coordinates. These functions therefore result in the w\_{ij} values
   being symmetric by default. UMAP uses a similar weight function, which
   will be described in its own section.
-- \mathbf{y\_{i}} is the vector of coordinates of point i (with N points
+- \mathbf{y}\_i is the vector of coordinates of point i (with N points
   in total).
 
 If you need more detail (or to be more confused) on how to derive the
@@ -52,21 +52,23 @@ embedding gradients from their cost functions, see
 
 The t-SNE cost function is:
 
-C\_{tSNE} = \sum\_{ij} p\_{ij} \log \frac{p\_{ij}}{q\_{ij}} = \sum\_{ij}
-\left( p\_{ij} \log p\_{ij} - p\_{ij} \log q\_{ij} \right) The first
-term in the sum has no dependence on the output coordinates, so is a
-constant we’ll just mark as C\_{P}.
+\begin{aligned} C\_{\text{t-SNE}} &= \sum\_{ij} p\_{ij} \log
+\frac{p\_{ij}}{q\_{ij}} \\ &= \sum\_{ij} \left( p\_{ij} \log p\_{ij} -
+p\_{ij} \log q\_{ij} \right) \end{aligned} The first term in the sum has
+no dependence on the output coordinates, so is a constant we’ll just
+mark as C\_{P}.
 
 Now let’s write out q\_{ij} as w\_{ij} / Z:
 
-C\_{tSNE} = C\_{P} - \sum\_{ij} p\_{ij} \log \left( \frac{w\_{ij}}{Z}
-\right) = Cp - \sum\_{ij} p\_{ij} \log w\_{ij} + \sum\_{ij} p\_{ij} \log
-Z Finally, we’ll do some rearranging and re-write Z back to a sum of
-weights:
+\begin{aligned} C\_{\text{t-SNE}} &= C\_{P} - \sum\_{ij} p\_{ij} \log
+\left( \frac{w\_{ij}}{Z} \right) \\ &= C\_{P} - \sum\_{ij} p\_{ij} \log
+w\_{ij} + \sum\_{ij} p\_{ij} \log Z \end{aligned} Finally, we’ll do some
+rearranging and re-write Z back to a sum of weights:
 
-C\_{tSNE} = Cp - \sum\_{ij} p\_{ij} \log w\_{ij} + \log Z \sum\_{ij}
-p\_{ij} \\ = Cp - \sum\_{ij} p\_{ij} \log w\_{ij} + \log \sum\_{ij}
-w\_{ij}
+\begin{aligned} C\_{\text{t-SNE}} &= C\_{P} - \sum\_{ij} p\_{ij} \log
+w\_{ij} + \log Z \sum\_{ij} p\_{ij} \\ &= C\_{P} \underbrace{-\sum\_{ij}
+p\_{ij} \log w\_{ij}}\_{\text{attraction}} + \underbrace{\log \sum\_{ij}
+w\_{ij}}\_{\text{repulsion}} \end{aligned}
 
 Ignoring, the constant term, we can see that the SNE cost function
 consists of an attractive term, where maximizing the w\_{ij} (which
@@ -82,17 +84,19 @@ everything else (\bar{E}), which only feel repulsive forces. Perplexity
 calibration and weight definition are carried out as in t-SNE, to give
 the following (log) likelihood function:
 
-L\_{LV} = \sum\_{ \left(i, j\right) \in E} p\_{ij} \log w\_{ij} +\gamma
-\sum\_{\left(i, j\right) \in \bar{E}} \log \left( 1 - w\_{ij} \right)
+L\_{\mathrm{LV}} = \sum\_{ \left(i, j\right) \in E} p\_{ij} \log w\_{ij}
++\gamma \sum\_{\left(i, j\right) \in \bar{E}} \log \left( 1 - w\_{ij}
+\right)
 
 \gamma is a free parameter which balances the weight of the attractive
 to repulsive contributions. It is set to 7 in the LargeVis paper with no
 explanation.
 
 Likelihood functions are maximized, so the final cost function we’re
-interested in will be -L\_{LV}, in order that we have a function to
-minimize. Otherwise, it gets a bit confusing keeping track of the signs
-of the gradients compared to the other methods in `smallvis`.
+interested in will be -L\_{\mathrm{LV}}, in order that we have a
+function to minimize. Otherwise, it gets a bit confusing keeping track
+of the signs of the gradients compared to the other methods in
+`smallvis`.
 
 To use the LargeVis cost function in `smallvis`, we need to make some
 small modifications:
@@ -133,16 +137,16 @@ which is exactly what `smallvis` does.
 Based on the above discussion, and wanting a cost function to minimize,
 the `smallvis` version of the LargeVis cost function is:
 
-C\_{LV} = -\sum\_{ij} p\_{ij} \log w\_{ij} -\gamma \sum\_{ij} \log
-\left( 1 - w\_{ij} \right)
+C\_{\mathrm{LV}} = -\sum\_{ij} p\_{ij} \log w\_{ij} -\gamma \sum\_{ij}
+\log \left( 1 - w\_{ij} \right)
 
 In this form, the attractive terms of both t-SNE and LargeVis are very
 similar.
 
 The derivative of the cost function with respect to the weights is:
 
-\frac{\partial C\_{LV}}{\partial w\_{ij}} = -\frac{p\_{ij}}{w\_{ij}} +
-\frac{ \gamma}{ \left( 1 - w\_{ij} \right)}
+\frac{\partial C\_{\mathrm{LV}}}{\partial w\_{ij}} =
+-\frac{p\_{ij}}{w\_{ij}} + \frac{ \gamma}{ \left( 1 - w\_{ij} \right)}
 
 ### UMAP
 
@@ -161,22 +165,22 @@ UMAP treats the input and output data as two fuzzy sets, with strength
 of membership being equivalent to v\_{ij} and w\_{ij}, respectively. The
 cost function for UMAP is the cross entropy of the fuzzy sets:
 
-C\_{UMAP} = \sum\_{ij} \left\[ v\_{ij} \log \left(
+C\_{\mathrm{UMAP}} = \sum\_{ij} \left\[ v\_{ij} \log \left(
 \frac{v\_{ij}}{w\_{ij}} \right) + (1 - v\_{ij}) \log \left( \frac{1 -
 v\_{ij}}{1 - w\_{ij}} \right) \right\]
 
 which can be expanded to:
 
-C\_{UMAP} = \sum\_{ij} \left\[ v\_{ij} \log(v\_{ij}) + (1 -
-v\_{ij})\log(1 - v\_{ij}) \right\] - \sum\_{ij} \left\[ v\_{ij}
-\log(w\_{ij}) \right\] - \sum\_{ij} \left\[ (1 - v\_{ij}) \log(1 -
-w\_{ij}) \right\]
+\begin{aligned} C\_{\mathrm{UMAP}} &= \sum\_{ij} \left\[ v\_{ij}
+\log(v\_{ij}) + (1 - v\_{ij})\log(1 - v\_{ij}) \right\] \\ &\quad -
+\sum\_{ij} \left\[ v\_{ij} \log(w\_{ij}) \right\] - \sum\_{ij} \left\[
+(1 - v\_{ij}) \log(1 - w\_{ij}) \right\] \end{aligned}
 
 Just like with t-SNE, the first term is a constant, which this time
 we’ll call C\_{V}, leaving:
 
-C\_{UMAP} = C\_{V} - \sum\_{ij} v\_{ij} \log(w\_{ij}) - \sum\_{ij} (1 -
-v\_{ij}) \log(1 - w\_{ij})
+C\_{\mathrm{UMAP}} = C\_{V} - \sum\_{ij} v\_{ij} \log(w\_{ij}) -
+\sum\_{ij} (1 - v\_{ij}) \log(1 - w\_{ij})
 
 which looks a lot like LargeVis, except instead of a constant \gamma
 term in the repulsion, each pair is weighted according to (one minus)
@@ -199,13 +203,13 @@ As the use of v\_{ij} indicates, the input weight are not normalized in
 UMAP. They are symmetrized, but in a different way to the arithmetic
 mean approach in t-SNE:
 
-V\_{symm} = V + V^{T} - V \circ V^{T} where T indicates the transpose
-and \circ is the Hadamard (i.e. entry-wise) product. This effectively
-carries out a fuzzy set union.
+V\_{\mathrm{symm}} = V + V^{\mathsf T} - V \circ V^{\mathsf T} where T
+indicates the transpose and \circ is the Hadamard (i.e. entry-wise)
+product. This effectively carries out a fuzzy set union.
 
 The output weights are given by:
 
-w\_{ij} = 1 / \left(1 + ad\_{ij}^{2b}\right)
+w\_{ij} = \frac{1}{1 + ad\_{ij}^{2b}}
 
 where a and b are determined by a non-linear least squares fit based on
 a couple of user-selected parameters that control the tightness of the
@@ -218,15 +222,16 @@ and b = 0.895. This has very little effect on the visualizations.
 To get to the UMAP gradient, we need the derivative of the weight with
 respect to the squared distance.
 
-\frac{\partial w\_{ij}}{\partial d\_{ij}^2} = \frac{-b a
-d\_{ij}^{2\left(b - 1\right)}} {\left(a d\_{ij}^2 + 1 \right)^2} = -b a
-d\_{ij}^{2\left( b - 1\right)} w\_{ij}^2 = -\frac{b \left( 1 - w\_{ij}
-\right)}{d\_{ij}^2}w\_{ij}
+\begin{aligned} \frac{\partial w\_{ij}}{\partial d\_{ij}^2} &= \frac{-b
+a d\_{ij}^{2\left(b - 1\right)}} {\left(a d\_{ij}^{2b} + 1 \right)^2} \\
+&= -b a d\_{ij}^{2\left( b - 1\right)} w\_{ij}^2 \\ &= -\frac{b \left(
+1 - w\_{ij} \right)}{d\_{ij}^2}w\_{ij} \end{aligned}
 
 The derivative of the cost function with respect to the weights is:
 
-\frac{\partial C\_{UMAP}}{\partial w\_{ij}} = -\frac{v\_{ij}}{w\_{ij}} +
-\frac{ \left( 1 - v\_{ij} \right)}{ \left( 1 - w\_{ij} \right)}
+\frac{\partial C\_{\mathrm{UMAP}}}{\partial w\_{ij}} =
+-\frac{v\_{ij}}{w\_{ij}} + \frac{ \left( 1 - v\_{ij} \right)}{ \left(
+1 - w\_{ij} \right)}
 
 ## Gradients
 
@@ -239,10 +244,11 @@ First, t-SNE written slightly differently to how its usually presented,
 in terms of the un-normalized weights. This will hopefully illuminate
 the similarities and differences with LargeVis and UMAP:
 
-\frac{\partial C\_{tSNE}}{\partial \mathbf{y_i}} = 4 \sum_j^N \left(
-v\_{ij} -\frac{\sum\_{kl} v\_{kl}}{\sum\_{kl} w\_{kl}} w\_{ij} \right)
-\frac{w\_{ij}}{\sum\_{kl} v\_{kl}} \left(\mathbf{y_i - y_j}\right) If
-you want a bit more detail in how this is derived, see
+\frac{\partial C\_{\text{t-SNE}}}{\partial \mathbf{y}\_i} = 4 \sum_j^N
+\left( v\_{ij} -\frac{\sum\_{kl} v\_{kl}}{\sum\_{kl} w\_{kl}} w\_{ij}
+\right) \frac{w\_{ij}}{\sum\_{kl} v\_{kl}} \left(\mathbf{y}\_i -
+\mathbf{y}\_j\right) If you want a bit more detail in how this is
+derived, see
 [here](http://jlmelville.github.io/sneer/experimental-gradients.md).
 Note that the sum \sum\_{kl} means to sum over all weights and the input
 weights v\_{ij} are not matrix-normalized but otherwise have had the
@@ -256,33 +262,34 @@ day. The input weight processing in the usual t-SNE treatment means that
 \sum\_{kl} v\_{kl} = N. An alternative form for the t-SNE gradient is
 therefore:
 
-\frac{\partial C\_{tSNE}}{\partial \mathbf{y_i}} = \frac{4}{N} \sum_j^N
-\left( v\_{ij} -\frac{N}{Z} w\_{ij} \right) w\_{ij} \left(\mathbf{y_i -
-y_j}\right) In practice, because the usual t-SNE initialization starts
-with short distances, the output weights are all 1 to begin with, so the
-N/Z term is approximately 1/N initially. Over the course of the
-optimization the value of Z begins to drop and hence N/Z increases. For
-the usual parameter settings in t-SNE, it’s usually less than 1, but for
-low perplexity values and quite converged results (e.g. allowing
-`max_iter = 50000` at least), N/Z can get larger than 1 (e.g. around 4
-for the `s1k` dataset at `perplexity = 5`). End of digression.
+\frac{\partial C\_{\text{t-SNE}}}{\partial \mathbf{y}\_i} = \frac{4}{N}
+\sum_j^N \left( v\_{ij} -\frac{N}{Z} w\_{ij} \right) w\_{ij}
+\left(\mathbf{y}\_i - \mathbf{y}\_j\right) In practice, because the
+usual t-SNE initialization starts with short distances, the output
+weights are all 1 to begin with, so the N/Z term is approximately 1/N
+initially. Over the course of the optimization the value of Z begins to
+drop and hence N/Z increases. For the usual parameter settings in t-SNE,
+it’s usually less than 1, but for low perplexity values and quite
+converged results (e.g. allowing `max_iter = 50000` at least), N/Z can
+get larger than 1 (e.g. around 4 for the `s1k` dataset at
+`perplexity = 5`). End of digression.
 
 ### LargeVis
 
 For LargeVis, the gradient can be written as:
 
-\frac{\partial C\_{LV}}{\partial \mathbf{y_i}} = 4\sum_j^N \left(
-p\_{ij} -\frac{\gamma}{1 - w\_{ij}} w\_{ij} \right) w\_{ij}
-\left(\mathbf{y_i - y_j}\right)
+\frac{\partial C\_{\mathrm{LV}}}{\partial \mathbf{y}\_i} = 4\sum_j^N
+\left( p\_{ij} -\frac{\gamma}{1 - w\_{ij}} w\_{ij} \right) w\_{ij}
+\left(\mathbf{y}\_i - \mathbf{y}\_j\right)
 
 where I’ve tried to retain the structure of the expression that most
 resembles that of t-SNE, but the following is probably more convenient
 for the purposes of a stochastic gradient descent optimization:
 
-\frac{\partial C\_{LV}}{\partial \mathbf{y_i}} = 4\sum_j^N \left\[
-\frac{p\_{ij}}{ 1 + d\_{ij}^2 } -\frac{\gamma }{ \left( \epsilon +
-d\_{ij}^2 \right) \left( 1 + d\_{ij}^2 \right) } \right\]
-\left(\mathbf{y_i - y_j}\right)
+\frac{\partial C\_{\mathrm{LV}}}{\partial \mathbf{y}\_i} = 4\sum_j^N
+\left\[ \frac{p\_{ij}}{ 1 + d\_{ij}^2 } -\frac{\gamma }{ \left(
+\epsilon + d\_{ij}^2 \right) \left( 1 + d\_{ij}^2 \right) } \right\]
+\left(\mathbf{y}\_i - \mathbf{y}\_j\right)
 
 The \epsilon term is needed computationally to avoid division by zero.
 Results can be quite sensitive to changing this value. In `smallvis` you
@@ -299,24 +306,24 @@ here are the gradients for completeness.
 The first alternative function allows the scale parameter of the Cauchy
 distribution to vary (shown here as \alpha):
 
-w\_{ij} = \frac{1}{1 + \alpha d\_{ij}^2} \\ \frac{\partial
-w\_{ij}}{\partial d\_{ij}^2} = - \frac{\alpha}{\left(1 + \alpha
-d\_{ij}^2\right)^2} = -\alpha w\_{ij}^2 \\ \frac{\partial
-C\_{LV}}{\partial \mathbf{y_i}} = 4\sum_j^N \left( \alpha w\_{ij}
-p\_{ij} -\frac{\gamma}{ \epsilon + d\_{ij}^2 } w\_{ij} \right)
-\left(\mathbf{y_i - y_j}\right) The negative part of the gradient
-doesn’t contain an \alpha term due to cancellation.
+\begin{aligned} w\_{ij} &= \frac{1}{1 + \alpha d\_{ij}^2} \\
+\frac{\partial w\_{ij}}{\partial d\_{ij}^2} &= - \frac{\alpha}{\left(1 +
+\alpha d\_{ij}^2\right)^2} = -\alpha w\_{ij}^2 \\ \frac{\partial
+C\_{\mathrm{LV}}}{\partial \mathbf{y}\_i} &= 4\sum_j^N \left( \alpha
+w\_{ij} p\_{ij} -\frac{\gamma}{ \epsilon + d\_{ij}^2 } w\_{ij} \right)
+\left(\mathbf{y}\_i - \mathbf{y}\_j\right) \end{aligned} The negative
+part of the gradient doesn’t contain an \alpha term due to cancellation.
 
 The other weight function looked at involves an exponential:
 
-w\_{ij} = \frac{1}{1 + \exp \left(d\_{ij}^2\right)} \\ \frac{\partial
-w\_{ij}}{\partial d\_{ij}^2} = -
+\begin{aligned} w\_{ij} &= \frac{1}{1 + \exp \left(d\_{ij}^2\right)} \\
+\frac{\partial w\_{ij}}{\partial d\_{ij}^2} &= -
 \frac{\exp\left(d\_{ij}^2\right)}{\left\[1 + \exp
 \left(d\_{ij}^2\right)\right\]^2} = -\exp \left(d\_{ij}^2\right)
-w\_{ij}^2 = -\left(1 - w\_{ij}\right) w\_{ij}\\ \frac{\partial
-C\_{LV}}{\partial \mathbf{y_i}} = 4\sum_j^N \left\[ \left(1 -
-w\_{ij}\right) p\_{ij} - \gamma w\_{ij} \right\] \left(\mathbf{y_i -
-y_j}\right)
+w\_{ij}^2 = -\left(1 - w\_{ij}\right) w\_{ij} \\ \frac{\partial
+C\_{\mathrm{LV}}}{\partial \mathbf{y}\_i} &= 4\sum_j^N \left\[ \left(1 -
+w\_{ij}\right) p\_{ij} - \gamma w\_{ij} \right\] \left(\mathbf{y}\_i -
+\mathbf{y}\_j\right) \end{aligned}
 
 Note that section 3 of the paper mentions the above as a possible weight
 function, but the results in section 4 of the paper claim to actually
@@ -335,30 +342,30 @@ Starting with this very straightforward version that combines the
 \partial C\_{ij} / \partial w\_{ij} and \partial w\_{ij} / \partial
 d\_{ij}^2 expressions without much cancellation:
 
-\frac{\partial C\_{UMAP}}{\partial \mathbf{y_i}} = 4\sum_j^N \left\[
-abd\_{ij}^{2\left(b - 1\right)} w\_{ij} v\_{ij} - abd\_{ij}^{2\left(b -
-1\right)} w\_{ij}^2 \frac{ 1 - v\_{ij} } { 1 - w\_{ij} } \right\]
-\left(\mathbf{y_i - y_j}\right)
+\frac{\partial C\_{\mathrm{UMAP}}}{\partial \mathbf{y}\_i} = 4\sum_j^N
+\left\[ abd\_{ij}^{2\left(b - 1\right)} w\_{ij} v\_{ij} -
+abd\_{ij}^{2\left(b - 1\right)} w\_{ij}^2 \frac{ 1 - v\_{ij} } { 1 -
+w\_{ij} } \right\] \left(\mathbf{y}\_i - \mathbf{y}\_j\right)
 
 you can start trying to simplify or pulling out w\_{ij} terms to give
 expressions like:
 
-\frac{\partial C\_{UMAP}}{\partial \mathbf{y_i}} = 4\sum_j^N \left(
-v\_{ij} - w\_{ij} \right) b\left(\frac{aw\_{ij}}{1 -
-w\_{ij}}\right)^{\frac{1}{b}} \left(\mathbf{y_i - y_j}\right)
+\frac{\partial C\_{\mathrm{UMAP}}}{\partial \mathbf{y}\_i} = 4\sum_j^N
+\left( v\_{ij} - w\_{ij} \right) b\left(\frac{aw\_{ij}}{1 -
+w\_{ij}}\right)^{\frac{1}{b}} \left(\mathbf{y}\_i - \mathbf{y}\_j\right)
 
 or:
 
-\frac{\partial C\_{UMAP}}{\partial \mathbf{y_i}} = 4\sum_j^N \left(
-v\_{ij} - w\_{ij} \right) \frac{b}{d\_{ij}^2} \left(\mathbf{y_i -
-y_j}\right)
+\frac{\partial C\_{\mathrm{UMAP}}}{\partial \mathbf{y}\_i} = 4\sum_j^N
+\left( v\_{ij} - w\_{ij} \right) \frac{b}{d\_{ij}^2}
+\left(\mathbf{y}\_i - \mathbf{y}\_j\right)
 
 or this one which is closest to the way it’s written in the UMAP code:
 
-\frac{\partial C\_{UMAP}}{\partial \mathbf{y_i}} = 4\sum_j^N \left\[
-abd\_{ij}^{2\left(b - 1\right)} w\_{ij} v\_{ij} -\frac{b \left(1 -
-v\_{ij}\right) }{ \epsilon + d\_{ij}^2 } w\_{ij} \right\]
-\left(\mathbf{y_i - y_j}\right)
+\frac{\partial C\_{\mathrm{UMAP}}}{\partial \mathbf{y}\_i} = 4\sum_j^N
+\left\[ abd\_{ij}^{2\left(b - 1\right)} w\_{ij} v\_{ij} -\frac{b
+\left(1 - v\_{ij}\right) }{ \epsilon + d\_{ij}^2 } w\_{ij} \right\]
+\left(\mathbf{y}\_i - \mathbf{y}\_j\right)
 
 Again we need a value for \epsilon, which is `0.001` in the UMAP source.
 
@@ -369,10 +376,10 @@ The similarities between UMAP versus the others is more easily seen if
 the same definition for w\_{ij} is used, i.e. setting a=1 and b=1, which
 simplifies the UMAP gradient to:
 
-\frac{\partial C\_{UMAP\left(a=1,b=1\right)}}{\partial \mathbf{y_i}} =
+\frac{\partial C\_{\mathrm{UMAP}(a=1,b=1)}}{\partial \mathbf{y}\_i} =
 4\sum_j^N \left\[ \frac{ v\_{ij} }{ 1 + d\_{ij}^2 } - \frac{1 - v\_{ij}
 }{ \left( \epsilon + d\_{ij}^2 \right) \left( 1 + d\_{ij}^2 \right) }
-\right\] \left(\mathbf{y_i - y_j}\right)
+\right\] \left(\mathbf{y}\_i - \mathbf{y}\_j\right)
 
 The similarity to LargeVis is (hopefully) much clearer now.
 

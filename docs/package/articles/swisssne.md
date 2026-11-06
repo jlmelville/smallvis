@@ -22,8 +22,8 @@ of SNE on it, without expecting to be amazed by any of the results.
 At least in the `snedata` function I use, the general formula for the
 Swiss Roll is:
 
-x = \phi \cos \left( \phi \right) \\ y = \phi \sin \left( \phi \right)
-\\ z = \psi
+\begin{aligned} x &= \phi \cos \left( \phi \right) \\ y &= \phi \sin
+\left( \phi \right) \\ z &= \psi \end{aligned}
 
 where \phi is a random number sampled uniformally from (1.5\pi, 4.5\pi)
 and \psi is a random number sampled uniformally from (0, 10). For some
@@ -183,10 +183,14 @@ lack of a hard cut-off in the similarity function, which may allow
 longer range points to contribute to the gradient, which will encourage
 the folding. To test this, we can replace the Gaussian kernel in the
 input space with a symmetrized k-nearest-neighbor graph, where the
-perplexity is treated as k, and p\_{j\|i} = 1 / k if i and j are
-neighbors and 0 otherwise. The output kernel is still Gaussian (or
-t-distributed), so it doesn’t totally remove long-distance effects, but
-it’s still worth having a look at.
+perplexity is treated as k, and
+
+p\_{j\mid i} = \begin{cases} \frac{1}{k}, & \text{if } i \text{ and } j
+\text{ are neighbors}, \\ 0, & \text{otherwise}. \end{cases}
+
+The output kernel is still Gaussian (or t-distributed), so it doesn’t
+totally remove long-distance effects, but it’s still worth having a look
+at.
 
 |  |  |
 |:--:|:--:|

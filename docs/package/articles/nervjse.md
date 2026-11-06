@@ -11,15 +11,18 @@ Kullback-Leibler divergences.
 
 NeRV is the simplest, with the cost function being:
 
-C\_{NeRV} = \lambda D\_{KL}(P\|\|Q) + \left(1 - \lambda \right)
-D\_{KL}(Q\|\|P) = \\ \lambda \sum\_{ij} p\_{ij} \log \left(
-\frac{p\_{ij}}{q\_{ij}} \right) + \left(1 - \lambda \right) \sum\_{ij}
-q\_{ij} \log \left( \frac{q\_{ij}}{p\_{ij}} \right)
+\begin{aligned} C\_{\mathrm{NeRV}} &= \lambda
+D\_{\mathrm{KL}}(P\mathbin{\\}Q) \\ &\quad + \left(1 - \lambda \right)
+D\_{\mathrm{KL}}(Q\mathbin{\\}P) \\ &= \lambda \sum\_{ij} p\_{ij} \log
+\left( \frac{p\_{ij}}{q\_{ij}} \right) \\ &\quad + \left(1 - \lambda
+\right) \sum\_{ij} q\_{ij} \log \left( \frac{q\_{ij}}{p\_{ij}} \right)
+\end{aligned}
 
 The JSE cost function is related to the Jensen-Shannon divergence:
 
-C\_{JSE} = D\_{JS}(P\|\|Q) = \frac{1}{1 - \kappa}D\_{KL}(P\|\|Z) +
-\frac{1}{\kappa} D\_{KL}(Q\|\|Z)
+\begin{aligned} C\_{\mathrm{JSE}} &= D\_{\mathrm{JS}}(P\mathbin{\\}Q) \\
+&= \frac{1}{1 - \kappa}D\_{\mathrm{KL}}(P\mathbin{\\}Z) +
+\frac{1}{\kappa} D\_{\mathrm{KL}}(Q\mathbin{\\}Z) \end{aligned}
 
 where Z is a mixture of P and Q: Z = \kappa P + \left(1- \kappa \right)Q
 
@@ -59,10 +62,10 @@ kernel in ASNE and SSNE with the t-distributed kernel in t-SNE.
 
 The JSE and NeRV gradients can be written as:
 
-\frac{\partial C}{\partial \mathbf{y_i}} = 2 \sum\_{j} \left( k\_{ij} +
-k\_{ji} \right) \left(\mathbf{y_i} - \mathbf{y_j}\right)
+\frac{\partial C}{\partial \mathbf{y}\_i} = 2 \sum\_{j} \left( k\_{ij} +
+k\_{ji} \right) \left(\mathbf{y}\_i - \mathbf{y}\_j\right)
 
-where \mathbf{y_i} is the output coordinate of point i, and k\_{ij} is
+where \mathbf{y}\_i is the output coordinate of point i, and k\_{ij} is
 the force constant between points i and j, with different methods
 producing different force constants. Because of the point-wise nature of
 the normalization used in both methods, the force constant matrix K is
@@ -72,14 +75,16 @@ For NeRV, the force constant is:
 
 k\_{ij} = \lambda \left( {p\_{ij}} - {q\_{ij}} \right) + \left(1 -
 \lambda\right) q\_{ij} \left\[ \log \left( \frac{p\_{ij}}{q\_{ij}}
-\right) + D\_{KL}(Q\|\|P) \right\]
+\right) + D\_{\mathrm{KL}}(Q\mathbin{\\}P) \right\]
 
-where D\_{KL}(Q\|\|P) is the “reverse” Kullback-Leibler divergence.
+where D\_{\mathrm{KL}}(Q\mathbin{\\}P) is the “reverse” Kullback-Leibler
+divergence.
 
 For JSE, the force constant is:
 
 k\_{ij} = \frac{q\_{ij}}{\kappa} \left\[ \log \left(
-\frac{z\_{ij}}{q\_{ij}} \right) + D\_{KL}(Q\|\|Z) \right\]
+\frac{z\_{ij}}{q\_{ij}} \right) + D\_{\mathrm{KL}}(Q\mathbin{\\}Z)
+\right\]
 
 ## Datasets
 

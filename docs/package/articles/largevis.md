@@ -25,8 +25,8 @@ The theory of LargeVis is covered in plenty of depth over on the [theory
 page](https://jlmelville.github.io/smallvis/package/articles/theory.md).
 Here’s a summary. An exact gradient cost function looks like:
 
-C\_{LV} = -\sum\_{ij} p\_{ij} \log w\_{ij} -\gamma \sum\_{ij} \log
-\left( 1 - w\_{ij} \right)
+C\_{\mathrm{LV}} = -\sum\_{ij} p\_{ij} \log w\_{ij} -\gamma \sum\_{ij}
+\log \left( 1 - w\_{ij} \right)
 
 where p\_{ij} are input probabilities generated in the same way as t-SNE
 (perplexity, averaging, normalization) and w\_{ij} are output weights,
@@ -37,10 +37,10 @@ too large once you start considering all pairs of points.
 
 The gradient with respect to the output coordinates, \mathbf{y} is:
 
-\frac{\partial C\_{LV}}{\partial \mathbf{y_i}} = 4\sum_j^N \left\[
-\frac{p\_{ij}}{ 1 + d\_{ij}^2 } -\frac{\gamma }{ \left( \epsilon +
-d\_{ij}^2 \right) \left( 1 + d\_{ij}^2 \right) } \right\]
-\left(\mathbf{y_i - y_j}\right)
+\frac{\partial C\_{\mathrm{LV}}}{\partial \mathbf{y}\_i} = 4\sum_j^N
+\left\[ \frac{p\_{ij}}{ 1 + d\_{ij}^2 } -\frac{\gamma }{ \left(
+\epsilon + d\_{ij}^2 \right) \left( 1 + d\_{ij}^2 \right) } \right\]
+\left(\mathbf{y}\_i - \mathbf{y}\_j\right)
 
 where d\_{ij} is the Euclidean output distance between coordinates.
 \epsilon is a small positive value chosen to prevent division by zero.
@@ -51,9 +51,9 @@ you set \epsilon = 1 (practically that’s not a small value so you
 probably *shouldn’t* do this, but bear with us), and you can write the
 gradient as:
 
-\frac{\partial C\_{LV}}{\partial \mathbf{y_i}} = \frac{4}{N}\sum_j^N
-\left( v\_{ij} - N\gamma w\_{ij} \right) w\_{ij} \left(\mathbf{y_i -
-y_j}\right)
+\frac{\partial C\_{\mathrm{LV}}}{\partial \mathbf{y}\_i} =
+\frac{4}{N}\sum_j^N \left( v\_{ij} - N\gamma w\_{ij} \right) w\_{ij}
+\left(\mathbf{y}\_i - \mathbf{y}\_j\right)
 
 I have also used the substitution p\_{ij} = v\_{ij} / N. This expression
 resembles other methods’ gradients quite closely:
@@ -79,9 +79,9 @@ often it’s sampled.
 If we replace p\_{ij} with v\_{ij} to create an un-normalized LargeVis,
 the gradient is now:
 
-\frac{\partial C\_{ULV}}{\partial \mathbf{y_i}} = 4\sum_j^N \left(
-v\_{ij} -\frac{\gamma }{ \epsilon + d\_{ij}^2 } \right)w\_{ij}
-\left(\mathbf{y_i - y_j}\right)
+\frac{\partial C\_{\mathrm{ULV}}}{\partial \mathbf{y}\_i} = 4\sum_j^N
+\left( v\_{ij} -\frac{\gamma }{ \epsilon + d\_{ij}^2 } \right)w\_{ij}
+\left(\mathbf{y}\_i - \mathbf{y}\_j\right)
 
 and if you set \gamma = 1 this now resembles yet another method: the
 t-UMAP variant of UMAP, with the following minor differences:
@@ -616,10 +616,10 @@ results fairly close to the “true” LargeVis results. I’m not aiming to
 reproduce the `lvish` results in `smallvis`
 
 In order to make things more similar, for both `smallvis` and `lvish` we
-will use a knn kernel, where for a given perplexity PP, the nearest PP
-neighbors of point i get an input affinity of 1/PP and 0 everywhere
-else. The resulting matrix is symmetrized as usual to get the final
-v\_{ij} values.
+will use a knn kernel, where for a given perplexity \mathrm{PP}, the
+nearest \mathrm{PP} neighbors of point i get an input affinity of
+1/\mathrm{PP} and 0 everywhere else. The resulting matrix is symmetrized
+as usual to get the final v\_{ij} values.
 
 For `smallvis`, the only difference between the previous set of results
 is adding `inp_kernel = "knn"` to the `method` list. For `lvish`, the
@@ -1223,9 +1223,10 @@ emphatic fashion.
 
 An obvious big difference between the smooth knn distances kernel and
 the Gaussian kernel is the attractive interactions are stronger by a
-factor of \log_2 PP (where PP is the perplexity), which should be the
-same as reducing \gamma by the same amount (e.g. setting approximately
-`gamma = 0.25`) and then increasing the learning rate accordingly:
+factor of \log_2 \mathrm{PP} (where \mathrm{PP} is the perplexity),
+which should be the same as reducing \gamma by the same amount
+(e.g. setting approximately `gamma = 0.25`) and then increasing the
+learning rate accordingly:
 
 ``` r
 

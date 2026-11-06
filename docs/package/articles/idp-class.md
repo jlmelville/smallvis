@@ -36,7 +36,8 @@ subsets of the entire dataset.
 First, let’s recap our current approach. For each point in the dataset,
 we calculate the un-normalized input weight matrix, \mathbf{V}, which is
 associated with a perplexity, U. From there the soft correlation
-dimension for point i and perplexity U, D\_{i, U}, can be written as:
+dimension for point i and perplexity U, \delta\_{i, U}, can be written
+as:
 
 \delta\_{i, U} = \frac{2}{V_i} \left\\ \sum\_{j}^{N} v\_{ij} \left\[
 \log \left( v\_{ij} \right) \right\] ^ 2 -\frac{1}{V_i} \left\[
@@ -56,8 +57,7 @@ that the correlation dimension attains as the perplexity is varied.
 
 D = \max\_{U} \hat{\delta}\_U The IDP is then:
 
-\DeclareMathOperator\*{\argmax}{arg\\max} IDP = \argmax\_{U}
-\hat{\delta}\_U
+\mathrm{IDP} = \operatorname\*{arg\\max}\_{U} \hat{\delta}\_U
 
 ## Class IDP
 

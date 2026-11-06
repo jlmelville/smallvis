@@ -73,9 +73,10 @@ focused on matching similarities due to longer distances. The idea is
 that a weighted combination of the two will balance global and local
 structure.</p>
 <p>The g-SNE cost function is:</p>
-<p><span class="math display">C = \sum_{ij} p_{ij} \log
-\frac{p_{ij}}{q_{ij}} + \lambda \sum_{ij} \hat{p}_{ij} \log
-\frac{\hat{p_{ij}}}{\hat{q}_{ij}}</span></p>
+<p><span class="math display">
+C = \sum_{ij} p_{ij} \log \frac{p_{ij}}{q_{ij}} + \lambda \sum_{ij}
+\hat{p}_{ij} \log \frac{\hat{p}_{ij}}{\hat{q}_{ij}}
+</span></p>
 <p>with <span class="math inline">\lambda</span> being a weighting
 factor as in NeRV, the un-hatted part of the cost function being the
 same as t-SNE, and the hatted quantities referring to using the
@@ -83,7 +84,8 @@ reciprocal of the usual t-SNE kernel:</p>
 <p><span class="math display">\hat{w}_{ij} = 1 + d_{ij}^2 =
 \frac{1}{w_{ij}}</span></p>
 <p>The gradient is:</p>
-<p><span class="math display">\frac{\partial C}{\partial \mathbf{y_i}} =
+<p><span class="math display">
+\frac{\partial C}{\partial \mathbf{y}_i} =
   4
   \sum_j
   \left[
@@ -91,7 +93,7 @@ reciprocal of the usual t-SNE kernel:</p>
 \hat{q}_{ij} \right)
   \right]w_{ij}
   \left(
-   \mathbf{y_i - y_j}
+   \mathbf{y}_i - \mathbf{y}_j
   \right)
 </span></p>
 <p>As was also apparent from the cost function, you can see that this

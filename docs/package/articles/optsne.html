@@ -80,12 +80,13 @@ factor (usually 12 for larger datasets).</p></li>
 <li><p>Early exaggeration may need to be run for substantially longer
 than usual. Rather than stop early exaggeration after a fixed number of
 iterations, they suggest monitoring the relative rate of change of the
-KL divergence, <span class="math inline">(KL_{i-1} - KL_{i}) /
-KL_{i-1}</span>, and terminate early exaggeration after it reaches a
-maximum. Normal optimization then proceeds for the rest of the
-iterations available. In the paper, an example is given where optimal
-results were obtained after 750 iterations of early exaggeration,
-followed by another 750 iterations of standard optimization.</p></li>
+KL divergence, <span class="math inline">(\mathrm{KL}_{i-1} -
+\mathrm{KL}_{i}) / \mathrm{KL}_{i-1}</span>, and terminate early
+exaggeration after it reaches a maximum. Normal optimization then
+proceeds for the rest of the iterations available. In the paper, an
+example is given where optimal results were obtained after 750
+iterations of early exaggeration, followed by another 750 iterations of
+standard optimization.</p></li>
 <li><p>Because early exaggeration can last a longer than usual, it might
 be tempting to keep the ratio of early exaggeration iterations to
 standard optimization iterations, e.g. 75%-90% of the total number of
@@ -93,8 +94,8 @@ iterations should be non-exaggerated. But because the early exaggeration
 is extended, this would in turn lead to a very long run time for the
 standard optimization. Instead, the authors suggest monitoring the
 relative tolerance of the KL divergence, and terminate the run when
-<span class="math inline">KL_{i-1} - KL_{i} &lt; KL_{i} /
-10000</span>.</p></li>
+<span class="math inline">\mathrm{KL}_{i-1} - \mathrm{KL}_{i} &lt;
+\mathrm{KL}_{i} / 10000</span>.</p></li>
 </ul>
 <p>There is no suggestion that these changes are necessary or optimal
 for smaller datasets, but it would be nice if they were or at least they
@@ -483,11 +484,11 @@ of opt-SNE slightly modifies the strategy given in the paper:</p>
 <ul>
 <li>waits 15 iterations before attempting to stop.</li>
 <li>checks every 5 iterations, rather than every iteration.</li>
-<li>the tolerance check is <span class="math inline">|KL_{i-1} - KL_{i}|
-/ 5 &lt; KL_{i} / 5000</span>, i.e. the relative tolerance check has
-been loosened from <code>1e-4</code> to <code>2e-4</code>
-(i.e. <code>1 / 5000</code>). This can be changed by the user, but
-<code>5000</code> is the default.</li>
+<li>the tolerance check is <span class="math inline">|\mathrm{KL}_{i-1}
+- \mathrm{KL}_{i}| / 5 &lt; \mathrm{KL}_{i} / 5000</span>, i.e. the
+relative tolerance check has been loosened from <code>1e-4</code> to
+<code>2e-4</code> (i.e. <code>1 / 5000</code>). This can be changed by
+the user, but <code>5000</code> is the default.</li>
 </ul>
 <p>This has been present in <code>smallvis</code> for a while, but by
 default the tolerance is set sufficiently low (<code>1e-7</code>) that
