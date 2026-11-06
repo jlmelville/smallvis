@@ -2,18 +2,19 @@ url: https://jlmelville.github.io/smallvis/package/
 
 template:
   bootstrap: 5
+  math-rendering: katex
 
 development:
   mode: unreleased
 
 navbar:
   structure:
-    left: [reference, articles, research]
+    left: [get_started, reference, articles]
     right: [search, github]
   components:
-    research:
-      text: Research articles
-      href: https://jlmelville.github.io/smallvis/
+    get_started:
+      text: Get started
+      href: articles/usage.html
 
 reference:
   - title: Create embeddings
@@ -23,6 +24,66 @@ reference:
       - smallvis_perpstep
 
 articles:
-  - title: Using smallvis
+  - title: Practical guides
+    desc: Current examples for configuring and running the package.
     contents:
       - articles/usage
+      - articles/inputs
+      - articles/optimization
+      - articles/barnes-hut
+  - title: Theory and background
+    desc: Cost functions, spectral methods, datasets, and the motivation for smallvis.
+    contents:
+      - articles/theory
+      - articles/spectral
+      - articles/datasets
+      - articles/background
+  - title: Inputs and initialization
+    desc: Experiments with preprocessing, neighborhoods, and starting coordinates.
+    contents:
+      - articles/scale
+      - articles/pcaw
+      - articles/init
+      - articles/averaging
+      - articles/perplexity
+      - articles/idp-theory
+      - articles/idp
+      - articles/idp-class
+      - articles/msperp
+      - articles/norm
+  - title: Embedding methods
+    desc: Derivations and experiments with the objectives available in smallvis.
+    contents:
+      - articles/sne
+      - articles/hssne
+      - articles/dhssne
+      - articles/ftsne
+      - articles/absne
+      - articles/gsne
+      - articles/bandwidths
+      - articles/nervjse
+      - articles/mmds
+      - articles/ee
+      - articles/tee
+      - articles/largevis
+      - articles/umap
+      - articles/umaptsne
+  - title: Optimization
+    desc: Comparisons of optimizers, exaggeration, and optimization settings.
+    contents:
+      - articles/opt
+      - articles/specd
+      - articles/cg
+      - articles/sgd
+      - articles/lexagg
+      - articles/optsne
+  - title: Comparative experiments
+    desc: PaCMAP, NCVis, and investigations using synthetic datasets.
+    contents:
+      - articles/pacmap
+      - articles/pacmap-examples
+      - articles/pacmap-umap
+      - articles/pacmap2
+      - articles/ncvis
+      - articles/three-clusters
+      - articles/swisssne

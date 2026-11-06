@@ -45,9 +45,9 @@ Use `smallvis_rep()` to select the lowest-cost embedding from repeated random st
 ## Documentation
 
 - [Package reference](https://jlmelville.github.io/smallvis/package/reference/index.html)
-- [Usage, methods, and background](https://jlmelville.github.io/smallvis/package/articles/usage.html)
-- [Research articles](https://jlmelville.github.io/smallvis/), including experiments with methods,
-  initialization, perplexity, and optimization
+- [Getting started](https://jlmelville.github.io/smallvis/package/articles/usage.html)
+- [Guides, theory, and experiments](https://jlmelville.github.io/smallvis/package/articles/index.html),
+  including inputs, initialization, perplexity, methods, and optimization
 
 ## License
 
