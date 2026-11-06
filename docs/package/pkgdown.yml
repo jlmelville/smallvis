@@ -2,8 +2,52 @@ pandoc: 3.8.3
 pkgdown: 2.2.1
 pkgdown_sha: ~
 articles:
+  articles/absne: absne.html
+  articles/averaging: averaging.html
+  articles/background: background.html
+  articles/bandwidths: bandwidths.html
+  articles/barnes-hut: barnes-hut.html
+  articles/cg: cg.html
+  articles/datasets: datasets.html
+  articles/dhssne: dhssne.html
+  articles/ee: ee.html
+  articles/ftsne: ftsne.html
+  articles/gsne: gsne.html
+  articles/hssne: hssne.html
+  articles/idp-class: idp-class.html
+  articles/idp-theory: idp-theory.html
+  articles/idp: idp.html
+  articles/init: init.html
+  articles/inputs: inputs.html
+  articles/largevis: largevis.html
+  articles/lexagg: lexagg.html
+  articles/mmds: mmds.html
+  articles/msperp: msperp.html
+  articles/ncvis: ncvis.html
+  articles/nervjse: nervjse.html
+  articles/norm: norm.html
+  articles/opt: opt.html
+  articles/optimization: optimization.html
+  articles/optsne: optsne.html
+  articles/pacmap-examples: pacmap-examples.html
+  articles/pacmap-umap: pacmap-umap.html
+  articles/pacmap: pacmap.html
+  articles/pacmap2: pacmap2.html
+  articles/pcaw: pcaw.html
+  articles/perplexity: perplexity.html
+  articles/scale: scale.html
+  articles/sgd: sgd.html
+  articles/sne: sne.html
+  articles/specd: specd.html
+  articles/spectral: spectral.html
+  articles/swisssne: swisssne.html
+  articles/tee: tee.html
+  articles/theory: theory.html
+  articles/three-clusters: three-clusters.html
+  articles/umap: umap.html
+  articles/umaptsne: umaptsne.html
   articles/usage: usage.html
-last_built: 2026-11-06T18:11Z
+last_built: 2026-11-06T21:19Z
 urls:
   reference: https://jlmelville.github.io/smallvis/package/reference
   article: https://jlmelville.github.io/smallvis/package/articles

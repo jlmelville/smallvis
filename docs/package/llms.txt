@@ -8,13 +8,23 @@ optimization to compare methods and try out ideas.
 Install from GitHub with `pak::pak("jlmelville/smallvis/smallvis")`. The
 R package lives in the `smallvis` subdirectory of the repository.
 
-Start with the examples in the [function
-reference](https://jlmelville.github.io/smallvis/package/reference/smallvis.md),
-then see the [usage
-guide](https://jlmelville.github.io/smallvis/package/articles/usage.md)
-for other embedding methods and options. The [research
-articles](https://jlmelville.github.io/smallvis/) explore the theory and
-experiments behind the package.
+Start with [Using
+smallvis](https://jlmelville.github.io/smallvis/package/articles/usage.md)
+to make and plot an embedding. Continue with the guides to [inputs and
+initialization](https://jlmelville.github.io/smallvis/package/articles/inputs.md),
+[optimization and repeated
+runs](https://jlmelville.github.io/smallvis/package/articles/optimization.md),
+or [Barnes-Hut and native
+acceleration](https://jlmelville.github.io/smallvis/package/articles/barnes-hut.md).
+
+The [article
+collection](https://jlmelville.github.io/smallvis/package/articles/index.md)
+brings together the theory and experiments behind the package, including
+spectral methods, perplexity, initialization, optimization, and
+comparisons with other embedding methods. Dated explorations retain
+their original results and examples. The [function
+reference](https://jlmelville.github.io/smallvis/package/reference/index.md)
+documents the current arguments and return values.
 
 # Package index
 
@@ -29,7 +39,133 @@ experiments behind the package.
 
 # Articles
 
-### Using smallvis
+### Practical guides
+
+Current examples for configuring and running the package.
 
 - [Using
   smallvis](https://jlmelville.github.io/smallvis/package/articles/usage.md):
+
+  Install smallvis, make an embedding, plot it, and inspect the result.
+
+- [Inputs and
+  initialization](https://jlmelville.github.io/smallvis/package/articles/inputs.md):
+
+  Choose the input representation, preprocessing, neighborhood size, and
+  starting coordinates.
+
+- [Optimization and repeated
+  runs](https://jlmelville.github.io/smallvis/package/articles/optimization.md):
+
+  Configure methods and optimizers, use exaggeration, and compare
+  repeated starts.
+
+- [Barnes-Hut and native
+  acceleration](https://jlmelville.github.io/smallvis/package/articles/barnes-hut.md):
+
+  Run approximate t-SNE, choose neighbor affinities, and control native
+  worker threads.
+
+### Theory and background
+
+Cost functions, spectral methods, datasets, and the motivation for
+smallvis.
+
+- [Some
+  Theory](https://jlmelville.github.io/smallvis/package/articles/theory.md):
+
+- [Spectral
+  Methods](https://jlmelville.github.io/smallvis/package/articles/spectral.md):
+
+- [Datasets](https://jlmelville.github.io/smallvis/package/articles/datasets.md):
+
+- [About
+  smallvis](https://jlmelville.github.io/smallvis/package/articles/background.md):
+
+  The motivation for smallvis and notes from earlier stages of its
+  development.
+
+### Inputs and initialization
+
+Experiments with preprocessing, neighborhoods, and starting coordinates.
+
+- [Input
+  Scaling](https://jlmelville.github.io/smallvis/package/articles/scale.md):
+- [PCA and
+  Whitening](https://jlmelville.github.io/smallvis/package/articles/pcaw.md):
+- [t-SNE Initialization
+  Options](https://jlmelville.github.io/smallvis/package/articles/init.md):
+- [Averaging Multiple
+  Results](https://jlmelville.github.io/smallvis/package/articles/averaging.md):
+- [Perplexity](https://jlmelville.github.io/smallvis/package/articles/perplexity.md):
+- [Perplexity and Intrinsic Dimensionality:
+  Theory](https://jlmelville.github.io/smallvis/package/articles/idp-theory.md):
+- [Perplexity and Intrinsic Dimensionality: Application to
+  t-SNE](https://jlmelville.github.io/smallvis/package/articles/idp.md):
+- [Perplexity and Intrinsic Dimensionality: Non-Global
+  Perplexities](https://jlmelville.github.io/smallvis/package/articles/idp-class.md):
+- [Multiscale
+  perplexities](https://jlmelville.github.io/smallvis/package/articles/msperp.md):
+- [Input Normalization in
+  SNE](https://jlmelville.github.io/smallvis/package/articles/norm.md):
+
+### Embedding methods
+
+Derivations and experiments with the objectives available in smallvis.
+
+- [SNE](https://jlmelville.github.io/smallvis/package/articles/sne.md):
+- [HSSNE](https://jlmelville.github.io/smallvis/package/articles/hssne.md):
+- [Dynamic
+  HSSNE](https://jlmelville.github.io/smallvis/package/articles/dhssne.md):
+- [ft-SNE](https://jlmelville.github.io/smallvis/package/articles/ftsne.md):
+- [ABSNE](https://jlmelville.github.io/smallvis/package/articles/absne.md):
+- [g-SNE](https://jlmelville.github.io/smallvis/package/articles/gsne.md):
+- [Bandwidths](https://jlmelville.github.io/smallvis/package/articles/bandwidths.md):
+- [NeRV and
+  JSE](https://jlmelville.github.io/smallvis/package/articles/nervjse.md):
+- [Metric
+  MDS](https://jlmelville.github.io/smallvis/package/articles/mmds.md):
+- [Elastic
+  Embedding](https://jlmelville.github.io/smallvis/package/articles/ee.md):
+- [t-Distributed Elastic
+  Embedding](https://jlmelville.github.io/smallvis/package/articles/tee.md):
+- [LargeVis](https://jlmelville.github.io/smallvis/package/articles/largevis.md):
+- [UMAP](https://jlmelville.github.io/smallvis/package/articles/umap.md):
+- [UMAP/t-SNE
+  hybrids](https://jlmelville.github.io/smallvis/package/articles/umaptsne.md):
+
+### Optimization
+
+Comparisons of optimizers, exaggeration, and optimization settings.
+
+- [t-SNE
+  Optimization](https://jlmelville.github.io/smallvis/package/articles/opt.md):
+- [Spectral
+  Directions](https://jlmelville.github.io/smallvis/package/articles/specd.md):
+- [Conjugate
+  Gradient](https://jlmelville.github.io/smallvis/package/articles/cg.md):
+- [DBD versus SGD
+  methods](https://jlmelville.github.io/smallvis/package/articles/sgd.md):
+- [Late
+  Exaggeration](https://jlmelville.github.io/smallvis/package/articles/lexagg.md):
+- [opt-SNE
+  settings](https://jlmelville.github.io/smallvis/package/articles/optsne.md):
+
+### Comparative experiments
+
+PaCMAP, NCVis, and investigations using synthetic datasets.
+
+- [Notes on
+  PaCMAP](https://jlmelville.github.io/smallvis/package/articles/pacmap.md):
+- [PaCMAP
+  Examples](https://jlmelville.github.io/smallvis/package/articles/pacmap-examples.md):
+- [PaCMAP Compared to
+  UMAP](https://jlmelville.github.io/smallvis/package/articles/pacmap-umap.md):
+- [Yet More PaCMAP
+  Comparison](https://jlmelville.github.io/smallvis/package/articles/pacmap2.md):
+- [Notes on
+  NCVis](https://jlmelville.github.io/smallvis/package/articles/ncvis.md):
+- [Three Clusters and
+  Perplexity](https://jlmelville.github.io/smallvis/package/articles/three-clusters.md):
+- [Swiss Roll and
+  SNE](https://jlmelville.github.io/smallvis/package/articles/swisssne.md):

@@ -1,0 +1,16 @@
+/* Keep long display equations inside the article column on narrow screens. */
+.katex-display {
+  overflow: auto hidden;
+}
+
+/* Keep figure labels readable rather than shrinking multi-column grids. */
+@media (max-width: 575px) {
+  main table {
+    display: block;
+    overflow-x: auto;
+  }
+
+  main table img {
+    min-width: 18rem;
+  }
+}
