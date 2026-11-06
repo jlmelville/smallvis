@@ -5,11 +5,11 @@ using namespace Rcpp;
 
 void _bh_tsne_negative_gradient_single(const smallvis::QuadTree::Node &node,
                                        double point_x, double point_y,
-                                       double theta2, double eps,
+                                       double theta2, bool contains_query,
                                        double &gradient_x, double &gradient_y,
                                        double &Zi) {
-  // Ensure we do not process empty nodes or simple self-interactions
-  if (node.is_skippable(point_x, point_y, eps)) {
+  // Empty nodes contribute neither force nor probability mass.
+  if (node.num_points == 0) {
     return;
   }
 
@@ -17,12 +17,13 @@ void _bh_tsne_negative_gradient_single(const smallvis::QuadTree::Node &node,
   // mass
   double diff_x = node.center_of_mass_x - point_x;
   double diff_y = node.center_of_mass_y - point_y;
-  double d2_ij = eps + diff_x * diff_x + diff_y * diff_y;
+  double d2_ij = diff_x * diff_x + diff_y * diff_y;
 
   // Check if we can use this node as a summary
-  if (node.is_summary(d2_ij, theta2)) {
+  if (node.is_summary(d2_ij, theta2, contains_query)) {
     double w_ij = 1.0 / (1.0 + d2_ij);
-    double nw_ij = node.num_points * w_ij;
+    const auto count = node.num_points - (contains_query ? 1 : 0);
+    double nw_ij = count * w_ij;
     Zi += nw_ij;
 
     nw_ij *= w_ij;
@@ -34,9 +35,11 @@ void _bh_tsne_negative_gradient_single(const smallvis::QuadTree::Node &node,
   }
 
   // Recursively apply Barnes-Hut to the children
-  for (const auto &child : node.children) {
-    _bh_tsne_negative_gradient_single(*child, point_x, point_y, theta2, eps,
-                                      gradient_x, gradient_y, Zi);
+  const auto query_quadrant = node.find_quadrant(point_x, point_y);
+  for (std::size_t qid = 0; qid < 4; ++qid) {
+    _bh_tsne_negative_gradient_single(
+        *node.children[qid], point_x, point_y, theta2,
+        contains_query && qid == query_quadrant, gradient_x, gradient_y, Zi);
   }
 }
 
@@ -55,7 +58,7 @@ void bh_tsne_negative_gradient(const smallvis::QuadTree &tree,
   auto worker = [&](std::size_t start, std::size_t end, std::size_t thread_id) {
     for (std::size_t i = start * 2; i < end * 2; i += 2) {
       _bh_tsne_negative_gradient_single(*root, embedding[i], embedding[i + 1],
-                                        theta2, eps, gradient[i],
+                                        theta2, true, gradient[i],
                                         gradient[i + 1], Zi[thread_id]);
     }
   };
@@ -99,24 +102,27 @@ void bh_tsne_positive_gradient(const std::vector<std::size_t> &indices,
 }
 
 double _bh_Zi(const smallvis::QuadTree::Node &node, double point_x,
-              double point_y, double theta2, double eps) {
-  // Ensure we do not process empty nodes or simple self-interactions
-  if (node.is_skippable(point_x, point_y, eps)) {
+              double point_y, double theta2, bool contains_query) {
+  // Empty nodes contribute neither force nor probability mass.
+  if (node.num_points == 0) {
     return 0.0;
   }
 
   double diff_x = node.center_of_mass_x - point_x;
   double diff_y = node.center_of_mass_y - point_y;
-  double d2_ij = eps + diff_x * diff_x + diff_y * diff_y;
+  double d2_ij = diff_x * diff_x + diff_y * diff_y;
 
-  if (node.is_summary(d2_ij, theta2)) {
-    return node.num_points / (1.0 + d2_ij);
+  if (node.is_summary(d2_ij, theta2, contains_query)) {
+    const auto count = node.num_points - (contains_query ? 1 : 0);
+    return count / (1.0 + d2_ij);
   }
 
   // Recursively apply Barnes-Hut to the children
   double Zi = 0.0;
-  for (const auto &child : node.children) {
-    Zi += _bh_Zi(*child, point_x, point_y, theta2, eps);
+  const auto query_quadrant = node.find_quadrant(point_x, point_y);
+  for (std::size_t qid = 0; qid < 4; ++qid) {
+    Zi += _bh_Zi(*node.children[qid], point_x, point_y, theta2,
+                 contains_query && qid == query_quadrant);
   }
   return Zi;
 }
@@ -132,7 +138,7 @@ double bh_Z(const smallvis::QuadTree &tree,
     const std::size_t end2 = end * 2;
     for (std::size_t i = start * 2; i < end2; i += 2) {
       Zi[thread_id] +=
-          _bh_Zi(*root, embedding[i], embedding[i + 1], theta2, eps);
+          _bh_Zi(*root, embedding[i], embedding[i + 1], theta2, true);
     }
   };
   smallvis::parallel_for(embedding.size() / 2, n_threads, worker);
@@ -145,7 +151,7 @@ double bh_plogq(const std::vector<std::size_t> &indices,
                 const std::vector<double> &P_data,
                 const std::vector<double> &embedding, double theta, double eps,
                 std::size_t n_threads) {
-  smallvis::QuadTree tree(embedding, eps);
+  smallvis::QuadTree tree(embedding);
   double mlogZ =
       -std::log(bh_Z(tree, embedding, theta * theta, eps, n_threads));
 
@@ -181,7 +187,7 @@ std::vector<double> bh_tsne_gradient(const std::vector<std::size_t> &indices,
                                      double theta, double eps,
                                      std::size_t n_threads) {
 
-  smallvis::QuadTree tree(embedding, eps);
+  smallvis::QuadTree tree(embedding);
   std::vector<double> gradient(embedding.size(), 0.0);
 
   // don't re-arrange the order of the following two function calls!

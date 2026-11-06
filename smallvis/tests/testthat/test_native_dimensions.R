@@ -12,7 +12,7 @@ test_that("dense accelerated routes preserve general output dimensions", {
         smallvis(
           X,
           k = k,
-          method = method,
+          method = current_method,
           Y_init = Y,
           perplexity = 1,
           max_iter = 1,

@@ -541,7 +541,10 @@
 #' @param eps Set epsilon for avoiding division-by-zero errors. Default is
 #'   \code{.Machine$double.eps}, but if you see inconsistent convergence results
 #'   with optimizer that should be reducing the cost each iteration, then try
-#'   setting this to a larger value, e.g. between \code{1e-3 - 1e-9}.
+#'   setting this to a larger value, e.g. between \code{1e-3 - 1e-9}. For
+#'   Barnes-Hut, epsilon is added to the sum of non-self Student weights in
+#'   both the cost and gradient. Points share a leaf only at identical
+#'   coordinates.
 #' @param theta Barnes-Hut approximation accuracy. Default is \code{1.0} which
 #'   more or less corresponds to the default degree of approximation used in
 #'   the \code{Rtsne} package. Set to 0.0 for exact t-SNE. Applies only for
@@ -1153,6 +1156,10 @@ smallvis <- function(
       tsmessage("Scaling initial coords to sdev = ", formatC(Y_init_sdev))
       Y <- shrink_coords(Y, Y_init_sdev)
     }
+  }
+
+  if (!is.null(cost_fn$ndim) && any(!is.finite(Y))) {
+    stop("Barnes-Hut coordinates must be finite")
   }
 
   cost <- NA

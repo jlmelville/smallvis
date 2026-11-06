@@ -231,7 +231,10 @@ the \code{Rtsne} package. Set to 0.0 for exact t-SNE. Applies only for
 \item{eps}{Set epsilon for avoiding division-by-zero errors. Default is
 \code{.Machine$double.eps}, but if you see inconsistent convergence results
 with optimizer that should be reducing the cost each iteration, then try
-setting this to a larger value, e.g. between \code{1e-3 - 1e-9}.}
+setting this to a larger value, e.g. between \code{1e-3 - 1e-9}. For
+Barnes-Hut, epsilon is added to the sum of non-self Student weights in
+both the cost and gradient. Points share a leaf only at identical
+coordinates.}
 
 \item{inp_kernel}{For t-SNE-like methods, determines how the input
 similarities are calculated. Possible values are:

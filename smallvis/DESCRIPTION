@@ -18,6 +18,8 @@ Imports:
     rnndescent,
     vizier
 Suggests:
+    callr,
+    pkgload,
     RSpectra,
     testthat (>= 3.0.0)
 Remotes: jlmelville/vizier

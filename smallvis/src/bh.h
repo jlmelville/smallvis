@@ -36,11 +36,13 @@
 #ifndef SMALLVIS_BH_H
 #define SMALLVIS_BH_H
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <limits>
 #include <memory>
 #include <numeric>
+#include <stdexcept>
 #include <vector>
 
 #include "threads.h"
@@ -55,49 +57,48 @@ public:
     double center_of_mass_x = 0.0;
     double center_of_mass_y = 0.0;
     std::size_t num_points = 0;
-    Node *children[4] = {nullptr, nullptr, nullptr, nullptr};
+    std::unique_ptr<Node> children[4];
 
     Node(double center_x, double center_y, double length) noexcept
         : center_x(center_x), center_y(center_y), length(length),
           length2(length * length) {}
 
-    ~Node() noexcept {
-      for (Node *child : children) {
-        delete child;
-      }
+    // Never summarize a subtree containing the query, even at a large theta.
+    bool is_summary(double d2, double theta2,
+                    bool contains_query) const noexcept {
+      return is_leaf || (!contains_query && length2 < d2 * theta2);
     }
 
-    bool is_close(double point_x, double point_y, double eps) const noexcept {
-      return std::abs(center_of_mass_x - point_x) < eps &&
-             std::abs(center_of_mass_y - point_y) < eps;
-    }
-
-    bool is_skippable(double point_x, double point_y,
-                      double eps) const noexcept {
-      return num_points == 0 || (is_leaf && is_close(point_x, point_y, eps));
-    }
-
-    // Barnes-Hut criterion rearranged for squared distances and squared theta
-    // to avoid square roots and divisions
-    bool is_summary(double d2, double theta2) const noexcept {
-      return is_leaf || length2 < d2 * theta2;
-    }
-
-    void add_point(double point_x, double point_y, double eps) {
-      if ((is_leaf && num_points == 0) || is_close(point_x, point_y, eps)) {
-        update_center_of_mass(point_x, point_y);
+    void add_point(double point_x, double point_y, std::size_t count = 1) {
+      if (num_points == 0) {
+        center_of_mass_x = point_x;
+        center_of_mass_y = point_y;
+        num_points = count;
         return;
       }
 
       if (is_leaf) {
+        if (center_of_mass_x == point_x && center_of_mass_y == point_y) {
+          num_points += count;
+          return;
+        }
         split();
-        std::size_t qid = find_quadrant(center_of_mass_x, center_of_mass_y);
-        children[qid]->add_point(center_of_mass_x, center_of_mass_y, eps);
+        const auto qid = find_quadrant(center_of_mass_x, center_of_mass_y);
+        children[qid]->add_point(center_of_mass_x, center_of_mass_y,
+                                 num_points);
       }
 
-      update_center_of_mass(point_x, point_y);
-      std::size_t qid = find_quadrant(point_x, point_y);
-      children[qid]->add_point(point_x, point_y, eps);
+      update_center_of_mass(point_x, point_y, count);
+      const auto qid = find_quadrant(point_x, point_y);
+      children[qid]->add_point(point_x, point_y, count);
+    }
+
+    std::size_t find_quadrant(double point_x, double point_y) const noexcept {
+      // 0: SW, 1: SE, 2: NW, 3: NE
+      if (point_x <= center_x) {
+        return point_y <= center_y ? 0 : 2;
+      }
+      return point_y <= center_y ? 1 : 3;
     }
 
   private:
@@ -110,34 +111,31 @@ public:
     double length2;
     bool is_leaf = true;
 
-    std::size_t find_quadrant(double point_x, double point_y) const noexcept {
-      // Determine which quadrant the point is in -- 0: SW, 1: SE, 2: NW, 3: NE
-      if (point_x <= center_x) {
-        return point_y <= center_y ? 0 : 2;
-      }
-      return point_y <= center_y ? 1 : 3;
-    }
-
-    void update_center_of_mass(double point_x, double point_y) noexcept {
-      num_points += 1;
-      center_of_mass_x += (point_x - center_of_mass_x) / num_points;
-      center_of_mass_y += (point_y - center_of_mass_y) / num_points;
+    void update_center_of_mass(double point_x, double point_y,
+                               std::size_t count) noexcept {
+      num_points += count;
+      center_of_mass_x += (point_x - center_of_mass_x) * count / num_points;
+      center_of_mass_y += (point_y - center_of_mass_y) * count / num_points;
     }
 
     void split() {
-      is_leaf = false;
       double new_len = length * 0.5;
       double half_len = new_len * 0.5;
 
-      children[0] = new Node(center_x - half_len, center_y - half_len, new_len);
-      children[1] = new Node(center_x + half_len, center_y - half_len, new_len);
-      children[2] = new Node(center_x - half_len, center_y + half_len, new_len);
-      children[3] = new Node(center_x + half_len, center_y + half_len, new_len);
+      children[0] = std::make_unique<Node>(center_x - half_len,
+                                           center_y - half_len, new_len);
+      children[1] = std::make_unique<Node>(center_x + half_len,
+                                           center_y - half_len, new_len);
+      children[2] = std::make_unique<Node>(center_x - half_len,
+                                           center_y + half_len, new_len);
+      children[3] = std::make_unique<Node>(center_x + half_len,
+                                           center_y + half_len, new_len);
+      is_leaf = false;
     }
   };
   std::unique_ptr<Node> root;
 
-  QuadTree(const std::vector<double> &data, double eps = EPS) {
+  explicit QuadTree(const std::vector<double> &data) {
     double coords_min_x = std::numeric_limits<double>::max();
     double coords_max_x = std::numeric_limits<double>::lowest();
     double coords_min_y = std::numeric_limits<double>::max();
@@ -147,6 +145,9 @@ public:
     for (std::size_t i = 0; i < data_len; i += 2) {
       double x = data[i];
       double y = data[i + 1];
+      if (!std::isfinite(x) || !std::isfinite(y)) {
+        throw std::invalid_argument("Barnes-Hut coordinates must be finite");
+      }
 
       coords_min_x = std::min(coords_min_x, x);
       coords_max_x = std::max(coords_max_x, x);
@@ -161,12 +162,9 @@ public:
 
     root = std::make_unique<Node>(center_x, center_y, length);
     for (std::size_t i = 0; i < data_len; i += 2) {
-      root->add_point(data[i], data[i + 1], eps);
+      root->add_point(data[i], data[i + 1]);
     }
   }
-
-private:
-  constexpr static double EPS = std::numeric_limits<double>::epsilon();
 };
 } // namespace smallvis
 

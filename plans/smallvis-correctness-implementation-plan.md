@@ -1,8 +1,9 @@
 # smallvis correctness and maintenance implementation plan
 
-**Status** Phase 1 completed on 2026-11-05. Implementation stops before Phase 2, as requested.
+**Status** Phases 1 and 2 completed on 2026-11-05. Implementation stops before Phase 3, as
+requested.
 
-**Next work** Phase 2 remains pending. Resume its tree-correctness work only when requested.
+**Next work** Phase 3 remains pending. Resume its input and initialization work only when requested.
 
 The [full repository review](smallvis-repository-review-2026-11-05.md) records the observations and
 source locations at `3382ecf`. Its clean Linux package check and 579 passing test expectations are
@@ -171,6 +172,72 @@ land. Keep exact-force assertions at `theta = 0`. Existing approximate-mode exam
 produce finite costs and embeddings. Change a historical numerical fixture only after the direct
 calculation explains the difference.
 
+## Phase 2 implementation and validation
+
+All five Phase 2 items are implemented against base revision `3ae8e4f`. The tree tracks which
+subtree contains the query. A coincident leaf contributes its full multiplicity minus that one
+query, and an internal node containing the query is expanded even at a large theta. Splitting
+transfers the complete count into the appropriate child. Points at an internal centroid also
+descend into a child. Child nodes now use owning smart pointers.
+
+Only identical coordinates share a leaf. The Student weight is `1 / (1 + squared_distance)`,
+and `eps` is added to the sum of non-self weights in both the cost and gradient. The R cost
+callback now forwards the configured epsilon. Coordinate validation runs after initialization in
+R and during native tree construction, covering layouts produced later by optimization.
+
+The [Barnes–Hut regressions](../smallvis/tests/testthat/test_native_bh.R) use a fixed nonuniform
+symmetric P and independent dense cost, force, and repulsion calculations. They cover coincident
+points, duplicate-leaf splits, internal-centroid insertion, point permutations, one and two
+workers, and epsilon at machine precision and `1e-3`. A two-point case at large theta checks
+self-exclusion when summarizing would otherwise include the query. No historical coordinate
+fixture needed updating.
+
+The NA, NaN, and positive/negative Inf probes run through the public API and both native entries
+in a subprocess with a 30-second timeout. The child verifies that it loaded the candidate package.
+The test dependencies `callr` and `pkgload` were added to Suggests to support this in source and
+installed test runs. The earlier dimension regression also now passes its resolved method list,
+so its accelerated control exercises the selected backend.
+
+The [standalone tree regression](../smallvis/tests/native/bh.cpp) checks subtree counts after
+duplicate and centroid insertion, plus invalid-coordinate exceptions. The pre-fix numerical
+probes disagreed with the dense reference and the invalid native probe reached a C stack overflow.
+The finite-coordinate regression is now bounded to keep that failure contained if it recurs.
+
+Validation used R 4.5.2, GCC 15.2, Clang 21.1.8, and Valgrind 3.26.0 on Linux.
+
+- The installed package suite passed 710 expectations, including 53 new Barnes–Hut expectations.
+  The seven partial-argument warnings are the existing baseline warnings.
+- Memcheck over all 134 native regression expectations and direct native error probes reported
+  zero errors and zero definitely, indirectly, or possibly lost bytes.
+- Helgrind over the same native checks reported zero errors.
+- Strict GCC and Clang builds passed for all three handwritten C++ translation units and for
+  the standalone tree regression.
+- The standalone tree regression passed AddressSanitizer, UndefinedBehaviorSanitizer, and
+  LeakSanitizer. This run used the host environment because LeakSanitizer rejects the sandbox's
+  ptrace environment. Memcheck separately reported all 31 allocations freed and zero errors.
+- A clean source build and `R CMD check --no-manual` passed. Air, clang-format, lintr, and
+  `git diff --check` passed. Windows validation remains outstanding.
+
+The temporary evidence directory is `/tmp/smallvis-phase2.qZssJcbi`. It contains `suite.log`,
+`native.memcheck`, `native.helgrind`, `tree.memcheck`, `tree.helgrind`, and
+`check/smallvis.Rcheck/00check.log`. The Phase 1 native commands above also run the new R tests.
+To repeat the standalone tree checks from the repository root, use the following commands.
+
+```sh
+c++ -std=c++17 -pthread -Wall -Wextra -Werror smallvis/tests/native/bh.cpp \
+  -o /tmp/smallvis-bh
+valgrind --vgdb=no --tool=memcheck --error-exitcode=99 --leak-check=full /tmp/smallvis-bh
+valgrind --vgdb=no --tool=helgrind --error-exitcode=99 /tmp/smallvis-bh
+g++ -std=c++17 -pthread -fsanitize=address,undefined -fno-omit-frame-pointer -g \
+  smallvis/tests/native/bh.cpp -o /tmp/smallvis-bh-sanitize
+ASAN_OPTIONS=detect_leaks=1 /tmp/smallvis-bh-sanitize
+```
+
+The applied files were compared byte for byte with the tested candidate. Exported Rcpp signatures
+are unchanged. Package help was regenerated from roxygen. The pre-cleanup files remain in stash
+`1bc0e8f`, including the t-ASNE changes and earlier experiment plans. Phase 3 is the next open
+phase.
+
 ## Phase 3. Make equivalent calls use the same inputs and initialization
 
 - **Dispatch and affinity representation.** Resolve the method name, method list, and top-level
@@ -255,9 +322,10 @@ The following are separate choices after the fixes:
   internal reuse in repeated starts has demonstrated its value.
 - Move `vizier` to an optional plotting dependency if installation friction warrants a fallback.
   Add a recurring native diagnostic CI job only if the focused commands justify its upkeep.
-- Keep the [staged mize proposal](smallvis-mize-staged-optimization-plan.md) independent. Defer a
-  thread pool, octree, plugin system, persistent experiment store, distributed execution, and
-  broad benchmark infrastructure until a concrete workload calls for them.
+- Keep the staged mize proposal, `smallvis-mize-staged-optimization-plan.md` in the pre-cleanup
+  stash, independent. Defer a thread pool, octree, plugin system, persistent experiment store,
+  distributed execution, and broad benchmark infrastructure until a concrete workload calls for
+  them.
 
-**Progress on 2026-11-05** Phase 1 implementation, regressions, and native validation are
-complete. Phases 2 through 5 are pending.
+**Progress on 2026-11-05** Phases 1 and 2, their regressions, and native validation are
+complete. Phases 3 through 5 are pending.
