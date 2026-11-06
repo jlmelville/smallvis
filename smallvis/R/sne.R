@@ -7,7 +7,8 @@ tsne <- function(
   row_normalize = TRUE,
   eps = .Machine$double.eps,
   n_threads = 0,
-  use_cpp = FALSE
+  use_cpp = FALSE,
+  nn = "exact"
 ) {
   list(
     init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
@@ -23,7 +24,8 @@ tsne <- function(
         verbose = verbose,
         ret_extra = ret_extra,
         n_threads = n_threads,
-        use_cpp = use_cpp
+        use_cpp = use_cpp,
+        nn = nn
       )
       cost$eps <- eps
       cost
@@ -107,6 +109,10 @@ bhtsne <- function(
         nn = nn,
         sparse = TRUE
       )
+      cost$P <- Matrix::drop0(methods::as(
+        Matrix::Matrix(cost$P, sparse = TRUE),
+        "generalMatrix"
+      ))
       cost$eps <- eps
       cost
     },

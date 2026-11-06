@@ -58,7 +58,8 @@ variance. Alternatively, you may specify one of the following strings:
 \code{"absmax"}, here the columns are mean centered and then the elements
 divided by absolute maximum value; \code{"scale"} does the same as using
 \code{TRUE}. To use the input data as-is, use \code{FALSE}, \code{NULL}
-or \code{"none"}.}
+or \code{"none"}. Normalizing an all-constant input produces an
+informative error.}
 
 \item{Y_init}{How to initialize the output coordinates. See
 the 'Output initialization' section.}
@@ -86,11 +87,17 @@ principal components are scaled by the inverse of the square root of the
 equivalent eigenvalues, so that the variance of component is 1.}
 
 \item{initial_dims}{If carrying out PCA or whitening, the number of
-principal components to keep. Must be no greater than the rank of the input
-or no PCA or whitening will be carried out.}
+principal components to keep. PCA runs when this is no greater than
+\code{min(nrow(X) - 1, ncol(X))} after scaling and filtering.
+Otherwise input preprocessing is skipped.}
 
 \item{method}{A neighbor embedding method. See "Details" and
-"Method-specific options" for greater control.}
+"Method-specific options" for greater control. A string or a list starting
+with that string uses the same constructor and shared controls. Named
+options in the list override the corresponding top-level values.
+Constructor-specific defaults apply to other method options. A custom
+constructor function receives perplexity and any explicitly supplied
+shared controls present in its formals.}
 
 \item{epoch_callback}{Function to call after each epoch. See the
 "Visualization callback" section. By default the current set of
@@ -251,14 +258,16 @@ nearest neighbors of each observation are considered and each are given
 a similarity of \code{1/perplexity}. This can be a lot faster than using
 \code{"nngaussian"} as fewer neighbors need to be found.}
 
-\item{nn}{Method for finding nearest neighbors. Possible values are:
+\item{nn}{Method for finding neighbors for t-SNE neighbor input kernels,
+ including Barnes-Hut t-SNE. Possible values are:
 \itemize{
 \item{\code{"exact"}} Exact nearest neighbors.
 \item{\code{"approximate"}} Approximate nearest neighbors.
 }
 Approximate nearest neighbors are faster for large datasets and usually the
 small loss in accuracy is not a problem. The default is \code{NULL}, where
-each method gets to choose the best method for its needs.}
+each method gets to choose the best method for its needs. Precomputed
+distance inputs use exact neighbor lookup.}
 
 \item{verbose}{If \code{TRUE}, log progress messages to the console.}
 }
@@ -350,7 +359,8 @@ to the \code{method} parameter are:
 \itemize{
   \item \code{"tsne"} t-Distributed Stochastic Neighbor Embedding
   (van der Maaten and Hinton, 2008).
-  \item \code{"bhtsne"} Barnes-Hut t-SNE (van der Maaten, 2014).
+  \item Barnes-Hut t-SNE (van der Maaten, 2014), selected with
+  \code{method = "tsne", bh = TRUE}.
   \item \code{"largevis"} the cost function of the LargeVis algorithm
   (Tang et al, 2016). Input affinities are calculated and symmetrized using
   the same perplexity calibration method as t-SNE, but are not normalized.
@@ -404,10 +414,9 @@ to the \code{method} parameter are:
   (2018).
 }
 
-Note that only the cost function is used from these methods in the context
-of creating the full distance matrix as part of the gradient calculation.
-None of the approximations or other speed-ups (e.g. Barnes-Hut or approximate
-nearest neighbors routines) are used.
+By default, these methods use dense input affinities and gradients.
+For t-SNE, \code{bh = TRUE} approximates repulsive interactions, and
+neighbor input kernels can use approximate nearest-neighbor search.
 }
 \section{Method-specific options}{
 

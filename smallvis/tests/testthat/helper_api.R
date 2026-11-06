@@ -8,7 +8,7 @@ expect_api <- function(
   theta = 0.0,
   nn = "exact",
   bh = FALSE,
-  inp_kernel = "gaussian"
+  inp_kernel = NULL
 ) {
   res <- smallvis(
     X,

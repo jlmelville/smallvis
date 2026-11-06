@@ -16,9 +16,9 @@ init_out <- function(Y_init, X, n, ndim, pca_preprocessed, verbose = FALSE) {
 }
 
 pca_init <- function(X, ndim, pca_preprocessed, verbose = FALSE) {
-  # If we've already done PCA, we can just take the first two columns
+  # Reuse scores from input preprocessing when it was actually applied.
   if (pca_preprocessed) {
-    X[, 1:2]
+    X[, seq_len(ndim), drop = FALSE]
   } else {
     pca_scores(X, ncol = ndim, verbose = verbose)
   }
@@ -41,23 +41,30 @@ pca_init <- function(X, ndim, pca_preprocessed, verbose = FALSE) {
 # it's incredibly wasteful to calculate all of them. Therefore, if the
 # RSpectra library is available, we use that instead, which allows for only the
 # top eigenvectors to be extracted. Otherwise, use the slower eigen routine.
-# A must be symmetric and positive semi definite, but not necessarily
-# normalized in any specific way.
+# A must contain symmetric nonnegative affinities with positive degrees.
 laplacian_eigenmap <- function(A, ndim = 2, use_RSpectra = TRUE) {
-  # Equivalent to: D <- diag(colSums(A)); M <- solve(D) %*% A
-  # This effectively row-normalizes A: colSums is normally faster than rowSums
-  # and because A is symmetric, they're equivalent
-  M <- A / Matrix::colSums(A)
+  n <- nrow(A)
+  if (ndim < 1 || ndim >= n || ndim != as.integer(ndim)) {
+    stop("ndim must be between 1 and n - 1")
+  }
+  degrees <- Matrix::colSums(A)
+  if (any(!is.finite(degrees) | degrees <= 0)) {
+    stop("Spectral initialization requires positive finite graph degrees")
+  }
+  Dsq <- sqrt(degrees)
+  S <- Matrix::t(A / Dsq) / Dsq
   if (
-    use_RSpectra &&
-      requireNamespace("RSpectra", quietly = TRUE, warn.conflicts = FALSE)
+    use_RSpectra && ndim + 1 < n && requireNamespace("RSpectra", quietly = TRUE)
   ) {
     tsmessage("Using RSpectra for eigenvectors")
-    Re(RSpectra::eigs(M, k = ndim + 1)$vectors[, 2:(ndim + 1)])
+    res <- RSpectra::eigs_sym(S, k = ndim + 1, which = "LA")
   } else {
     tsmessage("Using eigen for eigenvectors")
-    eigen(M, symmetric = FALSE)$vectors[, 2:(ndim + 1)]
+    res <- eigen(as.matrix(S), symmetric = TRUE)
   }
+  indices <- order(res$values, decreasing = TRUE)[seq_len(ndim) + 1]
+  Y <- res$vectors[, indices, drop = FALSE] / Dsq
+  sweep(Y, 2, sqrt(colSums(Y * Y)), "/")
 }
 
 # Use a normalized Laplacian. The UMAP approach, taken from version 0.2.1.
@@ -75,17 +82,18 @@ normalized_spectral_init <- function(A, ndim = 2, use_RSpectra = TRUE) {
 
   if (
     use_RSpectra &&
+      ndim + 1 < n &&
       requireNamespace("RSpectra", quietly = TRUE, warn.conflicts = FALSE)
   ) {
     tsmessage("Using RSpectra for eigenvectors")
     k <- ndim + 1
-    ncv <- max(2 * k + 1, floor(sqrt(n)))
+    ncv <- min(n, max(2 * k + 1, floor(sqrt(n))))
     opt <- list(
       ncv = ncv,
       maxitr = 5 * n,
       tol = 1e-4
     )
-    res <- RSpectra::eigs(L, k = k, which = "SM", opt = opt)
+    res <- RSpectra::eigs(L, k = k, which = "SM", opts = opt)
     vec_indices <- rev(order(res$values, decreasing = TRUE)[1:ndim])
     res <- Re(res$vectors[, vec_indices])
   } else {
@@ -118,6 +126,10 @@ pca_scores <- function(
   verbose = FALSE,
   ret_extra = FALSE
 ) {
+  available <- if (methods::is(X, "dist")) attr(X, "Size") - 1 else min(dim(X))
+  if (!is.finite(ncol) || ncol < 1 || ncol != floor(ncol) || ncol > available) {
+    stop("PCA initialization requires between 1 and ", available, " components")
+  }
   if (methods::is(X, "dist")) {
     res_mds <- stats::cmdscale(X, x.ret = TRUE, eig = TRUE, k = ncol)
 
@@ -140,10 +152,11 @@ pca_scores <- function(
         n = ncol,
         retx = TRUE,
         center = TRUE,
-        scale = FALSE
+        scale. = FALSE
       )
       scores <- res$x
       ncol <- ncol(res$rotation)
+      lambda <- res$sdev^2
       varex <- sum(res$sdev[1:ncol]^2) / res$totalvar
       tsmessage(
         "PCA (via irlba): ",
@@ -156,7 +169,6 @@ pca_scores <- function(
       X <- scale(X, center = TRUE, scale = FALSE)
       # do SVD on X directly rather than forming covariance matrix
       s <- svd(X, nu = ncol, nv = 0)
-      D <- diag(c(s$d[1:ncol]))
       if (verbose || ret_extra) {
         # calculate eigenvalues of covariance matrix from singular values
         lambda <- (s$d^2) / (nrow(X) - 1)
@@ -169,7 +181,7 @@ pca_scores <- function(
           "% variance"
         )
       }
-      scores <- s$u %*% D
+      scores <- sweep(s$u, 2, s$d[seq_len(ncol)], "*")
     }
   }
 

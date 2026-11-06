@@ -8,7 +8,8 @@
 #' \itemize{
 #'   \item \code{"tsne"} t-Distributed Stochastic Neighbor Embedding
 #'   (van der Maaten and Hinton, 2008).
-#'   \item \code{"bhtsne"} Barnes-Hut t-SNE (van der Maaten, 2014).
+#'   \item Barnes-Hut t-SNE (van der Maaten, 2014), selected with
+#'   \code{method = "tsne", bh = TRUE}.
 #'   \item \code{"largevis"} the cost function of the LargeVis algorithm
 #'   (Tang et al, 2016). Input affinities are calculated and symmetrized using
 #'   the same perplexity calibration method as t-SNE, but are not normalized.
@@ -62,10 +63,9 @@
 #'   (2018).
 #' }
 #'
-#' Note that only the cost function is used from these methods in the context
-#' of creating the full distance matrix as part of the gradient calculation.
-#' None of the approximations or other speed-ups (e.g. Barnes-Hut or approximate
-#' nearest neighbors routines) are used.
+#' By default, these methods use dense input affinities and gradients.
+#' For t-SNE, \code{bh = TRUE} approximates repulsive interactions, and
+#' neighbor input kernels can use approximate nearest-neighbor search.
 #'
 #' @section Method-specific options:
 #'
@@ -412,7 +412,8 @@
 #'   \code{"absmax"}, here the columns are mean centered and then the elements
 #'   divided by absolute maximum value; \code{"scale"} does the same as using
 #'   \code{TRUE}. To use the input data as-is, use \code{FALSE}, \code{NULL}
-#'   or \code{"none"}.
+#'   or \code{"none"}. Normalizing an all-constant input produces an
+#'   informative error.
 #' @param Y_init How to initialize the output coordinates. See
 #'  the 'Output initialization' section.
 #' @param Y_init_sdev If non-\code{NULL}, scales each dimension of the
@@ -434,10 +435,16 @@
 #'   principal components are scaled by the inverse of the square root of the
 #'   equivalent eigenvalues, so that the variance of component is 1.
 #' @param initial_dims If carrying out PCA or whitening, the number of
-#'   principal components to keep. Must be no greater than the rank of the input
-#'   or no PCA or whitening will be carried out.
+#'   principal components to keep. PCA runs when this is no greater than
+#'   \code{min(nrow(X) - 1, ncol(X))} after scaling and filtering.
+#'   Otherwise input preprocessing is skipped.
 #' @param method A neighbor embedding method. See "Details" and
-#'   "Method-specific options" for greater control.
+#'   "Method-specific options" for greater control. A string or a list starting
+#'   with that string uses the same constructor and shared controls. Named
+#'   options in the list override the corresponding top-level values.
+#'   Constructor-specific defaults apply to other method options. A custom
+#'   constructor function receives perplexity and any explicitly supplied
+#'   shared controls present in its formals.
 #' @param min_cost If the cost falls below this value, the optimization will
 #'   stop early.
 #' @param tol If the relative tolerance, averaged over the number of iterations
@@ -570,14 +577,16 @@
 #'   nearest neighbors of each observation are considered and each are given
 #'   a similarity of \code{1/perplexity}. This can be a lot faster than using
 #'   \code{"nngaussian"} as fewer neighbors need to be found.
-#' @param nn Method for finding nearest neighbors. Possible values are:
+#' @param nn Method for finding neighbors for t-SNE neighbor input kernels,
+#'   including Barnes-Hut t-SNE. Possible values are:
 #'  \itemize{
 #'  \item{\code{"exact"}} Exact nearest neighbors.
 #'  \item{\code{"approximate"}} Approximate nearest neighbors.
 #'  }
 #'  Approximate nearest neighbors are faster for large datasets and usually the
 #'  small loss in accuracy is not a problem. The default is \code{NULL}, where
-#'  each method gets to choose the best method for its needs.
+#'  each method gets to choose the best method for its needs. Precomputed
+#'  distance inputs use exact neighbor lookup.
 #' @param verbose If \code{TRUE}, log progress messages to the console.
 #' @return If \code{ret_extra} is \code{FALSE}, the embedded output coordinates
 #'   as a matrix. Otherwise, a list with the following items:
@@ -961,8 +970,21 @@ smallvis <- function(
     theta = theta,
     inp_kernel = inp_kernel,
     nn = nn,
-    bh = bh
+    bh = bh,
+    supplied = names(match.call())
   )
+
+  controls <- lmerge(
+    cost_fn$smallvis_controls,
+    list(
+      perplexity = perplexity,
+      use_cpp = use_cpp,
+      n_threads = n_threads
+    )
+  )
+  perplexity <- controls$perplexity
+  use_cpp <- controls$use_cpp
+  n_threads <- controls$n_threads
 
   if (!is.null(cost_fn$ndim) && k != cost_fn$ndim) {
     stop("Barnes-Hut requires k = 2")
@@ -1010,8 +1032,10 @@ smallvis <- function(
     start_time <- Sys.time()
   }
 
+  original_dims <- NULL
   if (methods::is(X, "dist")) {
     n <- attr(X, "Size")
+    pca <- FALSE
   } else {
     if (methods::is(X, "data.frame")) {
       indexes <- which(vapply(X, is.numeric, logical(1)))
@@ -1019,11 +1043,20 @@ smallvis <- function(
       if (length(indexes) == 0) {
         stop("No numeric columns found")
       }
-      X <- X[, indexes]
+      X <- X[, indexes, drop = FALSE]
     }
 
+    original_dims <- ncol(X)
     X <- scale_input(X, scale, verbose = verbose)
-    X <- pca_preprocess(X, pca, whiten, initial_dims, verbose = verbose)
+    preprocessed <- pca_preprocess(
+      X,
+      pca,
+      whiten,
+      initial_dims,
+      verbose = verbose
+    )
+    X <- preprocessed$X
+    pca <- preprocessed$pca
     n <- nrow(X)
   }
 
@@ -1111,16 +1144,9 @@ smallvis <- function(
           verbose = verbose
         )
       } else {
-        # Use normalized or unnormalized input weight for spectral initialization
-        # Pretty sure it doesn't matter, given the current options
-        A <- cost_fn$V
+        A <- cost_fn$P
         if (is.null(A)) {
-          A <- cost_fn$P
-          if (!is.null(A)) {
-            tsmessage("Using P for spectral initialization")
-          }
-        } else {
-          tsmessage("Using V for spectral initialization")
+          A <- cost_fn$V
         }
 
         if (is.null(A)) {
@@ -1136,6 +1162,8 @@ smallvis <- function(
           }
         }
 
+        # Spectral initialization uses an undirected graph.
+        A <- 0.5 * (A + Matrix::t(A))
         if (Y_init == "laplacian") {
           tsmessage("Initializing from Laplacian Eigenmap")
           Y <- laplacian_eigenmap(A, ndim = k)
@@ -1204,7 +1232,8 @@ smallvis <- function(
           0
         ),
         use_cpp = use_cpp,
-        n_threads = n_threads
+        n_threads = n_threads,
+        original_dims = original_dims
       )
     )
   }
@@ -1506,7 +1535,8 @@ smallvis <- function(
     pca = ifelse(pca && !whiten, initial_dims, 0),
     whiten = ifelse(pca && whiten, initial_dims, 0),
     use_cpp = use_cpp,
-    n_threads = n_threads
+    n_threads = n_threads,
+    original_dims = original_dims
   )
 
   res
@@ -1521,7 +1551,8 @@ create_cost <- function(
   theta,
   inp_kernel,
   nn,
-  bh
+  bh,
+  supplied = character()
 ) {
   method_names <- c(
     "tsne",
@@ -1573,336 +1604,73 @@ create_cost <- function(
     "abssne",
     "bhssne"
   )
-  if (is.character(method)) {
-    method <- match.arg(tolower(method), method_names)
-
-    if (method == "tsne" && bh) {
-      method <- "bhtsne"
-    }
-
-    invisible(switch(
-      method,
-      tsne = tsne(
-        perplexity = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      bhtsne = bhtsne(
-        perplexity = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        theta = theta,
-        inp_kernel = inp_kernel,
-        nn = nn
-      ),
-      umap = umap(
-        perplexity = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      largevis = largevis(
-        perplexity = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      tumap = tumap(
-        perplexity = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      ntumap = ntumap(
-        perplexity = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      mmds = mmds(
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      gmmds = gmmds(
-        k = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      asne = asne(
-        perplexity = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      ssne = ssne(
-        perplexity = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      wtsne = wtsne(
-        perplexity = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      wssne = wssne(
-        perplexity = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      hssne = hssne(
-        perplexity = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      ee = ee(
-        perplexity = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      nerv = nerv(
-        perplexity = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      snerv = snerv(
-        perplexity = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      jse = jse(
-        perplexity = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      sjse = sjse(
-        perplexity = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      smmds = smmds(
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      sammon = sammon(
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      tasne = tasne(
-        perplexity = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      trmsne = trmsne(
-        perplexity = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      trsrsne = trsrsne(
-        perplexity = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      tmsne = tmsne(
-        perplexity = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      arsrsne = arsrsne(
-        perplexity = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      rsrjse = rsrjse(
-        perplexity = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      rsrnerv = rsrnerv(
-        perplexity = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      btsne = btsne(
-        perplexity = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      bssne = bssne(
-        perplexity = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      basne = basne(
-        perplexity = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      btasne = btasne(
-        perplexity = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      bnerv = bnerv(
-        perplexity = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      ballmmds = ballmmds(
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      knnmmds = knnmmds(
-        k = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      dhssne = dhssne(
-        perplexity = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      tsneu = tsneu(
-        perplexity = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      pstsne = pstsne(
-        perplexity = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      skdtsne = skdtsne(
-        perplexity = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      usne = usne(
-        perplexity = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      cetsne = cetsne(
-        perplexity = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      tee = tee(
-        perplexity = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      absne = absne(
-        perplexity = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      chsne = chsne(
-        perplexity = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      hlsne = hlsne(
-        perplexity = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      gsne = gsne(
-        perplexity = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      rklsne = rklsne(
-        perplexity = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      jssne = jssne(
-        perplexity = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      abssne = abssne(
-        perplexity = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      bhssne = bhssne(
-        perplexity = perplexity,
-        n_threads = n_threads,
-        eps = eps,
-        use_cpp = use_cpp
-      ),
-      stop("BUG: someone forgot to implement option: '", method, "'")
-    ))
+  methodlist <- list()
+  custom <- is.function(method)
+  if (custom) {
+    fn <- method
   } else {
     if (is.list(method)) {
-      methodlist <- method
-      method_name <- methodlist[[1]]
-      methodlist[[1]] <- NULL
-      method <- match.arg(tolower(method_name), method_names)
-      if (exists(method_name)) {
-        fn <- get(method_name)
-      } else {
-        stop("Unknown method: '", method_name, "'")
+      if (
+        length(method) == 0 ||
+          !is.character(method[[1]]) ||
+          length(method[[1]]) != 1 ||
+          is.na(method[[1]])
+      ) {
+        stop("Method list must start with one method name")
       }
-    } else if (is.function(method)) {
-      fn <- method
-      methodlist <- list()
-    } else {
-      stop("Bad method parameter type")
+      methodlist <- method
+      method <- methodlist[[1]]
+      methodlist[[1]] <- NULL
+      if (
+        length(methodlist) &&
+          (is.null(names(methodlist)) ||
+            anyNA(names(methodlist)) ||
+            any(names(methodlist) == "") ||
+            anyDuplicated(names(methodlist)))
+      ) {
+        stop("Method options must have unique names")
+      }
     }
-
-    param_names <- names(formals(fn))
-    if ("perplexity" %in% param_names) {
-      methodlist$perplexity <- perplexity
+    method <- match.arg(tolower(method), method_names)
+    if (bh) {
+      if (method != "tsne") {
+        stop("Barnes-Hut is only supported for method 'tsne'")
+      }
+      method <- "bhtsne"
     }
-    if ("k" %in% param_names) {
-      methodlist$k <- perplexity
-    }
-    invisible(do.call(fn, methodlist))
+    fn <- get(method, envir = environment(create_cost), inherits = FALSE)
   }
+
+  param_names <- names(formals(fn))
+  unknown <- setdiff(names(methodlist), param_names)
+  if (length(unknown)) {
+    stop("Unknown method option: ", paste(unknown, collapse = ", "))
+  }
+  shared <- list(
+    perplexity = perplexity,
+    k = perplexity,
+    eps = eps,
+    n_threads = n_threads,
+    use_cpp = use_cpp,
+    theta = theta,
+    inp_kernel = inp_kernel,
+    nn = nn
+  )
+  if (custom) {
+    shared <- shared[intersect(names(shared), c("perplexity", "k", supplied))]
+  }
+  # NULL input controls leave the constructor's own kernel and NN defaults.
+  shared <- remove_nulls(shared[intersect(names(shared), param_names)])
+  methodlist <- lmerge(methodlist, shared)
+  cost <- do.call(fn, methodlist)
+  cost$smallvis_controls <- methodlist[intersect(
+    names(methodlist),
+    c("perplexity", "use_cpp", "n_threads")
+  )]
+  if (is.null(cost$smallvis_controls$perplexity)) {
+    cost$smallvis_controls$perplexity <- methodlist$k
+  }
+  invisible(cost)
 }
 
 
@@ -1937,7 +1705,8 @@ ret_value <- function(
   late_exaggeration_factor = 1,
   optionals = c(),
   use_cpp = FALSE,
-  n_threads = 1
+  n_threads = 1,
+  original_dims = NULL
 ) {
   attr(Y, "dimnames") <- NULL
   if (ret_extra) {
@@ -1948,7 +1717,7 @@ ret_value <- function(
       origD <- NULL
     } else {
       N <- nrow(X)
-      origD <- ncol(X)
+      origD <- if (is.null(original_dims)) ncol(X) else original_dims
     }
 
     res <- list(

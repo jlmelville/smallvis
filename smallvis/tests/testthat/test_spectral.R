@@ -21,19 +21,15 @@ test_that("normalized laplacian", {
   expect_equal(abs(res), abs(expected_norm_lap), tolerance = 1e-2)
 })
 
-test_that("laplacian eigenmap", {
-  # fmt: skip
-  expected_lap_eig <-
-    c2y(0.3964, -0.2585, -0.297, -0.3923, 0.3905, 0.3581, -0.1268,
-        0.2687, -0.356, -0.1954, 0.2775, 0.3298, 0.1282, -0.09545, 0.1503,
-        -0.4656, -0.1417, 0.4416, -0.3753, 0.4397)
-
-  # Test with distance matrix (simple and symmetric)
-  res <- laplacian_eigenmap(x2d(iris[1:10, ]), use_RSpectra = TRUE)
-  expect_equal(abs(res), abs(expected_lap_eig), tolerance = 1e-4)
-
-  res <- laplacian_eigenmap(x2d(iris[1:10, ]), use_RSpectra = FALSE)
-  expect_equal(abs(res), abs(expected_lap_eig), tolerance = 1e-4)
+test_that("laplacian eigenmap uses the leading algebraic modes", {
+  A <- x2d(iris[1:10, ])
+  degrees <- colSums(A)
+  values <- sort(Re(eigen(A / degrees)$values), decreasing = TRUE)[2:3]
+  for (use_RSpectra in c(TRUE, FALSE)) {
+    Y <- laplacian_eigenmap(A, use_RSpectra = use_RSpectra)
+    expect_equal(A %*% Y, sweep(Y * degrees, 2, values, "*"), tolerance = 1e-9)
+    expect_equal(colSums(Y * degrees), c(0, 0), tolerance = 1e-9)
+  }
 })
 
 test_that("spectral initialization accepts sparse affinity matrices", {

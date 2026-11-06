@@ -1,9 +1,9 @@
 # smallvis correctness and maintenance implementation plan
 
-**Status** Phases 1 and 2 completed on 2026-11-05. Implementation stops before Phase 3, as
+**Status** Phases 1 through 3 completed on 2026-11-05. Implementation stops before Phase 4, as
 requested.
 
-**Next work** Phase 3 remains pending. Resume its input and initialization work only when requested.
+**Next work** Phase 4 remains pending. Resume its optimizer and diagnostic work only when requested.
 
 The [full repository review](smallvis-repository-review-2026-11-05.md) records the observations and
 source locations at `3382ecf`. Its clean Linux package check and 579 passing test expectations are
@@ -235,14 +235,15 @@ ASAN_OPTIONS=detect_leaks=1 /tmp/smallvis-bh-sanitize
 
 The applied files were compared byte for byte with the tested candidate. Exported Rcpp signatures
 are unchanged. Package help was regenerated from roxygen. The pre-cleanup files remain in stash
-`1bc0e8f`, including the t-ASNE changes and earlier experiment plans. Phase 3 is the next open
-phase.
+`1bc0e8f`, including the t-ASNE changes and earlier experiment plans. Phase 3 completion is
+recorded below.
 
 ## Phase 3. Make equivalent calls use the same inputs and initialization
 
 - **Dispatch and affinity representation.** Resolve the method name, method list, and top-level
-  controls once. Preserve custom method functions and existing method-specific defaults. Proposed
-  precedence is explicit list options, then explicit top-level controls, then method defaults.
+  controls once. Preserve custom method functions and existing method-specific defaults. Shared
+  public defaults apply to both built-in method forms, explicit list options override shared
+  controls, and other method options retain constructor defaults.
   Check that string/list t-SNE with the same controls produce identical P, kNN differs from the
   Gaussian control, and requesting BH selects a sparse route in either form. Handle or reject
   explicit dense Gaussian input for BH before it reaches sparse-slot access.
@@ -260,6 +261,77 @@ phase.
   two-dimensional eigenspace at +cos(2π/10) and exclude the stationary mode. Compare subspaces
   to allow signs and rotations. With X and seed held fixed, requesting V as extra output must
   leave pairwise distances in the starting layout unchanged.
+
+## Phase 3 implementation and validation
+
+All four Phase 3 groups are implemented against base revision `8134a12`. No Phase 4 optimizer,
+repeated-start, stepping, or diagnostic-formula changes are included.
+
+Built-in string and list dispatch now use one constructor path with the same shared public defaults.
+Explicit non-NULL list options override shared controls. NULL kernel and neighbor controls preserve
+constructor defaults, as do method-specific options absent from the public interface. Custom
+constructors retain their defaults and receive declared, explicitly supplied shared controls, plus
+the existing perplexity/neighbor-count argument. Invalid list options fail before input processing.
+Resolved perplexity and native controls also reach result metadata and optional distance output.
+Both t-SNE forms select Barnes–Hut when requested, and its initializer converts dense Gaussian
+weights to a general sparse matrix before native sparse-slot access.
+
+Coordinate and precomputed-distance Gaussian affinities now use the same squared distances.
+Precomputed distances, vector targets, and exponential kernels use the supported R calibrator
+when the dense native calibrator cannot handle them. Exact distance neighbor lookup supports dense
+and sparse output, removes self by index, and selects exactly k directed neighbors, including k = 1
+and tied distances. Nearest-neighbor Gaussian calibration accepts distance inputs and fractional
+perplexities. Multiscale calibration preserves each method's normalization and symmetrization.
+
+Matrix and data-frame scaling now operate on columns and retain a one-column matrix after numeric
+column selection. Abs-max scaling uses the largest absolute centered entry. Constant input raises
+a clear error for range, abs-max, and variance scaling because the requested normalization is
+undefined. PCA initialization reuses preprocessing scores only when preprocessing actually ran,
+respects the requested output dimension, and preserves original feature counts in metadata.
+Truncated whitening retains its eigenvalues, scalar full-SVD scores retain matrix shape, and
+unavailable PCA initialization dimensions fail clearly instead of returning invalid coordinates.
+
+Laplacian eigenmaps solve the symmetric normalized adjacency problem, request the largest algebraic
+eigenvalues, remove the stationary mode, and map back to the generalized eigenvectors. Tests cover
+the ten-cycle Fourier subspace and a graph with unequal degrees. Both spectral initializers handle
+small inputs with a dense solve. Graph selection and symmetrization are independent of requested
+optional output, so asking for V no longer changes starting coordinates.
+
+The regressions are in [dispatch tests](../smallvis/tests/testthat/test_dispatch.R),
+[input equivalence tests](../smallvis/tests/testthat/test_input_equivalence.R),
+[preprocessing tests](../smallvis/tests/testthat/test_preprocessing.R), and
+[spectral contracts](../smallvis/tests/testthat/test_spectral_contracts.R). The existing API helper
+now leaves the input kernel unset unless a test selects it, preserving each method's own default.
+The existing Laplacian coordinate fixture was replaced by eigen-equation and weighted-orthogonality
+assertions. On its graph, the old fixture's eigenvalues were -0.3935862 and -0.1759269, whereas the
+leading nonstationary algebraic eigenvalues are -0.02654955 and -0.03492391. This independently
+explains the result change. The unchanged normalized-Laplacian fixture still passes.
+
+Validation used R 4.5.2 and GCC 15.2 on Linux.
+
+- The installed full suite passed 802 expectations with no failures, errors, or skips. The seven
+  partial-argument warnings are the previously recorded baseline warnings.
+- Running the new regression groups against archived HEAD reproduced failures in dispatch, input
+  equivalence, scaling/PCA, and spectral initialization.
+- Coordinate and distance neighbor indices agree on the tie-free fixture. Their maximum distance
+  difference is 2.45e-7 because the coordinate neighbor backend uses native precision. The
+  nearest-neighbor Gaussian comparisons therefore use tolerance 1e-6, with separate index and
+  distance checks. Dense Gaussian and exponential equivalence use tolerance 1e-10.
+- A clean source build and `R CMD check --no-manual` passed with status OK. Air, lintr, and
+  `git diff --check` passed. The check used installed dependencies. Windows checks were not run.
+- Roxygen help was regenerated. The usage article and method help now show the supported
+  `method = "tsne", bh = TRUE` selector. No C++ source or generated Rcpp bridge changed.
+
+The temporary evidence directory is `/tmp/smallvis-phase3.PL3ldwET`. It contains `suite.log`,
+`before-tests.log`, `before-init-tests.log`, `before-spectral-tests.log`, `proof.log`,
+`format.log`, `lint.log`, and `check/smallvis.Rcheck/00check.log`. To repeat the package checks,
+run the full test suite from `smallvis/`, then build that directory and check the source tarball
+with `R CMD check --no-manual` as specified below. The applied files were compared byte for byte
+with the tested source. The pre-cleanup stash remains untouched.
+
+For Phase 4, perplexity stepping must account for the now-consistent precedence of an explicit
+`method = list(..., perplexity = ...)` over the top-level perplexity. Preliminary and final runs
+must resolve the intended target together rather than silently retaining a nested override.
 
 ## Phase 4. Make optimizer results, repeated starts, and diagnostics trustworthy
 
@@ -302,7 +374,8 @@ phase.
   and absence of stale registrations or references. If a supported caller emerges, fix the
   conversion and test every entry of a 3 × 3 matrix against `1 / (1 + D2)`. Keep the dynamically
   selected optimizers.
-- Add a capability table to the existing usage article and correct its BH selector example.
+- Add a capability table to the existing usage article. Its BH selector example was corrected
+  during Phase 3.
   Cover input forms, output dimensions, kernel/backend combinations, and diagnostics exercised
   above. Point the README directly to the applicable LargeVis and UMAP terms and attribution
   after verifying their provenance.
@@ -327,5 +400,5 @@ The following are separate choices after the fixes:
   distributed execution, and broad benchmark infrastructure until a concrete workload calls for
   them.
 
-**Progress on 2026-11-05** Phases 1 and 2, their regressions, and native validation are
-complete. Phases 3 through 5 are pending.
+**Progress on 2026-11-05** Phases 1 through 3, their regressions, native validation for the
+first two phases, and Phase 3 package checks are complete. Phases 4 and 5 are pending.

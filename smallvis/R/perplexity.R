@@ -21,7 +21,18 @@ sne_init <- function(
   verbose = FALSE,
   ret_extra = c()
 ) {
-  if (tolower(kernel) == "knn") {
+  kernel <- match.arg(
+    tolower(kernel),
+    c(
+      "gaussian",
+      "nngaussian",
+      "knn",
+      "skd",
+      "sigma",
+      "exp"
+    )
+  )
+  if (kernel == "knn") {
     if (is.character(perplexity) || is.list(perplexity)) {
       stop("Can't use intrinsic dimensionality with knn kernel")
     }
@@ -95,8 +106,13 @@ sne_init <- function(
     )
 
     if (kernel == "nngaussian") {
-      n <- nrow(X)
-      k <- 3 * perplexity
+      if (length(perplexity) != 1) {
+        stop(
+          "Nearest-neighbor Gaussian calibration requires a scalar perplexity"
+        )
+      }
+      n <- if (methods::is(X, "dist")) attr(X, "Size") else nrow(X)
+      k <- floor(3 * perplexity)
       if (k > n - 1) {
         warning(
           "Perplexity probably too high for number of points,",
@@ -145,7 +161,12 @@ sne_init <- function(
         )
       }
     } else {
-      if (use_cpp) {
+      if (
+        use_cpp &&
+          !methods::is(X, "dist") &&
+          length(perplexity) == 1 &&
+          kernel == "gaussian"
+      ) {
         tsmessage(
           "Commencing calibration for perplexity = ",
           format_perps(perplexity),
@@ -251,13 +272,14 @@ x2aff <- function(
   verbose = FALSE,
   guesses = NULL
 ) {
+  kernel <- match.arg(tolower(kernel), c("gaussian", "exp"))
   x_is_dist <- methods::is(X, "dist")
   if (x_is_dist) {
     D <- X
     n <- attr(D, "Size")
 
     D <- as.matrix(D)
-    if (kernel == "gauss") {
+    if (kernel == "gaussian") {
       D <- D * D
     }
   } else {
@@ -486,51 +508,51 @@ knn_graph <- function(
   n_threads = 0,
   verbose = FALSE
 ) {
-  if (methods::is(X, "dist")) {
-    if (ret_sparse) {
-      stop("distance matrix to sparse knn graph not supported")
-    }
-    D <- as.matrix(X)
-    n <- nrow(D)
-    if (k > n - 1) {
-      stop("k must be not be > n - 1")
-    }
-    kdists <- Rfast::colnth(D, rep(k + 1, n))
-    for (i in 1:n) {
-      Di <- D[, i]
-      Di[Di > kdists[i]] <- 0
-      D[, i] <- 1
-    }
-  } else {
-    # Find the k-nearest indexes and distances of X, and set the corresponding
-    # distance matrix elements
-    n <- nrow(X)
-    if (k > n - 1) {
-      stop("k must be not be > n - 1")
-    }
-
-    knn <- get_nn(
-      X,
-      k = k + 1,
-      exact = exact,
-      n_threads = n_threads,
-      verbose = verbose
-    )
-    knn$idx <- knn$idx[, 2:(k + 1)]
-    if (ret_sparse) {
-      knn$dist <- rep(1, n * k)
-      D <- graph_to_sparse(knn)
-    } else {
-      D <- matrix(0, nrow = n, ncol = n)
-      for (i in 1:n) {
-        D[i, knn$idx[i, ]] <- 1
-      }
-    }
+  n <- if (methods::is(X, "dist")) attr(X, "Size") else nrow(X)
+  if (length(k) != 1 || !is.finite(k) || k < 1 || k > n - 1 || k != floor(k)) {
+    stop("k must be a whole number between 1 and n - 1")
   }
-  D
+  neighbors <- get_nn(
+    X,
+    k = k + 1,
+    exact = exact,
+    n_threads = n_threads,
+    verbose = verbose
+  )
+  idx <- matrix(0L, n, k)
+  for (i in seq_len(n)) {
+    keep <- utils::head(which(neighbors$idx[i, ] != i), k)
+    idx[i, ] <- neighbors$idx[i, keep]
+  }
+  rows <- rep(seq_len(n), each = k)
+  columns <- as.vector(t(idx))
+  if (ret_sparse) {
+    Matrix::sparseMatrix(i = rows, j = columns, x = 1, dims = c(n, n))
+  } else {
+    D <- matrix(0, n, n)
+    D[cbind(rows, columns)] <- 1
+    D
+  }
 }
 
 get_nn <- function(X, k, exact = FALSE, n_threads = 0, verbose = FALSE) {
+  if (methods::is(X, "dist")) {
+    tsmessage("Finding exact nearest neighbors from precomputed distances")
+    D <- as.matrix(X)
+    n <- nrow(D)
+    if (length(k) != 1 || !is.finite(k) || k < 1 || k > n || k != floor(k)) {
+      stop("k must be a whole number between 1 and n")
+    }
+    idx <- matrix(0L, n, k)
+    distances <- matrix(0, n, k)
+    for (i in seq_len(n)) {
+      others <- seq_len(n)[-i]
+      selected <- c(i, others[order(D[i, others], others)][seq_len(k - 1)])
+      idx[i, ] <- selected
+      distances[i, ] <- D[i, selected]
+    }
+    return(list(idx = idx, dist = distances))
+  }
   if (exact) {
     tsmessage(
       "Finding exact nearest neighbors with k = ",
@@ -599,9 +621,9 @@ msp <- function(
     P <- x2a_res$W
     Q <- scale_affinities(
       P,
-      symmetrize = "symmetric",
-      row_normalize = TRUE,
-      normalize = TRUE
+      symmetrize = symmetrize,
+      row_normalize = row_normalize,
+      normalize = normalize
     )
     if (is.null(res)) {
       res$P <- Q
