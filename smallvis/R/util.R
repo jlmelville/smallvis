@@ -32,14 +32,6 @@ safe_dist2 <- function(X) {
   D2
 }
 
-calc_d2tweight <- function(D2, use_cpp = FALSE, n_threads = 1) {
-  if (use_cpp) {
-    d2_to_tweight_cpp(D2, n_threads = n_threads)
-  } else {
-    1 / (1 + D2)
-  }
-}
-
 calc_tweight <- function(X, use_cpp = FALSE, n_threads = 1) {
   if (use_cpp && ncol(X) == 2) {
     tweight_cpp(X, n_threads = n_threads)

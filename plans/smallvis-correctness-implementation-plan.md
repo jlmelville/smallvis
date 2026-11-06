@@ -1,9 +1,11 @@
 # smallvis correctness and maintenance implementation plan
 
-**Status** Phases 1 through 4 completed on 2026-11-05. Implementation stops before Phase 5.
+**Status** Phases 1 through 4 are complete. Phase 5 native cleanup and validation are complete
+on 2026-11-05. Capability and licensing documentation are held for owner review, as requested.
 
-**Next work** Phase 5 remains pending. Resume its allocation and maintenance work only when
-requested.
+**Next work** Review the local documentation proposal, kept uncommitted at the owner’s request.
+The native changes are ready for review. Apply public documentation and notices after the owner
+accepts the proposed scope, then render and check those artifacts.
 
 The [full repository review](smallvis-repository-review-2026-11-05.md) records the observations and
 source locations at `3382ecf`. Its clean Linux package check and 579 passing test expectations are
@@ -459,6 +461,110 @@ remain in stash `1bc0e8f888be8064874928e86dde501b8ae41958` and were not restored
   above. Point the README directly to the applicable LargeVis and UMAP terms and attribution
   after verifying their provenance.
 
+## Phase 5 native implementation and validation
+
+The allocation and unused-conversion work is complete against base revision `c74089a`. The owner
+asked to see capability, licensing, and attribution recommendations at the end. Those are captured
+in the local, uncommitted documentation proposal; the README, usage
+article, and source notices have not been changed in this phase.
+
+Dense native t-SNE gradients now borrow read-only P and W storage after obtaining their pointers on
+the R thread. The owning arguments remain protected until all workers join. The coordinate copy and
+the small gradient buffer retain the existing layout and arithmetic. At 5,000 rows, the two removed
+double buffers account for 400,000,000 bytes, or 381.5 MiB, per gradient call.
+
+Dense calibration allocates its R output matrix once. Each worker reuses contiguous distance and
+weight workspace while calibrating a row, then scatters that finished row into the column-major
+matrix. This removes the quadratic C++ staging vector, its matrix copy, and the final transpose,
+while preserving directed rows, fallback selection, failure counts, and beta values. Worker writes
+are disjoint and no R allocation or API call occurs in a worker.
+
+Searches of the current checkout and the preserved stash found no consumers of
+`calc_d2tweight`/`d2_to_tweight_cpp` beyond their definitions and generated bridge. Their R helper,
+native conversion, wrapper, and registration were removed together. Rcpp regeneration is idempotent
+and changes only that binding. A fresh installed namespace has the same three public exports and no
+stale wrapper or native registration.
+
+The [native allocation regressions](../smallvis/tests/testthat/test_native_allocations.R) add 37
+expectations. They directly observe P/W aliases to detect native mutation, reconstruct directed
+Gaussian rows from independently calculated distances and returned precisions, interleave failed
+and successful rows to exercise reused workspace, and compare complete public native runs with
+independent fixed-affinity updates. All cover one and two workers. Separate fresh-process probes
+against both installed versions produced bit-identical calibrations, gradients, complete layouts,
+and mixed fallbacks at both worker counts.
+
+### Measured results
+
+The [benchmark script](../benchmarks/native-allocations.R) and its
+[setup and limitations](../benchmarks/README.md) preserve the evidence recipe. Both variants were
+installed with R 4.5.2 and GCC 15.2 using the same GNU C++17 and `-O2` build configuration. The host
+was Linux/WSL on an Intel Core i7-8750H with 12 logical CPUs and about 24 GiB of RAM. BLAS and
+OpenMP were fixed to one thread. Inputs use seed 42 and eight features; the isolated gradient uses
+fixed uniform P and Student weights from a two-dimensional layout. The complete embedding case
+uses actual Gaussian calibration and the public default optimizer with a fixed initial layout,
+no scaling, no plotting, native computation, and an epoch at its final iteration.
+
+Initial baseline runs were collected before editing. The evidence below uses three fresh-process
+repetitions for every case, variant, and worker count, alternating variant order. No other checks
+were run alongside the timed measurements. Times are medians for 10 gradient calls, one dense
+calibration, or a complete eight-iteration embedding. RSS is the median of GNU time's process
+maximum resident memory, including package loading and data setup.
+
+| Case | Rows | Workers | Baseline seconds | Candidate seconds | Change | Baseline peak MiB | Candidate peak MiB |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Native gradient, 10 calls | 5,000 | 1 | 4.057 | 0.690 | -83.0% | 840.1 | 648.1 |
+| Native gradient, 10 calls | 5,000 | 2 | 2.805 | 0.371 | -86.8% | 840.3 | 648.1 |
+| Dense calibration | 3,000 | 1 | 1.424 | 1.396 | -2.0% | 284.3 | 182.0 |
+| Dense calibration | 3,000 | 2 | 0.977 | 0.793 | -18.8% | 284.4 | 182.1 |
+| Complete embedding, 8 iterations | 3,000 | 1 | 5.504 | 4.626 | -16.0% | 647.6 | 579.6 |
+| Complete embedding, 8 iterations | 3,000 | 2 | 4.806 | 3.996 | -16.9% | 647.8 | 579.7 |
+
+Whole-embedding times ranged from 5.419–5.528 seconds before and 4.535–4.671 after at one worker,
+and 4.772–5.585 before and 3.990–4.177 after at two. Single-worker calibration ranges overlapped
+(1.396–1.437 versus 1.269–1.530 seconds), so its 2% median difference is not a reliable speedup. The
+isolated gradient before-times were noisier than the after-times, but the ranges remained well
+separated. All benchmark result sums matched between variants.
+
+The removed buffer payload and measured process RSS are different quantities. The process peak also
+includes setup, R's other allocations, and allocator retention; it is not a direct measure of C++
+buffer allocation. The measured reductions are about 192 MiB for the isolated gradient, 102 MiB for
+calibration, and 68 MiB for the complete embedding. The whole-operation time and memory reductions
+justify keeping these small implementation changes. No broader allocation or algorithm rewrite was
+needed.
+
+### Validation and remaining documentation
+
+- The installed full suite passed 968 expectations, including the 37 new expectations, with no
+  failures, errors, or skips. Its seven partial-argument warnings are the established baseline.
+- Memcheck over all 171 native expectations reported zero errors and zero definitely, indirectly, or
+  possibly lost bytes. Helgrind over the same native tests reported zero errors with its default
+  suppressions. Both runs include the new borrowed-input and R-owned-output paths.
+- All three handwritten C++ translation units passed GCC and Clang C++17 syntax checks with
+  `-pthread -Wall -Wextra -Werror`. R and Rcpp headers were supplied as system includes so external
+  header warnings do not weaken checking of the package's code.
+- A clean source build and `R CMD check --no-manual` passed with status OK and 968 packaged
+  expectations passing. Dependencies were already installed. Phase 5 Windows validation has not run
+  locally; the preceding Phase 4 commit passed both Linux and Windows CI.
+- Air, clang-format for the modified handwritten sources, loaded-namespace lintr, and `git diff
+  --check` passed. The generated wrappers were refreshed using Rcpp, not hand-edited.
+- The proposed capability rows were checked with 34 bounded public calls across coordinate and
+  `dist` inputs, one- and three-dimensional dense layouts, and the three listed Barnes–Hut input
+  kernels. Upstream license files and the repository's existing permissive grants were checked for
+  the separate documentation proposal.
+
+The evidence directory is `/tmp/smallvis-phase5.5_zshkqk`. Relevant artifacts are `suite.log`,
+`semantic.log`, `benchmark-results.csv`, `benchmark-summary.log`, `results/paired-*`,
+`native.memcheck`, `native.helgrind`, `strict-native.log`, `lint.log`, `capability-smoke.log`,
+`removal.log`, and `check/smallvis.Rcheck/00check.log`. Raw timing and binary probe outputs stay
+outside Git. The benchmark README gives commands for repeating measurements after those temporary
+files expire. The native check commands earlier in this plan also exercise the new regression file.
+
+Applied package files were compared byte for byte with the tested candidate. The earlier stash
+remains untouched. The original audit's active runtime correctness, resource-safety, and identified
+quadratic-copy work is now addressed. The remaining planned items are the capability and attribution
+changes held for review. Optional public APIs, optional plotting dependencies, recurring native CI,
+and larger architecture changes remain the separate decisions listed below.
+
 ## Completion and deferred decisions
 
 Run focused testthat cases during each fix. From the package directory run the full suite with
@@ -479,5 +585,5 @@ The following are separate choices after the fixes:
   distributed execution, and broad benchmark infrastructure until a concrete workload calls for
   them.
 
-**Progress on 2026-11-05** Phases 1 through 4, their regressions, native validation for the
-first two phases, and package checks are complete. Phase 5 is pending.
+**Progress on 2026-11-05** Phases 1 through 4 and Phase 5 native work are complete and validated.
+The capability and licensing proposal is ready for owner review before public documentation changes.

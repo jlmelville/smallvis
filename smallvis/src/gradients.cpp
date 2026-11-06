@@ -28,10 +28,9 @@ void mmds_grad(const std::vector<double> &R, const std::vector<double> &D,
   }
 }
 
-void tsne_grad(const std::vector<double> &P, const std::vector<double> &W,
-               double Z, const std::vector<double> &Y,
-               std::vector<double> &gradient, std::size_t start,
-               std::size_t end, std::size_t n) {
+void tsne_grad(const double *P, const double *W, double Z,
+               const std::vector<double> &Y, std::vector<double> &gradient,
+               std::size_t start, std::size_t end, std::size_t n) {
 
   const double Z4 = 4.0 / Z;
 
@@ -100,14 +99,6 @@ void dist(const std::vector<double> &data, std::vector<double> &dist_matrix,
   }
 }
 
-void d2_to_tweight(const std::vector<double> &dist_matrix,
-                   std::vector<double> &transformed_matrix, int start,
-                   int end) {
-  for (int idx = start; idx < end; ++idx) {
-    transformed_matrix[idx] = 1.0 / (1.0 + dist_matrix[idx]);
-  }
-}
-
 // [[Rcpp::export]]
 NumericMatrix dist2_cpp(NumericMatrix input, std::size_t n_threads = 1) {
   // this can be used for the high dimensional data, do NOT assume d = 2!
@@ -167,24 +158,6 @@ NumericMatrix tweight_cpp(NumericMatrix input, std::size_t n_threads = 1) {
 }
 
 // [[Rcpp::export]]
-NumericMatrix d2_to_tweight_cpp(NumericMatrix dist_matrix,
-                                std::size_t n_threads) {
-  std::size_t n = dist_matrix.nrow();
-
-  std::vector<double> dist_matrix_vec(dist_matrix.begin(), dist_matrix.end());
-  std::vector<double> transformed_matrix(n * n, 0.0);
-
-  auto worker = [&](std::size_t start, std::size_t end, std::size_t) {
-    d2_to_tweight(dist_matrix_vec, transformed_matrix, start, end);
-  };
-  smallvis::parallel_for(n, n_threads, worker);
-
-  NumericMatrix result(n, n, transformed_matrix.begin());
-
-  return result;
-}
-
-// [[Rcpp::export]]
 NumericMatrix tsne_grad_cpp(const NumericMatrix &P, const NumericMatrix &W,
                             double Z, const NumericMatrix &Y,
                             std::size_t n_threads) {
@@ -194,14 +167,16 @@ NumericMatrix tsne_grad_cpp(const NumericMatrix &P, const NumericMatrix &W,
 
   std::size_t n = Y.nrow();
 
-  std::vector<double> P_vec(P.begin(), P.end());
-  std::vector<double> W_vec(W.begin(), W.end());
+  // Materialize R storage on the main thread. Arguments stay protected while
+  // workers borrow these read-only buffers; no worker calls the R API.
+  const double *P_data = P.begin();
+  const double *W_data = W.begin();
 
   std::vector<double> Y_vec = as<std::vector<double>>(transpose(Y));
 
   std::vector<double> gradient_vec(n * 2, 0.0);
   auto worker = [&](std::size_t start, std::size_t end, std::size_t) {
-    tsne_grad(P_vec, W_vec, Z, Y_vec, gradient_vec, start, end, n);
+    tsne_grad(P_data, W_data, Z, Y_vec, gradient_vec, start, end, n);
   };
   smallvis::parallel_for(n, n_threads, worker);
 

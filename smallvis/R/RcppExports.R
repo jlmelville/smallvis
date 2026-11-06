@@ -21,10 +21,6 @@ tweight_cpp <- function(input, n_threads = 1L) {
     .Call(`_smallvis_tweight_cpp`, input, n_threads)
 }
 
-d2_to_tweight_cpp <- function(dist_matrix, n_threads) {
-    .Call(`_smallvis_d2_to_tweight_cpp`, dist_matrix, n_threads)
-}
-
 tsne_grad_cpp <- function(P, W, Z, Y, n_threads) {
     .Call(`_smallvis_tsne_grad_cpp`, P, W, Z, Y, n_threads)
 }

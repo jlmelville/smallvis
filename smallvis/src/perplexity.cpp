@@ -95,14 +95,16 @@ void find_beta_knn(std::vector<double> &knn_distances, std::size_t k,
 
 void find_beta(const std::vector<double> &data, std::size_t n, std::size_t d,
                double perplexity, double logU, double tol, int max_tries,
-               std::vector<double> &W, std::vector<double> &beta, int &bad_perp,
+               double *W, std::vector<double> &beta, int &bad_perp,
                std::size_t start_row, std::size_t end_row) {
 
+  // Trials use contiguous per-worker storage. Scatter each completed row into
+  // R's column-major output once, avoiding quadratic staging and transposes.
+  std::vector<double> D2i(n);
+  std::vector<double> Wi(n);
   for (std::size_t i = start_row; i < end_row; ++i) {
     const std::size_t i_d = i * d;
-    const std::size_t idx = i * n;
 
-    std::vector<double> D2i(n);
     double sum_d2i = 0.0;
 
     // D2
@@ -127,12 +129,12 @@ void find_beta(const std::vector<double> &data, std::size_t n, std::size_t d,
     double entropy = 0.0;
     for (std::size_t j = 0; j < n; ++j) {
       if (i == j) {
-        W[idx + j] = 0.0;
+        Wi[j] = 0.0;
         continue;
       }
-      W[idx + j] = exp(-D2i[j] * beta[i]);
-      entropy += D2i[j] * W[idx + j];
-      Z += W[idx + j];
+      Wi[j] = exp(-D2i[j] * beta[i]);
+      entropy += D2i[j] * Wi[j];
+      Z += Wi[j];
     }
     if (Z == 0.0) {
       entropy = 0.0;
@@ -164,12 +166,12 @@ void find_beta(const std::vector<double> &data, std::size_t n, std::size_t d,
       entropy = 0.0;
       for (std::size_t j = 0; j < n; ++j) {
         if (i == j) {
-          W[idx + j] = 0.0;
+          Wi[j] = 0.0;
           continue;
         }
-        W[idx + j] = exp(-D2i[j] * beta[i]);
-        entropy += D2i[j] * W[idx + j];
-        Z += W[idx + j];
+        Wi[j] = exp(-D2i[j] * beta[i]);
+        entropy += D2i[j] * Wi[j];
+        Z += Wi[j];
       }
       if (Z == 0.0) {
         entropy = 0.0;
@@ -183,7 +185,7 @@ void find_beta(const std::vector<double> &data, std::size_t n, std::size_t d,
 
     if (!std::isfinite(Hdiff) || fabs(Hdiff) > tol) {
       bad_perp++;
-      std::fill(W.begin() + idx, W.begin() + idx + n, 0.0);
+      std::fill(Wi.begin(), Wi.end(), 0.0);
       std::vector<std::size_t> knn_idx;
       knn_idx.reserve(n - 1);
       for (std::size_t j = 0; j < n; ++j) {
@@ -198,8 +200,11 @@ void find_beta(const std::vector<double> &data, std::size_t n, std::size_t d,
                           return D2i[a] == D2i[b] ? a < b : D2i[a] < D2i[b];
                         });
       for (std::size_t k = 0; k < n_neighbors; ++k) {
-        W[idx + knn_idx[k]] = 1.0;
+        Wi[knn_idx[k]] = 1.0;
       }
+    }
+    for (std::size_t j = 0; j < n; ++j) {
+      W[i + j * n] = Wi[j];
     }
   }
 }
@@ -275,18 +280,17 @@ List find_beta_cpp(const NumericMatrix &X, double perplexity = 15,
     }
   }
 
-  std::vector<double> W(n * n, 0.0);
+  NumericMatrix W(n, n);
+  double *W_data = W.begin();
   std::vector<double> beta(n, 0.0);
   std::vector<int> failures(smallvis::worker_count(n, n_threads), 0);
   auto worker = [&](std::size_t start, std::size_t end, std::size_t id) {
-    find_beta(X_vec, n, d, perplexity, logU, tol, max_tries, W, beta,
+    find_beta(X_vec, n, d, perplexity, logU, tol, max_tries, W_data, beta,
               failures[id], start, end);
   };
   smallvis::parallel_for(n, n_threads, worker);
   const int bad_perp = std::accumulate(failures.begin(), failures.end(), 0);
 
-  NumericMatrix W_mat(n, n);
-  std::copy(W.begin(), W.end(), W_mat.begin());
-  return List::create(Named("W") = transpose(W_mat), Named("beta") = beta,
+  return List::create(Named("W") = W, Named("beta") = beta,
                       Named("bad_perp") = bad_perp);
 }
