@@ -242,7 +242,7 @@ using <code>eigen</code> takes around 25 minutes.</p>
 <span>  <span class="va">iris</span>,</span>
 <span>  scale <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  opt <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"l-bfgs"</span>, c1 <span class="op">=</span> <span class="fl">1e-4</span>, c2 <span class="op">=</span> <span class="fl">0.9</span><span class="op">)</span>,</span>
-<span>  method <span class="op">=</span> <span class="st">"umap"</span>,</span>
+<span>  method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"umap"</span>, gr_eps <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>,</span>
 <span>  Y_init <span class="op">=</span> <span class="st">"spca"</span>,</span>
 <span>  max_iter <span class="op">=</span> <span class="fl">300</span></span>
 <span><span class="op">)</span></span>
@@ -348,8 +348,8 @@ tuning and more iterations compared to optimizing t-SNE.</li>
 <li>In this setting, LargeVis and UMAP gradient requires quite a large
 value of epsilon to avoid division by zero and get decent results. It’s
 hard-coded to 0.1 in the LargeVis source code, so I have used the same
-value by default in <code>smallvis</code>. It can be controlled by the
-<code>lveps</code> parameter.</li>
+value by default in <code>smallvis</code>. It can be controlled with the
+method option <code>gr_eps</code>.</li>
 <li>Mainly for my own benefit, there is also a <a href="https://jlmelville.github.io/smallvis/theory.html" class="external-link">theory</a> page
 showing a comparison of cost functions and gradients. Also, some
 material on the various <a href="https://jlmelville.github.io/smallvis/spectral.html" class="external-link">spectral</a>
