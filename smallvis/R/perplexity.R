@@ -89,11 +89,13 @@ sne_init <- function(
       stop("Unknown perplexity method, '", perplexity[[1]], "'")
     }
 
+    validate_perplexity(
+      perplexity,
+      if (methods::is(X, "dist")) attr(X, "Size") else nrow(X)
+    )
+
     if (kernel == "nngaussian") {
       n <- nrow(X)
-      if (perplexity > n - 1) {
-        stop("Perplexity too high for number of points")
-      }
       k <- 3 * perplexity
       if (k > n - 1) {
         warning(
@@ -109,8 +111,14 @@ sne_init <- function(
         n_threads = n_threads,
         verbose = verbose
       )
-      knn_dist <- knn$dist[, 2:(k + 1)]
-      knn_idx <- knn$idx[, 2:(k + 1)]
+      knn_dist <- matrix(0, n, k)
+      knn_idx <- matrix(0L, n, k)
+      for (i in seq_len(n)) {
+        # Tied distances can place self anywhere in the neighbor row.
+        keep <- utils::head(which(knn$idx[i, ] != i), k)
+        knn_dist[i, ] <- knn$dist[i, keep]
+        knn_idx[i, ] <- knn$idx[i, keep]
+      }
 
       tsmessage(
         "Commencing calibration for perplexity = ",
@@ -118,13 +126,15 @@ sne_init <- function(
         " n_threads = ",
         n_threads
       )
-      P <- find_beta_knn_cpp(
+      x2ares <- find_beta_knn_cpp(
         knn_dist,
         knn_idx,
         perplexity = perplexity,
         n_threads = n_threads,
         ret_sparse = sparse
-      )$P
+      )
+      P <- x2ares$P
+      x2ares$W <- P
       if (sparse) {
         P <- Matrix::sparseMatrix(
           i = rep(1:n, each = k),
@@ -142,7 +152,13 @@ sne_init <- function(
           " n_threads = ",
           n_threads
         )
-        P <- find_beta_cpp(X, perplexity, tol = 1e-5, n_threads = n_threads)$W
+        x2ares <- find_beta_cpp(
+          X,
+          perplexity,
+          tol = 1e-5,
+          n_threads = n_threads
+        )
+        P <- x2ares$W
       } else {
         tsmessage(
           "Commencing calibration for perplexity = ",
@@ -158,6 +174,10 @@ sne_init <- function(
         P <- x2ares$W
       }
     }
+  }
+
+  if (!is.null(x2ares$bad_perp) && x2ares$bad_perp > 0) {
+    warning(x2ares$bad_perp, " perplexity calibrations failed")
   }
 
   P <- scale_affinities(
@@ -244,6 +264,8 @@ x2aff <- function(
     XX <- rowSums(X * X)
     n <- nrow(X)
   }
+
+  validate_perplexity(perplexity, n)
 
   nperps <- length(perplexity)
   if (nperps > 1 && nperps != n) {
@@ -552,6 +574,7 @@ msp <- function(
   if (is.null(perplexities)) {
     perplexities <- idp_perps(n)
   }
+  validate_perplexity(perplexities, n)
   tsmessage(
     "Calculating multi-scale P with perplexities from ",
     formatC(perplexities[1]),
@@ -621,6 +644,7 @@ idp <- function(
   if (is.null(perplexities)) {
     perplexities <- idp_perps(n)
   }
+  validate_perplexity(perplexities, n)
   if (verbose) {
     tsmessage(
       "Searching for intrinsic dimensionality with perplexities from ",
@@ -763,4 +787,16 @@ shannonpr <- function(P, eps = .Machine$double.eps) {
 
 perpp <- function(P) {
   exp(shannonpr(P))
+}
+
+# Calibration uses only non-self neighbors, whose entropy is at most log(n - 1).
+validate_perplexity <- function(perplexity, n) {
+  if (
+    !is.numeric(perplexity) ||
+      length(perplexity) == 0 ||
+      any(!is.finite(perplexity)) ||
+      any(perplexity < 1 | perplexity > n - 1)
+  ) {
+    stop("Perplexity must be finite and between 1 and n - 1 (", n - 1, ")")
+  }
 }

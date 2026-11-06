@@ -46,7 +46,8 @@ void bh_tsne_negative_gradient(const smallvis::QuadTree &tree,
                                double theta2, double eps, std::size_t n_threads,
                                std::vector<double> &gradient) {
   std::size_t embedding_len = embedding.size();
-  std::vector<double> Zi(std::max(static_cast<std::size_t>(1), n_threads), 0.0);
+  std::vector<double> Zi(
+      smallvis::worker_count(embedding.size() / 2, n_threads), 0.0);
 
   const smallvis::QuadTree::Node *root = tree.root.get();
 
@@ -75,7 +76,7 @@ void bh_tsne_positive_gradient(const std::vector<std::size_t> &indices,
                                std::size_t n_threads,
                                std::vector<double> &gradient) {
 
-  auto worker = [&](std::size_t start, std::size_t end) {
+  auto worker = [&](std::size_t start, std::size_t end, std::size_t) {
     for (std::size_t i = start, i2 = start * 2; i < end; ++i, i2 += 2) {
       for (std::size_t k = indptr[i]; k < indptr[i + 1]; ++k) {
         std::size_t j2 = indices[k] * 2;
@@ -124,7 +125,8 @@ double bh_Z(const smallvis::QuadTree &tree,
             const std::vector<double> &embedding, double theta2, double eps,
             std::size_t n_threads) {
 
-  std::vector<double> Zi(std::max(static_cast<std::size_t>(1), n_threads), 0.0);
+  std::vector<double> Zi(
+      smallvis::worker_count(embedding.size() / 2, n_threads), 0.0);
   const smallvis::QuadTree::Node *root = tree.root.get();
   auto worker = [&](std::size_t start, std::size_t end, std::size_t thread_id) {
     const std::size_t end2 = end * 2;
@@ -148,7 +150,7 @@ double bh_plogq(const std::vector<std::size_t> &indices,
       -std::log(bh_Z(tree, embedding, theta * theta, eps, n_threads));
 
   std::vector<double> partial_plogq(
-      std::max(static_cast<std::size_t>(1), n_threads));
+      smallvis::worker_count(embedding.size() / 2, n_threads));
   auto worker = [&](std::size_t start, std::size_t end, std::size_t thread_id) {
     double window_plogq = 0.0;
     for (std::size_t i = start, i2 = start * 2; i < end; ++i, i2 += 2) {
@@ -197,6 +199,10 @@ NumericMatrix bh_tsne_gradient_cpp(const IntegerVector &indices,
                                    const NumericMatrix &embedding,
                                    double theta = 0.5, double eps = 1e-16,
                                    std::size_t n_threads = 1) {
+  if (embedding.ncol() != 2) {
+    stop("Barnes-Hut requires two output dimensions");
+  }
+
   auto indices_cpp = as<std::vector<std::size_t>>(indices);
   auto indptr_cpp = as<std::vector<std::size_t>>(indptr);
   auto P_data_cpp = as<std::vector<double>>(P_data);
@@ -216,6 +222,10 @@ double bh_plogq_cpp(const IntegerVector &indices, const IntegerVector &indptr,
                     const NumericVector &P_data, const NumericMatrix &embedding,
                     double theta = 0.5, double eps = 1e-16,
                     std::size_t n_threads = 1) {
+  if (embedding.ncol() != 2) {
+    stop("Barnes-Hut requires two output dimensions");
+  }
+
   auto indices_cpp = as<std::vector<std::size_t>>(indices);
   auto indptr_cpp = as<std::vector<std::size_t>>(indptr);
   auto P_data_cpp = as<std::vector<double>>(P_data);

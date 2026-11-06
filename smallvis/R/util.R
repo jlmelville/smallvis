@@ -41,7 +41,7 @@ calc_d2tweight <- function(D2, use_cpp = FALSE, n_threads = 1) {
 }
 
 calc_tweight <- function(X, use_cpp = FALSE, n_threads = 1) {
-  if (use_cpp) {
+  if (use_cpp && ncol(X) == 2) {
     tweight_cpp(X, n_threads = n_threads)
   } else {
     D2 <- calc_d2(X, use_cpp = use_cpp, n_threads = n_threads)

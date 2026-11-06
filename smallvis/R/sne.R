@@ -42,7 +42,7 @@ tsne <- function(
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
       P <- cost$P
-      if (use_cpp) {
+      if (use_cpp && ncol(Y) == 2) {
         cost$G <- tsne_grad_cpp(P, cost$W, cost$Z, Y, n_threads = n_threads)
       } else {
         cost$G <- k2g(Y, 4 * cost$W * (P - cost$W / cost$Z))
@@ -90,6 +90,7 @@ bhtsne <- function(
     nn <- "approximate"
   }
   list(
+    ndim = 2,
     init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       cost <- sne_init(
         cost,

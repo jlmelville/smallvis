@@ -404,7 +404,8 @@
 #' function with these optimizers.
 #'
 #' @param X Input coordinates or distance matrix.
-#' @param k Number of output dimensions for the embedding.
+#' @param k Number of output dimensions for the embedding. Barnes-Hut t-SNE
+#'   requires \code{k = 2}.
 #' @param scale If \code{TRUE}, scale each column to zero mean and unit
 #'   variance. Alternatively, you may specify one of the following strings:
 #'   \code{"range"}, which range scales the matrix elements between 0 and 1;
@@ -421,7 +422,9 @@
 #'   probabilities. For method \code{"umap"}, controls the neighborhood size
 #'   for parameterizing the smoothed k-nearest neighbor distances. See also the
 #'   'Intrinsic dimensionality perplexity' and 'Multiscale perplexities'
-#'   sections.
+#'   sections. Gaussian calibration requires each target to be finite and
+#'   between 1 and the number of observations minus 1. Failed native
+#'   calibrations use fallback affinities and report their count in a warning.
 #' @param max_iter Maximum number of iterations in the optimization.
 #' @param pca If \code{TRUE}, apply PCA to reduce the dimensionality of
 #'   \code{X} before any perplexity calibration, but after apply any scaling
@@ -531,7 +534,10 @@
 #'   nearest neighbors will be affected.
 #' @param use_cpp If \code{TRUE} use multi-threaded C++ code for some
 #'   calculations. Default is \code{FALSE}. This won't speed up all steps and
-#'   you will want to use this in conjunction with \code{n_threads}.
+#'   you will want to use this in conjunction with \code{n_threads}. The
+#'   specialized gradient and Student-weight kernels require two output
+#'   dimensions. Other dimensions use the general R calculations for those
+#'   steps.
 #' @param eps Set epsilon for avoiding division-by-zero errors. Default is
 #'   \code{.Machine$double.eps}, but if you see inconsistent convergence results
 #'   with optimizer that should be reducing the cost each iteration, then try
@@ -954,6 +960,10 @@ smallvis <- function(
     nn = nn,
     bh = bh
   )
+
+  if (!is.null(cost_fn$ndim) && k != cost_fn$ndim) {
+    stop("Barnes-Hut requires k = 2")
+  }
 
   if (exaggeration_factor != 1) {
     if (stop_lying_iter < 1) {

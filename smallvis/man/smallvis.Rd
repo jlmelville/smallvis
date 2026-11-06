@@ -49,7 +49,8 @@ smallvis(
 \arguments{
 \item{X}{Input coordinates or distance matrix.}
 
-\item{k}{Number of output dimensions for the embedding.}
+\item{k}{Number of output dimensions for the embedding. Barnes-Hut t-SNE
+requires \code{k = 2}.}
 
 \item{scale}{If \code{TRUE}, scale each column to zero mean and unit
 variance. Alternatively, you may specify one of the following strings:
@@ -70,7 +71,9 @@ standard deviation. See 'Output initialization' section.}
 probabilities. For method \code{"umap"}, controls the neighborhood size
 for parameterizing the smoothed k-nearest neighbor distances. See also the
 'Intrinsic dimensionality perplexity' and 'Multiscale perplexities'
-sections.}
+sections. Gaussian calibration requires each target to be finite and
+between 1 and the number of observations minus 1. Failed native
+calibrations use fallback affinities and report their count in a warning.}
 
 \item{max_iter}{Maximum number of iterations in the optimization.}
 
@@ -207,7 +210,10 @@ nearest neighbors will be affected.}
 
 \item{use_cpp}{If \code{TRUE} use multi-threaded C++ code for some
 calculations. Default is \code{FALSE}. This won't speed up all steps and
-you will want to use this in conjunction with \code{n_threads}.}
+you will want to use this in conjunction with \code{n_threads}. The
+specialized gradient and Student-weight kernels require two output
+dimensions. Other dimensions use the general R calculations for those
+steps.}
 
 \item{bh}{if \code{TRUE} use the Barnes-Hut method to approximate
 repulsive interactions (van der Maaten, 2014), which allows neighbor

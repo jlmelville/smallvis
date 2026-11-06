@@ -32,66 +32,82 @@
 #ifndef SMALLVIS_THREADS_H
 #define SMALLVIS_THREADS_H
 
-#include <functional>
+#include <algorithm>
+#include <cstddef>
+#include <exception>
 #include <thread>
+#include <vector>
 
 namespace smallvis {
 
-// Trait to detect the arity of the worker (2- or 3- arg)
-template <typename T> struct function_traits;
+inline std::size_t worker_count(std::size_t n, std::size_t requested) {
+  return std::min(n, std::max(std::size_t{1}, requested));
+}
 
-template <typename ReturnType, typename... Args>
-struct function_traits<std::function<ReturnType(Args...)>> {
-  static constexpr std::size_t arity = sizeof...(Args);
+class ThreadJoiner {
+public:
+  explicit ThreadJoiner(std::vector<std::thread> &threads) : threads(threads) {}
+  ThreadJoiner(const ThreadJoiner &) = delete;
+  ThreadJoiner &operator=(const ThreadJoiner &) = delete;
+
+  ~ThreadJoiner() {
+    for (auto &thread : threads) {
+      thread.join();
+    }
+  }
+
+private:
+  std::vector<std::thread> &threads;
 };
 
-template <typename T> auto make_function(T &&t) {
-  return std::function{std::forward<T>(t)};
-}
-
-// Enable if the callable has 3 arguments (start, end, thread_id)
-template <typename WorkerFunc>
-std::enable_if_t<function_traits<decltype(make_function(
-                     std::declval<WorkerFunc>()))>::arity == 3>
-parallel_for(std::size_t N, std::size_t n_threads, WorkerFunc worker) {
-  if (n_threads > 1) {
-    std::size_t chunk_size = N / n_threads;
-    std::vector<std::thread> threads;
-
-    for (std::size_t t = 0; t < n_threads; ++t) {
-      std::size_t start = t * chunk_size;
-      std::size_t end = (t == n_threads - 1) ? N : (t + 1) * chunk_size;
-      threads.emplace_back(worker, start, end, t);
-    }
-
-    for (auto &t : threads) {
-      t.join();
-    }
-  } else {
-    worker(0, N, 0);
+struct ThreadLauncher {
+  template <typename Worker>
+  std::thread operator()(Worker worker, std::size_t start, std::size_t end,
+                         std::size_t id) const {
+    return std::thread(worker, start, end, id);
   }
-}
+};
 
-// Enable if the callable has 2 arguments (start, end)
-template <typename WorkerFunc>
-std::enable_if_t<function_traits<decltype(make_function(
-                     std::declval<WorkerFunc>()))>::arity == 2>
-parallel_for(std::size_t N, std::size_t n_threads, WorkerFunc worker) {
-  if (n_threads > 1) {
-    std::size_t chunk_size = N / n_threads;
-    std::vector<std::thread> threads;
+// The launcher is replaceable by standalone native tests of partial startup.
+template <typename Worker, typename Launcher = ThreadLauncher>
+void parallel_for(std::size_t n, std::size_t requested, Worker worker,
+                  Launcher launch = {}) {
+  const auto count = worker_count(n, requested);
+  if (count == 0) {
+    return;
+  }
+  if (count == 1) {
+    worker(0, n, 0);
+    return;
+  }
 
-    for (std::size_t t = 0; t < n_threads; ++t) {
-      std::size_t start = t * chunk_size;
-      std::size_t end = (t == n_threads - 1) ? N : (t + 1) * chunk_size;
-      threads.emplace_back(worker, start, end);
+  std::vector<std::exception_ptr> failures(count);
+  auto guarded_worker = [&](std::size_t start, std::size_t end,
+                            std::size_t id) {
+    try {
+      worker(start, end, id);
+    } catch (...) {
+      failures[id] = std::current_exception();
     }
+  };
 
-    for (auto &t : threads) {
-      t.join();
+  std::vector<std::thread> threads;
+  threads.reserve(count);
+  {
+    ThreadJoiner joiner(threads);
+    const auto chunk = n / count;
+    const auto remainder = n % count;
+    for (std::size_t id = 0; id < count; ++id) {
+      const auto start = id * chunk + std::min(id, remainder);
+      const auto end = start + chunk + (id < remainder ? 1 : 0);
+      threads.push_back(launch(guarded_worker, start, end, id));
     }
-  } else {
-    worker(0, N);
+  }
+
+  for (const auto &failure : failures) {
+    if (failure) {
+      std::rethrow_exception(failure);
+    }
   }
 }
 } // namespace smallvis

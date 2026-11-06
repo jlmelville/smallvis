@@ -1,19 +1,26 @@
+#include "threads.h"
 #include <algorithm>
 #include <cmath>
 #include <limits>
 #include <numeric>
-#include <thread>
 #include <vector>
 
 #include <Rcpp.h>
 
 using namespace Rcpp;
 
-void find_beta_knn(std::vector<double> &knn_distances, std::size_t n,
-                   std::size_t k, double perplexity, double logU, double tol,
-                   int max_tries, std::vector<double> &W,
-                   std::vector<double> &beta, int &bad_perp,
-                   std::size_t start_row, std::size_t end_row) {
+void validate_perplexity(double perplexity, std::size_t available) {
+  if (!std::isfinite(perplexity) || perplexity < 1.0 ||
+      perplexity > static_cast<double>(available)) {
+    stop("Perplexity must be finite and between 1 and the number of "
+         "non-self neighbors");
+  }
+}
+
+void find_beta_knn(std::vector<double> &knn_distances, std::size_t k,
+                   double perplexity, double logU, double tol, int max_tries,
+                   std::vector<double> &W, std::vector<double> &beta,
+                   int &bad_perp, std::size_t start_row, std::size_t end_row) {
 
   for (std::size_t i = start_row; i < end_row; ++i) {
     const std::size_t idx = i * k;
@@ -28,7 +35,7 @@ void find_beta_knn(std::vector<double> &knn_distances, std::size_t n,
     // Initial guess for beta: 0.5 * perplexity / mean(knn_distances)
     double sum_d2i = std::accumulate(knn_distances.begin() + idx,
                                      knn_distances.begin() + idx + k, 0.0);
-    beta[i] = (0.5 * perplexity * k) / sum_d2i;
+    beta[i] = sum_d2i == 0.0 ? 0.0 : (0.5 * perplexity * k) / sum_d2i;
 
     double Z = 0.0;
     double entropy = 0.0;
@@ -79,7 +86,7 @@ void find_beta_knn(std::vector<double> &knn_distances, std::size_t n,
       tries++;
     }
 
-    if (fabs(Hdiff) > tol) {
+    if (!std::isfinite(Hdiff) || fabs(Hdiff) > tol) {
       bad_perp++;
       std::fill(W.begin() + idx, W.begin() + idx + k, 1.0 / k);
     }
@@ -114,7 +121,7 @@ void find_beta(const std::vector<double> &data, std::size_t n, std::size_t d,
     double betamax = std::numeric_limits<double>::infinity();
 
     // Initial guess for beta: 0.5 * perplexity / mean(D2i)
-    beta[i] = (0.5 * perplexity * n) / sum_d2i;
+    beta[i] = sum_d2i == 0.0 ? 0.0 : (0.5 * perplexity * n) / sum_d2i;
 
     double Z = 0.0;
     double entropy = 0.0;
@@ -174,17 +181,23 @@ void find_beta(const std::vector<double> &data, std::size_t n, std::size_t d,
       tries++;
     }
 
-    if (fabs(Hdiff) > tol) {
+    if (!std::isfinite(Hdiff) || fabs(Hdiff) > tol) {
       bad_perp++;
       std::fill(W.begin() + idx, W.begin() + idx + n, 0.0);
-      std::vector<int> knn_idx(n);
-      std::iota(knn_idx.begin(), knn_idx.end(), 0);
-      std::partial_sort(
-          knn_idx.begin(),
-          knn_idx.begin() + std::max(static_cast<int>(floor(perplexity)), 1),
-          knn_idx.end(), [&D2i](int a, int b) { return D2i[a] < D2i[b]; });
-      for (int k = 0; k < std::max(static_cast<int>(floor(perplexity)), 1);
-           ++k) {
+      std::vector<std::size_t> knn_idx;
+      knn_idx.reserve(n - 1);
+      for (std::size_t j = 0; j < n; ++j) {
+        if (j != i) {
+          knn_idx.push_back(j);
+        }
+      }
+      const auto n_neighbors =
+          std::min(n - 1, static_cast<std::size_t>(std::floor(perplexity)));
+      std::partial_sort(knn_idx.begin(), knn_idx.begin() + n_neighbors,
+                        knn_idx.end(), [&D2i](std::size_t a, std::size_t b) {
+                          return D2i[a] == D2i[b] ? a < b : D2i[a] < D2i[b];
+                        });
+      for (std::size_t k = 0; k < n_neighbors; ++k) {
         W[idx + knn_idx[k]] = 1.0;
       }
     }
@@ -199,6 +212,11 @@ List find_beta_knn_cpp(const NumericMatrix &knn_distances,
 
   const std::size_t n = knn_distances.nrow();
   const std::size_t k = knn_distances.ncol();
+  validate_perplexity(perplexity, std::min(k, n > 0 ? n - 1 : 0));
+  if (knn_indices.nrow() != knn_distances.nrow() ||
+      knn_indices.ncol() != knn_distances.ncol()) {
+    stop("Neighbor index and distance matrices must have the same dimensions");
+  }
   const double logU = log(perplexity);
 
   // Flatten the knn_distances matrix into a vector
@@ -211,26 +229,13 @@ List find_beta_knn_cpp(const NumericMatrix &knn_distances,
 
   std::vector<double> W(n * k, 0.0);
   std::vector<double> beta(n, 0.0);
-  int bad_perp = 0;
-
-  if (n_threads > 1) {
-    std::size_t chunk_size = (n + n_threads - 1) / n_threads;
-    std::vector<std::thread> threads;
-    for (std::size_t t = 0; t < n_threads; ++t) {
-      std::size_t start_row = t * chunk_size;
-      std::size_t end_row = std::min(start_row + chunk_size, n);
-      threads.emplace_back(find_beta_knn, std::ref(knn_distances_vec), n, k,
-                           perplexity, logU, tol, max_tries, std::ref(W),
-                           std::ref(beta), std::ref(bad_perp), start_row,
-                           end_row);
-    }
-    for (auto &thread : threads) {
-      thread.join();
-    }
-  } else {
-    find_beta_knn(knn_distances_vec, n, k, perplexity, logU, tol, max_tries, W,
-                  beta, bad_perp, 0, n);
-  }
+  std::vector<int> failures(smallvis::worker_count(n, n_threads), 0);
+  auto worker = [&](std::size_t start, std::size_t end, std::size_t id) {
+    find_beta_knn(knn_distances_vec, k, perplexity, logU, tol, max_tries, W,
+                  beta, failures[id], start, end);
+  };
+  smallvis::parallel_for(n, n_threads, worker);
+  const int bad_perp = std::accumulate(failures.begin(), failures.end(), 0);
 
   if (ret_sparse) {
     NumericVector P(n * k);
@@ -241,7 +246,11 @@ List find_beta_knn_cpp(const NumericMatrix &knn_distances,
     NumericMatrix P(n, n);
     for (std::size_t i = 0; i < n; ++i) {
       for (std::size_t j = 0; j < k; ++j) {
-        P(i, knn_indices(i, j) - 1) = W[i * k + j];
+        const auto index = knn_indices(i, j);
+        if (index < 1 || static_cast<std::size_t>(index) > n) {
+          stop("Neighbor index is out of range");
+        }
+        P(i, index - 1) = W[i * k + j];
       }
     }
     return List::create(Named("P") = P, Named("beta") = beta,
@@ -256,6 +265,7 @@ List find_beta_cpp(const NumericMatrix &X, double perplexity = 15,
 
   std::size_t n = X.nrow();
   std::size_t d = X.ncol();
+  validate_perplexity(perplexity, n > 0 ? n - 1 : 0);
   double logU = log(perplexity);
 
   std::vector<double> X_vec(n * d);
@@ -267,24 +277,13 @@ List find_beta_cpp(const NumericMatrix &X, double perplexity = 15,
 
   std::vector<double> W(n * n, 0.0);
   std::vector<double> beta(n, 0.0);
-  int bad_perp = 0;
-  if (n_threads > 1) {
-    std::size_t chunk_size = (n + n_threads - 1) / n_threads;
-    std::vector<std::thread> threads;
-    for (std::size_t t = 0; t < n_threads; ++t) {
-      std::size_t start_row = t * chunk_size;
-      std::size_t end_row = std::min(start_row + chunk_size, n);
-      threads.emplace_back(find_beta, std::cref(X_vec), n, d, perplexity, logU,
-                           tol, max_tries, std::ref(W), std::ref(beta),
-                           std::ref(bad_perp), start_row, end_row);
-    }
-    for (auto &thread : threads) {
-      thread.join();
-    }
-  } else {
-    find_beta(X_vec, n, d, perplexity, logU, tol, max_tries, W, beta, bad_perp,
-              0, n);
-  }
+  std::vector<int> failures(smallvis::worker_count(n, n_threads), 0);
+  auto worker = [&](std::size_t start, std::size_t end, std::size_t id) {
+    find_beta(X_vec, n, d, perplexity, logU, tol, max_tries, W, beta,
+              failures[id], start, end);
+  };
+  smallvis::parallel_for(n, n_threads, worker);
+  const int bad_perp = std::accumulate(failures.begin(), failures.end(), 0);
 
   NumericMatrix W_mat(n, n);
   std::copy(W.begin(), W.end(), W_mat.begin());

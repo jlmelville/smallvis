@@ -119,7 +119,7 @@ NumericMatrix dist2_cpp(NumericMatrix input, std::size_t n_threads = 1) {
       as<std::vector<double>>(transpose(input));
 
   std::vector<double> dist_matrix(n * n, 0.0);
-  auto worker = [&](std::size_t start, std::size_t end) {
+  auto worker = [&](std::size_t start, std::size_t end, std::size_t) {
     d2(transposed_data, dist_matrix, start, end, n, d);
   };
   smallvis::parallel_for(n, n_threads, worker);
@@ -138,7 +138,7 @@ NumericMatrix dist_cpp(NumericMatrix input, std::size_t n_threads = 1) {
       as<std::vector<double>>(transpose(input));
 
   std::vector<double> dist_matrix(n * n, 0.0);
-  auto worker = [&](std::size_t start, std::size_t end) {
+  auto worker = [&](std::size_t start, std::size_t end, std::size_t) {
     dist(transposed_data, dist_matrix, start, end, n, d);
   };
   smallvis::parallel_for(n, n_threads, worker);
@@ -148,13 +148,17 @@ NumericMatrix dist_cpp(NumericMatrix input, std::size_t n_threads = 1) {
 
 // [[Rcpp::export]]
 NumericMatrix tweight_cpp(NumericMatrix input, std::size_t n_threads = 1) {
+  if (input.ncol() != 2) {
+    stop("This native kernel requires two output dimensions");
+  }
+
   std::size_t n = input.nrow();
 
   std::vector<double> transposed_data =
       as<std::vector<double>>(transpose(input));
 
   std::vector<double> dist_matrix(n * n, 0.0);
-  auto worker = [&](std::size_t start, std::size_t end) {
+  auto worker = [&](std::size_t start, std::size_t end, std::size_t) {
     tweight(transposed_data, dist_matrix, start, end, n);
   };
   smallvis::parallel_for(n, n_threads, worker);
@@ -170,7 +174,7 @@ NumericMatrix d2_to_tweight_cpp(NumericMatrix dist_matrix,
   std::vector<double> dist_matrix_vec(dist_matrix.begin(), dist_matrix.end());
   std::vector<double> transformed_matrix(n * n, 0.0);
 
-  auto worker = [&](std::size_t start, std::size_t end) {
+  auto worker = [&](std::size_t start, std::size_t end, std::size_t) {
     d2_to_tweight(dist_matrix_vec, transformed_matrix, start, end);
   };
   smallvis::parallel_for(n, n_threads, worker);
@@ -184,6 +188,10 @@ NumericMatrix d2_to_tweight_cpp(NumericMatrix dist_matrix,
 NumericMatrix tsne_grad_cpp(const NumericMatrix &P, const NumericMatrix &W,
                             double Z, const NumericMatrix &Y,
                             std::size_t n_threads) {
+  if (Y.ncol() != 2) {
+    stop("This native kernel requires two output dimensions");
+  }
+
   std::size_t n = Y.nrow();
 
   std::vector<double> P_vec(P.begin(), P.end());
@@ -192,7 +200,7 @@ NumericMatrix tsne_grad_cpp(const NumericMatrix &P, const NumericMatrix &W,
   std::vector<double> Y_vec = as<std::vector<double>>(transpose(Y));
 
   std::vector<double> gradient_vec(n * 2, 0.0);
-  auto worker = [&](std::size_t start, std::size_t end) {
+  auto worker = [&](std::size_t start, std::size_t end, std::size_t) {
     tsne_grad(P_vec, W_vec, Z, Y_vec, gradient_vec, start, end, n);
   };
   smallvis::parallel_for(n, n_threads, worker);
@@ -205,6 +213,10 @@ NumericMatrix tsne_grad_cpp(const NumericMatrix &P, const NumericMatrix &W,
 NumericMatrix mmds_grad_cpp(const NumericMatrix &R, const NumericMatrix &D,
                             const NumericMatrix &Y, double eps,
                             std::size_t n_threads) {
+  if (Y.ncol() != 2) {
+    stop("This native kernel requires two output dimensions");
+  }
+
   std::size_t n = Y.nrow();
   std::size_t d = Y.ncol();
 
@@ -215,7 +227,7 @@ NumericMatrix mmds_grad_cpp(const NumericMatrix &R, const NumericMatrix &D,
 
   std::vector<double> gradient_vec(n * d, 0.0);
 
-  auto worker = [&](std::size_t start, std::size_t end) {
+  auto worker = [&](std::size_t start, std::size_t end, std::size_t) {
     mmds_grad(R_vec, D_vec, Y_vec, eps, gradient_vec, start, end, n);
   };
   smallvis::parallel_for(n, n_threads, worker);

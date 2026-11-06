@@ -43,7 +43,7 @@ mmds <- function(eps = .Machine$double.eps, use_cpp = FALSE, n_threads = 1) {
     },
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
-      if (use_cpp) {
+      if (use_cpp && ncol(Y) == 2) {
         cost$G <- mmds_grad_cpp(
           cost$R,
           cost$D,
