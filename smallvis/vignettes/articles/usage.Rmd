@@ -186,7 +186,7 @@ umap_iris_lbfgs <- smallvis(
   iris,
   scale = FALSE,
   opt = list("l-bfgs", c1 = 1e-4, c2 = 0.9),
-  method = "umap",
+  method = list("umap", gr_eps = 0),
   Y_init = "spca",
   max_iter = 300
 )
@@ -260,7 +260,7 @@ optimizing t-SNE.
 * In this setting, LargeVis and UMAP gradient requires quite a large value of
 epsilon to avoid division by zero and get decent results. It's hard-coded to
 0.1 in the LargeVis source code, so I have used the same value by default in
-`smallvis`. It can be controlled by the `lveps` parameter.
+`smallvis`. It can be controlled with the method option `gr_eps`.
 * Mainly for my own benefit, there is also a
 [theory](https://jlmelville.github.io/smallvis/theory.html) page
 showing a comparison of cost functions and gradients. Also, some material on

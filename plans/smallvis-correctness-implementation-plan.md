@@ -1,10 +1,11 @@
 # smallvis correctness and maintenance implementation plan
 
-**Status** Phases 1 through 4 and Phase 5 native cleanup are complete and validated. Minimal
-copyright and licensing notices have been added. The capability table remains a local draft.
+**Status** The approved audit cleanup is complete, including native fixes, minimal copyright
+notices, and the two usage corrections selected on 2026-11-06. The larger capability reference was
+not adopted.
 
-**Next work** The capability proposal remains held for owner review. The native work is committed
-in `79c7aea`; the minimum attribution follow-up is recorded below.
+**Next work** No further changes are scheduled from this audit. The broader ideas below remain
+separate decisions.
 
 The [full repository review](smallvis-repository-review-2026-11-05.md) records the observations and
 source locations at `3382ecf`. Its clean Linux package check and 579 passing test expectations are
@@ -454,18 +455,17 @@ remain in stash `1bc0e8f888be8064874928e86dde501b8ae41958` and were not restored
   and absence of stale registrations or references. If a supported caller emerges, fix the
   conversion and test every entry of a 3 × 3 matrix against `1 / (1 + D2)`. Keep the dynamically
   selected optimizers.
-- Add a capability table to the existing usage article. Its BH selector example was corrected
-  during Phase 3.
-  Cover input forms, output dimensions, kernel/backend combinations, and diagnostics exercised
-  above. Point the README directly to the applicable LargeVis and UMAP terms and attribution
-  after verifying their provenance.
+- Correct the existing usage article's UMAP/L-BFGS example and obsolete gradient-epsilon name.
+  After review on 2026-11-06, the owner chose these small corrections instead of the proposed
+  capability reference. The BH selector was corrected during Phase 3, and the minimum license
+  references and attribution were completed separately below.
 
 ## Phase 5 native implementation and validation
 
 The allocation and unused-conversion work is complete against base revision `c74089a`. The owner
 asked to see capability, licensing, and attribution recommendations at the end. Those were captured
-in a local, uncommitted documentation proposal. The minimum attribution follow-up is recorded below;
-the capability table remains held for review.
+in a local, uncommitted documentation proposal. The minimum attribution and the selected usage
+corrections are recorded below.
 
 Dense native t-SNE gradients now borrow read-only P and W storage after obtaining their pointers on
 the R thread. The owning arguments remain protected until all workers join. The coordinate copy and
@@ -560,8 +560,8 @@ files expire. The native check commands earlier in this plan also exercise the n
 
 Applied package files were compared byte for byte with the tested candidate. The earlier stash
 remains untouched. The original audit's active runtime correctness, resource-safety, and identified
-quadratic-copy work is now addressed. The capability table remains held for review, and the minimum
-attribution follow-up is recorded below. Optional public APIs, optional plotting dependencies,
+quadratic-copy work is now addressed. The minimum attribution and usage corrections are recorded
+below. Optional public APIs, optional plotting dependencies,
 recurring native CI, and larger architecture changes remain the separate decisions listed below.
 
 ## Minimum copyright and licensing follow-up
@@ -575,6 +575,17 @@ A clean source build and `R CMD check --no-manual` passed with status OK. The so
 installed package contain byte-identical copies of the notices. Diff and header-format checks
 passed. Evidence is in `/tmp/smallvis-notices.nwkim34s`. The capability table and local proposal
 remain unchanged.
+
+## Selected usage corrections
+
+On 2026-11-06, the owner chose two corrections to the existing article instead of the larger
+capability reference: the UMAP/L-BFGS example now sets `method = list("umap", gr_eps = 0)`, and the
+obsolete `lveps` name is replaced with the method option `gr_eps`.
+
+The example ran in a fresh R process with its documented 300-iteration budget, plotting and
+progress disabled, and produced a finite 150-by-2 embedding. The article rendered successfully,
+and its embedded R formatting and diff checks passed. Evidence is in
+`/tmp/smallvis-usage-fix.eymmj0d5`. The larger proposal remains local and uncommitted.
 
 ## Completion and deferred decisions
 
@@ -596,5 +607,5 @@ The following are separate choices after the fixes:
   distributed execution, and broad benchmark infrastructure until a concrete workload calls for
   them.
 
-**Progress on 2026-11-05** Phases 1 through 4, Phase 5 native work, and the minimum copyright and
-licensing follow-up are complete. The capability table remains held for owner review.
+**Progress on 2026-11-06** The approved cleanup, minimum licensing follow-up, and selected usage
+corrections are complete. The larger documentation proposal was not adopted.
