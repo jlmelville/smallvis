@@ -46,7 +46,7 @@ reference lists the available controls.
 The default is the delta-bar-delta scheme familiar from t-SNE. The `opt`
 argument also accepts optimizers provided through
 [mize](https://github.com/jlmelville/mize), with options supplied in a
-list. For UMAP, t-UMAP, and LargeVis, function-based line searches
+list. For UMAP, t-UMAP, LargeVis, and USNE, function-based line searches
 require `gr_eps = 0` so the gradient matches the objective used by the
 search:
 
@@ -67,6 +67,13 @@ dim(umap_fit)
 ```
 
     ## [1] 150   2
+
+Pseudo-separable t-SNE (`pstsne`) and dynamic HSSNE (`dhssne`) require a
+gradient-only optimizer such as Adam or the default delta-bar-delta. The
+former uses approximate forces; the latter changes alpha between steps,
+invalidating the objective data retained by function-based optimizers.
+Use `hssne` when you want to optimize at a fixed alpha with a line
+search.
 
 The [alternative
 optimizers](https://jlmelville.github.io/smallvis/package/reference/smallvis.html#alternative-optimizers)

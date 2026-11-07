@@ -134,7 +134,9 @@ C = \frac{1}{\alpha^2} \sum\_{ij} \left( p\_{ij}^{\alpha} \log
 q\_{ij}^{\alpha} \right)
 
 This form includes the Kullback-Leibler divergence, where the last two
-terms cancel when P and Q are probabilities.
+terms cancel when P and Q are probabilities. Terms that depend only on P
+do not affect the gradient, but they still matter for reported costs and
+cost-based stopping.
 
 \frac{\partial C}{\partial q\_{ij}} = -\frac{1}{\alpha} \left(
 \frac{p\_{ij}^{\alpha}}{q\_{ij}} - \frac{q\_{ij}^{\alpha}}{q\_{ij}}
@@ -162,14 +164,10 @@ C = \frac{1}{\alpha^2} \sum\_{ij} \left( \log
 \left\[ \frac{p\_{ij}^{\alpha}}{q\_{ij}^\alpha} - 1 + q\_{ij} \left(
 \sum\_{kl} 1 - \sum\_{kl} \frac{p\_{kl}^{\alpha}}{q\_{kl}^\alpha}
 \right) \right\] w\_{ij} \left( \mathbf{y}\_i - \mathbf{y}\_j \right)
-This can also be derived from the standard gradient. The \sum\_{kl} 1
-term is interesting. I rather lazily write the sum as being over two
-indices, but we really should ignore q\_{ii}, i.e. the N diagonal “self”
-probabilities. So should that sum be N^2 or N^2 - N? In my tests, to get
-finite difference and analytical gradients to agree, I had to treat the
-sum in the cost function to be N^2, but the sum in the gradient to be
-N^2 - N. As usual, I will leave this mystery unresolved with a vague and
-unfulfilled promise to return and update if I ever work this out.
+This can also be derived from the standard gradient. Both the cost and
+gradient sums exclude the N diagonal “self” probabilities, so \sum\_{k
+\ne l} 1 = N(N - 1). Each column of the cost therefore subtracts N - 1,
+giving zero divergence when P = Q.
 
 #### alpha = 0, beta != 0
 

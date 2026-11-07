@@ -266,7 +266,9 @@ p_{ij}^{\alpha} \log \frac{p_{ij}^{\alpha}}{q_{ij}^{\alpha}}
 \right)
 </span></p>
 <p>This form includes the Kullback-Leibler divergence, where the last
-two terms cancel when <span class="math inline">P</span> and <span class="math inline">Q</span> are probabilities.</p>
+two terms cancel when <span class="math inline">P</span> and <span class="math inline">Q</span> are probabilities. Terms that depend only
+on <span class="math inline">P</span> do not affect the gradient, but
+they still matter for reported costs and cost-based stopping.</p>
 <p><span class="math display">
 \frac{\partial C}{\partial q_{ij}} =
 -\frac{1}{\alpha}
@@ -328,14 +330,12 @@ w_{ij}
 \left(
 \mathbf{y}_i - \mathbf{y}_j
 \right)
-</span> This can also be derived from the standard gradient. The <span class="math inline">\sum_{kl} 1</span> term is interesting. I rather
-lazily write the sum as being over two indices, but we really should
-ignore <span class="math inline">q_{ii}</span>, i.e. the N diagonal
-“self” probabilities. So should that sum be <span class="math inline">N^2</span> or <span class="math inline">N^2 -
-N</span>? In my tests, to get finite difference and analytical gradients
-to agree, I had to treat the sum in the cost function to be <span class="math inline">N^2</span>, but the sum in the gradient to be <span class="math inline">N^2 - N</span>. As usual, I will leave this mystery
-unresolved with a vague and unfulfilled promise to return and update if
-I ever work this out.</p>
+</span> This can also be derived from the standard gradient. Both the
+cost and gradient sums exclude the <span class="math inline">N</span>
+diagonal “self” probabilities, so <span class="math inline">\sum_{k \ne
+l} 1 = N(N - 1)</span>. Each column of the cost therefore subtracts
+<span class="math inline">N - 1</span>, giving zero divergence when
+<span class="math inline">P = Q</span>.</p>
 </div>
 <div class="section level4">
 <h4 id="alpha-0-beta-neq-0">alpha = 0, beta != 0<a class="anchor" aria-label="anchor" href="#alpha-0-beta-neq-0"></a>
