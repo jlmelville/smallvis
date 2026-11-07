@@ -580,8 +580,9 @@
 #'   with optimizer that should be reducing the cost each iteration, then try
 #'   setting this to a larger value, e.g. between \code{1e-3 - 1e-9}. For
 #'   Barnes-Hut, epsilon is added to the sum of non-self Student weights in
-#'   both the cost and gradient. Points share a leaf only at identical
-#'   coordinates.
+#'   both the cost and gradient. Tree construction uses the coordinates alone.
+#'   When floating-point precision limits subdivision, a terminal leaf stores
+#'   distinct coordinates as separate groups.
 #' @param theta Barnes-Hut approximation accuracy. Default is \code{1.0} which
 #'   more or less corresponds to the default degree of approximation used in
 #'   the \code{Rtsne} package. Set to 0.0 for exact t-SNE. Applies only for
