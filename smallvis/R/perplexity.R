@@ -727,16 +727,6 @@ perp_method <- function(perplexity) {
   tolower(method)
 }
 
-# If the user provided a list like ("idp", c(10, 20, 30)), extract the list
-# of numbers as the candidate list of perplexities. Otherwise, return NULL
-user_idp_perps <- function(perplexity) {
-  perplexities <- NULL
-  if (is.list(perplexity) && length(perplexity) == 2) {
-    perplexities <- perplexity[[2]]
-  }
-  perplexities
-}
-
 # Some symmetrization options mean "actually, no symmetrization please". This
 # function returns the ones that will actually produce a symmetric matrix,
 # necessary for symmetric methods (e.g. tsne vs asne).

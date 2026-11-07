@@ -1,13 +1,13 @@
 # smallvis correctness, cleanup, and allocation follow-up
 
-**Status: phase 5 in progress; phases 1–4 complete.** The user requested that the
+**Status: phases 1–5 complete; phases 6–7 pending.** The user requested that the
 [second repository review](smallvis-repository-review-2026-11-06.md) be saved and converted into
 a phased plan on 2026-11-06, then explicitly authorized phases 1, 2, and 3 in sequence. Source and
 test changes for phases 1–3 are committed as `a81ef3e`. The user requested implementation of phase 4
 with commits after completed changes. USNE/pseudo-separable optimizer contracts are committed as
 `817a608`; the dynamic HSSNE fix is committed as `1a5bed0`. The user has authorized phase 5.
-The backend-forwarding correction passes validation. Next: commit that change, then remove confirmed
-leftovers. Phases 6–7 remain pending.
+The backend-forwarding correction is committed as `e9fc703`; the unused-code cleanup is validated
+and recorded below. Next: await direction on phase 6, native allocations and measurements.
 
 **Baseline:** `e65bcbaf6b71669c92efe75cfdd595739e894a31`, with a clean worktree before saving these
 documents. The earlier [correctness plan](smallvis-correctness-implementation-plan.md) is complete
@@ -498,8 +498,38 @@ changed. The CRAN index was unavailable, so checking used installed dependencies
 
 Logs are `/tmp/smallvis-phase5a-{focused,tests,lint,red}.log` and
 `/tmp/smallvis-phase5-constructor-audit{,-final}.log`; the fresh archive/check is under
-`/tmp/smallvis-phase5a-check-n7uoxs53`. The unused-code removal remains pending and will be a
-separate commit.
+`/tmp/smallvis-phase5a-check-n7uoxs53`. This correction is committed as `e9fc703`; unused-code
+removal follows in its own commit.
+
+### Phase 5 cleanup outcome, 2026-11-06
+
+Removed 98 lines: the earlier shadowed `tasne()` definition, unused `user_idp_perps()`, and unused
+`graph_to_sparse()`. Repository-wide searches found only the helper definitions and historical
+review/plan mentions. The runtime method lookup uses the explicit method selector list, and the
+optimizer lookup selects optimizer constructors; neither is a consumer of these helpers.
+The method registry and all supported methods remain intact.
+
+A parsed-expression snapshot from before cleanup matches the remaining active `tasne()` definition
+exactly. Existing gradient and public API tests continue to exercise that method. No tests were
+added solely to assert the absence of unused internal functions.
+
+Final phase 5 validation on the same Linux/R toolchain:
+
+| Check | Result |
+| --- | --- |
+| Full `Rscript --vanilla -e 'testthat::test_local()'` from `smallvis/` | 1696 passing expectations; no failures, warnings, or skips |
+| Fresh source `R CMD build`, then `R CMD check --no-manual` | Status OK; installed suite also passes all 1696 expectations |
+| Final archive compared with modified source and routing regression | Exact current source included |
+| Installed public exports | Exactly `smallvis`, `smallvis_rep`, and `smallvis_perpstep` |
+| Air and loaded-namespace lintr | Passed; no lints |
+| Roxygen synchronization | Recorded and installed versions are 8.1.0; `needs_roxygenize()` is FALSE |
+
+The control fixes restore the documented options, so help changes were unnecessary in this phase.
+No signatures, generated bridges, help, native sources, or exports changed. Windows was not
+exercised. The package check again used installed dependencies because the CRAN index was
+unavailable. Logs are `/tmp/smallvis-phase5b-{tests,lint,retained-tasne}.log`;
+the final archive/check is under `/tmp/smallvis-phase5b-check-9jvq2y2m`. Raw temporary artifacts
+are not prerequisites for continuing the plan.
 
 ## Phase 6. Remove the identified native allocations and measure the result
 
@@ -548,6 +578,11 @@ the measurements support them.
    generators. Preserve optional-feature exclusions and the earlier plan's completed status.
 4. Record the final revision, results, remaining limitations, and any changed dispositions here.
    Mark implementation complete only when the admitted work and required evidence are complete.
+
+The phase 5 documentation cross-check found that the Barnes-Hut epsilon help still says points
+share a leaf only at identical coordinates. Clarify this during the final documentation pass:
+epsilon does not merge distinct coordinates; finite-resolution terminal leaves preserve separate
+coordinate groups. This reconciles the existing help with the phase 1 tree correction.
 
 ## Validation and recovery
 
@@ -605,8 +640,11 @@ resolution of the existing failure.
   requested input equivalence, neighbor handling, and multiscale contracts.
   Date/author: 2026-11-06 / user.
 - Decision: commit completed phases 1–3, then implement phase 4 and commit completed changes.
-  Rationale: the user explicitly requested this sequence and ongoing commit practice. Phases 5–7
-  remain pending; no push or publication was requested. Date/author: 2026-11-06 / user.
+  Rationale: the user explicitly requested this sequence and ongoing commit practice. No push or
+  publication was requested. Date/author: 2026-11-06 / user.
+- Decision: implement phase 5 and commit backend controls separately from unused-code cleanup.
+  Rationale: the user authorized phase 5; the two changes have different behavior and validation
+  responsibilities. Phases 6–7 remain pending. Date/author: 2026-11-06 / user and Codex.
 - Decision: derive degrees and symmetric conditional weights from averaged P, and require an
   explicit output beta where automatic bandwidth transfer would be undefined. Rationale: these
   retain the methods' mathematics without defining a bandwidth for a mixture.
@@ -627,11 +665,12 @@ resolution of the existing failure.
 - [x] Phase 2: AB-SNE scalar objectives.
 - [x] Phase 3: input, neighbor, and multiscale contracts.
 - [x] Phase 4: optimizer compatibility and dynamic HSSNE state.
-- [ ] Phase 5: backend controls and cleanup.
+- [x] Phase 5: backend controls and cleanup.
 - [ ] Phase 6: native allocations and comparative measurements.
 - [ ] Phase 7: native CI, integration checks, and review reconciliation.
 
-Phases 1–4 are implemented and validated as recorded above. Their regressions distinguish the
+Phases 1–5 are implemented and validated as recorded above. Their regressions distinguish the
 original native, calibration, scalar, stopping, input, neighbor, multiscale, optimizer, and dynamic
-state failures. Completed changes follow the user's commit-after-each-change instruction. Phases
-5–7, benchmarks, workflows, generated bridges, and site output are untouched.
+state and backend-control failures. Confirmed unused internals have been removed. Completed
+changes follow the user's commit-after-each-change instruction. Phases 6–7, benchmarks, workflows,
+generated bridges, and site output are untouched.

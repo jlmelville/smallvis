@@ -1112,58 +1112,6 @@ btasne <- function(
   )
 }
 
-tasne <- function(perplexity, n_threads = 0, use_cpp = FALSE) {
-  lreplace(
-    tsne(
-      perplexity = perplexity,
-      use_cpp = use_cpp,
-      n_threads = n_threads
-    ),
-    init = function(
-      cost,
-      X,
-      max_iter,
-      eps = .Machine$double.eps,
-      verbose = FALSE,
-      ret_extra = c()
-    ) {
-      cost <- sne_init(
-        cost,
-        X,
-        perplexity = perplexity,
-        symmetrize = "none",
-        normalize = FALSE,
-        verbose = verbose,
-        ret_extra = ret_extra,
-        n_threads = n_threads,
-        use_cpp = use_cpp
-      )
-      cost$eps <- eps
-      cost
-    },
-    gr = function(cost, Y) {
-      cost <- cost_update(cost, Y)
-
-      cost$G <- k2g(
-        Y,
-        2 * cost$W * (cost$P - cost$W / cost$Z),
-        symmetrize = TRUE
-      )
-      cost
-    },
-    update = function(cost, Y) {
-      W <- calc_d2(Y, use_cpp = use_cpp, n_threads = n_threads)
-      W <- 1 / (1 + W)
-      diag(W) <- 0
-
-      cost$W <- W
-      cost$Z <- 1 / rowSums(W)
-      cost
-    }
-  )
-}
-
-
 # Normalization Experiments -----------------------------------------------
 
 # ASNE but with the t-distributed kernel
