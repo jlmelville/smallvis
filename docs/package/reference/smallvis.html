@@ -82,7 +82,8 @@ variety of neighbor embedding methods.</p>
 <span>  eps <span class="op">=</span> <span class="va">.Machine</span><span class="op">$</span><span class="va">double.eps</span>,</span>
 <span>  inp_kernel <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  nn <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  verbose <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span>  verbose <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  neighbors <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -95,7 +96,7 @@ variety of neighbor embedding methods.</p>
 
 
 <dt id="arg-k">k<a class="anchor" aria-label="anchor" href="#arg-k"></a></dt>
-<dd><p>Number of output dimensions for the embedding. Barnes-Hut t-SNE
+<dd><p>Number of output dimensions for the embedding. Barnes-Hut
 requires <code>k = 2</code>.</p></dd>
 
 
@@ -336,20 +337,22 @@ steps.</p></dd>
 
 
 <dt id="arg-bh">bh<a class="anchor" aria-label="anchor" href="#arg-bh"></a></dt>
-<dd><p>if <code>TRUE</code> use the Barnes-Hut method to approximate
-repulsive interactions (van der Maaten, 2014), which allows neighbor
-embedding methods to scale to larger datasets. For large datasets, you will
-also want to set <code>inp_kernel</code> to use only k-nearest neighbors for the
-input similarities, i.e. one of <code>"nngaussian"</code> or <code>"knn"</code>.
-You may also want to set <code>nn = "approximate"</code>. Not all methods support
-<code>bh = TRUE</code>.</p></dd>
+<dd><p>If <code>TRUE</code>, approximate repulsive interactions with Barnes-Hut
+(van der Maaten, 2014). Available for <code>"tsne"</code>, <code>"hssne"</code>,
+<code>"tee"</code>, <code>"largevis"</code>, <code>"umap"</code>, and <code>"tumap"</code> in two
+dimensions.
+For HSSNE, TEE, LargeVis, and t-UMAP, choose
+<code>inp_kernel = "nngaussian"</code> (the default) or <code>"knn"</code> to build
+sparse input affinities. For UMAP, the input kernel is <code>"skd"</code>
+(smooth kNN affinities). t-UMAP also accepts <code>"skd"</code>. These modes use
+approximate neighbor search by default. Use <code>nn = "exact"</code> for
+exact neighbor lookup.</p></dd>
 
 
 <dt id="arg-theta">theta<a class="anchor" aria-label="anchor" href="#arg-theta"></a></dt>
-<dd><p>Barnes-Hut approximation accuracy. Default is <code>1.0</code> which
-more or less corresponds to the default degree of approximation used in
-the <code>Rtsne</code> package. Set to 0.0 for exact t-SNE. Applies only for
-<code>bh = "TRUE"</code>.</p></dd>
+<dd><p>Barnes-Hut opening threshold, default <code>1.0</code>. Smaller
+values open more cells. Zero evaluates the repulsive sum exactly for the
+chosen input affinities. Applies only with <code>bh = TRUE</code>.</p></dd>
 
 
 <dt id="arg-eps">eps<a class="anchor" aria-label="anchor" href="#arg-eps"></a></dt>
@@ -357,10 +360,12 @@ the <code>Rtsne</code> package. Set to 0.0 for exact t-SNE. Applies only for
 <code>.Machine$double.eps</code>, but if you see inconsistent convergence results
 with optimizer that should be reducing the cost each iteration, then try
 setting this to a larger value, e.g. between <code>1e-3 - 1e-9</code>. For
-Barnes-Hut, epsilon is added to the sum of non-self Student weights in
-both the cost and gradient. Tree construction uses the coordinates alone.
+Barnes-Hut t-SNE, epsilon is added to the sum of non-self Student
+weights in both the cost and gradient. Tree construction uses only the
+coordinates.
 When floating-point precision limits subdivision, a terminal leaf stores
-distinct coordinates as separate groups.</p></dd>
+distinct coordinates as separate groups.
+Barnes-Hut UMAP and t-UMAP require a positive epsilon.</p></dd>
 
 
 <dt id="arg-inp-kernel">inp_kernel<a class="anchor" aria-label="anchor" href="#arg-inp-kernel"></a></dt>
@@ -380,8 +385,8 @@ a similarity of <code>1/perplexity</code>. This can be a lot faster than using
 
 
 <dt id="arg-nn">nn<a class="anchor" aria-label="anchor" href="#arg-nn"></a></dt>
-<dd><p>Method for finding neighbors for t-SNE neighbor input kernels,
- including Barnes-Hut t-SNE. Possible values are:</p><ul><li><p><code>"exact"</code> Exact nearest neighbors.</p></li>
+<dd><p>Method for finding neighbors for t-SNE and Barnes-Hut neighbor
+ input kernels. Possible values are:</p><ul><li><p><code>"exact"</code> Exact nearest neighbors.</p></li>
 <li><p><code>"approximate"</code> Approximate nearest neighbors.</p></li>
 </ul><p>Approximate nearest neighbors are faster for large datasets and usually the
 small loss in accuracy is not a problem. The default is <code>NULL</code>, where
@@ -391,6 +396,22 @@ distance inputs use exact neighbor lookup.</p></dd>
 
 <dt id="arg-verbose">verbose<a class="anchor" aria-label="anchor" href="#arg-verbose"></a></dt>
 <dd><p>If <code>TRUE</code>, log progress messages to the console.</p></dd>
+
+
+<dt id="arg-neighbors">neighbors<a class="anchor" aria-label="anchor" href="#arg-neighbors"></a></dt>
+<dd><p>Optional list of precomputed nearest neighbors for
+Barnes-Hut t-SNE, HSSNE, TEE, LargeVis, UMAP, and t-UMAP. Supply equally
+sized matrices <code>idx</code> (one-based row indices) and <code>dist</code> (finite,
+nonnegative, unsquared distances).
+Match the row order of <code>X</code> and list non-self neighbors in distance
+order, with no duplicate indices. A self entry is optional and is skipped.
+Leave <code>nn</code> unset. Supply a single numeric perplexity (a whole number
+for <code>"knn"</code>). Each row needs <code>perplexity</code> non-self neighbors for
+<code>"knn"</code>, or <code>floor(3 * perplexity)</code> for <code>"nngaussian"</code>,
+capped at the number of other observations. For <code>"skd"</code>, the
+neighborhood size includes self, so each row needs
+<code>floor(perplexity) - 1</code> non-self neighbors. The supplied graph
+defines the input affinities regardless of scaling or PCA.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -412,7 +433,7 @@ distance inputs use exact neighbor lookup.</p></dd>
   coordinates, after removing exaggeration. Their sum is the final objective.
   ASNE and its bandwidth variants report one conditional KL divergence per
   row. Other dense methods generally group pairwise terms by column.
-  Barnes-Hut t-SNE returns a single scalar objective.</p></li>
+  Barnes-Hut methods return a single scalar objective.</p></li>
 <li><p><code>itercosts</code> Objective values recorded at epochs. This history
   can be empty if an optimizer stops before the first epoch. Values recorded
   during exaggeration need not match the final unexaggerated objective.</p></li>
@@ -474,10 +495,11 @@ to the <code>method</code> parameter are:</p><ul><li><p><code>"tsne"</code> t-Di
   <code>method = "tsne", bh = TRUE</code>.</p></li>
 <li><p><code>"largevis"</code> the cost function of the LargeVis algorithm
   (Tang et al, 2016). Input affinities are calculated and symmetrized using
-  the same perplexity calibration method as t-SNE, but are not normalized.</p></li>
+  the same perplexity calibration method as t-SNE. Use
+  <code>normalize = FALSE</code> to leave them unnormalized.</p></li>
 <li><p><code>"umap"</code> the cost function the UMAP method (McInnes, 2017).
-  Unlike LargeVis and t-SNE, UMAP uses un-normalized input weights, which
-  are calibrated via calculating smoothed k-nearest-neighbor distances,
+  UMAP uses unnormalized input weights, which are calibrated via
+  smoothed k-nearest-neighbor distances,
   rather than perplexity (the procedure is similar, however). The value
   of k is controlled by the <code>perplexity</code> parameter.</p></li>
 <li><p><code>"tumap"</code> Like UMAP, except the output weight function is the
@@ -528,8 +550,9 @@ to the <code>method</code> parameter are:</p><ul><li><p><code>"tsne"</code> t-Di
 <li><p><code>"gsne"</code>, The global SNE (g-SNE) method of Zhou and Sharpee
   (2018).</p></li>
 </ul><p>By default, these methods use dense input affinities and gradients.
-For t-SNE, <code>bh = TRUE</code> approximates repulsive interactions, and
-neighbor input kernels can use approximate nearest-neighbor search.</p>
+For t-SNE, HSSNE, TEE, LargeVis, UMAP, and t-UMAP, <code>bh = TRUE</code>
+approximates repulsive interactions. Neighbor input kernels can use
+approximate neighbor search.</p>
     </div>
     <div class="section level2">
     <h2 id="method-specific-options">Method-specific options<a class="anchor" aria-label="anchor" href="#method-specific-options"></a></h2>
@@ -593,8 +616,10 @@ to use. Subsequent elements must be named values specifying the parameters.</p>
 <li><p><code>"EE"</code></p><ul><li><p><code>lambda</code> Weighting term for the repulsive versus attractive
     forces. Default is <code>100</code>.</p></li>
 </ul></li>
-<li><p><code>"tEE"</code></p><ul><li><p><code>lambda</code> Weighting term for the repulsive versus attractive
-    forces. Default is <code>0.01</code>.</p></li>
+<li><p><code>"tEE"</code></p><ul><li><p><code>lambda</code> Finite positive repulsion weight. Default is
+    <code>0.01</code>. The cost is the I-divergence from the input weights to
+    <code>lambda</code> times the output weights, divided by the sum of the
+    input weights.</p></li>
 </ul></li>
 <li><p><code>"NeRV"</code></p><ul><li><p><code>lambda</code> Weighting term for relative cost of false positive
    versus false negatives (in terms of output distances). Should be a value

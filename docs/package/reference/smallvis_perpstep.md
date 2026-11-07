@@ -68,6 +68,10 @@ perplexity in a method list defines the target and is temporarily
 overridden for preliminary runs. If there are no larger perplexities, or
 `step_iter = 0`, the call is equivalent to a direct `smallvis` run.
 
+With precomputed `neighbors`, the graph must cover the entire schedule,
+including preliminary perplexities. The neighbor budget is checked
+before any embedding starts.
+
 ## References
 
 Venna, J., Peltonen, J., Nybo, K., Aidos, H., & Kaski, S. (2010).

@@ -2,9 +2,10 @@
 
 Most smallvis methods calculate interactions between every pair of
 observations. That makes them convenient for experimentation on small
-datasets, but their time and memory requirements grow quadratically.
-Barnes-Hut t-SNE approximates repulsive interactions, allowing larger
-datasets when combined with neighbor-based input affinities.
+datasets, but their time and memory requirements grow quadratically. For
+larger datasets, t-SNE, HSSNE, t-distributed elastic embedding (TEE),
+LargeVis, UMAP, and t-UMAP can combine sparse neighbor affinities with
+Barnes-Hut repulsion.
 
 ## Run Barnes-Hut t-SNE
 
@@ -45,18 +46,31 @@ plot(
 color and plotting
 symbol.](barnes-hut_files/figure-html/barnes-hut-1.png)
 
-Barnes-Hut is implemented for t-SNE with two output dimensions. The
-`theta` parameter controls tree approximation: smaller values open more
-cells and require more work; zero evaluates the repulsive sum without
-tree approximation. Approximate neighbor search and the input kernel
-remain separate choices, so setting `theta = 0` does not restore
-affinities omitted by a sparse input graph.
+Barnes-Hut requires two output dimensions. Smaller `theta` values open
+more cells and require more work. Zero evaluates the repulsive sum
+exactly for the chosen input graph.
 
 The example uses binary k-nearest-neighbor affinities. Use
 `inp_kernel = "nngaussian"` for Gaussian perplexity calibration over
 neighbors instead. The [input kernel and Barnes-Hut
 arguments](https://jlmelville.github.io/smallvis/package/reference/smallvis.html#arguments)
 describe these controls.
+
+You can also use `method = list("hssne", alpha = 0.5)` or
+`method = list("tee", lambda = 0.01)` with `"knn"` or `"nngaussian"`
+affinities. HSSNE changes the tail of the output kernel. TEE keeps the
+t-SNE kernel and uses a fixed repulsion multiplier. Use
+`method = "largevis"` for LargeVis or `method = "tumap"` for t-UMAP with
+the same input kernels.
+
+If you already have a neighbor graph, pass its `idx` and `dist` matrices
+in a list as `neighbors = graph` and leave `nn` unset. With
+`"nngaussian"`, a perplexity of 30 takes 90 non-self neighbors per row
+on a dataset with at least 91 observations. UMAP uses smooth kNN
+affinities (`inp_kernel = "skd"`), which are also available for t-UMAP.
+With `perplexity = 30`, `"skd"` takes 29 non-self neighbors per row. The
+saved graph supplies the affinities, so you can leave `pca = FALSE` and
+let `Y_init = "spca"` compute the starting coordinates.
 
 ## Accelerate a dense calculation
 

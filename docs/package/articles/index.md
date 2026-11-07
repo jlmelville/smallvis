@@ -24,8 +24,8 @@ Current examples for configuring and running the package.
 - [Barnes-Hut and native
   acceleration](https://jlmelville.github.io/smallvis/package/articles/barnes-hut.md):
 
-  Run approximate t-SNE, choose neighbor affinities, and control native
-  worker threads.
+  Run Barnes-Hut embeddings, choose neighbor affinities, and control
+  native worker threads.
 
 ### Theory and background
 
