@@ -330,13 +330,9 @@ smooth_knn_distances <-
         rho[i] <- 0.0
       }
 
+      offsets <- -pmax(0, ith_distances[-1L] - rho[i])
       for (iter in 1:n_iter) {
-        psum <- 0.0
-        for (j in 2:ncol(nn_dist)) {
-          dist <- max(0, (nn_dist[i, j] - rho[i]))
-          psum <- psum + exp(-(dist / mid))
-        }
-        val <- psum
+        val <- sum(exp(offsets / mid))
 
         if (abs(val - target) < tol) {
           break
