@@ -1,15 +1,15 @@
 # smallvis correctness, cleanup, and allocation follow-up
 
-**Status: phases 1–5 complete; phase 6 implementation validated, measurements pending.** The user
-requested that the
+**Status: phases 1–6 complete; phase 7 pending.** The user requested that the
 [second repository review](smallvis-repository-review-2026-11-06.md) be saved and converted into
 a phased plan on 2026-11-06, then explicitly authorized phases 1, 2, and 3 in sequence. Source and
 test changes for phases 1–3 are committed as `a81ef3e`. The user requested implementation of phase 4
 with commits after completed changes. USNE/pseudo-separable optimizer contracts are committed as
-`817a608`; the dynamic HSSNE fix is committed as `1a5bed0`. The user has authorized phase 5.
+`817a608`; the dynamic HSSNE fix is committed as `1a5bed0`. The user authorized phase 5.
 The backend-forwarding correction is committed as `e9fc703`; the unused-code cleanup is committed
-as `9e5de8d`. The user has authorized phase 6. Its allocation changes are validated below;
-comparative measurements remain before phase completion. Phase 7 is pending.
+as `9e5de8d`. Phase 6's validated native allocation changes are committed as `198e84b`, with
+comparative measurements and the revised benchmark harness recorded below. Next: await direction
+on phase 7, native CI and final review reconciliation.
 
 **Baseline:** `e65bcbaf6b71669c92efe75cfdd595739e894a31`, with a clean worktree before saving these
 documents. The earlier [correctness plan](smallvis-correctness-implementation-plan.md) is complete
@@ -42,9 +42,9 @@ remain outside scope.
 ## Review disposition
 
 The correctness observations were reproduced during the review against the baseline above.
-Cleanup observations came from source and consumer inspection. Allocation sizes are calculated
-from live buffers; performance gains remain unmeasured. Phase completion requires fresh evidence
-against the implementation revision.
+Cleanup observations came from source and consumer inspection. Phase 6 now pairs calculated buffer
+sizes with comparative timing and process RSS measurements. Phase completion requires fresh
+evidence against the implementation revision.
 
 | Review item | Disposition | Completion evidence |
 | --- | --- | --- |
@@ -599,8 +599,118 @@ still reachable at R exit; this is not lost storage. No fault-injection or Windo
 for this phase. The package check used installed dependencies because the CRAN index was
 unavailable, with no counted warning or note. Temporary logs, separately installed libraries, and
 focused harnesses are under `/tmp/smallvis-phase6`; the fresh check is under
-`/tmp/smallvis-phase6-check-t_t0xh37`. Comparative timing and process RSS evidence follows in a
-separate completed measurement step.
+`/tmp/smallvis-phase6-check-t_t0xh37`. Its source archive matches the committed native source and
+allocation tests byte for byte. Comparative timing and process RSS evidence follows below.
+
+### Phase 6 measurement outcome
+
+**Decision: keep both changes.** Numerical behavior is preserved, static inspection confirms the
+removed buffers, and measured kernel and consumer times improve on this workload. No material
+regression appeared. No additional allocation rewrites are justified or admitted by these results.
+The unchanged whole-embedding process peaks are part of the result.
+
+The benchmark now checks the actual loaded helper signatures: baseline MDS takes two vectors and
+Student weights take a vector output; candidate MDS takes const input pointers and Student weights
+take an output pointer. This replaces the obsolete removed-conversion probe. Allocation-only
+revisions deliberately have identical numerical behavior, so compiled signatures, source identity,
+and loaded DLL checksums establish the intended implementations without adding a diagnostic API.
+A deliberately mislabeled baseline library fails the check before timing. All six retained/new
+cases pass 64-point smokes at one and two threads for both libraries: 24 processes, with matching
+paired checksums and costs.
+
+Measurements compare separately installed clean Git archives, in fresh R processes:
+
+- Baseline: `9e5de8d3eca8370c76dca3b292a6f1a2083a9a8a`.
+- Candidate: `198e84bc8be5c72bb795ac552843f17b55bd08f2`.
+- Libraries: `/tmp/smallvis-phase6/baseline-lib` and `/tmp/smallvis-phase6/candidate-lib`.
+  Each DLL is `<library>/smallvis/libs/smallvis.so`, verified in every CSV.
+- Host: Intel i7-8750H, 12 logical CPUs, about 24 GB RAM, Ubuntu 26.04.1 under WSL2.
+  R 4.5.2 and Rcpp 1.1.1.1.1; GCC 15.2, GNU C++17, identical R Makeconf defaults.
+  No sanitizer or debug `-O0` build is used for timings.
+- Compiler settings include `-g -O2 -fpic -DNDEBUG -fno-omit-frame-pointer`,
+  `-mno-omit-leaf-frame-pointer`, `-fstack-protector-strong`, `-fstack-clash-protection`,
+  `-Wformat -Werror=format-security -fcf-protection -Wdate-time -D_FORTIFY_SOURCE=3`.
+  The common default linker settings include `-flto=auto -ffat-lto-objects`,
+  `-Wl,-z,relro`, and `-Wl,-Bsymbolic-functions`. Full flags, including debug prefix maps and
+  distribution metadata, are captured with both install logs and `R CMD config` metadata.
+- Intel MKL BLAS/LAPACK at `/usr/lib/x86_64-linux-gnu/libmkl_rt.so`; OpenBLAS, OMP, MKL,
+  BLIS, and vecLib thread environment settings are fixed at one. Native workers are one or two.
+- Seed 42, eight-dimensional normal X and two-dimensional normal Y (Y standard deviation 0.1).
+  Kernel cases use n = 5,000 and three calls; full embeddings use n = 3,000 and ten steps.
+  Fixed steepest-descent steps are 0.01/n for MDS and 0.1 for t-SNE, with tolerance stopping
+  disabled. These short runs do not measure convergence quality or the default optimizer.
+- Three repetitions per variant/case/thread setting, alternating B/C, C/B, B/C: 48 processes.
+  No concurrent check or benchmark jobs ran. The case-boundary one-minute Linux load average
+  stayed around 0.61–1.18; AC remained connected, battery 94%, and power state unchanged.
+  The primary run was 2026-11-07 02:31:33–02:34:14 UTC (2026-11-06 locally).
+
+DLL SHA-256 identities of the measured installations:
+
+```text
+baseline  a9b012de34021a9c57548c287844741eb73928bd51d63a5679e85b399b05c139
+candidate 1d839155820aa224a7e908364ad1a7de203691a400f08b3a8853736479aef1c7
+```
+
+The timed region contains the three kernel calls or the complete public embedding, including
+input preparation and final scoring. A two-point warmup and explicit GC precede timing; finite
+checks and column-wise checksums follow it. Thread startup is included. GNU time measures the
+entire R process, including setup and post-timing verification. The table gives medians over three
+processes; seconds are total elapsed time for the indicated workload, and RSS is MiB (KiB/1,024).
+All primary candidate timing ranges lie below their paired baseline ranges. Three repeats on one
+host establish a useful local comparison, not a general speed guarantee.
+
+| Workload | Workers | Seconds, baseline → candidate | Time change | Process peak MiB, baseline → candidate |
+| --- | --- | --- | --- | --- |
+| MDS gradient, 3 calls | 1 | 0.967 → 0.208 | −78.5% | 1029.2 → 648.9 |
+| MDS gradient, 3 calls | 2 | 0.922 → 0.110 | −88.1% | 1029.2 → 648.6 |
+| Student weights, 3 calls | 1 | 0.855 → 0.491 | −42.6% | 650.8 → 645.6 |
+| Student weights, 3 calls | 2 | 0.790 → 0.473 | −40.1% | 650.7 → 645.6 |
+| Complete MDS, 10 steps | 1 | 2.709 → 1.818 | −32.9% | 354.5 → 354.6 |
+| Complete MDS, 10 steps | 2 | 2.378 → 1.580 | −33.6% | 354.7 → 354.7 |
+| Complete t-SNE, 10 steps | 1 | 5.423 → 4.963 | −8.5% | 719.4 → 719.3 |
+| Complete t-SNE, 10 steps | 2 | 4.756 → 4.140 | −13.0% | 719.4 → 719.4 |
+
+All paired large-run checksums and final costs match as serialized to CSV. A separate fresh-process
+comparison of the measured installs also preserves bitwise-identical small kernel results and
+five-step MDS/t-SNE coordinates, costs, and retained matrices at one and two threads.
+
+The removed MDS payload at 5,000 points is 400 MB decimal; its measured process peak drops about
+380 MiB. Student weights remove 200 MB decimal of staging, but the three-call process peak barely
+changes. To investigate, a separate diagnostic repeats a **single** Student-weight call in three
+alternating fresh processes per variant/thread setting (12 more processes), retaining all primary
+samples. Its medians are:
+
+| Single Student-weight call, n = 5,000 | Seconds, baseline → candidate | Process peak MiB, baseline → candidate |
+| --- | --- | --- |
+| 1 worker | 0.300 → 0.174 | 459.9 → 319.7 |
+| 2 workers | 0.316 → 0.163 | 459.9 → 319.6 |
+
+That approximately 140 MiB reduction is consistent with staging removal being masked in the
+repeated loop by retained R results and garbage collection. Setup and post-timing scans also count
+toward peak RSS. It does not establish an exact allocation breakdown. Other allocations appear to
+dominate the full-embedding peaks; these measurements establish no meaningful whole-embedding RSS
+reduction. Static payload removal is neither a measured RSS claim nor a general speed promise.
+
+Reproduce the primary candidate MDS-gradient case from the repository root as follows, then
+substitute the baseline library/revision, repeat in the alternating order, and set workers to two.
+Use `student-weights 5000 THREADS 3`, `mds-embedding 3000 THREADS 10`, and
+`embedding 3000 THREADS 10` for the other primary cases. Use Student-weight iteration count one for
+the diagnostic. Give each repetition a distinct output filename.
+
+```sh
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+BLIS_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 /usr/bin/time \
+  -f '%M' -o /tmp/smallvis-mds-rss.txt \
+  Rscript --vanilla benchmarks/native-allocations.R \
+  /tmp/smallvis-phase6/candidate-lib candidate \
+  198e84bc8be5c72bb795ac552843f17b55bd08f2 \
+  mds-gradient 5000 1 3 /tmp/smallvis-mds.csv
+```
+
+Raw results, commands, compiler/source/DLL metadata, load/power snapshots, and build logs are under
+`/tmp/smallvis-phase6/{smoke,evidence,single-call}` and their adjacent metadata JSON files. The
+benchmark README documents dependencies, boundaries, and output policy. Raw files remain outside
+Git; the durable result is this source/reproduction/summary record. Phase 7 remains pending.
 
 ## Phase 7. Automate native regressions and close the review
 
@@ -683,7 +793,12 @@ resolution of the existing failure.
   publication was requested. Date/author: 2026-11-06 / user.
 - Decision: implement phase 5 and commit backend controls separately from unused-code cleanup.
   Rationale: the user authorized phase 5; the two changes have different behavior and validation
-  responsibilities. Phases 6–7 remain pending. Date/author: 2026-11-06 / user and Codex.
+  responsibilities. Date/author: 2026-11-06 / user and Codex.
+- Decision: implement phase 6, commit the validated buffer changes, then commit benchmark
+  adaptation and evidence separately. Rationale: the user authorized phase 6, and measuring the
+  exact implementation commit gives the comparison an unambiguous source identity. Preserve all
+  primary measurements and add the single-call Student diagnostic to investigate process RSS;
+  do not substitute it for the repeated-call result. Date/author: 2026-11-06 / user and Codex.
 - Decision: derive degrees and symmetric conditional weights from averaged P, and require an
   explicit output beta where automatic bandwidth transfer would be undefined. Rationale: these
   retain the methods' mathematics without defining a bandwidth for a mixture.
@@ -705,11 +820,13 @@ resolution of the existing failure.
 - [x] Phase 3: input, neighbor, and multiscale contracts.
 - [x] Phase 4: optimizer compatibility and dynamic HSSNE state.
 - [x] Phase 5: backend controls and cleanup.
-- [ ] Phase 6: native allocations and comparative measurements.
+- [x] Phase 6: native allocations and comparative measurements.
 - [ ] Phase 7: native CI, integration checks, and review reconciliation.
 
-Phases 1–5 are implemented and validated as recorded above. Their regressions distinguish the
+Phases 1–6 are implemented and validated as recorded above. Their regressions distinguish the
 original native, calibration, scalar, stopping, input, neighbor, multiscale, optimizer, and dynamic
-state and backend-control failures. Confirmed unused internals have been removed. Completed
-changes follow the user's commit-after-each-change instruction. Phases 6–7, benchmarks, workflows,
-generated bridges, and site output are untouched.
+state and backend-control failures, and preserve native input ownership and output values after
+buffer removal. Confirmed unused internals have been removed. The adapted benchmark records local
+kernel and whole-embedding comparisons, with unchanged whole-embedding RSS stated explicitly.
+Completed changes follow the user's commit-after-each-change instruction. Phase 7 remains pending;
+workflows, generated bridges, and site output are unchanged.
