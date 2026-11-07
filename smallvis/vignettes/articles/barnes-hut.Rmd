@@ -6,7 +6,7 @@ description: "Run Barnes-Hut embeddings, choose neighbor affinities, and control
 Most smallvis methods calculate interactions between every pair of observations. That makes them
 convenient for experimentation on small datasets, but their time and memory requirements grow
 quadratically. For larger datasets, t-SNE, HSSNE, t-distributed elastic embedding (TEE), LargeVis,
-and t-UMAP can combine sparse neighbor affinities with Barnes-Hut repulsion.
+UMAP, and t-UMAP can combine sparse neighbor affinities with Barnes-Hut repulsion.
 
 ```{r setup, include=FALSE}
 library(smallvis)
@@ -60,8 +60,8 @@ or `method = "tumap"` for t-UMAP with the same input kernels.
 If you already have a neighbor graph, pass its `idx` and `dist` matrices in a list as
 `neighbors = graph` and leave `nn` unset. With `"nngaussian"`, a perplexity of 30 takes 90
 non-self neighbors per row on a dataset with at least 91 observations.
-For t-UMAP, `inp_kernel = "skd"` uses the same smooth kNN calibration as the dense default.
-With `perplexity = 30`, it takes 29 non-self neighbors per row.
+UMAP uses smooth kNN affinities (`inp_kernel = "skd"`), which are also available for t-UMAP.
+With `perplexity = 30`, `"skd"` takes 29 non-self neighbors per row.
 The saved graph supplies the affinities, so you can leave `pca = FALSE` and let `Y_init = "spca"`
 compute the starting coordinates.
 

@@ -229,12 +229,14 @@ steps.}
 
 \item{bh}{If \code{TRUE}, approximate repulsive interactions with Barnes-Hut
 (van der Maaten, 2014). Available for \code{"tsne"}, \code{"hssne"},
-\code{"tee"}, \code{"largevis"}, and \code{"tumap"} in two dimensions.
+\code{"tee"}, \code{"largevis"}, \code{"umap"}, and \code{"tumap"} in two
+dimensions.
 For HSSNE, TEE, LargeVis, and t-UMAP, choose
 \code{inp_kernel = "nngaussian"} (the default) or \code{"knn"} to build
-sparse input affinities. t-UMAP also supports \code{"skd"} for smooth kNN
-affinities. These modes use approximate neighbor search by default. Use
-\code{nn = "exact"} for exact neighbor lookup.}
+sparse input affinities. For UMAP, the input kernel is \code{"skd"}
+(smooth kNN affinities). t-UMAP also accepts \code{"skd"}. These modes use
+approximate neighbor search by default. Use \code{nn = "exact"} for
+exact neighbor lookup.}
 
 \item{theta}{Barnes-Hut opening threshold, default \code{1.0}. Smaller
 values open more cells. Zero evaluates the repulsive sum exactly for the
@@ -249,7 +251,7 @@ weights in both the cost and gradient. Tree construction uses only the
 coordinates.
 When floating-point precision limits subdivision, a terminal leaf stores
 distinct coordinates as separate groups.
-Barnes-Hut t-UMAP requires a positive epsilon.}
+Barnes-Hut UMAP and t-UMAP require a positive epsilon.}
 
 \item{inp_kernel}{For t-SNE-like methods, determines how the input
 similarities are calculated. Possible values are:
@@ -280,10 +282,9 @@ distance inputs use exact neighbor lookup.}
 \item{verbose}{If \code{TRUE}, log progress messages to the console.}
 
 \item{neighbors}{Optional list of precomputed nearest neighbors for
-Barnes-Hut t-SNE, HSSNE, TEE, LargeVis, and t-UMAP. Use
-\code{inp_kernel = "knn"} or \code{"nngaussian"}, or \code{"skd"} for
-t-UMAP. Supply equally sized matrices \code{idx} (one-based row indices)
-and \code{dist} (finite, nonnegative, unsquared distances).
+Barnes-Hut t-SNE, HSSNE, TEE, LargeVis, UMAP, and t-UMAP. Supply equally
+sized matrices \code{idx} (one-based row indices) and \code{dist} (finite,
+nonnegative, unsquared distances).
 Match the row order of \code{X} and list non-self neighbors in distance
 order, with no duplicate indices. A self entry is optional and is skipped.
 Leave \code{nn} unset. Supply a single numeric perplexity (a whole number
@@ -446,9 +447,9 @@ to the \code{method} parameter are:
 }
 
 By default, these methods use dense input affinities and gradients.
-For t-SNE, HSSNE, TEE, LargeVis, and t-UMAP, \code{bh = TRUE} approximates
-repulsive interactions. Neighbor input kernels can use approximate neighbor
-search.
+For t-SNE, HSSNE, TEE, LargeVis, UMAP, and t-UMAP, \code{bh = TRUE}
+approximates repulsive interactions. Neighbor input kernels can use
+approximate neighbor search.
 }
 \section{Method-specific options}{
 

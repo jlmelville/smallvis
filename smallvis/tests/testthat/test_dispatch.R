@@ -168,8 +168,12 @@ test_that("bad dispatch options fail before neighbor search", {
     )
   }
   expect_error(
-    smallvis(iris10, method = "umap", bh = TRUE),
+    smallvis(iris10, method = "ntumap", bh = TRUE),
     "Barnes-Hut is only supported"
+  )
+  expect_error(
+    smallvis(iris10, method = "umap", bh = TRUE, inp_kernel = "knn"),
+    "skd"
   )
   expect_error(
     smallvis(iris10, method = "hssne", bh = TRUE, inp_kernel = "skd"),

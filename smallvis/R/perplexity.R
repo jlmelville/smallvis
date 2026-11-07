@@ -550,21 +550,27 @@ check_saved_neighbors <- function(
     !isTRUE(bh) ||
       !is.character(method) ||
       length(method) != 1L ||
-      !tolower(method) %in% c("tsne", "hssne", "tee", "largevis", "tumap")
+      !tolower(method) %in%
+        c("tsne", "hssne", "tee", "largevis", "umap", "tumap")
   ) {
-    stop("neighbors requires Barnes-Hut t-SNE, HSSNE, TEE, LargeVis, or t-UMAP")
+    stop(
+      "neighbors requires Barnes-Hut t-SNE, HSSNE, TEE, LargeVis, UMAP, or t-UMAP"
+    )
   }
   if (!is.null(nn)) {
     stop("Leave nn unset when supplying neighbors")
   }
-  kernel <- if (is.null(inp_kernel)) "nngaussian" else tolower(inp_kernel)
-  kernels <- c("knn", "nngaussian")
-  if (tolower(method) == "tumap") {
-    kernels <- c(kernels, "skd")
-  }
+  kernels <- switch(
+    tolower(method),
+    umap = "skd",
+    tumap = c("nngaussian", "knn", "skd"),
+    c("nngaussian", "knn")
+  )
+  kernel <- if (is.null(inp_kernel)) kernels[1L] else tolower(inp_kernel)
   if (length(kernel) != 1L || !kernel %in% kernels) {
     stop(
-      "neighbors requires inp_kernel = 'knn', 'nngaussian', or 'skd' for t-UMAP"
+      "neighbors requires inp_kernel = ",
+      paste(shQuote(kernels), collapse = " or ")
     )
   }
   if (!is.numeric(perplexity) || length(perplexity) != 1L) {

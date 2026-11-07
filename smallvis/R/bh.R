@@ -127,6 +127,35 @@ bhlargevis <- function(
   )
 }
 
+bhumap <- function(
+  perplexity,
+  inp_kernel = "skd",
+  symmetrize = "umap",
+  spread = 1,
+  min_dist = 0.001,
+  gr_eps = 0.1,
+  eps = 1e-9,
+  row_weight = NULL,
+  n_threads = 0,
+  theta = 0.5,
+  nn = "approximate"
+) {
+  bh_bernoulli(
+    perplexity,
+    inp_kernel,
+    symmetrize,
+    gr_eps,
+    eps,
+    row_weight,
+    n_threads,
+    theta,
+    nn,
+    spread = spread,
+    min_dist = min_dist,
+    student = FALSE
+  )
+}
+
 bhtumap <- function(
   perplexity,
   inp_kernel = "nngaussian",
@@ -138,30 +167,67 @@ bhtumap <- function(
   theta = 0.5,
   nn = "approximate"
 ) {
+  bh_bernoulli(
+    perplexity,
+    inp_kernel,
+    symmetrize,
+    gr_eps,
+    eps,
+    row_weight,
+    n_threads,
+    theta,
+    nn,
+    student = TRUE
+  )
+}
+
+bh_bernoulli <- function(
+  perplexity,
+  inp_kernel,
+  symmetrize,
+  gr_eps,
+  eps,
+  row_weight,
+  n_threads,
+  theta,
+  nn,
+  student,
+  spread = 1,
+  min_dist = 0.001
+) {
+  label <- if (student) "t-UMAP" else "UMAP"
   if (
     !is.numeric(gr_eps) ||
       length(gr_eps) != 1L ||
       !is.finite(gr_eps) ||
       gr_eps < 0
   ) {
-    stop("Barnes-Hut t-UMAP requires a finite nonnegative gr_eps")
+    stop("Barnes-Hut ", label, " requires a finite nonnegative gr_eps")
   }
   if (!is.numeric(eps) || length(eps) != 1L || !is.finite(eps) || eps <= 0) {
-    stop("Barnes-Hut t-UMAP requires a finite positive eps")
+    stop("Barnes-Hut ", label, " requires a finite positive eps")
   }
+  init <- bh_sparse_init(
+    perplexity,
+    inp_kernel,
+    symmetrize,
+    normalize = FALSE,
+    n_threads = n_threads,
+    nn = nn,
+    row_normalize = if (is.null(row_weight)) FALSE else row_weight,
+    kernels = if (student) c("nngaussian", "knn", "skd") else "skd"
+  )
   list(
     ndim = 2,
     gradient_only = gr_eps != 0,
-    init = bh_sparse_init(
-      perplexity,
-      inp_kernel,
-      symmetrize,
-      normalize = FALSE,
-      n_threads = n_threads,
-      nn = nn,
-      row_normalize = if (is.null(row_weight)) FALSE else row_weight,
-      kernels = c("nngaussian", "knn", "skd")
-    ),
+    init = if (student) {
+      init
+    } else {
+      function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
+        cost <- init(cost, X, max_iter, verbose, ret_extra)
+        init_ab(cost, spread = spread, min_dist = min_dist, verbose = verbose)
+      }
+    },
     cache_input = function(cost) {
       p <- cost$P@x
       # At P = W = 0 the two complement terms cancel.
@@ -172,7 +238,7 @@ bhtumap <- function(
     },
     pfn = function(cost, Y) {
       P <- cost$P
-      cost$pcost <- cost$Cp -
+      score <- if (student) {
         bh_tumap_score_cpp(
           P@i,
           P@p,
@@ -182,11 +248,25 @@ bhtumap <- function(
           n_threads,
           eps
         )
+      } else {
+        bh_umap_score_cpp(
+          P@i,
+          P@p,
+          P@x,
+          Y,
+          theta,
+          n_threads,
+          eps,
+          cost$a,
+          cost$b
+        )
+      }
+      cost$pcost <- cost$Cp - score
       cost
     },
     gr = function(cost, Y) {
       P <- cost$P
-      cost$G <- 4 *
+      G <- if (student) {
         bh_tumap_gradient_cpp(
           P@i,
           P@p,
@@ -197,6 +277,21 @@ bhtumap <- function(
           gr_eps,
           eps
         )
+      } else {
+        bh_umap_gradient_cpp(
+          P@i,
+          P@p,
+          P@x,
+          Y,
+          theta,
+          n_threads,
+          gr_eps,
+          eps,
+          cost$a,
+          cost$b
+        )
+      }
+      cost$G <- 4 * G
       cost
     },
     export = cost_export,

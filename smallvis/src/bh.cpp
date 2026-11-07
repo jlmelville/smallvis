@@ -60,13 +60,19 @@ struct LargeVisKernel : CauchyKernel {
   double eps;
 };
 
-struct TumapKernel : CauchyKernel {
-  TumapKernel(double gr_eps, double eps)
-      : stabilization(gr_eps + eps), eps(eps) {}
+template <bool Student> struct UmapKernel {
+  UmapKernel(double a, double b, double gr_eps, double eps)
+      : a(a), b(b), stabilization(gr_eps + eps), eps(eps) {}
+
+  double weight(double d2) const {
+    return Student ? CauchyKernel{}.weight(d2)
+                   : 1.0 / (1.0 + a * std::pow(d2, b));
+  }
 
   double slope(double d2) const {
-    // w / (1 - w + eps + gr_eps), with w = 1 / (1 + d2).
-    return 1.0 / (d2 + stabilization * (1.0 + d2));
+    // For t-UMAP, w / (1 - w + eps + gr_eps), with w = 1 / (1 + d2).
+    return Student ? 1.0 / (d2 + stabilization * (1.0 + d2))
+                   : b / (d2 + stabilization);
   }
   double repulsive_force(double d2, double, double mass) const {
     return mass * slope(d2);
@@ -82,6 +88,8 @@ struct TumapKernel : CauchyKernel {
                : count * (std::log1p(eps) - std::log1p(eps - weight(d2)));
   }
 
+  double a;
+  double b;
   double stabilization;
   double eps;
 };
@@ -338,7 +346,8 @@ NumericMatrix bh_tumap_gradient_cpp(const IntegerVector &indices,
                                     double theta, int n_threads, double gr_eps,
                                     double eps) {
   return bh_gradient<false>(indices, indptr, P_data, embedding, theta, 0.0,
-                            n_threads, TumapKernel(gr_eps, eps), 1.0);
+                            n_threads, UmapKernel<true>(1.0, 1.0, gr_eps, eps),
+                            1.0);
 }
 
 // [[Rcpp::export]]
@@ -348,5 +357,27 @@ double bh_tumap_score_cpp(const IntegerVector &indices,
                           const NumericMatrix &embedding, double theta,
                           int n_threads, double eps) {
   return bh_score(indices, indptr, P_data, embedding, theta, 0.0, n_threads,
-                  TumapKernel(0.0, eps), false, 1.0);
+                  UmapKernel<true>(1.0, 1.0, 0.0, eps), false, 1.0);
+}
+
+// [[Rcpp::export]]
+NumericMatrix bh_umap_gradient_cpp(const IntegerVector &indices,
+                                   const IntegerVector &indptr,
+                                   const NumericVector &P_data,
+                                   const NumericMatrix &embedding, double theta,
+                                   int n_threads, double gr_eps, double eps,
+                                   double a, double b) {
+  return bh_gradient<false>(indices, indptr, P_data, embedding, theta, 0.0,
+                            n_threads, UmapKernel<false>(a, b, gr_eps, eps),
+                            1.0);
+}
+
+// [[Rcpp::export]]
+double bh_umap_score_cpp(const IntegerVector &indices,
+                         const IntegerVector &indptr,
+                         const NumericVector &P_data,
+                         const NumericMatrix &embedding, double theta,
+                         int n_threads, double eps, double a, double b) {
+  return bh_score(indices, indptr, P_data, embedding, theta, 0.0, n_threads,
+                  UmapKernel<false>(a, b, 0.0, eps), false, 1.0);
 }

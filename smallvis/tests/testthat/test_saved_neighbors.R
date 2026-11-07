@@ -28,7 +28,7 @@ test_that("all Barnes-Hut methods can calibrate the supplied graph without searc
     kernel = c("knn", "nngaussian"),
     stringsAsFactors = FALSE
   )
-  cases <- rbind(cases, data.frame(method = "tumap", kernel = "skd"))
+  cases <- rbind(cases, data.frame(method = c("umap", "tumap"), kernel = "skd"))
   expected <- lapply(seq_len(nrow(cases)), function(i) {
     run(cases$method[i], cases$kernel[i], fixture$D, nn = "exact")
   })
@@ -161,6 +161,46 @@ test_that("exact Barnes-Hut t-UMAP matches the dense objective on the saved grap
   }
 })
 
+test_that("exact Barnes-Hut UMAP matches dense cost and gradient on a saved graph", {
+  fixture <- saved_neighbors_fixture()
+  Y <- cbind(sin(seq_len(24)), cos(seq_len(24))) / 3
+  for (min_dist in c(0.001, 0.5)) {
+    method <- list("umap", min_dist = min_dist, gr_eps = 0)
+    local({
+      prepare <- function(X, bh, ...) {
+        smallvis_run(
+          X,
+          method = method,
+          bh = bh,
+          perplexity = 4.5,
+          theta = 0,
+          eps = 1e-5,
+          prepare_only = TRUE,
+          epoch_callback = FALSE,
+          verbose = FALSE,
+          ...
+        )$cost_fn
+      }
+      dense <- prepare(fixture$D, FALSE)
+      local_mocked_bindings(get_nn = function(...) stop("neighbor search ran"))
+      bh <- prepare(fixture$X, TRUE, neighbors = fixture$graph)
+      expect_identical(bh$a, dense$a)
+      expect_identical(bh$b, dense$b)
+      expect_equal(as.matrix(bh$P), dense$P, tolerance = 1e-12)
+      expect_equal(
+        cost_grad(bh, Y)$G,
+        cost_grad(dense, Y)$G,
+        tolerance = 1e-12
+      )
+      expect_equal(
+        cost_point(bh, Y)$pcost,
+        sum(cost_point(dense, Y)$pcost),
+        tolerance = 1e-12
+      )
+    })
+  }
+})
+
 test_that("invalid saved graphs and incompatible options fail before search", {
   fixture <- saved_neighbors_fixture()
   local_mocked_bindings(get_nn = function(...) stop("neighbor search ran"))
@@ -238,7 +278,7 @@ test_that("saved neighbors cover every active stage before optimization starts",
   expect_true(all(is.finite(stepped)))
 })
 
-test_that("saved t-UMAP neighborhoods cover the whole smooth kNN schedule", {
+test_that("saved smooth kNN neighborhoods cover the whole schedule", {
   fixture <- saved_neighbors_fixture()
   args <- list(
     X = fixture$X,
@@ -257,6 +297,12 @@ test_that("saved t-UMAP neighborhoods cover the whole smooth kNN schedule", {
     local_mocked_bindings(smooth_knn_distances = function(...) {
       stop("calibration ran")
     })
+    expect_error(
+      do.call(smallvis_perpstep, c(args, list(step_iter = 1))),
+      "Perplexity 8 .* requires 7"
+    )
+    args$method <- list("umap", perplexity = 4.5)
+    args$inp_kernel <- NULL
     expect_error(
       do.call(smallvis_perpstep, c(args, list(step_iter = 1))),
       "Perplexity 8 .* requires 7"
