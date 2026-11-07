@@ -83,9 +83,19 @@ ee <- function(
 }
 
 
+validate_tee_lambda <- function(lambda) {
+  if (
+    !is.numeric(lambda) ||
+      length(lambda) != 1L ||
+      !is.finite(lambda) ||
+      lambda <= 0
+  ) {
+    stop("TEE requires a finite positive scalar lambda")
+  }
+}
+
 # t-Distributed Elastic Embedding
-# EE-like cost function in terms of I-Divergence
-# Scaled to give a gradient similar in form to t-SNE
+# I-divergence from the input weights to lambda times the output weights.
 tee <- function(
   perplexity,
   inp_kernel = "gaussian",
@@ -95,6 +105,7 @@ tee <- function(
   n_threads = 0,
   use_cpp = FALSE
 ) {
+  validate_tee_lambda(lambda)
   lreplace(
     tsne(
       perplexity = perplexity,
@@ -122,11 +133,15 @@ tee <- function(
       cost$gradconst <- 4 * cost$invN
       cost$lambda <- lambda
 
-      V[V < eps] <- eps
+      # Zero input weights contribute zero to V * log(V).
+      logV <- V
+      logV[V == 0] <- 1
+      cost$plogp <- colSums(V * log(logV))
       cost$constV <- cost$invN *
-        (colSums(V * logm(V, eps)) - lambda * colSums(V))
+        (cost$plogp - (1 + log(lambda)) * colSums(V))
       cost
     },
+    cache_input = NULL,
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
       cost$G <- k2g(

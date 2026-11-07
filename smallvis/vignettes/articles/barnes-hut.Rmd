@@ -54,8 +54,7 @@ describe these controls.
 
 You can also use `method = list("hssne", alpha = 0.5)` or `method = list("tee", lambda = 0.01)`
 with `"knn"` or `"nngaussian"` affinities. HSSNE changes the tail of the output kernel. TEE keeps
-the t-SNE kernel and uses a fixed repulsion multiplier. The TEE cost can go below zero, so set
-`min_cost = -Inf` to run past that point.
+the t-SNE kernel and uses a fixed repulsion multiplier.
 
 If you already have a neighbor graph, pass its `idx` and `dist` matrices in a list as
 `neighbors = graph` and leave `nn` unset. With `"nngaussian"`, a perplexity of 30 takes 90

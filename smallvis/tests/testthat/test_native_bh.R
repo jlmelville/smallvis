@@ -373,10 +373,46 @@ test_that("new Barnes-Hut methods match dense updates on the same sparse graph",
       expect_equal(as.matrix(exact$P), dense$P, tolerance = 1e-12)
       expect_equal(exact$Y, dense$Y, tolerance = 1e-12)
       expect_equal(exact$costs, sum(dense$costs), tolerance = 1e-12)
+      if (method[[1L]] == "tee") {
+        P <- as.matrix(exact$P)
+        W <- 1 / (1 + as.matrix(stats::dist(exact$Y))^2)
+        diag(W) <- 0
+        Q <- method$lambda * W
+        used <- P > 0
+        expected <- (sum(P[used] * log(P[used] / Q[used])) +
+          sum(Q) -
+          sum(P)) /
+          sum(P)
+        expect_equal(exact$costs, expected, tolerance = 1e-12)
+      }
       approximate <- fit(TRUE, theta = 0.7)
       expect_true(all(is.finite(approximate$Y)))
       expect_true(is.finite(approximate$costs))
     }
+  }
+})
+
+test_that("TEE has zero cost when scaled output weights equal input weights", {
+  X <- cbind(0:1, 0)
+  for (bh in c(FALSE, TRUE)) {
+    run <- function(lambda) {
+      smallvis(
+        X,
+        method = list("tee", lambda = lambda),
+        bh = bh,
+        inp_kernel = "knn",
+        perplexity = 1,
+        Y_init = X,
+        theta = 0,
+        max_iter = 0,
+        ret_extra = TRUE,
+        epoch_callback = FALSE,
+        verbose = FALSE
+      )
+    }
+    expect_equal(sum(run(2)$costs), 0, tolerance = 1e-14)
+    expect_error(run(0), "TEE requires a finite positive scalar lambda")
+    expect_error(run(-1), "TEE requires a finite positive scalar lambda")
   }
 })
 

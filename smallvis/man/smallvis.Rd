@@ -520,8 +520,10 @@ Some parameters are available for all (nor nearly all) methods.
    }
    \item \code{"tEE"}
    \itemize{
-   \item{\code{lambda}} Weighting term for the repulsive versus attractive
-    forces. Default is \code{0.01}.
+   \item{\code{lambda}} Finite positive repulsion weight. Default is
+    \code{0.01}. The cost is the I-divergence from the input weights to
+    \code{lambda} times the output weights, divided by the sum of the
+    input weights.
    }
    \item \code{"NeRV"}
    \itemize{

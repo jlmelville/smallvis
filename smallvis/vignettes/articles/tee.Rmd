@@ -103,6 +103,10 @@ small: visually the output shows over-compressed clusters compared to a t-SNE
 result. So this version of the cost function may be superior for helping to
 at least set a lower bound on $\lambda$.
 
+The figures below use that cost. In current smallvis, the comparison is with the scaled output
+weights $\lambda w_{ij}$. This adds $\lambda - 1 - \log \lambda$ to the expression above and
+gives the usual nonnegative I-divergence with the same gradient.
+
 ### Gradient
 
 Whichever version of the cost function you prefer the gradient of t-EE with
@@ -313,8 +317,7 @@ iris_tee_p5 <- smallvis(
 )
 ```
 
-Note that because the cost is not bounded by zero, you must set the `min_cost`
-parameter. It's most convenient to set it to `-Inf`.
+I used `min_cost = -Inf` here because the original cost could go below zero.
 
 Values for `lambda` will be varied between `0.001` and `0.5`. On the plots
 below, both `lambda` and the t-EE error (I-divergence style) will be shown.

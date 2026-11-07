@@ -35,9 +35,7 @@ bhtee <- function(
   theta = 0.5,
   nn = "approximate"
 ) {
-  if (!is.numeric(lambda) || length(lambda) != 1L || !is.finite(lambda)) {
-    stop("Barnes-Hut TEE requires a finite scalar lambda")
-  }
+  validate_tee_lambda(lambda)
   bh_sne(
     perplexity,
     inp_kernel,
@@ -99,13 +97,16 @@ bh_sne <- function(
       cost
     },
     cache_input = function(cost) {
-      # TEE keeps the input-only term at the original affinity scale.
-      if (!normalize && !is.null(cost$constant)) {
+      P <- cost$P
+      if (!normalize) {
+        # Keep the input-only term at the original affinity scale.
+        if (is.null(cost$constant)) {
+          cost$constant <- cost$invN * sum(P@x * log(P@x)) - 1 - log(lambda)
+        }
         return(cost)
       }
-      # The dense objectives floor the input-only terms. Count implicit
+      # Dense HSSNE floors the input-only terms. Count implicit
       # zeros analytically so that flooring never fills the sparse matrix.
-      P <- cost$P
       n <- nrow(P)
       values <- pmax(P@x, eps)
       missing <- n * (n - 1.0) - length(values)
@@ -113,10 +114,7 @@ bh_sne <- function(
       if (eps > 0) {
         constant <- constant + missing * eps * log(eps)
       }
-      if (!normalize) {
-        constant <- constant - lambda * (sum(values) + (missing + n) * eps)
-      }
-      cost$constant <- constant * cost$invN
+      cost$constant <- constant
       cost
     },
     pfn = function(cost, Y) {
