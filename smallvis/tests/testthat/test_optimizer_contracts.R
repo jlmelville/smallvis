@@ -24,9 +24,9 @@ test_that("AdaMax retains an elementwise recurrence and safeguards zero gradient
   }
 })
 
-test_that("line searches reject stabilized forces before neighbor search", {
-  local_mocked_bindings(get_nn = function(...) stop("neighbor search ran"))
-  for (method in c("umap", "tumap", "largevis")) {
+test_that("line searches reject unmatched forces before input calibration", {
+  local_mocked_bindings(sne_init = function(...) stop("input calibration ran"))
+  for (method in c("umap", "tumap", "largevis", "usne", "pstsne")) {
     expect_error(
       smallvis(
         iris10,
@@ -37,8 +37,110 @@ test_that("line searches reject stabilized forces before neighbor search", {
         epoch_callback = FALSE,
         verbose = FALSE
       ),
-      "requires a matching objective and gradient.*gr_eps = 0"
+      "requires a matching objective and gradient.*gradient-only optimizer"
     )
+  }
+})
+
+test_that("unstabilized USNE matches its independent scalar derivative", {
+  set.seed(42)
+  X <- matrix(rnorm(24 * 4), 24)
+  Y <- matrix(rnorm(48), 24)
+  direction <- Y / sqrt(sum(Y * Y))
+  for (min_dist in c(0.001, -0.5)) {
+    cost <- cost_init(
+      usne(perplexity = 4, gr_eps = 0, min_dist = min_dist),
+      X,
+      max_iter = 2
+    )
+    scalar <- function(Y) {
+      W <- 1 / (1 + cost$a * as.matrix(stats::dist(Y))^(2 * cost$b))
+      diag(W) <- 0
+      Q <- W / sum(W)
+      used <- cost$P > 0
+      sum(cost$P[used] * log(cost$P[used] / Q[used]))
+    }
+    G <- cost_grad(cost_clear(cost), Y)$G
+    expect_true(all(is.finite(G)))
+    expect_equal(sum(cost_point(cost_clear(cost), Y)$pcost), scalar(Y))
+    for (h in c(1e-3, 1e-4, 1e-5, 1e-6)) {
+      numeric <- (scalar(Y + h * direction) - scalar(Y - h * direction)) /
+        (2 * h)
+      expect_equal(sum(G * direction), numeric, tolerance = 1e-5)
+    }
+    fit <- smallvis(
+      X,
+      method = list("usne", gr_eps = 0, min_dist = min_dist),
+      scale = FALSE,
+      perplexity = 4,
+      Y_init = Y,
+      opt = list("l-bfgs"),
+      max_iter = 2,
+      ret_extra = TRUE,
+      epoch_callback = FALSE,
+      verbose = FALSE
+    )
+    expect_true(all(is.finite(fit$Y)))
+    expect_true(all(is.finite(fit$costs)))
+  }
+})
+
+test_that("USNE handles coincident pairs only where its kernel is differentiable", {
+  X <- matrix(sin(seq_len(96)^2), 24, 4)
+  Y <- cbind(sin(1:24), cos(1:24))
+  Y[1:2, ] <- 0
+  cost <- cost_init(usne(perplexity = 4, gr_eps = 0), X, max_iter = 2)
+  expect_gt(unname(cost$b), 0.5)
+  G <- cost_grad(cost_clear(cost), Y)$G
+  expect_true(all(is.finite(G)))
+  direction <- matrix(sin(seq_len(48)), 24)
+  direction <- direction / sqrt(sum(direction^2))
+  scalar <- function(Y) sum(cost_point(cost_clear(cost), Y)$pcost)
+  for (h in c(1e-4, 1e-5, 1e-6)) {
+    numeric <- (scalar(Y + h * direction) - scalar(Y - h * direction)) /
+      (2 * h)
+    expect_equal(sum(G * direction), numeric, tolerance = 1e-5)
+  }
+  run <- function(gr_eps, min_dist = 0.001) {
+    smallvis(
+      X,
+      method = list("usne", gr_eps = gr_eps, min_dist = min_dist),
+      scale = FALSE,
+      perplexity = 4,
+      Y_init = Y,
+      opt = list("adam", eta = 0.001),
+      max_iter = 2,
+      epoch_callback = FALSE,
+      verbose = FALSE
+    )
+  }
+  expect_true(all(is.finite(run(0))))
+  expect_error(run(0, -0.5), "not differentiable at coincident coordinates")
+  expect_true(all(is.finite(run(0.1, -0.5))))
+})
+
+test_that("USNE and pseudo-separable t-SNE retain gradient-only optimization", {
+  X <- matrix(sin(seq_len(96)^2), 24, 4)
+  Y <- cbind(sin(1:24), cos(1:24))
+  for (method in c("usne", "pstsne")) {
+    fit <- smallvis(
+      X,
+      method = method,
+      scale = FALSE,
+      perplexity = 4,
+      Y_init = Y,
+      opt = list("adam", eta = 0.001),
+      max_iter = 3,
+      epoch = 1,
+      tol = 0,
+      min_cost = -Inf,
+      ret_extra = TRUE,
+      epoch_callback = FALSE,
+      verbose = FALSE
+    )
+    expect_equal(fit$iter, 3)
+    expect_true(all(is.finite(fit$Y)))
+    expect_true(all(is.finite(fit$costs)))
   }
 })
 

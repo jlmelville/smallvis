@@ -1,11 +1,12 @@
 # smallvis correctness, cleanup, and allocation follow-up
 
-**Status: phases 1–3 complete and ready to commit; phase 4 authorized.** The user requested that the
+**Status: phase 4 in progress; phases 1–3 committed.** The user requested that the
 [second repository review](smallvis-repository-review-2026-11-06.md) be saved and converted into
 a phased plan on 2026-11-06, then explicitly authorized phases 1, 2, and 3 in sequence. Source and
-test changes have passed their recorded checks. The user has now requested a commit of this work,
-then implementation of phase 4, with commits after completed changes. Next: commit phases 1–3,
-then address optimizer compatibility and dynamic HSSNE state. Phases 5–7 remain pending.
+test changes for phases 1–3 are committed as `a81ef3e`. The user requested implementation of phase 4
+with commits after completed changes. USNE/pseudo-separable optimizer contracts now pass validation
+and are ready to commit. Next: commit that change, then fix dynamic HSSNE state. Phases 5–7 remain
+pending.
 
 **Baseline:** `e65bcbaf6b71669c92efe75cfdd595739e894a31`, with a clean worktree before saving these
 documents. The earlier [correctness plan](smallvis-correctness-implementation-plan.md) is complete
@@ -365,6 +366,38 @@ incompatible combinations fail before expensive work. Dynamic HSSNE never admits
 candidate and never uses weights from a prior alpha. Preserve ordinary optimizer and exaggeration
 regressions. Keep any helper extraction limited to the lifecycle responsibility it resolves.
 
+Implementation is split into two commits: force/objective compatibility, then dynamic HSSNE
+transitions. Existing USNE coverage uses a tiny positive stabilizer rather than zero, and existing
+compatibility coverage omits USNE and pseudo-separable t-SNE. New regressions must distinguish
+both missing flags and diagonal NaNs. For the UMAP kernel, coincident-pair forces tend to zero
+only when `b > 0.5`; negative `min_dist = -0.5`, currently accepted by curve fitting, produces
+`b` near 0.426 and provides a real non-differentiable public configuration to reject at coincidence.
+
+### Phase 4 force/objective compatibility checkpoint, 2026-11-06
+
+USNE now marks stabilized forces as gradient-only, and pseudo-separable t-SNE always uses that
+restriction. The common rejection diagnostic recommends an applicable gradient-only optimizer
+without suggesting the nonexistent `gr_eps` option for pseudo-separable t-SNE. Rejection occurs
+before input calibration. Both methods retain finite Adam runs.
+
+Unstabilized USNE zeros self-force coefficients explicitly. Coincident non-self pairs receive their
+zero-force limit only for `b > 0.5`; otherwise the derivative is undefined and the gradient reports
+an explanatory error. Independent normalized-kernel scalar checks agree with the finite gradient
+at steps `1e-3`, `1e-4`, `1e-5`, and `1e-6`, including a fitted `b < 0.5` away from coincidence.
+Differentiable coincident configurations also pass derivative checks and public optimization.
+
+The unchanged default mismatches were repeated at all four steps: USNE force 0.03768988 versus
+scalar derivative 0.03326312; pseudo-separable t-SNE force 0.1411800 versus 0.1915116. These remain
+intentional gradient-only experiments; no surrogate objective was added.
+
+Validation: 442 focused expectations and 1400 full-suite expectations passed without failures,
+warnings, or skips. A fresh `R CMD check --no-manual` completed with Status OK. Air and lintr pass.
+Function help was regenerated with roxygen 8.1.0; the second pass was idempotent. The package check
+used installed dependencies because the CRAN index was unavailable, as in earlier phases.
+Artifacts are `/tmp/smallvis-phase4a-{focused,tests,lint,directional,roxygen}.log` and
+`/tmp/smallvis-phase4a-check-1lujw9_q`. This checkpoint is ready for its own commit; dynamic HSSNE
+is not yet corrected.
+
 ## Phase 5. Finish control forwarding and remove confirmed leftovers
 
 Work in `R/sne.R`, `R/absne.R`, `R/fdiv.R`, `R/perplexity.R`, and `R/util.R`.
@@ -516,6 +549,6 @@ resolution of the existing failure.
 
 Phases 1–3 are implemented and validated as recorded above. Their regressions distinguish the
 original native, calibration, scalar, stopping, input, neighbor, and multiscale failures. These
-changes are ready for the user-requested commit. Phase 3 regenerated the function help. Phase 4
-is now authorized but has not started. Phases 5–7, benchmarks, workflows, generated bridges, and
+changes are committed as `a81ef3e`. Phase 3 regenerated the function help. Phase 4
+is in progress. Phases 5–7, benchmarks, workflows, generated bridges, and
 site output are untouched.

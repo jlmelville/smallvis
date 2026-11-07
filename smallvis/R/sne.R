@@ -637,6 +637,7 @@ pstsne <- function(
       use_cpp = use_cpp,
       n_threads = n_threads
     ),
+    gradient_only = TRUE,
     init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       ret_extra <- unique(c(ret_extra, "V"))
       cost <- sne_init(
@@ -738,6 +739,7 @@ usne <- function(
       use_cpp = use_cpp,
       n_threads = n_threads
     ),
+    gradient_only = gr_eps != 0,
     init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       cost <- sne_init(
@@ -775,11 +777,23 @@ usne <- function(
     },
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
+      K <- cost$b * (1 - cost$W) / (cost$D2 + gr_eps)
+      diag(K) <- 0
+      if (gr_eps == 0) {
+        coincident <- cost$D2 == 0
+        diag(coincident) <- FALSE
+        if (cost$b <= 0.5 && any(coincident)) {
+          stop(
+            "USNE with gr_eps = 0 is not differentiable at coincident ",
+            "coordinates when the fitted kernel exponent b <= 0.5; ",
+            "use gr_eps > 0 with a gradient-only optimizer."
+          )
+        }
+        K[coincident] <- 0
+      }
       cost$G <- k2g(
         Y,
-        4 *
-          (cost$b * (1 - cost$W) / (cost$D2 + gr_eps)) *
-          (cost$P - cost$W / cost$Z)
+        4 * K * (cost$P - cost$W / cost$Z)
       )
       cost
     }

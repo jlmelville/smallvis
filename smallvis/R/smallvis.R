@@ -413,9 +413,14 @@
 #' optimization methods use comparable to the default settings.
 #'
 #' Function-based optimizers require a matching objective and gradient.
-#' For UMAP, t-UMAP, and LargeVis, set method option \code{gr_eps = 0};
+#' For UMAP, t-UMAP, LargeVis, and USNE, set method option \code{gr_eps = 0};
 #' their default stabilized forces require a gradient-only optimizer. Early
 #' and late exaggeration also require a gradient-only optimizer.
+#' Pseudo-separable t-SNE (\code{"pstsne"}) requires a gradient-only optimizer
+#' because its approximate forces do not differentiate its reported objective.
+#' With \code{gr_eps = 0}, USNE assigns zero force to coincident pairs only
+#' when its fitted kernel exponent \code{b > 0.5}; otherwise the kernel is
+#' not differentiable at coincidence and an error is reported.
 #'
 #' See the examples for the use of alternative optimizers interface. For best
 #' results, you may also consider using the \code{\link{smallvis_perpstep}}
@@ -1142,8 +1147,8 @@ smallvis_run <- function(
       "Optimizer '",
       opt$name,
       "' requires a matching objective and gradient. ",
-      "Set method option gr_eps = 0, or use a gradient-only optimizer ",
-      "such as 'dbd' or 'adam' with stabilized forces."
+      "Use a gradient-only optimizer such as 'dbd' or 'adam' for this ",
+      "method configuration."
     )
   }
 
