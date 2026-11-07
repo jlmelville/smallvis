@@ -1,15 +1,16 @@
 # smallvis correctness, cleanup, and allocation follow-up
 
-**Status: phases 1–6 complete; phase 7 pending.** The user requested that the
+**Phases 1–7 are complete.** The user requested that the
 [second repository review](smallvis-repository-review-2026-11-06.md) be saved and converted into
 a phased plan on 2026-11-06, then explicitly authorized phases 1, 2, and 3 in sequence. Source and
 test changes for phases 1–3 are committed as `a81ef3e`. The user requested implementation of phase 4
 with commits after completed changes. USNE/pseudo-separable optimizer contracts are committed as
 `817a608`; the dynamic HSSNE fix is committed as `1a5bed0`. The user authorized phase 5.
 The backend-forwarding correction is committed as `e9fc703`; the unused-code cleanup is committed
-as `9e5de8d`. Phase 6's validated native allocation changes are committed as `198e84b`, with
-comparative measurements and the revised benchmark harness recorded below. Next: await direction
-on phase 7, native CI and final review reconciliation.
+as `9e5de8d`. The native allocation changes are committed as `198e84b` and the measurements as
+`b5a598c`. The final implementation and help revision is
+`426f43334dbbfae8c20c59b26a5e579f2f5f7be7`. The phase 7 record below distinguishes local
+validation from pending hosted execution.
 
 **Baseline:** `e65bcbaf6b71669c92efe75cfdd595739e894a31`, with a clean worktree before saving these
 documents. The earlier [correctness plan](smallvis-correctness-implementation-plan.md) is complete
@@ -41,31 +42,30 @@ remain outside scope.
 
 ## Review disposition
 
-The correctness observations were reproduced during the review against the baseline above.
-Cleanup observations came from source and consumer inspection. Phase 6 now pairs calculated buffer
-sizes with comparative timing and process RSS measurements. Phase completion requires fresh
-evidence against the implementation revision.
+The [saved review](smallvis-repository-review-2026-11-06.md) records the baseline findings.
+The dispositions below reflect the implemented changes and their validation. Phase 6 pairs
+calculated buffer sizes with comparative timing and process RSS measurements.
 
 | Review item | Disposition | Completion evidence |
 | --- | --- | --- |
-| 1. Barnes-Hut nontermination | Phase 1 | Bounded public probe, exact reference, native sanitizers |
-| 2. AB-SNE scalar objectives | Phase 2 | Independent scalar formulas, zero identity, stopping regression |
-| 3. EE and g-SNE input equivalence | Phase 3 | Equal constructed quantities, objectives, and gradients |
-| 4. Gaussian calibration boundaries | Phase 1 | Finite non-self fallback and warnings in R and native paths |
-| 5. USNE and pseudo-separable line searches | Phase 4 | Matched derivative or early rejection; finite USNE diagonal |
-| 6. Dynamic HSSNE transitions | Phase 4 | Valid candidates and fresh gradient after an accepted change |
-| 7. Multiscale combinations | Phase 3 | Supported results or deliberate early rejection |
-| 8. Self-neighbors and geodesic k = 1 | Phase 3 | Identity-based self exclusion and preserved dimensions |
-| Backend-control forwarding | Phase 5 | Public routing checks at ordinary and special parameter values |
-| Shadowed definition, unused helpers, argument typos | Phase 5 | Confirmed consumers, focused diff, preserved public behavior |
-| Native-warning test loop | Phase 1 | Each fixture reaches the public call and has its own assertions |
-| MDS and Student-weight copies | Phase 6 | Numerical equivalence, input ownership, comparative memory evidence |
-| Mathematical coverage across affected families | Phases 1–5 | Independent invariants attached to each correction |
-| Native harness CI | Phase 7 | Existing harnesses and new boundary case execute in a bounded job |
-| Retain the current architecture | All phases | Helpers serve demonstrated fixes; public surface stays stable |
-| Effective backend and stopping-reason fields | Excluded by user | Revisit only on a separate feature request |
-| Public affinities or neighbors | Excluded by user | Revisit only on a separate feature request |
-| Larger infrastructure and additional dimensions | Outside scope | Separate objective and evidence would be required |
+| 1. Barnes-Hut nontermination | Fixed in phase 1 | Terminal coordinate groups preserve counts and exact pair contributions. The timed public probe and sanitized harness pass. |
+| 2. AB-SNE scalar objectives | Fixed in phase 2 | Independent scalar references, zero divergence at equal distributions, and the formerly premature stop pass. |
+| 3. EE and g-SNE input equivalence | Fixed in phase 3 | Coordinates and distances agree on constructed quantities, objectives, gradients, and short runs. |
+| 4. Gaussian calibration boundaries | Fixed in phase 1 | R and native calibrators produce finite non-self fallbacks with the expected warnings for the boundary fixtures. |
+| 5. USNE and pseudo-separable line searches | Restricted in phase 4 | Unmatched forces require gradient-only optimizers. Unstabilized USNE differentiates the scalar on its supported domain. |
+| 6. Dynamic HSSNE transitions | Fixed in phase 4 | Candidate bounds hold, and the first cost and gradient after an accepted change match fresh state. |
+| 7. Multiscale combinations | Supported or rejected in phase 3 | Methods derive auxiliary weights from averaged P where defined. Unsupported bandwidth transfer fails before calibration. |
+| 8. Self-neighbors and geodesic k = 1 | Fixed in phase 3 | UMAP and geodesic selection exclude self by index. Geodesic k = 1 keeps valid dimensions and connectivity in the fixture. |
+| Backend-control forwarding | Fixed in phase 5 | Public tests exercise R/native routing, top-level and nested controls, and one/two threads. |
+| Shadowed definition, unused helpers, argument typos | Cleaned up in phase 5 | Removed confirmed leftovers, kept the active t-ASNE expression, and corrected named arguments in f-divergence constructors. |
+| Native-warning test loop | Fixed in phase 1 | Each fixture reaches the public call and checks fallback mass, self-weight, and warning behavior. |
+| MDS and Student-weight copies | Removed in phase 6 | Aliased inputs and numerical results agree. Kernel and embedding measurements report their different RSS outcomes. |
+| Mathematical coverage across affected families | Expanded in phases 1–6 | Independent scalar, force, normalization, transition, and boundary checks accompany the affected methods. |
+| Native harness CI | Configured in phase 7 | The existing workflow selects both harnesses, including the phase 1 tree boundary cases. Its shell step passed locally with ASan, UBSan, and leak detection. Hosted execution is pending. |
+| Retain the current architecture | Retained through phase 7 | The package still exports three functions and uses method-specific cost lists. |
+| Effective backend and stopping-reason fields | Excluded by user | Separate feature request. |
+| Public affinities or neighbors | Excluded by user | Separate feature request. |
+| Larger infrastructure and additional dimensions | Outside scope | Separate objective and evidence required. |
 
 ## Context and evidence to retain
 
@@ -710,7 +710,7 @@ BLIS_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 /usr/bin/time \
 Raw results, commands, compiler/source/DLL metadata, load/power snapshots, and build logs are under
 `/tmp/smallvis-phase6/{smoke,evidence,single-call}` and their adjacent metadata JSON files. The
 benchmark README documents dependencies, boundaries, and output policy. Raw files remain outside
-Git; the durable result is this source/reproduction/summary record. Phase 7 remains pending.
+Git. The source identities, reproduction commands, and summary here form the durable record.
 
 ## Phase 7. Automate native regressions and close the review
 
@@ -728,10 +728,52 @@ Git; the durable result is this source/reproduction/summary record. Phase 7 rema
 4. Record the final revision, results, remaining limitations, and any changed dispositions here.
    Mark implementation complete only when the admitted work and required evidence are complete.
 
-The phase 5 documentation cross-check found that the Barnes-Hut epsilon help still says points
-share a leaf only at identical coordinates. Clarify this during the final documentation pass:
-epsilon does not merge distinct coordinates; finite-resolution terminal leaves preserve separate
-coordinate groups. This reconciles the existing help with the phase 1 tree correction.
+### Phase 7 outcome and evidence, 2026-11-06
+
+Commit `f1ef37d` adds an independent Native sanitizers job to the existing R-CMD-check workflow.
+The pinned checkout sets `persist-credentials: false`. The job inherits read-only permissions,
+concurrency, and the existing push, pull-request, and manual triggers. It runs on every eligible
+push or pull request, including changes confined to a native source, either harness, or the
+workflow.
+The job compiles `tests/native/bh.cpp` and `tests/native/threads.cpp` with Clang C++17, ASan, UBSan,
+strict warnings, and fatal sanitizer diagnostics. Each binary has a 30-second timeout with a
+five-second kill grace period. The job has a five-minute limit and enables leak detection.
+Clang is listed on both Ubuntu images in the runner transition.
+[Ubuntu 24.04 inventory](https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md)
+and [Ubuntu 26.04 inventory](https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2604-Readme.md).
+
+The tree harness includes adjacent representable coordinates, duplicate counts, an overflowing
+extent, and destruction during exception unwinding. The threading harness checks partitioning
+and both startup and worker exceptions. The package suite also exercises the public tree cost and
+gradient against dense references. The exact CI shell step passed locally with leak detection
+enabled after running outside the sandbox's ptrace restriction.
+
+Commit `426f433` clarifies that epsilon stabilizes the Barnes-Hut normalizer and that terminal
+leaves keep distinct coordinate groups when floating-point precision limits subdivision. Roxygen
+8.1.0 generated the installed help. A temporary pkgdown 2.2.0 reference build rendered the
+corrected description from the checked source. The existing publishing workflow owns the
+committed site output.
+
+Final implementation revision `426f43334dbbfae8c20c59b26a5e579f2f5f7be7` was checked locally
+on Linux with R 4.5.2 and Rcpp 1.1.1.1.1. The closeout commit records evidence in this plan.
+
+| Check | Result |
+| --- | --- |
+| Full local and installed testthat suites | 1,740 expectations each, zero failures, warnings, or skips |
+| Fresh source build and `R CMD check --no-manual` | Status OK, zero errors, warnings, or notes |
+| Source identity | 63 R/C++ source, namespace, help, and test files match the checked archive byte for byte |
+| Air 0.12.0, lintr 3.4.0 with the loaded namespace, and whitespace | Pass |
+| Strict C++17 syntax checks | GCC 15.2 and Clang 21.1 pass all handwritten translation units with `-Wall -Wextra -Wpedantic -Werror` |
+| Native workflow shell step | Both harnesses pass Clang 21.1 ASan, UBSan, and leak detection |
+| Canonical GitHub Actions audit | Actionlint, zizmor, pin comments, and checkout credentials pass |
+| Roxygen and generated files | Idempotent second pass, synchronization check passes, only the intended Rd changes in phase 7 |
+| Local pkgdown reference preview | Corrected epsilon description renders without warnings |
+
+The check used installed dependencies because the CRAN index was unavailable. The native source
+and tests match phase 6's revision, so its full-package ASan/UBSan, focused TSan, Valgrind, and
+allocation comparisons still apply to those files. Hosted Actions execution and Windows package
+results remain pending. Local logs and the checked archive are under
+`/tmp/smallvis-phase7-check-zi1w0zy7` and `/tmp/smallvis-phase7-{tests,lint,roxygen}.log`.
 
 ## Validation and recovery
 
@@ -809,8 +851,8 @@ resolution of the existing failure.
 - Proposed method: use the existing compatibility mechanism to restrict unmatched line searches
   and reject undefined multiscale combinations. Rationale: these restore meaningful behavior
   without adding objectives or APIs. Date/author: 2026-11-06 / Codex.
-- Open implementation choices: the native CI job's placement. Resolve this within phase 7
-  using the stated witnesses; choosing a routine implementation does not expand the scope.
+- The native sanitizer job uses the existing R-CMD-check workflow so it shares the event policy
+  and runs independently of R package setup. Date/author: 2026-11-06 / Codex.
 
 ## Progress and outcomes
 
@@ -821,12 +863,4 @@ resolution of the existing failure.
 - [x] Phase 4: optimizer compatibility and dynamic HSSNE state.
 - [x] Phase 5: backend controls and cleanup.
 - [x] Phase 6: native allocations and comparative measurements.
-- [ ] Phase 7: native CI, integration checks, and review reconciliation.
-
-Phases 1–6 are implemented and validated as recorded above. Their regressions distinguish the
-original native, calibration, scalar, stopping, input, neighbor, multiscale, optimizer, and dynamic
-state and backend-control failures, and preserve native input ownership and output values after
-buffer removal. Confirmed unused internals have been removed. The adapted benchmark records local
-kernel and whole-embedding comparisons, with unchanged whole-embedding RSS stated explicitly.
-Completed changes follow the user's commit-after-each-change instruction. Phase 7 remains pending;
-workflows, generated bridges, and site output are unchanged.
+- [x] Phase 7: native CI, integration checks, and review reconciliation.
