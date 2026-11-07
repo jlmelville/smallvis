@@ -101,9 +101,9 @@ options</a> reference lists the available controls.</p>
 </h2>
 <p>The default is the delta-bar-delta scheme familiar from t-SNE. The
 <code>opt</code> argument also accepts optimizers provided through <a href="https://github.com/jlmelville/mize" class="external-link">mize</a>, with options
-supplied in a list. For UMAP, t-UMAP, and LargeVis, function-based line
-searches require <code>gr_eps = 0</code> so the gradient matches the
-objective used by the search:</p>
+supplied in a list. For UMAP, t-UMAP, LargeVis, and USNE, function-based
+line searches require <code>gr_eps = 0</code> so the gradient matches
+the objective used by the search:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">umap_fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/smallvis.html">smallvis</a></span><span class="op">(</span></span>
 <span>  <span class="va">iris</span>,</span>
@@ -118,6 +118,12 @@ objective used by the search:</p>
 <span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">umap_fit</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## [1] 150   2</span></span></code></pre>
+<p>Pseudo-separable t-SNE (<code>pstsne</code>) and dynamic HSSNE
+(<code>dhssne</code>) require a gradient-only optimizer such as Adam or
+the default delta-bar-delta. The former uses approximate forces; the
+latter changes alpha between steps, invalidating the objective data
+retained by function-based optimizers. Use <code>hssne</code> when you
+want to optimize at a fixed alpha with a line search.</p>
 <p>The <a href="../reference/smallvis.html#alternative-optimizers">alternative
 optimizers</a> reference gives the supported settings. Longer
 experiments compare <a href="opt.html">L-BFGS</a>, <a href="cg.html">conjugate gradient</a>, <a href="specd.html">spectral

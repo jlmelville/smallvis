@@ -87,7 +87,8 @@ don’t want to commit to, so I suggest a simpler method:</p>
 <li><p>At every epoch, calculate the error for the current coordinates
 at the current value of <span class="math inline">\alpha</span>. This
 already happens anyway if <code>verbose = TRUE</code>.</p></li>
-<li><p>Repeat the error calculation at a value of <span class="math inline">\alpha \pm 0.1</span>, e.g. if <span class="math inline">\alpha = 0.5</span> also look at <span class="math inline">\alpha = 0.4</span> and <span class="math inline">\alpha = 0.6</span>. Obviously, we won’t let <span class="math inline">\alpha \lt 0</span>.</p></li>
+<li><p>Repeat the error calculation at a value of <span class="math inline">\alpha \pm 0.1</span>, e.g. if <span class="math inline">\alpha = 0.5</span> also look at <span class="math inline">\alpha = 0.4</span> and <span class="math inline">\alpha = 0.6</span>. Candidates must satisfy <span class="math inline">\alpha \ge 10^{-8}</span>, the implementation’s
+positive lower bound.</p></li>
 <li><p>If either of these values of <span class="math inline">\alpha</span> give a lower error, switch to the
 value of <span class="math inline">\alpha</span> that most reduced the
 error and continue the optimization.</p></li>

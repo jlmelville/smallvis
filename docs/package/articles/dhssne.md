@@ -31,8 +31,9 @@ so I suggest a simpler method:
     `verbose = TRUE`.
 
 2.  Repeat the error calculation at a value of \alpha \pm 0.1, e.g. if
-    \alpha = 0.5 also look at \alpha = 0.4 and \alpha = 0.6. Obviously,
-    we won’t let \alpha \lt 0.
+    \alpha = 0.5 also look at \alpha = 0.4 and \alpha = 0.6. Candidates
+    must satisfy \alpha \ge 10^{-8}, the implementation’s positive lower
+    bound.
 
 3.  If either of these values of \alpha give a lower error, switch to
     the value of \alpha that most reduced the error and continue the
