@@ -43,3 +43,28 @@ jobs:
           working-directory: smallvis
           args: 'c("--no-manual")'
           error-on: '"warning"'
+
+  native-sanitizers:
+    name: Native sanitizers
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check Barnes-Hut and threading harnesses
+        working-directory: smallvis
+        shell: bash
+        env:
+          ASAN_OPTIONS: detect_leaks=1
+          UBSAN_OPTIONS: print_stacktrace=1
+        run: |
+          clang++ --version
+          for harness in bh threads; do
+            echo "Checking ${harness}"
+            binary="${RUNNER_TEMP}/smallvis-${harness}"
+            clang++ -std=c++17 -O1 -g -pthread -Wall -Wextra -Wpedantic -Werror \
+              -fsanitize=address,undefined -fno-sanitize-recover=all \
+              -fno-omit-frame-pointer "tests/native/${harness}.cpp" -o "$binary"
+            timeout --kill-after=5s 30s "$binary"
+          done
