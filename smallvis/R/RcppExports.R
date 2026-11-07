@@ -25,6 +25,14 @@ bh_largevis_score_cpp <- function(indices, indptr, P_data, embedding, theta, n_t
     .Call(`_smallvis_bh_largevis_score_cpp`, indices, indptr, P_data, embedding, theta, n_threads, gamma, eps)
 }
 
+bh_tumap_gradient_cpp <- function(indices, indptr, P_data, embedding, theta, n_threads, gr_eps, eps) {
+    .Call(`_smallvis_bh_tumap_gradient_cpp`, indices, indptr, P_data, embedding, theta, n_threads, gr_eps, eps)
+}
+
+bh_tumap_score_cpp <- function(indices, indptr, P_data, embedding, theta, n_threads, eps) {
+    .Call(`_smallvis_bh_tumap_score_cpp`, indices, indptr, P_data, embedding, theta, n_threads, eps)
+}
+
 dist2_cpp <- function(input, n_threads = 1L) {
     .Call(`_smallvis_dist2_cpp`, input, n_threads)
 }

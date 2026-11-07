@@ -60,6 +60,32 @@ struct LargeVisKernel : CauchyKernel {
   double eps;
 };
 
+struct TumapKernel : CauchyKernel {
+  TumapKernel(double gr_eps, double eps)
+      : stabilization(gr_eps + eps), eps(eps) {}
+
+  double slope(double d2) const {
+    // w / (1 - w + eps + gr_eps), with w = 1 / (1 + d2).
+    return 1.0 / (d2 + stabilization * (1.0 + d2));
+  }
+  double repulsive_force(double d2, double, double mass) const {
+    return mass * slope(d2);
+  }
+  double log_weight(double d2) const {
+    const double w = weight(d2);
+    return std::log(w + eps) - std::log1p(eps - w);
+  }
+  double score_mass(std::size_t count, double d2) const {
+    // Subtract the cost at w = 0, so the diagonal contributes zero.
+    return count == 0
+               ? 0.0
+               : count * (std::log1p(eps) - std::log1p(eps - weight(d2)));
+  }
+
+  double stabilization;
+  double eps;
+};
+
 template <typename Accumulate>
 void visit_bh(const smallvis::QuadTree::Node &node, double x, double y,
               double theta2, bool contains_query, Accumulate &accumulate) {
@@ -302,4 +328,25 @@ double bh_largevis_score_cpp(const IntegerVector &indices,
                LargeVisKernel(0.0, eps), false, gamma);
   // The dense objective includes the constant diagonal, where w = 0.
   return score + embedding.nrow() * gamma * std::log1p(eps);
+}
+
+// [[Rcpp::export]]
+NumericMatrix bh_tumap_gradient_cpp(const IntegerVector &indices,
+                                    const IntegerVector &indptr,
+                                    const NumericVector &P_data,
+                                    const NumericMatrix &embedding,
+                                    double theta, int n_threads, double gr_eps,
+                                    double eps) {
+  return bh_gradient<false>(indices, indptr, P_data, embedding, theta, 0.0,
+                            n_threads, TumapKernel(gr_eps, eps), 1.0);
+}
+
+// [[Rcpp::export]]
+double bh_tumap_score_cpp(const IntegerVector &indices,
+                          const IntegerVector &indptr,
+                          const NumericVector &P_data,
+                          const NumericMatrix &embedding, double theta,
+                          int n_threads, double eps) {
+  return bh_score(indices, indptr, P_data, embedding, theta, 0.0, n_threads,
+                  TumapKernel(0.0, eps), false, 1.0);
 }

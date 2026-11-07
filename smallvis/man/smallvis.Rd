@@ -229,8 +229,8 @@ steps.}
 
 \item{bh}{If \code{TRUE}, approximate repulsive interactions with Barnes-Hut
 (van der Maaten, 2014). Available for \code{"tsne"}, \code{"hssne"},
-\code{"tee"}, and \code{"largevis"} in two dimensions. For HSSNE, TEE,
-and LargeVis, choose
+\code{"tee"}, \code{"largevis"}, and \code{"tumap"} in two dimensions.
+For HSSNE, TEE, LargeVis, and t-UMAP, choose
 \code{inp_kernel = "nngaussian"} (the default) or \code{"knn"} to build
 sparse input affinities. These modes use approximate neighbor search by
 default. Use \code{nn = "exact"} for exact neighbor lookup.}
@@ -247,7 +247,8 @@ Barnes-Hut t-SNE, epsilon is added to the sum of non-self Student
 weights in both the cost and gradient. Tree construction uses only the
 coordinates.
 When floating-point precision limits subdivision, a terminal leaf stores
-distinct coordinates as separate groups.}
+distinct coordinates as separate groups.
+Barnes-Hut t-UMAP requires a positive epsilon.}
 
 \item{inp_kernel}{For t-SNE-like methods, determines how the input
 similarities are calculated. Possible values are:
@@ -278,9 +279,10 @@ distance inputs use exact neighbor lookup.}
 \item{verbose}{If \code{TRUE}, log progress messages to the console.}
 
 \item{neighbors}{Optional list of precomputed nearest neighbors for
-Barnes-Hut t-SNE, HSSNE, TEE, and LargeVis with \code{inp_kernel = "knn"} or
-\code{"nngaussian"}. Supply equally sized matrices \code{idx} (one-based
-row indices) and \code{dist} (finite, nonnegative, unsquared distances).
+Barnes-Hut t-SNE, HSSNE, TEE, LargeVis, and t-UMAP with
+\code{inp_kernel = "knn"} or \code{"nngaussian"}. Supply equally sized
+matrices \code{idx} (one-based row indices) and \code{dist} (finite,
+nonnegative, unsquared distances).
 Match the row order of \code{X} and list non-self neighbors in distance
 order, with no duplicate indices. A self entry is optional and is skipped.
 Leave \code{nn} unset. Supply a single numeric perplexity (a whole number
@@ -441,8 +443,9 @@ to the \code{method} parameter are:
 }
 
 By default, these methods use dense input affinities and gradients.
-For t-SNE, HSSNE, TEE, and LargeVis, \code{bh = TRUE} approximates repulsive
-interactions. Neighbor input kernels can use approximate neighbor search.
+For t-SNE, HSSNE, TEE, LargeVis, and t-UMAP, \code{bh = TRUE} approximates
+repulsive interactions. Neighbor input kernels can use approximate neighbor
+search.
 }
 \section{Method-specific options}{
 

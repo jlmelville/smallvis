@@ -24,7 +24,7 @@ test_that("all Barnes-Hut methods can calibrate the supplied graph without searc
     )
   }
   cases <- expand.grid(
-    method = c("tsne", "hssne", "tee", "largevis"),
+    method = c("tsne", "hssne", "tee", "largevis", "tumap"),
     kernel = c("knn", "nngaussian"),
     stringsAsFactors = FALSE
   )
@@ -106,6 +106,56 @@ test_that("exact Barnes-Hut LargeVis matches dense forces on the saved graph", {
           "undefined repulsion at zero distance"
         )
       }
+    })
+  }
+})
+
+test_that("exact Barnes-Hut t-UMAP matches the dense objective on the saved graph", {
+  fixture <- saved_neighbors_fixture()
+  Y <- cbind(sin(seq_len(24)), cos(seq_len(24))) / 3
+  for (kernel in c("knn", "nngaussian")) {
+    method <- if (kernel == "knn") {
+      list("tumap", gr_eps = 0)
+    } else {
+      list("tumap", gr_eps = 0.2, row_weight = seq_len(24) / 24)
+    }
+    coordinates <- Y
+    if (method$gr_eps != 0) {
+      coordinates[2, ] <- coordinates[1, ]
+    }
+    local({
+      prepare <- function(X, bh, ...) {
+        smallvis_run(
+          X,
+          method = method,
+          bh = bh,
+          inp_kernel = kernel,
+          perplexity = 3,
+          theta = 0,
+          eps = 1e-5,
+          n_threads = 2,
+          prepare_only = TRUE,
+          epoch_callback = FALSE,
+          verbose = FALSE,
+          ...
+        )$cost_fn
+      }
+      dense <- prepare(fixture$D, FALSE)
+      local_mocked_bindings(get_nn = function(...) stop("neighbor search ran"))
+      bh <- prepare(fixture$X, TRUE, neighbors = fixture$graph)
+      expect_s4_class(bh$P, "dgCMatrix")
+      expect_equal(as.matrix(bh$P), dense$P, tolerance = 1e-12)
+      expect_identical(bh$gradient_only, dense$gradient_only)
+      expect_equal(
+        cost_grad(bh, coordinates)$G,
+        cost_grad(dense, coordinates)$G,
+        tolerance = 1e-12
+      )
+      expect_equal(
+        cost_point(bh, coordinates)$pcost,
+        sum(cost_point(dense, coordinates)$pcost),
+        tolerance = 1e-12
+      )
     })
   }
 })

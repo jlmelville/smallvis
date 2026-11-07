@@ -170,6 +170,14 @@ test_that("bad dispatch options fail before neighbor search", {
     smallvis(iris10, method = "umap", bh = TRUE),
     "Barnes-Hut is only supported"
   )
+  expect_error(
+    smallvis(iris10, method = "tumap", bh = TRUE, inp_kernel = "skd"),
+    "nngaussian"
+  )
+  expect_error(
+    smallvis(iris10, method = "tumap", bh = TRUE, eps = 0),
+    "requires a finite positive eps"
+  )
 })
 
 test_that("reported perplexity follows the resolved method options", {

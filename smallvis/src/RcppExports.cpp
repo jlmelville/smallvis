@@ -120,6 +120,41 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// bh_tumap_gradient_cpp
+NumericMatrix bh_tumap_gradient_cpp(const IntegerVector& indices, const IntegerVector& indptr, const NumericVector& P_data, const NumericMatrix& embedding, double theta, int n_threads, double gr_eps, double eps);
+RcppExport SEXP _smallvis_bh_tumap_gradient_cpp(SEXP indicesSEXP, SEXP indptrSEXP, SEXP P_dataSEXP, SEXP embeddingSEXP, SEXP thetaSEXP, SEXP n_threadsSEXP, SEXP gr_epsSEXP, SEXP epsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const IntegerVector& >::type indices(indicesSEXP);
+    Rcpp::traits::input_parameter< const IntegerVector& >::type indptr(indptrSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type P_data(P_dataSEXP);
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type embedding(embeddingSEXP);
+    Rcpp::traits::input_parameter< double >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    Rcpp::traits::input_parameter< double >::type gr_eps(gr_epsSEXP);
+    Rcpp::traits::input_parameter< double >::type eps(epsSEXP);
+    rcpp_result_gen = Rcpp::wrap(bh_tumap_gradient_cpp(indices, indptr, P_data, embedding, theta, n_threads, gr_eps, eps));
+    return rcpp_result_gen;
+END_RCPP
+}
+// bh_tumap_score_cpp
+double bh_tumap_score_cpp(const IntegerVector& indices, const IntegerVector& indptr, const NumericVector& P_data, const NumericMatrix& embedding, double theta, int n_threads, double eps);
+RcppExport SEXP _smallvis_bh_tumap_score_cpp(SEXP indicesSEXP, SEXP indptrSEXP, SEXP P_dataSEXP, SEXP embeddingSEXP, SEXP thetaSEXP, SEXP n_threadsSEXP, SEXP epsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const IntegerVector& >::type indices(indicesSEXP);
+    Rcpp::traits::input_parameter< const IntegerVector& >::type indptr(indptrSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type P_data(P_dataSEXP);
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type embedding(embeddingSEXP);
+    Rcpp::traits::input_parameter< double >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    Rcpp::traits::input_parameter< double >::type eps(epsSEXP);
+    rcpp_result_gen = Rcpp::wrap(bh_tumap_score_cpp(indices, indptr, P_data, embedding, theta, n_threads, eps));
+    return rcpp_result_gen;
+END_RCPP
+}
 // dist2_cpp
 NumericMatrix dist2_cpp(NumericMatrix input, std::size_t n_threads);
 RcppExport SEXP _smallvis_dist2_cpp(SEXP inputSEXP, SEXP n_threadsSEXP) {
@@ -226,6 +261,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_smallvis_bh_sne_score_cpp", (DL_FUNC) &_smallvis_bh_sne_score_cpp, 10},
     {"_smallvis_bh_largevis_gradient_cpp", (DL_FUNC) &_smallvis_bh_largevis_gradient_cpp, 8},
     {"_smallvis_bh_largevis_score_cpp", (DL_FUNC) &_smallvis_bh_largevis_score_cpp, 8},
+    {"_smallvis_bh_tumap_gradient_cpp", (DL_FUNC) &_smallvis_bh_tumap_gradient_cpp, 8},
+    {"_smallvis_bh_tumap_score_cpp", (DL_FUNC) &_smallvis_bh_tumap_score_cpp, 7},
     {"_smallvis_dist2_cpp", (DL_FUNC) &_smallvis_dist2_cpp, 2},
     {"_smallvis_dist_cpp", (DL_FUNC) &_smallvis_dist_cpp, 2},
     {"_smallvis_tweight_cpp", (DL_FUNC) &_smallvis_tweight_cpp, 2},

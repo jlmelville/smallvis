@@ -547,9 +547,9 @@ check_saved_neighbors <- function(
     !isTRUE(bh) ||
       !is.character(method) ||
       length(method) != 1L ||
-      !tolower(method) %in% c("tsne", "hssne", "tee", "largevis")
+      !tolower(method) %in% c("tsne", "hssne", "tee", "largevis", "tumap")
   ) {
-    stop("neighbors requires Barnes-Hut t-SNE, HSSNE, TEE, or LargeVis")
+    stop("neighbors requires Barnes-Hut t-SNE, HSSNE, TEE, LargeVis, or t-UMAP")
   }
   if (!is.null(nn)) {
     stop("Leave nn unset when supplying neighbors")

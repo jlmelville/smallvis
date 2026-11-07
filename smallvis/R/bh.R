@@ -127,6 +127,86 @@ bhlargevis <- function(
   )
 }
 
+bhtumap <- function(
+  perplexity,
+  inp_kernel = "nngaussian",
+  symmetrize = "umap",
+  gr_eps = 0.1,
+  eps = 1e-9,
+  row_weight = NULL,
+  n_threads = 0,
+  theta = 0.5,
+  nn = "approximate"
+) {
+  if (
+    !is.numeric(gr_eps) ||
+      length(gr_eps) != 1L ||
+      !is.finite(gr_eps) ||
+      gr_eps < 0
+  ) {
+    stop("Barnes-Hut t-UMAP requires a finite nonnegative gr_eps")
+  }
+  if (!is.numeric(eps) || length(eps) != 1L || !is.finite(eps) || eps <= 0) {
+    stop("Barnes-Hut t-UMAP requires a finite positive eps")
+  }
+  list(
+    ndim = 2,
+    gradient_only = gr_eps != 0,
+    init = bh_sparse_init(
+      perplexity,
+      inp_kernel,
+      symmetrize,
+      normalize = FALSE,
+      n_threads = n_threads,
+      nn = nn,
+      row_normalize = if (is.null(row_weight)) FALSE else row_weight
+    ),
+    cache_input = function(cost) {
+      p <- cost$P@x
+      # At P = W = 0 the two complement terms cancel.
+      cost$Cp <- sum(
+        p * log(p + eps) + (1 - p) * log1p(eps - p) - log1p(eps)
+      )
+      cost
+    },
+    pfn = function(cost, Y) {
+      P <- cost$P
+      cost$pcost <- cost$Cp -
+        bh_tumap_score_cpp(
+          P@i,
+          P@p,
+          P@x,
+          Y,
+          theta,
+          n_threads,
+          eps
+        )
+      cost
+    },
+    gr = function(cost, Y) {
+      P <- cost$P
+      cost$G <- 4 *
+        bh_tumap_gradient_cpp(
+          P@i,
+          P@p,
+          P@x,
+          Y,
+          theta,
+          n_threads,
+          gr_eps,
+          eps
+        )
+      cost
+    },
+    export = cost_export,
+    update = function(cost, Y) cost,
+    exaggerate = function(cost, exaggeration_factor) {
+      cost$P <- cost$P * exaggeration_factor
+      cost
+    }
+  )
+}
+
 bh_sparse_init <- function(
   perplexity,
   inp_kernel,
