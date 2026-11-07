@@ -589,7 +589,7 @@
 #'   When floating-point precision limits subdivision, a terminal leaf stores
 #'   distinct coordinates as separate groups.
 #'   Barnes-Hut UMAP and t-UMAP require a positive epsilon.
-#' @param theta Barnes-Hut opening threshold, default \code{1.0}. Smaller
+#' @param theta Barnes-Hut opening threshold, default \code{0.5}. Smaller
 #'   values open more cells. Zero evaluates the repulsive sum exactly for the
 #'   chosen input affinities. Applies only with \code{bh = TRUE}.
 #' @param bh If \code{TRUE}, approximate repulsive interactions with Barnes-Hut
@@ -999,7 +999,7 @@ smallvis <- function(
   n_threads = 0,
   use_cpp = FALSE,
   bh = FALSE,
-  theta = 1.0,
+  theta = 0.5,
   eps = .Machine$double.eps,
   inp_kernel = NULL,
   nn = NULL,
@@ -1046,7 +1046,7 @@ smallvis_run <- function(
   n_threads = 0,
   use_cpp = FALSE,
   bh = FALSE,
-  theta = 1.0,
+  theta = 0.5,
   eps = .Machine$double.eps,
   inp_kernel = NULL,
   nn = NULL,

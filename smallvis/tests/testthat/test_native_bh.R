@@ -245,20 +245,26 @@ test_that("Barnes-Hut rejects non-finite coordinates in a bounded subprocess", {
   }
 })
 
-test_that("approximate Barnes-Hut still optimizes with finite results", {
-  result <- smallvis(
-    iris,
-    bh = TRUE,
-    nn = "exact",
-    perplexity = 10,
-    Y_init = "spca",
-    max_iter = 10,
-    theta = 0.5,
-    n_threads = 2,
-    ret_extra = TRUE,
-    epoch_callback = FALSE,
-    verbose = FALSE
-  )
+test_that("Barnes-Hut defaults to theta 0.5 and returns finite results", {
+  run <- function(...) {
+    set.seed(42)
+    smallvis(
+      iris,
+      bh = TRUE,
+      nn = "exact",
+      perplexity = 10,
+      Y_init = "spca",
+      max_iter = 10,
+      n_threads = 2,
+      ret_extra = TRUE,
+      epoch_callback = FALSE,
+      verbose = FALSE,
+      ...
+    )
+  }
+  result <- run()
+  expect_identical(formals(smallvis)$theta, 0.5)
+  expect_identical(result$Y, run(theta = 0.5)$Y)
   expect_true(all(is.finite(result$Y)))
   expect_true(all(is.finite(result$itercosts)))
 })
