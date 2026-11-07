@@ -1,12 +1,12 @@
 # smallvis correctness, cleanup, and allocation follow-up
 
-**Status: phase 4 in progress; phases 1–3 committed.** The user requested that the
+**Status: phases 1–4 complete; phases 5–7 pending.** The user requested that the
 [second repository review](smallvis-repository-review-2026-11-06.md) be saved and converted into
 a phased plan on 2026-11-06, then explicitly authorized phases 1, 2, and 3 in sequence. Source and
 test changes for phases 1–3 are committed as `a81ef3e`. The user requested implementation of phase 4
-with commits after completed changes. USNE/pseudo-separable optimizer contracts now pass validation
-and are ready to commit. Next: commit that change, then fix dynamic HSSNE state. Phases 5–7 remain
-pending.
+with commits after completed changes. USNE/pseudo-separable optimizer contracts are committed as
+`817a608`; the dynamic HSSNE fix is validated and recorded below. Next: await direction on phase 5,
+backend controls and cleanup.
 
 **Baseline:** `e65bcbaf6b71669c92efe75cfdd595739e894a31`, with a clean worktree before saving these
 documents. The earlier [correctness plan](smallvis-correctness-implementation-plan.md) is complete
@@ -33,7 +33,8 @@ rewrite, or rerun of historical experiments in scope.
 
 These two documents live in the existing repository-level `plans/` directory, outside the
 `smallvis/` package root. The user subsequently authorized committing completed changes, including
-the current phases 1–3 work. Preserve unrelated work. Pushing and publishing remain outside scope.
+phases 1–3 and each subsequent authorized change. Preserve unrelated work. Pushing and publishing
+remain outside scope.
 
 ## Review disposition
 
@@ -395,8 +396,55 @@ warnings, or skips. A fresh `R CMD check --no-manual` completed with Status OK. 
 Function help was regenerated with roxygen 8.1.0; the second pass was idempotent. The package check
 used installed dependencies because the CRAN index was unavailable, as in earlier phases.
 Artifacts are `/tmp/smallvis-phase4a-{focused,tests,lint,directional,roxygen}.log` and
-`/tmp/smallvis-phase4a-check-1lujw9_q`. This checkpoint is ready for its own commit; dynamic HSSNE
-is not yet corrected.
+`/tmp/smallvis-phase4a-check-1lujw9_q`. This checkpoint is committed as `817a608`; dynamic HSSNE
+was still pending at that checkpoint. Inspection of installed mize 0.2.5.9001 confirms function
+and gradient caches
+tagged for the next iteration persist across steps. Restrict dynamic HSSNE to gradient-only
+optimizers instead of adding a mize reinitialization protocol; fixed-alpha HSSNE remains available
+for function-based optimization. Adaptive gradient histories remain intentional optimizer state.
+
+### Phase 4 dynamic HSSNE outcome, 2026-11-06
+
+The decrement candidate is now checked against the positive lower bound using `alpha - 0.1`.
+When a different alpha is selected, the epoch hook invalidates W through `cost_clear()` and clears
+Z, the gradient, and column costs. Input probabilities and their alpha-independent cache remain
+intact. An unchanged alpha retains its coherent state. Candidate ordering and tie selection are
+preserved; no new adaptation algorithm or optimizer reset mechanism was introduced.
+
+Dynamic HSSNE now uses the existing gradient-only compatibility restriction, before input
+calibration. This prevents mize from reusing objective data across alpha changes. Fixed-alpha
+HSSNE still works with L-BFGS; internal adaptive-gradient and momentum histories remain available
+for the intended dynamic experiments.
+
+Regressions reproduce the invalid-zero-alpha case and compare the very first cost/gradient after
+an accepted 0.5-to-0.6 transition against freshly initialized fixed-alpha HSSNE, without manually
+clearing the transition's cache. A constructed current-alpha optimum checks the no-change case.
+The earlier rounded DHSSNE public trajectory still passes without rewriting its expected values.
+
+Final phase 4 validation on Linux:
+
+| Check | Result |
+| --- | --- |
+| Focused dynamic-HSSNE and optimizer-contract tests | 85 passing expectations; no failures, warnings, or skips |
+| Full `Rscript --vanilla -e 'testthat::test_local()'` from `smallvis/` | 1421 passing expectations; no failures, warnings, or skips |
+| Fresh source `R CMD build`, then `R CMD check --no-manual` | Status OK; installed suite also passes all 1421 expectations |
+| Checked archive compared with changed source, help, and new tests | Exact candidate included, including untracked `test_dynamic_hssne.R` |
+| Air, lintr, R Markdown formatting | Passed; no lints, code-block formatting changes, or residual wide code |
+| Roxygen 8.1.0 and second-pass checksums | Help regeneration is idempotent; DESCRIPTION and NAMESPACE unchanged |
+| Current optimization guide and DHSSNE article renders | Passed against the freshly checked installed package |
+| Static rendered HTML checks | Passed: ten optimization-guide targets, four DHSSNE targets, thirty valid MathML expressions |
+
+The help and optimization guide describe the method restrictions; the DHSSNE article now states
+the positive candidate bound. The article's historical experiments remain unchanged. Rendered
+copies are under `/tmp/smallvis-phase4b-articles`; unchanged neighboring pages were copied only
+to resolve local links. Browser layout inspection was not performed. No native source or bridge
+changed in phase 4, and Windows was not exercised.
+
+Logs use `/tmp/smallvis-phase4b-*.log`; the fresh archive/check is under
+`/tmp/smallvis-phase4b-check-6jor1jdq`. The CRAN index remained unavailable, so the successful check
+used installed dependencies. Temporary check staging now inventories both tracked and unignored
+untracked package files, avoiding manual copy entries for newly added tests. The final archive's
+relevant files were compared byte-for-byte with the checkout.
 
 ## Phase 5. Finish control forwarding and remove confirmed leftovers
 
@@ -542,13 +590,12 @@ resolution of the existing failure.
 - [x] Phase 1: native tree and Gaussian calibration boundaries.
 - [x] Phase 2: AB-SNE scalar objectives.
 - [x] Phase 3: input, neighbor, and multiscale contracts.
-- [ ] Phase 4: optimizer compatibility and dynamic HSSNE state.
+- [x] Phase 4: optimizer compatibility and dynamic HSSNE state.
 - [ ] Phase 5: backend controls and cleanup.
 - [ ] Phase 6: native allocations and comparative measurements.
 - [ ] Phase 7: native CI, integration checks, and review reconciliation.
 
-Phases 1–3 are implemented and validated as recorded above. Their regressions distinguish the
-original native, calibration, scalar, stopping, input, neighbor, and multiscale failures. These
-changes are committed as `a81ef3e`. Phase 3 regenerated the function help. Phase 4
-is in progress. Phases 5–7, benchmarks, workflows, generated bridges, and
-site output are untouched.
+Phases 1–4 are implemented and validated as recorded above. Their regressions distinguish the
+original native, calibration, scalar, stopping, input, neighbor, multiscale, optimizer, and dynamic
+state failures. Completed changes follow the user's commit-after-each-change instruction. Phases
+5–7, benchmarks, workflows, generated bridges, and site output are untouched.

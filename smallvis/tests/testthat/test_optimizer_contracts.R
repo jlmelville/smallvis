@@ -26,7 +26,7 @@ test_that("AdaMax retains an elementwise recurrence and safeguards zero gradient
 
 test_that("line searches reject unmatched forces before input calibration", {
   local_mocked_bindings(sne_init = function(...) stop("input calibration ran"))
-  for (method in c("umap", "tumap", "largevis", "usne", "pstsne")) {
+  for (method in c("umap", "tumap", "largevis", "usne", "pstsne", "dhssne")) {
     expect_error(
       smallvis(
         iris10,

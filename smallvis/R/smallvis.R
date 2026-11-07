@@ -418,6 +418,9 @@
 #' and late exaggeration also require a gradient-only optimizer.
 #' Pseudo-separable t-SNE (\code{"pstsne"}) requires a gradient-only optimizer
 #' because its approximate forces do not differentiate its reported objective.
+#' Dynamic HSSNE (\code{"dhssne"}) also requires a gradient-only optimizer:
+#' alpha changes invalidate the objective data retained by function-based
+#' optimizers between steps. Use \code{"hssne"} for fixed-alpha line searches.
 #' With \code{gr_eps = 0}, USNE assigns zero force to coincident pairs only
 #' when its fitted kernel exponent \code{b > 0.5}; otherwise the kernel is
 #' not differentiable at coincidence and an error is reported.

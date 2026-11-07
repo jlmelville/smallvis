@@ -389,6 +389,7 @@ dhssne <- function(
       eps = eps,
       n_threads = n_threads
     ),
+    gradient_only = TRUE,
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
       cost$G <- k2g(
@@ -404,7 +405,7 @@ dhssne <- function(
       # alpha + 0.1 and alpha - 0.1 (but only if that's a valid alpha)
       alpha_curr <- cost$alpha
       alphas <- c(alpha_curr + 0.1)
-      if (alpha_curr + 0.1 > alpha_min) {
+      if (alpha_curr - 0.1 >= alpha_min) {
         alphas <- c(alphas, alpha_curr - 0.1)
       }
 
@@ -424,8 +425,15 @@ dhssne <- function(
       alphas <- c(alphas, alpha_curr)
 
       # choose the alpha which minimizes the error
-      old_cost$alpha <- alphas[which.min(errs)]
-      old_cost$apow <- -1 / old_cost$alpha
+      next_alpha <- alphas[which.min(errs)]
+      if (next_alpha != alpha_curr) {
+        old_cost$alpha <- next_alpha
+        old_cost$apow <- -1 / next_alpha
+        old_cost <- cost_clear(old_cost)
+        old_cost$Z <- NULL
+        old_cost$G <- NULL
+        old_cost$pcost <- NULL
+      }
       list(cost = old_cost)
     },
     update = function(cost, Y) {
