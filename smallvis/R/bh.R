@@ -159,7 +159,8 @@ bhtumap <- function(
       normalize = FALSE,
       n_threads = n_threads,
       nn = nn,
-      row_normalize = if (is.null(row_weight)) FALSE else row_weight
+      row_normalize = if (is.null(row_weight)) FALSE else row_weight,
+      kernels = c("nngaussian", "knn", "skd")
     ),
     cache_input = function(cost) {
       p <- cost$P@x
@@ -214,9 +215,10 @@ bh_sparse_init <- function(
   normalize,
   n_threads,
   nn,
-  row_normalize = TRUE
+  row_normalize = TRUE,
+  kernels = c("nngaussian", "knn")
 ) {
-  inp_kernel <- match.arg(tolower(inp_kernel), c("nngaussian", "knn"))
+  inp_kernel <- match.arg(tolower(inp_kernel), kernels)
   symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
   nn <- match.arg(tolower(nn), c("exact", "approximate"))
   if (

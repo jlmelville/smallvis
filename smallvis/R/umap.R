@@ -269,29 +269,38 @@ smooth_knn_distances <-
     min_k_dist_scale = 1e-3,
     cardinality = log2(k),
     n_threads = 0,
-    verbose = FALSE
+    verbose = FALSE,
+    neighbors = NULL,
+    sparse = FALSE,
+    exact = FALSE
   ) {
     tsmessage("Commencing smooth kNN distance calibration for k = ", formatC(k))
 
     n <- if (methods::is(X, "dist")) attr(X, "Size") else nrow(X)
-    if (length(k) != 1 || !is.finite(k) || k < 2 || k > n) {
-      stop("UMAP k must be finite and between 2 and the number of observations")
-    }
+    validate_skd_k(k, n)
     # k controls a continuous target; only the neighbor count is rounded down.
-    knn <- get_nn(X, k = floor(k), n_threads = n_threads, verbose = verbose)
-    nn_idx <- matrix(0L, nrow = n, ncol = floor(k))
-    nn_idx[, 1] <- seq_len(n)
-    nn_dist <- matrix(0, nrow = n, ncol = floor(k))
+    n_neighbors <- floor(k) - 1L
+    if (is.null(neighbors)) {
+      neighbors <- get_nn(
+        X,
+        k = n_neighbors + 1L,
+        exact = exact,
+        n_threads = n_threads,
+        verbose = verbose
+      )
+    }
+    nn_idx <- matrix(0L, nrow = n, ncol = n_neighbors)
+    nn_dist <- matrix(0, nrow = n, ncol = n_neighbors + 1L)
     for (i in seq_len(n)) {
-      keep <- utils::head(which(knn$idx[i, ] != i), ncol(nn_idx) - 1)
-      nn_idx[i, -1] <- knn$idx[i, keep]
-      nn_dist[i, -1] <- knn$dist[i, keep]
+      keep <- utils::head(which(neighbors$idx[i, ] != i), n_neighbors)
+      nn_idx[i, ] <- neighbors$idx[i, keep]
+      nn_dist[i, -1] <- neighbors$dist[i, keep]
     }
 
     target <- cardinality * bandwidth
     rho <- rep(0, n)
     sigma <- rep(0, n)
-    P <- matrix(0, nrow = n, ncol = n)
+    P <- matrix(0, nrow = n, ncol = if (sparse) n_neighbors else n)
     mean_distances <- NULL
 
     for (i in 1:n) {
@@ -358,15 +367,28 @@ smooth_knn_distances <-
 
       prow <- exp(-(nn_dist[i, ] - rho[i]) / (sigma[i] * bandwidth))
       prow[nn_dist[i, ] - rho[i] <= 0] <- 1
-      P[i, nn_idx[i, ]] <- prow
+      P[i, if (sparse) seq_len(n_neighbors) else nn_idx[i, ]] <- prow[-1L]
     }
-    diag(P) <- 0
+    if (sparse) {
+      P <- Matrix::sparseMatrix(
+        i = rep(seq_len(n), times = n_neighbors),
+        j = as.vector(nn_idx),
+        x = as.vector(P),
+        dims = c(n, n)
+      )
+    }
 
     if (verbose) {
       summarize(sigma, "sigma summary", verbose = verbose)
     }
     list(sigma = sigma, rho = rho, P = P)
   }
+
+validate_skd_k <- function(k, n) {
+  if (!is.numeric(k) || length(k) != 1L || !is.finite(k) || k < 2 || k > n) {
+    stop("UMAP k must be finite and between 2 and the number of observations")
+  }
+}
 
 
 # set_op_mix_ratio = between 0 and 1 mixes in fuzzy set intersection

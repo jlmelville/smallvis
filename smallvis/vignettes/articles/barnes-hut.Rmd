@@ -60,6 +60,8 @@ or `method = "tumap"` for t-UMAP with the same input kernels.
 If you already have a neighbor graph, pass its `idx` and `dist` matrices in a list as
 `neighbors = graph` and leave `nn` unset. With `"nngaussian"`, a perplexity of 30 takes 90
 non-self neighbors per row on a dataset with at least 91 observations.
+For t-UMAP, `inp_kernel = "skd"` uses the same smooth kNN calibration as the dense default.
+With `perplexity = 30`, it takes 29 non-self neighbors per row.
 The saved graph supplies the affinities, so you can leave `pca = FALSE` and let `Y_init = "spca"`
 compute the starting coordinates.
 

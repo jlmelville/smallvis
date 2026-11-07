@@ -1,6 +1,7 @@
 test_that("string and list methods share controls and list options take precedence", {
   X <- matrix(sin(seq_len(144)^2), 24, 6)
   run <- function(method, ...) {
+    set.seed(42)
     smallvis(
       X,
       method = method,
@@ -171,7 +172,7 @@ test_that("bad dispatch options fail before neighbor search", {
     "Barnes-Hut is only supported"
   )
   expect_error(
-    smallvis(iris10, method = "tumap", bh = TRUE, inp_kernel = "skd"),
+    smallvis(iris10, method = "hssne", bh = TRUE, inp_kernel = "skd"),
     "nngaussian"
   )
   expect_error(

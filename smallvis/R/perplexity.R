@@ -52,13 +52,16 @@ sne_init <- function(
       neighbors = neighbors
     )
     x2ares <- list(W = P)
-  } else if (tolower(kernel) == "skd") {
+  } else if (kernel == "skd") {
     P <- smooth_knn_distances(
       X,
       k = perplexity,
       tol = 1e-5,
       n_threads = n_threads,
-      verbose = verbose
+      verbose = verbose,
+      neighbors = neighbors,
+      sparse = sparse,
+      exact = sparse && nn == "exact"
     )$P
     row_normalize <- FALSE
     x2ares <- list(W = P)
@@ -555,14 +558,24 @@ check_saved_neighbors <- function(
     stop("Leave nn unset when supplying neighbors")
   }
   kernel <- if (is.null(inp_kernel)) "nngaussian" else tolower(inp_kernel)
-  if (length(kernel) != 1L || !kernel %in% c("knn", "nngaussian")) {
-    stop("neighbors requires inp_kernel = 'knn' or 'nngaussian'")
+  kernels <- c("knn", "nngaussian")
+  if (tolower(method) == "tumap") {
+    kernels <- c(kernels, "skd")
+  }
+  if (length(kernel) != 1L || !kernel %in% kernels) {
+    stop(
+      "neighbors requires inp_kernel = 'knn', 'nngaussian', or 'skd' for t-UMAP"
+    )
   }
   if (!is.numeric(perplexity) || length(perplexity) != 1L) {
     stop("neighbors requires a single numeric perplexity")
   }
   schedule <- c(step_perplexities, perplexity)
-  validate_perplexity(schedule, n)
+  if (kernel == "skd") {
+    validate_skd_k(perplexity, n)
+  } else {
+    validate_perplexity(schedule, n)
+  }
   if (kernel == "knn" && any(schedule != floor(schedule))) {
     stop("The knn kernel requires whole-number perplexities")
   }
@@ -606,7 +619,12 @@ check_saved_neighbors <- function(
     available <- min(available, sum(nonself))
   }
   p <- max(schedule)
-  required <- if (kernel == "knn") p else min(n - 1, floor(3 * p))
+  required <- switch(
+    kernel,
+    knn = p,
+    nngaussian = min(n - 1, floor(3 * p)),
+    skd = floor(p) - 1L
+  )
   if (available < required) {
     stop(
       "neighbors supplies at least ",

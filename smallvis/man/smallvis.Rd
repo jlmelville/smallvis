@@ -232,8 +232,9 @@ steps.}
 \code{"tee"}, \code{"largevis"}, and \code{"tumap"} in two dimensions.
 For HSSNE, TEE, LargeVis, and t-UMAP, choose
 \code{inp_kernel = "nngaussian"} (the default) or \code{"knn"} to build
-sparse input affinities. These modes use approximate neighbor search by
-default. Use \code{nn = "exact"} for exact neighbor lookup.}
+sparse input affinities. t-UMAP also supports \code{"skd"} for smooth kNN
+affinities. These modes use approximate neighbor search by default. Use
+\code{nn = "exact"} for exact neighbor lookup.}
 
 \item{theta}{Barnes-Hut opening threshold, default \code{1.0}. Smaller
 values open more cells. Zero evaluates the repulsive sum exactly for the
@@ -279,17 +280,19 @@ distance inputs use exact neighbor lookup.}
 \item{verbose}{If \code{TRUE}, log progress messages to the console.}
 
 \item{neighbors}{Optional list of precomputed nearest neighbors for
-Barnes-Hut t-SNE, HSSNE, TEE, LargeVis, and t-UMAP with
-\code{inp_kernel = "knn"} or \code{"nngaussian"}. Supply equally sized
-matrices \code{idx} (one-based row indices) and \code{dist} (finite,
-nonnegative, unsquared distances).
+Barnes-Hut t-SNE, HSSNE, TEE, LargeVis, and t-UMAP. Use
+\code{inp_kernel = "knn"} or \code{"nngaussian"}, or \code{"skd"} for
+t-UMAP. Supply equally sized matrices \code{idx} (one-based row indices)
+and \code{dist} (finite, nonnegative, unsquared distances).
 Match the row order of \code{X} and list non-self neighbors in distance
 order, with no duplicate indices. A self entry is optional and is skipped.
 Leave \code{nn} unset. Supply a single numeric perplexity (a whole number
 for \code{"knn"}). Each row needs \code{perplexity} non-self neighbors for
 \code{"knn"}, or \code{floor(3 * perplexity)} for \code{"nngaussian"},
-capped at the number of other observations. The supplied graph defines
-the input affinities regardless of scaling or PCA.}
+capped at the number of other observations. For \code{"skd"}, the
+neighborhood size includes self, so each row needs
+\code{floor(perplexity) - 1} non-self neighbors. The supplied graph
+defines the input affinities regardless of scaling or PCA.}
 }
 \value{
 If \code{ret_extra} is \code{FALSE}, the embedded output coordinates

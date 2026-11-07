@@ -28,6 +28,7 @@ test_that("all Barnes-Hut methods can calibrate the supplied graph without searc
     kernel = c("knn", "nngaussian"),
     stringsAsFactors = FALSE
   )
+  cases <- rbind(cases, data.frame(method = "tumap", kernel = "skd"))
   expected <- lapply(seq_len(nrow(cases)), function(i) {
     run(cases$method[i], cases$kernel[i], fixture$D, nn = "exact")
   })
@@ -35,7 +36,7 @@ test_that("all Barnes-Hut methods can calibrate the supplied graph without searc
   for (i in seq_len(nrow(cases))) {
     graph <- fixture$graph
     # Test both omitted self and self outside the first column.
-    cols <- if (cases$kernel[i] == "knn") 2:10 else c(2:10, 1L)
+    cols <- switch(cases$kernel[i], knn = 2:10, skd = 2:3, c(2:10, 1L))
     graph$idx <- graph$idx[, cols]
     graph$dist <- graph$dist[, cols]
     if (cases$method[i] == "tee") {
@@ -113,7 +114,7 @@ test_that("exact Barnes-Hut LargeVis matches dense forces on the saved graph", {
 test_that("exact Barnes-Hut t-UMAP matches the dense objective on the saved graph", {
   fixture <- saved_neighbors_fixture()
   Y <- cbind(sin(seq_len(24)), cos(seq_len(24))) / 3
-  for (kernel in c("knn", "nngaussian")) {
+  for (kernel in c("knn", "nngaussian", "skd")) {
     method <- if (kernel == "knn") {
       list("tumap", gr_eps = 0)
     } else {
@@ -130,7 +131,7 @@ test_that("exact Barnes-Hut t-UMAP matches the dense objective on the saved grap
           method = method,
           bh = bh,
           inp_kernel = kernel,
-          perplexity = 3,
+          perplexity = if (kernel == "skd") 4.5 else 3,
           theta = 0,
           eps = 1e-5,
           n_threads = 2,
@@ -181,6 +182,10 @@ test_that("invalid saved graphs and incompatible options fail before search", {
   expect_error(fit(nn = "exact"), "Leave nn unset")
   expect_error(fit(method = list("tee", nn = "exact")), "Leave nn unset")
   expect_error(fit(inp_kernel = "gaussian"), "neighbors requires inp_kernel")
+  expect_error(
+    fit(method = "tsne", inp_kernel = "skd"),
+    "neighbors requires inp_kernel"
+  )
   expect_error(fit(perplexity = c(2, 3)), "single numeric perplexity")
   expect_error(fit(perplexity = "idp"), "single numeric perplexity")
   expect_error(fit(perplexity = 4), "Perplexity 4 .* requires 12")
@@ -230,5 +235,38 @@ test_that("saved neighbors cover every active stage before optimization starts",
   args$method$inp_kernel <- "knn"
   stepped <- do.call(smallvis_perpstep, c(args, list(step_iter = 2)))
   expect_equal(dim(stepped), c(24L, 2L))
+  expect_true(all(is.finite(stepped)))
+})
+
+test_that("saved t-UMAP neighborhoods cover the whole smooth kNN schedule", {
+  fixture <- saved_neighbors_fixture()
+  args <- list(
+    X = fixture$X,
+    method = list("tumap", inp_kernel = "skd", perplexity = 4.5),
+    inp_kernel = "knn",
+    bh = TRUE,
+    neighbors = list(
+      idx = fixture$graph$idx[, 1:4],
+      dist = fixture$graph$dist[, 1:4]
+    ),
+    max_iter = 3,
+    epoch_callback = FALSE,
+    verbose = FALSE
+  )
+  local({
+    local_mocked_bindings(smooth_knn_distances = function(...) {
+      stop("calibration ran")
+    })
+    expect_error(
+      do.call(smallvis_perpstep, c(args, list(step_iter = 1))),
+      "Perplexity 8 .* requires 7"
+    )
+  })
+
+  local_mocked_bindings(get_nn = function(...) stop("neighbor search ran"))
+  direct <- do.call(smallvis_perpstep, c(args, list(step_iter = 0)))
+  expect_true(all(is.finite(direct)))
+  args$neighbors <- fixture$graph
+  stepped <- do.call(smallvis_perpstep, c(args, list(step_iter = 1)))
   expect_true(all(is.finite(stepped)))
 })
