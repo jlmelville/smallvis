@@ -45,7 +45,8 @@ smallvis(
   eps = .Machine$double.eps,
   inp_kernel = NULL,
   nn = NULL,
-  verbose = TRUE
+  verbose = TRUE,
+  neighbors = NULL
 )
 ```
 
@@ -57,8 +58,8 @@ smallvis(
 
 - k:
 
-  Number of output dimensions for the embedding. Barnes-Hut t-SNE
-  requires `k = 2`.
+  Number of output dimensions for the embedding. Barnes-Hut requires
+  `k = 2`.
 
 - scale:
 
@@ -293,18 +294,20 @@ smallvis(
 
 - bh:
 
-  if `TRUE` use the Barnes-Hut method to approximate repulsive
-  interactions (van der Maaten, 2014), which allows neighbor embedding
-  methods to scale to larger datasets. For large datasets, you will also
-  want to set `inp_kernel` to use only k-nearest neighbors for the input
-  similarities, i.e. one of `"nngaussian"` or `"knn"`. You may also want
-  to set `nn = "approximate"`. Not all methods support `bh = TRUE`.
+  If `TRUE`, approximate repulsive interactions with Barnes-Hut (van der
+  Maaten, 2014). Available for `"tsne"`, `"hssne"`, `"tee"`,
+  `"largevis"`, `"umap"`, and `"tumap"` in two dimensions. For HSSNE,
+  TEE, LargeVis, and t-UMAP, choose `inp_kernel = "nngaussian"` (the
+  default) or `"knn"` to build sparse input affinities. For UMAP, the
+  input kernel is `"skd"` (smooth kNN affinities). t-UMAP also accepts
+  `"skd"`. These modes use approximate neighbor search by default. Use
+  `nn = "exact"` for exact neighbor lookup.
 
 - theta:
 
-  Barnes-Hut approximation accuracy. Default is `1.0` which more or less
-  corresponds to the default degree of approximation used in the `Rtsne`
-  package. Set to 0.0 for exact t-SNE. Applies only for `bh = "TRUE"`.
+  Barnes-Hut opening threshold, default `1.0`. Smaller values open more
+  cells. Zero evaluates the repulsive sum exactly for the chosen input
+  affinities. Applies only with `bh = TRUE`.
 
 - eps:
 
@@ -312,10 +315,11 @@ smallvis(
   `.Machine$double.eps`, but if you see inconsistent convergence results
   with optimizer that should be reducing the cost each iteration, then
   try setting this to a larger value, e.g. between `1e-3 - 1e-9`. For
-  Barnes-Hut, epsilon is added to the sum of non-self Student weights in
-  both the cost and gradient. Tree construction uses the coordinates
-  alone. When floating-point precision limits subdivision, a terminal
-  leaf stores distinct coordinates as separate groups.
+  Barnes-Hut t-SNE, epsilon is added to the sum of non-self Student
+  weights in both the cost and gradient. Tree construction uses only the
+  coordinates. When floating-point precision limits subdivision, a
+  terminal leaf stores distinct coordinates as separate groups.
+  Barnes-Hut UMAP and t-UMAP require a positive epsilon.
 
 - inp_kernel:
 
@@ -339,8 +343,8 @@ smallvis(
 
 - nn:
 
-  Method for finding neighbors for t-SNE neighbor input kernels,
-  including Barnes-Hut t-SNE. Possible values are:
+  Method for finding neighbors for t-SNE and Barnes-Hut neighbor input
+  kernels. Possible values are:
 
   - `"exact"` Exact nearest neighbors.
 
@@ -354,6 +358,21 @@ smallvis(
 - verbose:
 
   If `TRUE`, log progress messages to the console.
+
+- neighbors:
+
+  Optional list of precomputed nearest neighbors for Barnes-Hut t-SNE,
+  HSSNE, TEE, LargeVis, UMAP, and t-UMAP. Supply equally sized matrices
+  `idx` (one-based row indices) and `dist` (finite, nonnegative,
+  unsquared distances). Match the row order of `X` and list non-self
+  neighbors in distance order, with no duplicate indices. A self entry
+  is optional and is skipped. Leave `nn` unset. Supply a single numeric
+  perplexity (a whole number for `"knn"`). Each row needs `perplexity`
+  non-self neighbors for `"knn"`, or `floor(3 * perplexity)` for
+  `"nngaussian"`, capped at the number of other observations. For
+  `"skd"`, the neighborhood size includes self, so each row needs
+  `floor(perplexity) - 1` non-self neighbors. The supplied graph defines
+  the input affinities regardless of scaling or PCA.
 
 ## Value
 
@@ -384,7 +403,7 @@ Otherwise, a list with the following items:
   coordinates, after removing exaggeration. Their sum is the final
   objective. ASNE and its bandwidth variants report one conditional KL
   divergence per row. Other dense methods generally group pairwise terms
-  by column. Barnes-Hut t-SNE returns a single scalar objective.
+  by column. Barnes-Hut methods return a single scalar objective.
 
 - `itercosts` Objective values recorded at epochs. This history can be
   empty if an optimizer stops before the first epoch. Values recorded
@@ -474,13 +493,14 @@ to the `method` parameter are:
 
 - `"largevis"` the cost function of the LargeVis algorithm (Tang et al,
   2016). Input affinities are calculated and symmetrized using the same
-  perplexity calibration method as t-SNE, but are not normalized.
+  perplexity calibration method as t-SNE. Use `normalize = FALSE` to
+  leave them unnormalized.
 
-- `"umap"` the cost function the UMAP method (McInnes, 2017). Unlike
-  LargeVis and t-SNE, UMAP uses un-normalized input weights, which are
-  calibrated via calculating smoothed k-nearest-neighbor distances,
-  rather than perplexity (the procedure is similar, however). The value
-  of k is controlled by the `perplexity` parameter.
+- `"umap"` the cost function the UMAP method (McInnes, 2017). UMAP uses
+  unnormalized input weights, which are calibrated via smoothed
+  k-nearest-neighbor distances, rather than perplexity (the procedure is
+  similar, however). The value of k is controlled by the `perplexity`
+  parameter.
 
 - `"tumap"` Like UMAP, except the output weight function is the
   t-distribution with one degree of freedom, like t-SNE and LargeVis.
@@ -546,8 +566,9 @@ to the `method` parameter are:
 - `"gsne"`, The global SNE (g-SNE) method of Zhou and Sharpee (2018).
 
 By default, these methods use dense input affinities and gradients. For
-t-SNE, `bh = TRUE` approximates repulsive interactions, and neighbor
-input kernels can use approximate nearest-neighbor search.
+t-SNE, HSSNE, TEE, LargeVis, UMAP, and t-UMAP, `bh = TRUE` approximates
+repulsive interactions. Neighbor input kernels can use approximate
+neighbor search.
 
 ## Method-specific options
 
@@ -628,8 +649,9 @@ Some parameters are available for all (nor nearly all) methods.
 
 - `"tEE"`
 
-  - `lambda` Weighting term for the repulsive versus attractive forces.
-    Default is `0.01`.
+  - `lambda` Finite positive repulsion weight. Default is `0.01`. The
+    cost is the I-divergence from the input weights to `lambda` times
+    the output weights, divided by the sum of the input weights.
 
 - `"NeRV"`
 

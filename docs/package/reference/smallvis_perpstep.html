@@ -100,6 +100,9 @@ evaluated using its remaining iteration budget. An explicit perplexity in a
 method list defines the target and is temporarily overridden for preliminary
 runs. If there are no larger perplexities, or <code>step_iter = 0</code>, the call
 is equivalent to a direct <code>smallvis</code> run.</p>
+<p>With precomputed <code>neighbors</code>, the graph must cover the entire schedule,
+including preliminary perplexities. The neighbor budget is checked before
+any embedding starts.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>

@@ -158,6 +158,11 @@ but empirically, I’ve noticed that a negative cost indicates that <span class=
 output shows over-compressed clusters compared to a t-SNE result. So
 this version of the cost function may be superior for helping to at
 least set a lower bound on <span class="math inline">\lambda</span>.</p>
+<p>The figures below use that cost. In current smallvis, the comparison
+is with the scaled output weights <span class="math inline">\lambda
+w_{ij}</span>. This adds <span class="math inline">\lambda - 1 - \log
+\lambda</span> to the expression above and gives the usual nonnegative
+I-divergence with the same gradient.</p>
 </div>
 <div class="section level3">
 <h3 id="gradient">Gradient<a class="anchor" aria-label="anchor" href="#gradient"></a>
@@ -515,9 +520,8 @@ how t-EE performs across a practical range of perplexity values.</p>
 <span>  method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"tee"</span>, lambda <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span>,</span>
 <span>  min_cost <span class="op">=</span> <span class="op">-</span><span class="cn">Inf</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<p>Note that because the cost is not bounded by zero, you must set the
-<code>min_cost</code> parameter. It’s most convenient to set it to
-<code>-Inf</code>.</p>
+<p>I used <code>min_cost = -Inf</code> here because the original cost
+could go below zero.</p>
 <p>Values for <code>lambda</code> will be varied between
 <code>0.001</code> and <code>0.5</code>. On the plots below, both
 <code>lambda</code> and the t-EE error (I-divergence style) will be

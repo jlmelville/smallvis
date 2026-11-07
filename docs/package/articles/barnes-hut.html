@@ -13,8 +13,8 @@
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><link href="../extra.css" rel="stylesheet">
 <meta property="og:title" content="Barnes-Hut and native acceleration">
-<meta name="description" content="Run approximate t-SNE, choose neighbor affinities, and control native worker threads.">
-<meta property="og:description" content="Run approximate t-SNE, choose neighbor affinities, and control native worker threads.">
+<meta name="description" content="Run Barnes-Hut embeddings, choose neighbor affinities, and control native worker threads.">
+<meta property="og:description" content="Run Barnes-Hut embeddings, choose neighbor affinities, and control native worker threads.">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -66,9 +66,10 @@
     
 <p>Most smallvis methods calculate interactions between every pair of
 observations. That makes them convenient for experimentation on small
-datasets, but their time and memory requirements grow quadratically.
-Barnes-Hut t-SNE approximates repulsive interactions, allowing larger
-datasets when combined with neighbor-based input affinities.</p>
+datasets, but their time and memory requirements grow quadratically. For
+larger datasets, t-SNE, HSSNE, t-distributed elastic embedding (TEE),
+LargeVis, UMAP, and t-UMAP can combine sparse neighbor affinities with
+Barnes-Hut repulsion.</p>
 <div class="section level2">
 <h2 id="run-barnes-hut-t-sne">Run Barnes-Hut t-SNE<a class="anchor" aria-label="anchor" href="#run-barnes-hut-t-sne"></a>
 </h2>
@@ -102,16 +103,30 @@ calculation is too expensive.</p>
 <span>  ylab <span class="op">=</span> <span class="st">"t-SNE 2"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p><img src="barnes-hut_files/figure-html/barnes-hut-1.png" class="r-plt" alt="Barnes-Hut t-SNE embedding of iris, with species distinguished by color and plotting symbol." width="700"></p>
-<p>Barnes-Hut is implemented for t-SNE with two output dimensions. The
-<code>theta</code> parameter controls tree approximation: smaller values
-open more cells and require more work; zero evaluates the repulsive sum
-without tree approximation. Approximate neighbor search and the input
-kernel remain separate choices, so setting <code>theta = 0</code> does
-not restore affinities omitted by a sparse input graph.</p>
+<p>Barnes-Hut requires two output dimensions. Smaller <code>theta</code>
+values open more cells and require more work. Zero evaluates the
+repulsive sum exactly for the chosen input graph.</p>
 <p>The example uses binary k-nearest-neighbor affinities. Use
 <code>inp_kernel = "nngaussian"</code> for Gaussian perplexity
 calibration over neighbors instead. The <a href="../reference/smallvis.html#arguments">input kernel and Barnes-Hut
 arguments</a> describe these controls.</p>
+<p>You can also use <code>method = list("hssne", alpha = 0.5)</code> or
+<code>method = list("tee", lambda = 0.01)</code> with <code>"knn"</code>
+or <code>"nngaussian"</code> affinities. HSSNE changes the tail of the
+output kernel. TEE keeps the t-SNE kernel and uses a fixed repulsion
+multiplier. Use <code>method = "largevis"</code> for LargeVis or
+<code>method = "tumap"</code> for t-UMAP with the same input
+kernels.</p>
+<p>If you already have a neighbor graph, pass its <code>idx</code> and
+<code>dist</code> matrices in a list as <code>neighbors = graph</code>
+and leave <code>nn</code> unset. With <code>"nngaussian"</code>, a
+perplexity of 30 takes 90 non-self neighbors per row on a dataset with
+at least 91 observations. UMAP uses smooth kNN affinities
+(<code>inp_kernel = "skd"</code>), which are also available for t-UMAP.
+With <code>perplexity = 30</code>, <code>"skd"</code> takes 29 non-self
+neighbors per row. The saved graph supplies the affinities, so you can
+leave <code>pca = FALSE</code> and let <code>Y_init = "spca"</code>
+compute the starting coordinates.</p>
 </div>
 <div class="section level2">
 <h2 id="accelerate-a-dense-calculation">Accelerate a dense calculation<a class="anchor" aria-label="anchor" href="#accelerate-a-dense-calculation"></a>
