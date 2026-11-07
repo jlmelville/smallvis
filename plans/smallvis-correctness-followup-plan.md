@@ -1,12 +1,13 @@
 # smallvis correctness, cleanup, and allocation follow-up
 
-**Status: phases 1–4 complete; phases 5–7 pending.** The user requested that the
+**Status: phase 5 in progress; phases 1–4 complete.** The user requested that the
 [second repository review](smallvis-repository-review-2026-11-06.md) be saved and converted into
 a phased plan on 2026-11-06, then explicitly authorized phases 1, 2, and 3 in sequence. Source and
 test changes for phases 1–3 are committed as `a81ef3e`. The user requested implementation of phase 4
 with commits after completed changes. USNE/pseudo-separable optimizer contracts are committed as
-`817a608`; the dynamic HSSNE fix is validated and recorded below. Next: await direction on phase 5,
-backend controls and cleanup.
+`817a608`; the dynamic HSSNE fix is committed as `1a5bed0`. The user has authorized phase 5.
+The backend-forwarding correction passes validation. Next: commit that change, then remove confirmed
+leftovers. Phases 6–7 remain pending.
 
 **Baseline:** `e65bcbaf6b71669c92efe75cfdd595739e894a31`, with a clean worktree before saving these
 documents. The earlier [correctness plan](smallvis-correctness-implementation-plan.md) is complete
@@ -448,7 +449,7 @@ relevant files were compared byte-for-byte with the checkout.
 
 ## Phase 5. Finish control forwarding and remove confirmed leftovers
 
-Work in `R/sne.R`, `R/absne.R`, `R/fdiv.R`, `R/perplexity.R`, and `R/util.R`.
+Work in `R/sne.R`, `R/absne.R`, `R/fdiv.R`, `R/nerv.R`, `R/perplexity.R`, and `R/util.R`.
 
 1. Forward `use_cpp` through HSSNE's inherited initializer. Forward `use_cpp` and `n_threads`
    through AB-SNE's special branches and replace its hard-coded native selection with the caller's
@@ -464,6 +465,41 @@ Work in `R/sne.R`, `R/absne.R`, `R/fdiv.R`, `R/perplexity.R`, and `R/util.R`.
 and special parameter values, including thread forwarding. Existing numerical equivalence tests
 pass within their documented tolerances. No exports are removed or added, and the diff contains
 only the identified cleanup and required tests. Regenerate bridge files only if declarations change.
+
+The checkout started clean at `1a5bed0`. Dynamic HSSNE had the same omitted inherited-initializer
+`use_cpp` as fixed HSSNE and belongs in this correction. The f-divergence typos occupied
+the positional symmetrize slot of the base constructor, but each method replaces that initializer
+and supplies its own update closure; inspect effective routing rather than claiming a new numerical
+effect from the typo alone. Commit the control fixes separately from removal of unused code.
+An AST scan of related constructors also found the same missing `use_cpp` in SNERV's inherited
+SSNE initializer. Include that one-line forwarding fix and its public routing case.
+
+### Phase 5 backend-control checkpoint, 2026-11-06
+
+HSSNE, dynamic HSSNE, and SNERV now forward `use_cpp` to their inherited initializer. All four
+AB-SNE special branches forward both backend and thread controls, and the general branch honors
+the selected backend rather than forcing native calibration. The three f-divergence comparisons
+are corrected to named arguments; their overridden initializers and updates already honored the
+controls, so no separate numerical effect is claimed for those typos.
+
+A public regression covers eleven method configurations across top-level and nested controls,
+R/native selection, and one/two threads. Wrappers record real native-calibrator calls and output
+distance controls while calling the actual implementations. Equal input distances isolate routing
+from legitimate calibration-precision differences; P, coordinates, and scalar costs agree across
+the selected routes. The original test exposed 38 failures before the fixes; the added SNERV
+case covers the further omission found by the constructor scan.
+
+Validation: 751 focused expectations and 1696 full-suite expectations passed without failures,
+warnings, or skips. A fresh `R CMD check --no-manual` completed with Status OK. Air and lintr pass;
+existing rounded trajectories needed no updates. A repeat AST scan found no omitted named backend
+or thread controls in the inspected SNE constructor families. The checked archive matches the
+changed source and regression file byte-for-byte. No signatures, help, exports, or native sources
+changed. The CRAN index was unavailable, so checking used installed dependencies.
+
+Logs are `/tmp/smallvis-phase5a-{focused,tests,lint,red}.log` and
+`/tmp/smallvis-phase5-constructor-audit{,-final}.log`; the fresh archive/check is under
+`/tmp/smallvis-phase5a-check-n7uoxs53`. The unused-code removal remains pending and will be a
+separate commit.
 
 ## Phase 6. Remove the identified native allocations and measure the result
 

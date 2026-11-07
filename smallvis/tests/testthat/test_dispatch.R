@@ -203,3 +203,81 @@ test_that("optional distances use the resolved method controls", {
   )
   expect_equal(seen, list(use_cpp = TRUE, n_threads = 2))
 })
+
+test_that("inherited and specialized methods honor backend and thread controls", {
+  native <- find_beta_cpp
+  distances <- calc_d2
+  input_threads <- output_threads <- integer()
+  output_backends <- logical()
+  local_mocked_bindings(
+    find_beta_cpp = function(..., n_threads = 1L) {
+      input_threads <<- c(input_threads, n_threads)
+      native(..., n_threads = n_threads)
+    },
+    calc_d2 = function(X, use_cpp = FALSE, n_threads = 1L) {
+      output_backends <<- c(output_backends, use_cpp)
+      output_threads <<- c(output_threads, n_threads)
+      distances(X, use_cpp = use_cpp, n_threads = n_threads)
+    }
+  )
+  cases <- list(
+    list("hssne"),
+    list("dhssne"),
+    list("snerv"),
+    list("absne", alpha = 0.75, lambda = 0.5),
+    list("absne", alpha = 1, lambda = 0),
+    list("absne", alpha = 2, lambda = 2),
+    list("absne", alpha = 0, lambda = 1),
+    list("absne", alpha = 0, lambda = 0),
+    list("jssne"),
+    list("chsne"),
+    list("hlsne")
+  )
+  # Equal input distances give the same normalized P in both calibrators even
+  # though their precision initializations differ. Backend calls still matter.
+  X <- diag(8)
+  Y <- cbind(sin(1:8), cos(1:8))
+  for (method in cases) {
+    reference <- NULL
+    for (nested in c(FALSE, TRUE)) {
+      threads <- if (nested) 2L else 1L
+      for (use_cpp in c(FALSE, TRUE)) {
+        input_threads <- output_threads <- integer()
+        output_backends <- logical()
+        selector <- if (nested) {
+          c(method, list(use_cpp = use_cpp, n_threads = threads))
+        } else {
+          method
+        }
+        fit <- smallvis(
+          X,
+          method = selector,
+          use_cpp = if (nested) !use_cpp else use_cpp,
+          n_threads = if (nested) 3L else threads,
+          scale = FALSE,
+          perplexity = 7,
+          Y_init = Y,
+          max_iter = 2,
+          opt = list("adam", eta = 0.001),
+          epoch = 1,
+          tol = 0,
+          min_cost = -Inf,
+          ret_extra = "P",
+          epoch_callback = FALSE,
+          verbose = FALSE
+        )
+        expect_equal(input_threads, if (use_cpp) threads else integer())
+        expect_gt(length(output_threads), 0)
+        expect_equal(output_backends, rep(use_cpp, length(output_backends)))
+        expect_equal(output_threads, rep(threads, length(output_threads)))
+        if (is.null(reference)) {
+          reference <- fit
+        } else {
+          expect_equal(fit$P, reference$P, tolerance = 1e-12)
+          expect_equal(fit$Y, reference$Y, tolerance = 1e-10)
+          expect_equal(fit$costs, reference$costs, tolerance = 1e-10)
+        }
+      }
+    }
+  }
+})

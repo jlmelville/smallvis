@@ -22,7 +22,9 @@ absne <- function(
         inp_kernel = inp_kernel,
         symmetrize = symmetrize,
         alpha = alpha,
-        eps = eps
+        eps = eps,
+        n_threads = n_threads,
+        use_cpp = use_cpp
       )
     )
   }
@@ -34,7 +36,9 @@ absne <- function(
         inp_kernel = inp_kernel,
         symmetrize = symmetrize,
         alpha = alpha,
-        eps = eps
+        eps = eps,
+        n_threads = n_threads,
+        use_cpp = use_cpp
       )
     )
   }
@@ -46,7 +50,9 @@ absne <- function(
         inp_kernel = inp_kernel,
         symmetrize = symmetrize,
         beta = beta,
-        eps = eps
+        eps = eps,
+        n_threads = n_threads,
+        use_cpp = use_cpp
       )
     )
   }
@@ -57,7 +63,9 @@ absne <- function(
         perplexity = perplexity,
         inp_kernel = inp_kernel,
         symmetrize = symmetrize,
-        eps = eps
+        eps = eps,
+        n_threads = n_threads,
+        use_cpp = use_cpp
       )
     )
   }
@@ -68,7 +76,7 @@ absne <- function(
   lreplace(
     tsne(
       perplexity = perplexity,
-      use_cpp = TRUE,
+      use_cpp = use_cpp,
       n_threads = n_threads
     ),
     init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
@@ -91,7 +99,7 @@ absne <- function(
         verbose = verbose,
         ret_extra = ret_extra,
         n_threads = n_threads,
-        use_cpp = TRUE
+        use_cpp = use_cpp
       )
       cost$inva4 <- 4 / alpha
       cost$minvab <- -1 / (alpha * beta)

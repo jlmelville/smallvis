@@ -80,7 +80,7 @@ jssne <- function(
     tsne(
       perplexity = perplexity,
       inp_kernel = inp_kernel,
-      use_cpp == use_cpp,
+      use_cpp = use_cpp,
       n_threads = n_threads
     ),
     init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
@@ -159,7 +159,7 @@ chsne <- function(
     tsne(
       perplexity = perplexity,
       inp_kernel = inp_kernel,
-      use_cpp == use_cpp,
+      use_cpp = use_cpp,
       n_threads = n_threads
     ),
     init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
@@ -235,7 +235,7 @@ hlsne <- function(
     tsne(
       perplexity = perplexity,
       inp_kernel = inp_kernel,
-      use_cpp == use_cpp,
+      use_cpp = use_cpp,
       n_threads = n_threads
     ),
     init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {

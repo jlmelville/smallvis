@@ -113,7 +113,8 @@ snerv <- function(
       inp_kernel = inp_kernel,
       symmetrize = symmetrize,
       eps = eps,
-      n_threads = n_threads
+      n_threads = n_threads,
+      use_cpp = use_cpp
     ),
     cache_input = function(cost) {
       eps <- cost$eps

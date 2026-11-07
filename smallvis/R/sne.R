@@ -282,7 +282,8 @@ hssne <- function(
       inp_kernel = inp_kernel,
       symmetrize = symmetrize,
       eps = eps,
-      n_threads = n_threads
+      n_threads = n_threads,
+      use_cpp = use_cpp
     ),
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
@@ -387,7 +388,8 @@ dhssne <- function(
       inp_kernel = inp_kernel,
       symmetrize = symmetrize,
       eps = eps,
-      n_threads = n_threads
+      n_threads = n_threads,
+      use_cpp = use_cpp
     ),
     gradient_only = TRUE,
     gr = function(cost, Y) {
