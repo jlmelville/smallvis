@@ -30,6 +30,72 @@ test_that("native dense gradients preserve caller-owned buffers", {
   }
 })
 
+test_that("native MDS gradients borrow inputs without modifying aliases", {
+  # Direct calls expose writes that R's copy-on-modify could hide in a wrapper.
+  n <- 31
+  X <- matrix(sin(seq_len(n * 4)^2), n, 4)
+  Y <- cbind(sin(seq_len(n)), cos(seq_len(n)))
+  Y[2, ] <- Y[1, ]
+  R <- unname(as.matrix(stats::dist(X)))
+  D <- unname(as.matrix(stats::dist(Y)))
+  eps <- 0.01
+  alias_R <- R
+  alias_D <- D
+  alias_Y <- Y
+  before <- unserialize(serialize(list(R = R, D = D, Y = Y), NULL))
+  expected <- matrix(0, n, 2)
+  for (i in seq_len(n)) {
+    for (j in seq_len(n)) {
+      expected[i, ] <- expected[i, ] +
+        4 * (D[i, j] - R[i, j]) / (D[i, j] + eps) * (Y[i, ] - Y[j, ])
+    }
+  }
+  for (threads in c(1L, 2L)) {
+    actual <- mmds_grad_cpp(R, D, Y, eps, n_threads = threads)
+    expect_equal(actual, expected, tolerance = 1e-12)
+    expect_identical(R, before$R)
+    expect_identical(alias_R, before$R)
+    expect_identical(D, before$D)
+    expect_identical(alias_D, before$D)
+    expect_identical(Y, before$Y)
+    expect_identical(alias_Y, before$Y)
+    # The same protected matrix may supply both read-only input buffers.
+    expect_identical(
+      mmds_grad_cpp(D, D, Y, eps, n_threads = threads),
+      matrix(0, n, 2)
+    )
+  }
+})
+
+test_that("native Student weights own their result and preserve the diagonal", {
+  # Check the raw result's lifetime and unit diagonal before t-SNE zeros it.
+  Y <- cbind(c(0, 1, -2, 0, 4), c(0, -3, 0.5, 0, 2))
+  alias_Y <- Y
+  before <- unserialize(serialize(Y, NULL))
+  expected <- 1 / (1 + unname(as.matrix(stats::dist(Y)))^2)
+  for (threads in c(1L, 2L)) {
+    actual <- tweight_cpp(Y, n_threads = threads)
+    expect_type(actual, "double")
+    expect_identical(dim(actual), c(5L, 5L))
+    expect_equal(actual, expected, tolerance = 1e-15)
+    expect_identical(diag(actual), rep(1, nrow(Y)))
+    invisible(tweight_cpp(Y + 1, n_threads = threads))
+    invisible(gc())
+    expect_equal(actual, expected, tolerance = 1e-15)
+    expect_identical(Y, before)
+    expect_identical(alias_Y, before)
+
+    cost <- cost_update(
+      tsne(perplexity = 2, use_cpp = TRUE, n_threads = threads),
+      Y
+    )
+    diag(expected) <- 0
+    expect_equal(cost$W, expected, tolerance = 1e-15)
+    expect_equal(cost$Z, sum(expected), tolerance = 1e-15)
+    diag(expected) <- 1
+  }
+})
+
 test_that("dense calibration preserves directed rows and input ownership", {
   n <- 47
   X <- matrix(sin(seq_len(n * 6)^2), n, 6)
@@ -129,6 +195,55 @@ test_that("complete dense native runs match independent fixed-affinity updates",
     )
     expect_equal(actual$Y, expected, tolerance = 1e-12)
     expect_identical(actual$P, initial$P)
+    expect_identical(X, before$X)
+    expect_identical(Y, before$Y)
+  }
+})
+
+test_that("complete native MDS runs match independent distance updates", {
+  n <- 31
+  X <- matrix(sin(seq_len(n * 4)^2), n, 4)
+  Y <- cbind(sin(seq_len(n)), cos(seq_len(n)))
+  before <- unserialize(serialize(list(X = X, Y = Y), NULL))
+  R <- unname(as.matrix(stats::dist(X)))
+  expected <- Y
+  eps <- 0.01
+  for (step in 1:4) {
+    D <- unname(as.matrix(stats::dist(expected)))
+    G <- matrix(0, n, 2)
+    for (i in seq_len(n)) {
+      for (j in seq_len(n)) {
+        G[i, ] <- G[i, ] +
+          4 *
+            (D[i, j] - R[i, j]) /
+            (D[i, j] + eps) *
+            (expected[i, ] - expected[j, ])
+      }
+    }
+    expected <- expected - 0.001 * G
+    expected <- sweep(expected, 2, colMeans(expected))
+  }
+  for (threads in c(1L, 2L)) {
+    actual <- smallvis(
+      X,
+      Y_init = Y,
+      method = list("mmds", eps = eps),
+      scale = FALSE,
+      use_cpp = TRUE,
+      n_threads = threads,
+      max_iter = 4,
+      opt = list("steepd", eta = 0.001),
+      ret_extra = TRUE,
+      epoch_callback = FALSE,
+      verbose = FALSE
+    )
+    expect_equal(actual$Y, expected, tolerance = 1e-12)
+    expect_equal(
+      as.numeric(tail(actual$itercosts, 1)),
+      sum((R - as.matrix(stats::dist(expected)))^2),
+      tolerance = 1e-12
+    )
+    expect_identical(actual$iter, 4)
     expect_identical(X, before$X)
     expect_identical(Y, before$Y)
   }

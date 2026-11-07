@@ -1,13 +1,15 @@
 # smallvis correctness, cleanup, and allocation follow-up
 
-**Status: phases 1–5 complete; phases 6–7 pending.** The user requested that the
+**Status: phases 1–5 complete; phase 6 implementation validated, measurements pending.** The user
+requested that the
 [second repository review](smallvis-repository-review-2026-11-06.md) be saved and converted into
 a phased plan on 2026-11-06, then explicitly authorized phases 1, 2, and 3 in sequence. Source and
 test changes for phases 1–3 are committed as `a81ef3e`. The user requested implementation of phase 4
 with commits after completed changes. USNE/pseudo-separable optimizer contracts are committed as
 `817a608`; the dynamic HSSNE fix is committed as `1a5bed0`. The user has authorized phase 5.
-The backend-forwarding correction is committed as `e9fc703`; the unused-code cleanup is validated
-and recorded below. Next: await direction on phase 6, native allocations and measurements.
+The backend-forwarding correction is committed as `e9fc703`; the unused-code cleanup is committed
+as `9e5de8d`. The user has authorized phase 6. Its allocation changes are validated below;
+comparative measurements remain before phase completion. Phase 7 is pending.
 
 **Baseline:** `e65bcbaf6b71669c92efe75cfdd595739e894a31`, with a clean worktree before saving these
 documents. The earlier [correctness plan](smallvis-correctness-implementation-plan.md) is complete
@@ -562,6 +564,43 @@ recorded with limitations; at 5,000 points the removed payloads are 400 MB and 2
 not promises about RSS or elapsed time. Investigate an unexplained material regression before
 retaining a change. Add no timing assertions to routine unit tests and claim speed gains only when
 the measurements support them.
+
+### Phase 6 implementation outcome
+
+`mmds_grad_cpp()` now materializes const pointers to the protected R distance matrices on the main
+thread instead of copying both quadratic buffers. `tweight_cpp()` allocates its R result once and
+passes its buffer to workers, replacing the quadratic native vector and final copy. The existing
+joiner keeps borrowed inputs and output alive until workers finish. Workers use no R API and write
+disjoint columns. Arithmetic order, matrix layout, raw unit diagonal, and the owning t-SNE caller's
+zero diagonal remain unchanged. Linear coordinate/gradient buffers and distance kernels remain as
+before. No registered signature, generated bridge, public export, or help changed.
+
+The new tests pass against the pre-allocation source and candidate. They compare an independent
+MDS gradient and Student weights, preserve aliased inputs (including one matrix supplying both
+distance arguments), retain an output across another call and garbage collection, and check the
+t-SNE diagonal policy and four independent MDS updates. The candidate adds 44 expectations.
+
+| Validation | Result |
+| --- | --- |
+| Focused allocation contracts, baseline and candidate | 81 expectations pass |
+| Full `Rscript --vanilla -e 'testthat::test_local()'` | 1,740 pass; zero failures/warnings/skips |
+| Fresh source build and `R CMD check --no-manual` | Status OK, including installed tests |
+| Separate installed baseline/candidate comparison | Bitwise-identical kernels, costs, and five-step MDS/t-SNE results at 1/2 threads |
+| GCC 15.2 and Clang 21 strict C++17 syntax checks | `-Wall -Wextra -Wpedantic -Werror` pass |
+| GCC ASan/UBSan installed full suite | 1,740 pass, no sanitizer diagnostics; leak detection disabled |
+| GCC TSan focused actual-kernel harness | Pass at n = 0/1/31/95 and 1/2/4 workers; no race diagnostics |
+| Valgrind 3.26 installed kernels and short MDS/t-SNE runs | Zero errors; zero definitely, indirectly, or possibly lost bytes |
+| Air, namespace-aware lintr, changed C++ formatting, whitespace | Pass |
+| Generated-file audit | No generated changes |
+
+The TSan harness exercises the actual native helpers with stable native buffers; ASan/UBSan and
+Valgrind exercise R-owned storage through the installed package. Valgrind reports about 199 MB
+still reachable at R exit; this is not lost storage. No fault-injection or Windows result is claimed
+for this phase. The package check used installed dependencies because the CRAN index was
+unavailable, with no counted warning or note. Temporary logs, separately installed libraries, and
+focused harnesses are under `/tmp/smallvis-phase6`; the fresh check is under
+`/tmp/smallvis-phase6-check-t_t0xh37`. Comparative timing and process RSS evidence follows in a
+separate completed measurement step.
 
 ## Phase 7. Automate native regressions and close the review
 

@@ -8,9 +8,8 @@
 
 using namespace Rcpp;
 
-void mmds_grad(const std::vector<double> &R, const std::vector<double> &D,
-               const std::vector<double> &Y, double eps,
-               std::vector<double> &gradient, std::size_t start,
+void mmds_grad(const double *R, const double *D, const std::vector<double> &Y,
+               double eps, std::vector<double> &gradient, std::size_t start,
                std::size_t end, std::size_t n) {
 
   for (std::size_t i = start; i < end; ++i) {
@@ -49,7 +48,7 @@ void tsne_grad(const double *P, const double *W, double Z,
   }
 }
 
-void tweight(const std::vector<double> &data, std::vector<double> &dist_matrix,
+void tweight(const std::vector<double> &data, double *dist_matrix,
              std::size_t start_row, std::size_t end_row, std::size_t n) {
   for (std::size_t i = start_row; i < end_row; ++i) {
     const std::size_t i_d = i * 2;
@@ -148,13 +147,16 @@ NumericMatrix tweight_cpp(NumericMatrix input, std::size_t n_threads = 1) {
   std::vector<double> transposed_data =
       as<std::vector<double>>(transpose(input));
 
-  std::vector<double> dist_matrix(n * n, 0.0);
+  // Allocate and materialize the protected output on the main thread. Workers
+  // fill disjoint columns through its buffer without calling the R API.
+  NumericMatrix result(n, n);
+  double *result_data = result.begin();
   auto worker = [&](std::size_t start, std::size_t end, std::size_t) {
-    tweight(transposed_data, dist_matrix, start, end, n);
+    tweight(transposed_data, result_data, start, end, n);
   };
   smallvis::parallel_for(n, n_threads, worker);
 
-  return NumericMatrix(n, n, dist_matrix.begin());
+  return result;
 }
 
 // [[Rcpp::export]]
@@ -195,15 +197,17 @@ NumericMatrix mmds_grad_cpp(const NumericMatrix &R, const NumericMatrix &D,
   std::size_t n = Y.nrow();
   std::size_t d = Y.ncol();
 
-  std::vector<double> R_vec(R.begin(), R.end());
-  std::vector<double> D_vec(D.begin(), D.end());
+  // Materialize R storage on the main thread. Arguments stay protected while
+  // workers borrow these read-only buffers; no worker calls the R API.
+  const double *R_data = R.begin();
+  const double *D_data = D.begin();
 
   std::vector<double> Y_vec = as<std::vector<double>>(transpose(Y));
 
   std::vector<double> gradient_vec(n * d, 0.0);
 
   auto worker = [&](std::size_t start, std::size_t end, std::size_t) {
-    mmds_grad(R_vec, D_vec, Y_vec, eps, gradient_vec, start, end, n);
+    mmds_grad(R_data, D_data, Y_vec, eps, gradient_vec, start, end, n);
   };
   smallvis::parallel_for(n, n_threads, worker);
 
