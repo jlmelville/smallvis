@@ -4,8 +4,9 @@ An R package for experimenting with dimensionality reduction using neighborhood 
 including t-SNE, LargeVis, and UMAP cost functions. It gives you control over input scaling, nearest
 neighbors, initialization, and optimization so you can compare methods and try out ideas.
 
-Most methods use quadratic time and memory and suit small datasets. Barnes-Hut t-SNE supports larger
-datasets through approximate nearest neighbors and multithreaded C++ code.
+Most methods use quadratic time and memory and suit small datasets. Barnes-Hut supports larger
+datasets for t-SNE, HSSNE, and t-distributed elastic embedding by combining sparse neighbor affinities
+with multithreaded C++ code.
 
 ## Install
 

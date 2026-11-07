@@ -75,3 +75,51 @@ material regressions and report noisy results without asserting a speedup.
 Write raw CSV and RSS outputs outside the checkout, as above. Keep a small result table and the
 machine/compiler details in the active implementation plan. Large generated data and binary outputs
 should stay outside Git.
+
+## Barnes-Hut t-SNE optimizer steps
+
+[`bh-optimization.R`](bh-optimization.R) compares the original t-SNE implementation at
+`a3f77cd` with the shared traversal. Install each version into a separate library with
+`R CMD INSTALL --preclean` and matching release flags. Run each invocation in a fresh R process.
+The script requires R, smallvis and its regular dependencies, and GNU `nm` for the compiled
+implementation check. Use unstripped Linux builds.
+
+A small harness smoke from the repository root is:
+
+```sh
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+  Rscript --vanilla benchmarks/bh-optimization.R /tmp/smallvis-candidate-lib shared 200 1 2 1
+```
+
+The script uses seed 20261107, eight-dimensional Gaussian inputs, and the first two input columns
+divided by two as initial coordinates. It builds approximate nearest-neighbor affinities with
+perplexity 30 before timing. Each repetition starts from the same state and runs the requested
+number of delta-bar-delta steps with `theta = 0.5` and learning rate `N / 12`. One full batch
+warms the implementation. The timed region includes tree construction, gradient evaluation, and
+the R optimizer update. Input preparation, objective scoring, and final reporting are outside
+that region.
+
+For evidence, run each size and thread count with library/variant order
+`baseline, shared, shared, baseline`. Use 20 steps and three repetitions per process. The script
+writes one CSV row per repetition to standard output with fields
+`variant,n,threads,steps,nnz,elapsed,cpu,checksum,dll_md5`. Time columns are in seconds and the
+embedding checksum is the sum of squared coordinates after the final step. Write raw results and
+build logs outside the repository. This is a developer benchmark, separate from package validation.
+
+The November 7, 2026 comparison used R 4.5.2 on Linux x86-64 with an Intel Core i7-8750H,
+GCC 15.2.0 with `-O2`, and one thread for BLAS, OpenMP, and MKL. Each cell reports six batches
+of 20 steps per variant. Numbers are median elapsed milliseconds per step, with the sample range
+in parentheses.
+
+| Points | Native workers | Original | Shared | Change |
+| ---: | ---: | ---: | ---: | ---: |
+| 2,000 | 1 | 8.33 (8.10–9.70) | 8.28 (7.85–8.75) | −0.6% |
+| 2,000 | 2 | 7.38 (6.50–7.80) | 5.58 (5.50–6.05) | −24.4% |
+| 10,000 | 1 | 62.58 (58.15–65.55) | 61.93 (58.65–68.55) | −1.0% |
+| 10,000 | 2 | 40.05 (38.55–41.20) | 33.93 (32.15–36.55) | −15.3% |
+
+The final-coordinate checksums and affinity counts matched within each workload. The serial
+ranges overlap, and the two-worker runs used less elapsed and CPU time with the shared code.
+An initial version showed a serial slowdown at 10,000 points. The final implementation binds
+the gradient accumulators once per query and writes each worker's normalizer subtotal after
+its traversal. The comparison measures these changes together with the shared traversal.

@@ -68,8 +68,8 @@
 #' }
 #'
 #' By default, these methods use dense input affinities and gradients.
-#' For t-SNE, \code{bh = TRUE} approximates repulsive interactions, and
-#' neighbor input kernels can use approximate nearest-neighbor search.
+#' For t-SNE, HSSNE, and TEE, \code{bh = TRUE} approximates repulsive
+#' interactions. Neighbor input kernels can use approximate neighbor search.
 #'
 #' @section Method-specific options:
 #'
@@ -430,7 +430,7 @@
 #' function with these optimizers.
 #'
 #' @param X Input coordinates or distance matrix.
-#' @param k Number of output dimensions for the embedding. Barnes-Hut t-SNE
+#' @param k Number of output dimensions for the embedding. Barnes-Hut
 #'   requires \code{k = 2}.
 #' @param scale If \code{TRUE}, scale each column to zero mean and unit
 #'   variance. Alternatively, you may specify one of the following strings:
@@ -579,21 +579,20 @@
 #'   \code{.Machine$double.eps}, but if you see inconsistent convergence results
 #'   with optimizer that should be reducing the cost each iteration, then try
 #'   setting this to a larger value, e.g. between \code{1e-3 - 1e-9}. For
-#'   Barnes-Hut, epsilon is added to the sum of non-self Student weights in
-#'   both the cost and gradient. Tree construction uses the coordinates alone.
+#'   Barnes-Hut t-SNE, epsilon is added to the sum of non-self Student
+#'   weights in both the cost and gradient. Tree construction uses only the
+#'   coordinates.
 #'   When floating-point precision limits subdivision, a terminal leaf stores
 #'   distinct coordinates as separate groups.
-#' @param theta Barnes-Hut approximation accuracy. Default is \code{1.0} which
-#'   more or less corresponds to the default degree of approximation used in
-#'   the \code{Rtsne} package. Set to 0.0 for exact t-SNE. Applies only for
-#'   \code{bh = "TRUE"}.
-#' @param bh if \code{TRUE} use the Barnes-Hut method to approximate
-#'   repulsive interactions (van der Maaten, 2014), which allows neighbor
-#'   embedding methods to scale to larger datasets. For large datasets, you will
-#'   also want to set \code{inp_kernel} to use only k-nearest neighbors for the
-#'   input similarities, i.e. one of \code{"nngaussian"} or \code{"knn"}.
-#'   You may also want to set \code{nn = "approximate"}. Not all methods support
-#'   \code{bh = TRUE}.
+#' @param theta Barnes-Hut opening threshold, default \code{1.0}. Smaller
+#'   values open more cells. Zero evaluates the repulsive sum exactly for the
+#'   chosen input affinities. Applies only with \code{bh = TRUE}.
+#' @param bh If \code{TRUE}, approximate repulsive interactions with Barnes-Hut
+#'   (van der Maaten, 2014). Available for \code{"tsne"}, \code{"hssne"}, and
+#'   \code{"tee"} in two dimensions. For HSSNE and TEE, choose
+#'   \code{inp_kernel = "nngaussian"} (the default) or \code{"knn"} to build
+#'   sparse input affinities. These modes use approximate neighbor search by
+#'   default. Use \code{nn = "exact"} for exact neighbor lookup.
 #' @param inp_kernel For t-SNE-like methods, determines how the input
 #'   similarities are calculated. Possible values are:
 #'   \itemize{
@@ -608,8 +607,8 @@
 #'   nearest neighbors of each observation are considered and each are given
 #'   a similarity of \code{1/perplexity}. This can be a lot faster than using
 #'   \code{"nngaussian"} as fewer neighbors need to be found.
-#' @param nn Method for finding neighbors for t-SNE neighbor input kernels,
-#'   including Barnes-Hut t-SNE. Possible values are:
+#' @param nn Method for finding neighbors for t-SNE and Barnes-Hut neighbor
+#'   input kernels. Possible values are:
 #'  \itemize{
 #'  \item{\code{"exact"}} Exact nearest neighbors.
 #'  \item{\code{"approximate"}} Approximate nearest neighbors.
@@ -638,7 +637,7 @@
 #'   coordinates, after removing exaggeration. Their sum is the final objective.
 #'   ASNE and its bandwidth variants report one conditional KL divergence per
 #'   row. Other dense methods generally group pairwise terms by column.
-#'   Barnes-Hut t-SNE returns a single scalar objective.
+#'   Barnes-Hut methods return a single scalar objective.
 #' \item{\code{itercosts}} Objective values recorded at epochs. This history
 #'   can be empty if an optimizer stops before the first epoch. Values recorded
 #'   during exaggeration need not match the final unexaggerated objective.
@@ -1797,10 +1796,10 @@ create_cost <- function(
     }
     method <- match.arg(tolower(method), method_names)
     if (bh) {
-      if (method != "tsne") {
-        stop("Barnes-Hut is only supported for method 'tsne'")
+      if (!method %in% c("tsne", "hssne", "tee")) {
+        stop("Barnes-Hut is only supported for 'tsne', 'hssne', and 'tee'")
       }
-      method <- "bhtsne"
+      method <- paste0("bh", method)
     }
     fn <- get(method, envir = environment(create_cost), inherits = FALSE)
   }

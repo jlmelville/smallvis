@@ -9,6 +9,14 @@ bh_plogq_cpp <- function(indices, indptr, P_data, embedding, theta = 0.5, eps = 
     .Call(`_smallvis_bh_plogq_cpp`, indices, indptr, P_data, embedding, theta, eps, n_threads)
 }
 
+bh_sne_gradient_cpp <- function(indices, indptr, P_data, embedding, theta, eps, n_threads, alpha, normalize, lambda) {
+    .Call(`_smallvis_bh_sne_gradient_cpp`, indices, indptr, P_data, embedding, theta, eps, n_threads, alpha, normalize, lambda)
+}
+
+bh_sne_score_cpp <- function(indices, indptr, P_data, embedding, theta, eps, n_threads, alpha, normalize, lambda) {
+    .Call(`_smallvis_bh_sne_score_cpp`, indices, indptr, P_data, embedding, theta, eps, n_threads, alpha, normalize, lambda)
+}
+
 dist2_cpp <- function(input, n_threads = 1L) {
     .Call(`_smallvis_dist2_cpp`, input, n_threads)
 }

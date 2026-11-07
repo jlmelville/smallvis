@@ -44,6 +44,46 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// bh_sne_gradient_cpp
+NumericMatrix bh_sne_gradient_cpp(const IntegerVector& indices, const IntegerVector& indptr, const NumericVector& P_data, const NumericMatrix& embedding, double theta, double eps, int n_threads, double alpha, bool normalize, double lambda);
+RcppExport SEXP _smallvis_bh_sne_gradient_cpp(SEXP indicesSEXP, SEXP indptrSEXP, SEXP P_dataSEXP, SEXP embeddingSEXP, SEXP thetaSEXP, SEXP epsSEXP, SEXP n_threadsSEXP, SEXP alphaSEXP, SEXP normalizeSEXP, SEXP lambdaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const IntegerVector& >::type indices(indicesSEXP);
+    Rcpp::traits::input_parameter< const IntegerVector& >::type indptr(indptrSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type P_data(P_dataSEXP);
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type embedding(embeddingSEXP);
+    Rcpp::traits::input_parameter< double >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< double >::type eps(epsSEXP);
+    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    Rcpp::traits::input_parameter< double >::type alpha(alphaSEXP);
+    Rcpp::traits::input_parameter< bool >::type normalize(normalizeSEXP);
+    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
+    rcpp_result_gen = Rcpp::wrap(bh_sne_gradient_cpp(indices, indptr, P_data, embedding, theta, eps, n_threads, alpha, normalize, lambda));
+    return rcpp_result_gen;
+END_RCPP
+}
+// bh_sne_score_cpp
+double bh_sne_score_cpp(const IntegerVector& indices, const IntegerVector& indptr, const NumericVector& P_data, const NumericMatrix& embedding, double theta, double eps, int n_threads, double alpha, bool normalize, double lambda);
+RcppExport SEXP _smallvis_bh_sne_score_cpp(SEXP indicesSEXP, SEXP indptrSEXP, SEXP P_dataSEXP, SEXP embeddingSEXP, SEXP thetaSEXP, SEXP epsSEXP, SEXP n_threadsSEXP, SEXP alphaSEXP, SEXP normalizeSEXP, SEXP lambdaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const IntegerVector& >::type indices(indicesSEXP);
+    Rcpp::traits::input_parameter< const IntegerVector& >::type indptr(indptrSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type P_data(P_dataSEXP);
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type embedding(embeddingSEXP);
+    Rcpp::traits::input_parameter< double >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< double >::type eps(epsSEXP);
+    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    Rcpp::traits::input_parameter< double >::type alpha(alphaSEXP);
+    Rcpp::traits::input_parameter< bool >::type normalize(normalizeSEXP);
+    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
+    rcpp_result_gen = Rcpp::wrap(bh_sne_score_cpp(indices, indptr, P_data, embedding, theta, eps, n_threads, alpha, normalize, lambda));
+    return rcpp_result_gen;
+END_RCPP
+}
 // dist2_cpp
 NumericMatrix dist2_cpp(NumericMatrix input, std::size_t n_threads);
 RcppExport SEXP _smallvis_dist2_cpp(SEXP inputSEXP, SEXP n_threadsSEXP) {
@@ -146,6 +186,8 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_smallvis_bh_tsne_gradient_cpp", (DL_FUNC) &_smallvis_bh_tsne_gradient_cpp, 7},
     {"_smallvis_bh_plogq_cpp", (DL_FUNC) &_smallvis_bh_plogq_cpp, 7},
+    {"_smallvis_bh_sne_gradient_cpp", (DL_FUNC) &_smallvis_bh_sne_gradient_cpp, 10},
+    {"_smallvis_bh_sne_score_cpp", (DL_FUNC) &_smallvis_bh_sne_score_cpp, 10},
     {"_smallvis_dist2_cpp", (DL_FUNC) &_smallvis_dist2_cpp, 2},
     {"_smallvis_dist_cpp", (DL_FUNC) &_smallvis_dist_cpp, 2},
     {"_smallvis_tweight_cpp", (DL_FUNC) &_smallvis_tweight_cpp, 2},

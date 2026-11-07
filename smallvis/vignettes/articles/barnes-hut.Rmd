@@ -5,8 +5,9 @@ description: "Run approximate t-SNE, choose neighbor affinities, and control nat
 
 Most smallvis methods calculate interactions between every pair of observations. That makes them
 convenient for experimentation on small datasets, but their time and memory requirements grow
-quadratically. Barnes-Hut t-SNE approximates repulsive interactions, allowing larger datasets when
-combined with neighbor-based input affinities.
+quadratically. Barnes-Hut approximates repulsive interactions for t-SNE, HSSNE, and t-distributed
+elastic embedding (TEE). Sparse neighbor affinities keep the attractive part of the calculation
+sparse as well.
 
 ```{r setup, include=FALSE}
 library(smallvis)
@@ -45,14 +46,18 @@ plot(
 )
 ```
 
-Barnes-Hut is implemented for t-SNE with two output dimensions. The `theta` parameter controls tree
-approximation: smaller values open more cells and require more work; zero evaluates the repulsive
-sum without tree approximation. Approximate neighbor search and the input kernel remain separate
-choices, so setting `theta = 0` does not restore affinities omitted by a sparse input graph.
+Barnes-Hut requires two output dimensions. Smaller `theta` values open more cells and require
+more work. Zero evaluates the repulsive sum exactly for the chosen input graph. The input kernel
+and neighbor search still determine which affinities that graph contains.
 
 The example uses binary k-nearest-neighbor affinities. Use `inp_kernel = "nngaussian"` for Gaussian
 perplexity calibration over neighbors instead. The [input kernel and Barnes-Hut arguments](../reference/smallvis.html#arguments)
 describe these controls.
+
+The same controls work with `method = list("hssne", alpha = 0.5)` and
+`method = list("tee", lambda = 0.01)`. Both require a sparse input kernel. They default to
+`inp_kernel = "nngaussian"` and also support `"knn"`. HSSNE uses a heavy-tailed output kernel and
+a global normalizer. TEE uses the t-SNE output kernel with a fixed repulsion multiplier.
 
 ## Accelerate a dense calculation
 

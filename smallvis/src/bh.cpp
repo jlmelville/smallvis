@@ -3,228 +3,192 @@
 
 using namespace Rcpp;
 
-void _bh_tsne_negative_gradient_single(const smallvis::QuadTree::Node &node,
-                                       double point_x, double point_y,
-                                       double theta2, bool contains_query,
-                                       double &gradient_x, double &gradient_y,
-                                       double &Zi) {
-  // Empty nodes contribute neither force nor probability mass.
+namespace {
+
+struct CauchyKernel {
+  double weight(double d2) const { return 1.0 / (1.0 + d2); }
+  double slope(double d2) const { return weight(d2); }
+  double log_weight(double d2) const { return -std::log(1.0 + d2); }
+};
+
+struct HeavyTailKernel {
+  explicit HeavyTailKernel(double alpha)
+      : alpha(alpha), exponent(-1.0 / alpha) {}
+
+  double weight(double d2) const { return std::exp(log_weight(d2)); }
+  double slope(double d2) const { return 1.0 / (1.0 + alpha * d2); }
+  double log_weight(double d2) const {
+    return exponent * std::log1p(alpha * d2);
+  }
+
+  double alpha;
+  double exponent;
+};
+
+template <typename Accumulate>
+void visit_bh(const smallvis::QuadTree::Node &node, double x, double y,
+              double theta2, bool contains_query, Accumulate &accumulate) {
   if (node.num_points == 0) {
     return;
   }
-
   if (node.terminal_points) {
     for (const auto &point : *node.terminal_points) {
-      const bool is_query =
-          contains_query && point.x == point_x && point.y == point_y;
-      const auto count = point.count - (is_query ? 1 : 0);
-      const double diff_x = point.x - point_x;
-      const double diff_y = point.y - point_y;
-      const double weight = 1.0 / (1.0 + diff_x * diff_x + diff_y * diff_y);
-      Zi += count * weight;
-      gradient_x += count * weight * weight * diff_x;
-      gradient_y += count * weight * weight * diff_y;
+      const bool is_query = contains_query && point.x == x && point.y == y;
+      const double dx = point.x - x;
+      const double dy = point.y - y;
+      accumulate(point.count - (is_query ? 1 : 0), dx, dy, dx * dx + dy * dy);
     }
     return;
   }
 
-  // Compute the squared Euclidean distance between the point and the center of
-  // mass
-  double diff_x = node.center_of_mass_x - point_x;
-  double diff_y = node.center_of_mass_y - point_y;
-  double d2_ij = diff_x * diff_x + diff_y * diff_y;
-
-  // Check if we can use this node as a summary
-  if (node.is_summary(d2_ij, theta2, contains_query)) {
-    double w_ij = 1.0 / (1.0 + d2_ij);
-    const auto count = node.num_points - (contains_query ? 1 : 0);
-    double nw_ij = count * w_ij;
-    Zi += nw_ij;
-
-    nw_ij *= w_ij;
-    // un-normalized -ve grad W*W*dY
-    gradient_x += nw_ij * diff_x;
-    gradient_y += nw_ij * diff_y;
-
+  const double dx = node.center_of_mass_x - x;
+  const double dy = node.center_of_mass_y - y;
+  const double d2 = dx * dx + dy * dy;
+  if (node.is_summary(d2, theta2, contains_query)) {
+    accumulate(node.num_points - (contains_query ? 1 : 0), dx, dy, d2);
     return;
   }
 
-  // Recursively apply Barnes-Hut to the children
-  const auto query_quadrant = node.find_quadrant(point_x, point_y);
+  const auto query_quadrant = node.find_quadrant(x, y);
   for (std::size_t qid = 0; qid < 4; ++qid) {
-    _bh_tsne_negative_gradient_single(
-        *node.children[qid], point_x, point_y, theta2,
-        contains_query && qid == query_quadrant, gradient_x, gradient_y, Zi);
+    visit_bh(*node.children[qid], x, y, theta2,
+             contains_query && qid == query_quadrant, accumulate);
   }
 }
 
-// Function to estimate the negative gradient using the Barnes-Hut approximation
-void bh_tsne_negative_gradient(const smallvis::QuadTree &tree,
-                               const std::vector<double> &embedding,
-                               double theta2, double eps, std::size_t n_threads,
-                               std::vector<double> &gradient) {
-  std::size_t embedding_len = embedding.size();
-  std::vector<double> Zi(
-      smallvis::worker_count(embedding.size() / 2, n_threads), 0.0);
+template <bool Normalize, typename Kernel>
+NumericMatrix
+bh_gradient(const IntegerVector &indices, const IntegerVector &indptr,
+            const NumericVector &P_data, const NumericMatrix &embedding,
+            double theta, double eps, std::size_t n_threads,
+            const Kernel &kernel, double repulsion) {
+  if (embedding.ncol() != 2) {
+    stop("Barnes-Hut requires two output dimensions");
+  }
 
-  const smallvis::QuadTree::Node *root = tree.root.get();
+  const auto rows = as<std::vector<std::size_t>>(indices);
+  const auto offsets = as<std::vector<std::size_t>>(indptr);
+  const auto probabilities = as<std::vector<double>>(P_data);
+  const auto Y = as<std::vector<double>>(transpose(embedding));
+  const std::size_t n = Y.size() / 2;
+  const smallvis::QuadTree tree(Y);
+  const double theta2 = theta * theta;
+  std::vector<double> gradient(Y.size(), 0.0);
+  std::vector<double> sums(smallvis::worker_count(n, n_threads), 0.0);
 
-  // Function to calculate the negative gradient for a single point
-  auto worker = [&](std::size_t start, std::size_t end, std::size_t thread_id) {
-    for (std::size_t i = start * 2; i < end * 2; i += 2) {
-      _bh_tsne_negative_gradient_single(*root, embedding[i], embedding[i + 1],
-                                        theta2, true, gradient[i],
-                                        gradient[i + 1], Zi[thread_id]);
+  smallvis::parallel_for(
+      n, n_threads,
+      [&](std::size_t start, std::size_t end, std::size_t thread_id) {
+        double sum = 0.0;
+        for (std::size_t i = start; i < end; ++i) {
+          double &gx = gradient[2 * i];
+          double &gy = gradient[2 * i + 1];
+          auto accumulate = [&](std::size_t count, double dx, double dy,
+                                double d2) {
+            const double mass = count * kernel.weight(d2);
+            if (Normalize) {
+              sum += mass;
+            }
+            const double force = mass * kernel.slope(d2);
+            gx += force * dx;
+            gy += force * dy;
+          };
+          visit_bh(*tree.root, Y[2 * i], Y[2 * i + 1], theta2, true,
+                   accumulate);
+        }
+        if (Normalize) {
+          sums[thread_id] = sum;
+        }
+      });
+
+  if (Normalize) {
+    const double Z = std::accumulate(sums.begin(), sums.end(), eps);
+    for (auto &value : gradient) {
+      value /= Z;
     }
-  };
-  smallvis::parallel_for(embedding_len / 2, n_threads, worker);
-
-  double Z = std::accumulate(Zi.begin(), Zi.end(), eps);
-  // Normalize the gradient
-  for (std::size_t i = 0; i < embedding_len; i += 2) {
-    gradient[i] /= Z;
-    gradient[i + 1] /= Z;
-  }
-}
-
-void bh_tsne_positive_gradient(const std::vector<std::size_t> &indices,
-                               const std::vector<std::size_t> &indptr,
-                               const std::vector<double> &P_data,
-                               const std::vector<double> &embedding,
-                               std::size_t n_threads,
-                               std::vector<double> &gradient) {
-
-  auto worker = [&](std::size_t start, std::size_t end, std::size_t) {
-    for (std::size_t i = start, i2 = start * 2; i < end; ++i, i2 += 2) {
-      for (std::size_t k = indptr[i]; k < indptr[i + 1]; ++k) {
-        std::size_t j2 = indices[k] * 2;
-
-        // Compute the direction of the points' attraction and the squared
-        // Euclidean distance
-        double diff_x = embedding[i2] - embedding[j2];
-        double diff_y = embedding[i2 + 1] - embedding[j2 + 1];
-        double w_ij_p_ij =
-            P_data[k] / (1.0 + diff_x * diff_x + diff_y * diff_y);
-
-        // Compute F_{attr} of point `j` on point `i`
-        // W x P x dY
-        gradient[i2] += w_ij_p_ij * diff_x;
-        gradient[i2 + 1] += w_ij_p_ij * diff_y;
-      }
+  } else {
+    for (auto &value : gradient) {
+      value *= repulsion;
     }
-  };
-  smallvis::parallel_for(gradient.size() / 2, n_threads, worker);
-}
-
-double _bh_Zi(const smallvis::QuadTree::Node &node, double point_x,
-              double point_y, double theta2, bool contains_query) {
-  // Empty nodes contribute neither force nor probability mass.
-  if (node.num_points == 0) {
-    return 0.0;
   }
 
-  if (node.terminal_points) {
-    double Zi = 0.0;
-    for (const auto &point : *node.terminal_points) {
-      const bool is_query =
-          contains_query && point.x == point_x && point.y == point_y;
-      const auto count = point.count - (is_query ? 1 : 0);
-      const double diff_x = point.x - point_x;
-      const double diff_y = point.y - point_y;
-      Zi += count / (1.0 + diff_x * diff_x + diff_y * diff_y);
-    }
-    return Zi;
+  smallvis::parallel_for(
+      n, n_threads, [&](std::size_t start, std::size_t end, std::size_t) {
+        for (std::size_t i = start; i < end; ++i) {
+          for (std::size_t k = offsets[i]; k < offsets[i + 1]; ++k) {
+            const std::size_t j = rows[k];
+            const double dx = Y[2 * i] - Y[2 * j];
+            const double dy = Y[2 * i + 1] - Y[2 * j + 1];
+            const double force =
+                probabilities[k] * kernel.slope(dx * dx + dy * dy);
+            gradient[2 * i] += force * dx;
+            gradient[2 * i + 1] += force * dy;
+          }
+        }
+      });
+
+  NumericMatrix result(2, embedding.nrow(), gradient.begin());
+  return transpose(result);
+}
+
+// Sum P * log(w / Z) for normalized kernels, or P * log(w) - lambda * Z
+// for elastic embedding. Both sums exclude self interactions.
+template <typename Kernel>
+double bh_score(const IntegerVector &indices, const IntegerVector &indptr,
+                const NumericVector &P_data, const NumericMatrix &embedding,
+                double theta, double eps, std::size_t n_threads,
+                const Kernel &kernel, bool normalize, double repulsion) {
+  if (embedding.ncol() != 2) {
+    stop("Barnes-Hut requires two output dimensions");
   }
 
-  double diff_x = node.center_of_mass_x - point_x;
-  double diff_y = node.center_of_mass_y - point_y;
-  double d2_ij = diff_x * diff_x + diff_y * diff_y;
+  const auto rows = as<std::vector<std::size_t>>(indices);
+  const auto offsets = as<std::vector<std::size_t>>(indptr);
+  const auto probabilities = as<std::vector<double>>(P_data);
+  const auto Y = as<std::vector<double>>(transpose(embedding));
+  const std::size_t n = Y.size() / 2;
+  const smallvis::QuadTree tree(Y);
+  const double theta2 = theta * theta;
+  std::vector<double> sums(smallvis::worker_count(n, n_threads), 0.0);
 
-  if (node.is_summary(d2_ij, theta2, contains_query)) {
-    const auto count = node.num_points - (contains_query ? 1 : 0);
-    return count / (1.0 + d2_ij);
-  }
+  smallvis::parallel_for(
+      n, n_threads,
+      [&](std::size_t start, std::size_t end, std::size_t thread_id) {
+        double sum = 0.0;
+        for (std::size_t i = start; i < end; ++i) {
+          auto accumulate = [&](std::size_t count, double, double, double d2) {
+            sum += count * kernel.weight(d2);
+          };
+          visit_bh(*tree.root, Y[2 * i], Y[2 * i + 1], theta2, true,
+                   accumulate);
+        }
+        sums[thread_id] = sum;
+      });
 
-  // Recursively apply Barnes-Hut to the children
-  double Zi = 0.0;
-  const auto query_quadrant = node.find_quadrant(point_x, point_y);
-  for (std::size_t qid = 0; qid < 4; ++qid) {
-    Zi += _bh_Zi(*node.children[qid], point_x, point_y, theta2,
-                 contains_query && qid == query_quadrant);
-  }
-  return Zi;
+  const double Z =
+      std::accumulate(sums.begin(), sums.end(), normalize ? eps : 0.0);
+  const double log_offset = normalize ? -std::log(Z) : 0.0;
+  std::fill(sums.begin(), sums.end(), 0.0);
+  smallvis::parallel_for(
+      n, n_threads,
+      [&](std::size_t start, std::size_t end, std::size_t thread_id) {
+        double score = 0.0;
+        for (std::size_t i = start; i < end; ++i) {
+          for (std::size_t k = offsets[i]; k < offsets[i + 1]; ++k) {
+            const std::size_t j = rows[k];
+            const double dx = Y[2 * i] - Y[2 * j];
+            const double dy = Y[2 * i + 1] - Y[2 * j + 1];
+            score += probabilities[k] *
+                     (log_offset + kernel.log_weight(dx * dx + dy * dy));
+          }
+        }
+        sums[thread_id] = score;
+      });
+  return std::accumulate(sums.begin(), sums.end(),
+                         normalize ? 0.0 : -repulsion * Z);
 }
 
-double bh_Z(const smallvis::QuadTree &tree,
-            const std::vector<double> &embedding, double theta2, double eps,
-            std::size_t n_threads) {
-
-  std::vector<double> Zi(
-      smallvis::worker_count(embedding.size() / 2, n_threads), 0.0);
-  const smallvis::QuadTree::Node *root = tree.root.get();
-  auto worker = [&](std::size_t start, std::size_t end, std::size_t thread_id) {
-    const std::size_t end2 = end * 2;
-    for (std::size_t i = start * 2; i < end2; i += 2) {
-      Zi[thread_id] +=
-          _bh_Zi(*root, embedding[i], embedding[i + 1], theta2, true);
-    }
-  };
-  smallvis::parallel_for(embedding.size() / 2, n_threads, worker);
-
-  return std::accumulate(Zi.begin(), Zi.end(), eps);
-}
-
-double bh_plogq(const std::vector<std::size_t> &indices,
-                const std::vector<std::size_t> &indptr,
-                const std::vector<double> &P_data,
-                const std::vector<double> &embedding, double theta, double eps,
-                std::size_t n_threads) {
-  smallvis::QuadTree tree(embedding);
-  double mlogZ =
-      -std::log(bh_Z(tree, embedding, theta * theta, eps, n_threads));
-
-  std::vector<double> partial_plogq(
-      smallvis::worker_count(embedding.size() / 2, n_threads));
-  auto worker = [&](std::size_t start, std::size_t end, std::size_t thread_id) {
-    double window_plogq = 0.0;
-    for (std::size_t i = start, i2 = start * 2; i < end; ++i, i2 += 2) {
-      for (std::size_t k = indptr[i]; k < indptr[i + 1]; ++k) {
-        std::size_t j2 = indices[k] * 2;
-
-        // p * log(q) = p * log(w/Z) = p * (log w - log Z) =
-        // p * (log(1/(1+d2)) - log Z) = p * (-log(1+d2) - log Z)
-        double diff_x = embedding[i2] - embedding[j2];
-        double diff_y = embedding[i2 + 1] - embedding[j2 + 1];
-
-        window_plogq +=
-            P_data[k] *
-            (mlogZ - std::log(1.0 + diff_x * diff_x + diff_y * diff_y));
-      }
-    }
-    partial_plogq[thread_id] += window_plogq;
-  };
-  smallvis::parallel_for(embedding.size() / 2, n_threads, worker);
-
-  return std::accumulate(partial_plogq.begin(), partial_plogq.end(), 0.0);
-}
-
-std::vector<double> bh_tsne_gradient(const std::vector<std::size_t> &indices,
-                                     const std::vector<std::size_t> &indptr,
-                                     const std::vector<double> &P_data,
-                                     const std::vector<double> &embedding,
-                                     double theta, double eps,
-                                     std::size_t n_threads) {
-
-  smallvis::QuadTree tree(embedding);
-  std::vector<double> gradient(embedding.size(), 0.0);
-
-  // don't re-arrange the order of the following two function calls!
-  bh_tsne_negative_gradient(tree, embedding, theta * theta, eps, n_threads,
-                            gradient);
-  bh_tsne_positive_gradient(indices, indptr, P_data, embedding, n_threads,
-                            gradient);
-  return gradient;
-}
+} // namespace
 
 // [[Rcpp::export]]
 NumericMatrix bh_tsne_gradient_cpp(const IntegerVector &indices,
@@ -233,22 +197,8 @@ NumericMatrix bh_tsne_gradient_cpp(const IntegerVector &indices,
                                    const NumericMatrix &embedding,
                                    double theta = 0.5, double eps = 1e-16,
                                    std::size_t n_threads = 1) {
-  if (embedding.ncol() != 2) {
-    stop("Barnes-Hut requires two output dimensions");
-  }
-
-  auto indices_cpp = as<std::vector<std::size_t>>(indices);
-  auto indptr_cpp = as<std::vector<std::size_t>>(indptr);
-  auto P_data_cpp = as<std::vector<double>>(P_data);
-
-  auto embedding_vec = as<std::vector<double>>(transpose(embedding));
-
-  std::vector<double> gradient_cpp =
-      bh_tsne_gradient(indices_cpp, indptr_cpp, P_data_cpp, embedding_vec,
-                       theta, eps, n_threads);
-
-  NumericMatrix gradient(2, embedding.nrow(), gradient_cpp.begin());
-  return transpose(gradient);
+  return bh_gradient<true>(indices, indptr, P_data, embedding, theta, eps,
+                           n_threads, CauchyKernel{}, 0.0);
 }
 
 // [[Rcpp::export]]
@@ -256,16 +206,40 @@ double bh_plogq_cpp(const IntegerVector &indices, const IntegerVector &indptr,
                     const NumericVector &P_data, const NumericMatrix &embedding,
                     double theta = 0.5, double eps = 1e-16,
                     std::size_t n_threads = 1) {
-  if (embedding.ncol() != 2) {
-    stop("Barnes-Hut requires two output dimensions");
+  return bh_score(indices, indptr, P_data, embedding, theta, eps, n_threads,
+                  CauchyKernel{}, true, 0.0);
+}
+
+// [[Rcpp::export]]
+NumericMatrix bh_sne_gradient_cpp(const IntegerVector &indices,
+                                  const IntegerVector &indptr,
+                                  const NumericVector &P_data,
+                                  const NumericMatrix &embedding, double theta,
+                                  double eps, int n_threads, double alpha,
+                                  bool normalize, double lambda) {
+  if (normalize && alpha != 1.0) {
+    return bh_gradient<true>(indices, indptr, P_data, embedding, theta, eps,
+                             n_threads, HeavyTailKernel(alpha), 0.0);
   }
+  if (normalize) {
+    return bh_tsne_gradient_cpp(indices, indptr, P_data, embedding, theta, eps,
+                                n_threads);
+  }
+  return bh_gradient<false>(indices, indptr, P_data, embedding, theta, eps,
+                            n_threads, CauchyKernel{}, lambda);
+}
 
-  auto indices_cpp = as<std::vector<std::size_t>>(indices);
-  auto indptr_cpp = as<std::vector<std::size_t>>(indptr);
-  auto P_data_cpp = as<std::vector<double>>(P_data);
-
-  auto embedding_vec = as<std::vector<double>>(transpose(embedding));
-
-  return bh_plogq(indices_cpp, indptr_cpp, P_data_cpp, embedding_vec, theta,
-                  eps, n_threads);
+// [[Rcpp::export]]
+double bh_sne_score_cpp(const IntegerVector &indices,
+                        const IntegerVector &indptr,
+                        const NumericVector &P_data,
+                        const NumericMatrix &embedding, double theta,
+                        double eps, int n_threads, double alpha, bool normalize,
+                        double lambda) {
+  if (normalize && alpha != 1.0) {
+    return bh_score(indices, indptr, P_data, embedding, theta, eps, n_threads,
+                    HeavyTailKernel(alpha), true, 0.0);
+  }
+  return bh_score(indices, indptr, P_data, embedding, theta, eps, n_threads,
+                  CauchyKernel{}, normalize, lambda);
 }

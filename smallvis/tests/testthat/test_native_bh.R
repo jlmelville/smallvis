@@ -340,3 +340,55 @@ test_that("finite-resolution leaves finish and retain exact pair contributions",
     tolerance = 1e-12
   )
 })
+
+test_that("new Barnes-Hut methods match dense updates on the same sparse graph", {
+  X <- cbind(sin(1:24), cos(1:24), seq_len(24) / 7)
+  Y <- cbind(sin(1:24) / 2, cos(1:24) / 3)
+  Y[2, ] <- Y[1, ]
+  for (method in list(list("tee", lambda = 0.04), list("hssne", alpha = 0.7))) {
+    for (kernel in c("knn", "nngaussian")) {
+      fit <- function(bh, theta = 0) {
+        smallvis(
+          X,
+          method = method,
+          bh = bh,
+          inp_kernel = kernel,
+          nn = "exact",
+          perplexity = 4,
+          Y_init = Y,
+          max_iter = 1,
+          eta = 0.5,
+          theta = theta,
+          # Expose an incorrect input floor in the reported objective.
+          eps = 1e-5,
+          n_threads = 2,
+          ret_extra = "P",
+          epoch_callback = FALSE,
+          verbose = FALSE
+        )
+      }
+      dense <- fit(FALSE)
+      exact <- fit(TRUE)
+      expect_s4_class(exact$P, "dgCMatrix")
+      expect_equal(as.matrix(exact$P), dense$P, tolerance = 1e-12)
+      expect_equal(exact$Y, dense$Y, tolerance = 1e-12)
+      expect_equal(exact$costs, sum(dense$costs), tolerance = 1e-12)
+      approximate <- fit(TRUE, theta = 0.7)
+      expect_true(all(is.finite(approximate$Y)))
+      expect_true(is.finite(approximate$costs))
+    }
+  }
+})
+
+test_that("new Barnes-Hut methods require a sparse input kernel and two dimensions", {
+  for (method in c("tee", "hssne")) {
+    expect_error(
+      smallvis(iris, method = method, bh = TRUE, inp_kernel = "gaussian"),
+      "nngaussian"
+    )
+    expect_error(
+      smallvis(iris, method = method, bh = TRUE, k = 3),
+      "Barnes-Hut requires k = 2"
+    )
+  }
+})
