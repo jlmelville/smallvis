@@ -32,6 +32,8 @@ sne_init <- function(
       "exp"
     )
   )
+  neighbors <- cost[["neighbors"]]
+  cost$neighbors <- NULL
   if (kernel == "knn") {
     if (is.character(perplexity) || is.list(perplexity)) {
       stop("Can't use intrinsic dimensionality with knn kernel")
@@ -46,7 +48,8 @@ sne_init <- function(
       n_threads = n_threads,
       ret_sparse = sparse,
       exact = nn == "exact",
-      verbose = verbose
+      verbose = verbose,
+      neighbors = neighbors
     )
     x2ares <- list(W = P)
   } else if (tolower(kernel) == "skd") {
@@ -123,13 +126,16 @@ sne_init <- function(
         )
         k <- n - 1
       }
-      knn <- get_nn(
-        X,
-        k = k + 1,
-        exact = nn == "exact",
-        n_threads = n_threads,
-        verbose = verbose
-      )
+      knn <- neighbors
+      if (is.null(knn)) {
+        knn <- get_nn(
+          X,
+          k = k + 1,
+          exact = nn == "exact",
+          n_threads = n_threads,
+          verbose = verbose
+        )
+      }
       knn_dist <- matrix(0, n, k)
       knn_idx <- matrix(0L, n, k)
       for (i in seq_len(n)) {
@@ -489,19 +495,22 @@ knn_graph <- function(
   exact = TRUE,
   ret_sparse = FALSE,
   n_threads = 0,
-  verbose = FALSE
+  verbose = FALSE,
+  neighbors = NULL
 ) {
   n <- if (methods::is(X, "dist")) attr(X, "Size") else nrow(X)
   if (length(k) != 1 || !is.finite(k) || k < 1 || k > n - 1 || k != floor(k)) {
     stop("k must be a whole number between 1 and n - 1")
   }
-  neighbors <- get_nn(
-    X,
-    k = k + 1,
-    exact = exact,
-    n_threads = n_threads,
-    verbose = verbose
-  )
+  if (is.null(neighbors)) {
+    neighbors <- get_nn(
+      X,
+      k = k + 1,
+      exact = exact,
+      n_threads = n_threads,
+      verbose = verbose
+    )
+  }
   idx <- matrix(0L, n, k)
   for (i in seq_len(n)) {
     keep <- utils::head(which(neighbors$idx[i, ] != i), k)
@@ -516,6 +525,104 @@ knn_graph <- function(
     D[cbind(rows, columns)] <- 1
     D
   }
+}
+
+check_saved_neighbors <- function(
+  neighbors,
+  n,
+  method,
+  bh,
+  inp_kernel,
+  nn,
+  perplexity,
+  step_perplexities = numeric()
+) {
+  if (is.list(method)) {
+    opts <- lmerge(method[-1L], list(inp_kernel = inp_kernel, nn = nn))
+    inp_kernel <- opts[["inp_kernel"]]
+    nn <- opts[["nn"]]
+    method <- method[1L][[1L]]
+  }
+  if (
+    !isTRUE(bh) ||
+      !is.character(method) ||
+      length(method) != 1L ||
+      !tolower(method) %in% c("tsne", "hssne", "tee")
+  ) {
+    stop("neighbors requires Barnes-Hut t-SNE, HSSNE, or TEE")
+  }
+  if (!is.null(nn)) {
+    stop("Leave nn unset when supplying neighbors")
+  }
+  kernel <- if (is.null(inp_kernel)) "nngaussian" else tolower(inp_kernel)
+  if (length(kernel) != 1L || !kernel %in% c("knn", "nngaussian")) {
+    stop("neighbors requires inp_kernel = 'knn' or 'nngaussian'")
+  }
+  if (!is.numeric(perplexity) || length(perplexity) != 1L) {
+    stop("neighbors requires a single numeric perplexity")
+  }
+  schedule <- c(step_perplexities, perplexity)
+  validate_perplexity(schedule, n)
+  if (kernel == "knn" && any(schedule != floor(schedule))) {
+    stop("The knn kernel requires whole-number perplexities")
+  }
+  if (!is.list(neighbors)) {
+    stop("neighbors must be a list with idx and dist matrices")
+  }
+  idx <- neighbors[["idx"]]
+  dist <- neighbors[["dist"]]
+  if (
+    !is.matrix(idx) ||
+      !is.matrix(dist) ||
+      !identical(dim(idx), dim(dist)) ||
+      nrow(idx) != n ||
+      ncol(idx) < 1L
+  ) {
+    stop(
+      "neighbors$idx and neighbors$dist must have matching dimensions ",
+      "and one row per observation"
+    )
+  }
+  if (
+    !is.numeric(idx) ||
+      any(!is.finite(idx)) ||
+      any(idx < 1 | idx > n | idx != floor(idx))
+  ) {
+    stop("neighbors$idx must contain one-based integer indices into X")
+  }
+  if (!is.numeric(dist) || any(!is.finite(dist)) || any(dist < 0)) {
+    stop("neighbors$dist must contain finite nonnegative distances")
+  }
+  available <- ncol(idx)
+  for (i in seq_len(n)) {
+    ids <- idx[i, ]
+    if (anyDuplicated(ids)) {
+      stop("neighbors$idx has duplicate indices in row ", i)
+    }
+    nonself <- ids != i
+    if (is.unsorted(dist[i, nonself])) {
+      stop("neighbors$dist is not sorted by distance in row ", i)
+    }
+    available <- min(available, sum(nonself))
+  }
+  p <- max(schedule)
+  required <- if (kernel == "knn") p else min(n - 1, floor(3 * p))
+  if (available < required) {
+    stop(
+      "neighbors supplies at least ",
+      available,
+      " non-self neighbors per row. Perplexity ",
+      p,
+      " with the ",
+      kernel,
+      " kernel requires ",
+      required
+    )
+  }
+  if (!is.integer(idx)) {
+    storage.mode(idx) <- "integer"
+  }
+  list(idx = idx, dist = dist)
 }
 
 get_nn <- function(X, k, exact = FALSE, n_threads = 0, verbose = FALSE) {

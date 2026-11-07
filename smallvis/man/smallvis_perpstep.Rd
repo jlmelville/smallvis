@@ -57,6 +57,10 @@ evaluated using its remaining iteration budget. An explicit perplexity in a
 method list defines the target and is temporarily overridden for preliminary
 runs. If there are no larger perplexities, or \code{step_iter = 0}, the call
 is equivalent to a direct \code{smallvis} run.
+
+With precomputed \code{neighbors}, the graph must cover the entire schedule,
+including preliminary perplexities. The neighbor budget is checked before
+any embedding starts.
 }
 \examples{
 embedding <- smallvis_perpstep(

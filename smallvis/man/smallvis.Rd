@@ -43,7 +43,8 @@ smallvis(
   eps = .Machine$double.eps,
   inp_kernel = NULL,
   nn = NULL,
-  verbose = TRUE
+  verbose = TRUE,
+  neighbors = NULL
 )
 }
 \arguments{
@@ -274,6 +275,18 @@ each method gets to choose the best method for its needs. Precomputed
 distance inputs use exact neighbor lookup.}
 
 \item{verbose}{If \code{TRUE}, log progress messages to the console.}
+
+\item{neighbors}{Optional list of precomputed nearest neighbors for
+Barnes-Hut t-SNE, HSSNE, and TEE with \code{inp_kernel = "knn"} or
+\code{"nngaussian"}. Supply equally sized matrices \code{idx} (one-based
+row indices) and \code{dist} (finite, nonnegative, unsquared distances).
+Match the row order of \code{X} and list non-self neighbors in distance
+order, with no duplicate indices. A self entry is optional and is skipped.
+Leave \code{nn} unset. Supply a single numeric perplexity (a whole number
+for \code{"knn"}). Each row needs \code{perplexity} non-self neighbors for
+\code{"knn"}, or \code{floor(3 * perplexity)} for \code{"nngaussian"},
+capped at the number of other observations. The supplied graph defines
+the input affinities regardless of scaling or PCA.}
 }
 \value{
 If \code{ret_extra} is \code{FALSE}, the embedded output coordinates

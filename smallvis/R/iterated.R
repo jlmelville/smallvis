@@ -182,6 +182,10 @@ should_ret_extra <- function(ret_extra) {
 #' runs. If there are no larger perplexities, or \code{step_iter = 0}, the call
 #' is equivalent to a direct \code{smallvis} run.
 #'
+#' With precomputed \code{neighbors}, the graph must cover the entire schedule,
+#' including preliminary perplexities. The neighbor budget is checked before
+#' any embedding starts.
+#'
 #' @param step_iter Number of iterations to carry out the perplexity
 #'  stepping. Must be < the value of \code{max_iter} when preliminary runs
 #'  are needed. Zero skips stepping.
@@ -242,6 +246,18 @@ smallvis_perpstep <- function(step_iter = 250, ...) {
   if (length(perps) > 0 && step_iter > 0) {
     if (max_iter <= step_iter) {
       stop("max_iter must be > step_iter")
+    }
+    if (!is.null(final_args$neighbors)) {
+      final_args$neighbors <- check_saved_neighbors(
+        final_args$neighbors,
+        n = n,
+        method = if (is.null(final_args$method)) "tsne" else final_args$method,
+        bh = final_args$bh,
+        inp_kernel = final_args$inp_kernel,
+        nn = final_args$nn,
+        perplexity = target_perplexity,
+        step_perplexities = perps
+      )
     }
     max_iter_step <- max(1, floor(step_iter / length(perps)))
     preliminary <- final_args

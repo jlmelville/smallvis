@@ -618,6 +618,17 @@
 #'  each method gets to choose the best method for its needs. Precomputed
 #'  distance inputs use exact neighbor lookup.
 #' @param verbose If \code{TRUE}, log progress messages to the console.
+#' @param neighbors Optional list of precomputed nearest neighbors for
+#'   Barnes-Hut t-SNE, HSSNE, and TEE with \code{inp_kernel = "knn"} or
+#'   \code{"nngaussian"}. Supply equally sized matrices \code{idx} (one-based
+#'   row indices) and \code{dist} (finite, nonnegative, unsquared distances).
+#'   Match the row order of \code{X} and list non-self neighbors in distance
+#'   order, with no duplicate indices. A self entry is optional and is skipped.
+#'   Leave \code{nn} unset. Supply a single numeric perplexity (a whole number
+#'   for \code{"knn"}). Each row needs \code{perplexity} non-self neighbors for
+#'   \code{"knn"}, or \code{floor(3 * perplexity)} for \code{"nngaussian"},
+#'   capped at the number of other observations. The supplied graph defines
+#'   the input affinities regardless of scaling or PCA.
 #' @return If \code{ret_extra} is \code{FALSE}, the embedded output coordinates
 #'   as a matrix. Otherwise, a list with the following items:
 #' \itemize{
@@ -981,7 +992,8 @@ smallvis <- function(
   eps = .Machine$double.eps,
   inp_kernel = NULL,
   nn = NULL,
-  verbose = TRUE
+  verbose = TRUE,
+  neighbors = NULL
 ) {
   do.call(smallvis_run, as.list(match.call())[-1], envir = parent.frame())
 }
@@ -1028,6 +1040,7 @@ smallvis_run <- function(
   inp_kernel = NULL,
   nn = NULL,
   verbose = TRUE,
+  neighbors = NULL,
   prepared = NULL,
   prepare_only = FALSE
 ) {
@@ -1088,7 +1101,8 @@ smallvis_run <- function(
       nn,
       bh,
       supplied = names(match.call()),
-      verbose = verbose
+      verbose = verbose,
+      neighbors = neighbors
     )
   }
   X <- prepared$X
@@ -1614,7 +1628,8 @@ prepare_smallvis_input <- function(
   nn,
   bh,
   supplied,
-  verbose
+  verbose,
+  neighbors = NULL
 ) {
   # The embedding method
   cost_fn <- create_cost(
@@ -1641,6 +1656,17 @@ prepare_smallvis_input <- function(
   perplexity <- controls$perplexity
   use_cpp <- controls$use_cpp
   n_threads <- controls$n_threads
+  if (!is.null(neighbors)) {
+    cost_fn$neighbors <- check_saved_neighbors(
+      neighbors,
+      n = if (methods::is(X, "dist")) attr(X, "Size") else nrow(X),
+      method = method,
+      bh = bh,
+      inp_kernel = inp_kernel,
+      nn = nn,
+      perplexity = perplexity
+    )
+  }
 
   if (!is.null(cost_fn$ndim) && k != cost_fn$ndim) {
     stop("Barnes-Hut requires k = 2")

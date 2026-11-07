@@ -1,13 +1,12 @@
 ---
 title: "Barnes-Hut and native acceleration"
-description: "Run approximate t-SNE, choose neighbor affinities, and control native worker threads."
+description: "Run Barnes-Hut embeddings, choose neighbor affinities, and control native worker threads."
 ---
 
 Most smallvis methods calculate interactions between every pair of observations. That makes them
 convenient for experimentation on small datasets, but their time and memory requirements grow
-quadratically. Barnes-Hut approximates repulsive interactions for t-SNE, HSSNE, and t-distributed
-elastic embedding (TEE). Sparse neighbor affinities keep the attractive part of the calculation
-sparse as well.
+quadratically. For larger datasets, t-SNE, HSSNE, and t-distributed elastic embedding (TEE) can
+combine sparse neighbor affinities with Barnes-Hut repulsion.
 
 ```{r setup, include=FALSE}
 library(smallvis)
@@ -47,17 +46,22 @@ plot(
 ```
 
 Barnes-Hut requires two output dimensions. Smaller `theta` values open more cells and require
-more work. Zero evaluates the repulsive sum exactly for the chosen input graph. The input kernel
-and neighbor search still determine which affinities that graph contains.
+more work. Zero evaluates the repulsive sum exactly for the chosen input graph.
 
 The example uses binary k-nearest-neighbor affinities. Use `inp_kernel = "nngaussian"` for Gaussian
 perplexity calibration over neighbors instead. The [input kernel and Barnes-Hut arguments](../reference/smallvis.html#arguments)
 describe these controls.
 
-The same controls work with `method = list("hssne", alpha = 0.5)` and
-`method = list("tee", lambda = 0.01)`. Both require a sparse input kernel. They default to
-`inp_kernel = "nngaussian"` and also support `"knn"`. HSSNE uses a heavy-tailed output kernel and
-a global normalizer. TEE uses the t-SNE output kernel with a fixed repulsion multiplier.
+You can also use `method = list("hssne", alpha = 0.5)` or `method = list("tee", lambda = 0.01)`
+with `"knn"` or `"nngaussian"` affinities. HSSNE changes the tail of the output kernel. TEE keeps
+the t-SNE kernel and uses a fixed repulsion multiplier. The TEE cost can go below zero, so set
+`min_cost = -Inf` to run past that point.
+
+If you already have a neighbor graph, pass its `idx` and `dist` matrices in a list as
+`neighbors = graph` and leave `nn` unset. With `"nngaussian"`, a perplexity of 30 takes 90
+non-self neighbors per row on a dataset with at least 91 observations.
+The saved graph supplies the affinities, so you can leave `pca = FALSE` and let `Y_init = "spca"`
+compute the starting coordinates.
 
 ## Accelerate a dense calculation
 

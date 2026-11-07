@@ -120,6 +120,3 @@ in parentheses.
 
 The final-coordinate checksums and affinity counts matched within each workload. The serial
 ranges overlap, and the two-worker runs used less elapsed and CPU time with the shared code.
-An initial version showed a serial slowdown at 10,000 points. The final implementation binds
-the gradient accumulators once per query and writes each worker's normalizer subtotal after
-its traversal. The comparison measures these changes together with the shared traversal.
