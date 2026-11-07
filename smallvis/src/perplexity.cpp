@@ -44,8 +44,8 @@ void find_beta_knn(std::vector<double> &knn_distances, std::size_t k,
       entropy += knn_distances[idx + j] * W[idx + j];
       Z += W[idx + j];
     }
-    if (Z == 0.0) {
-      entropy = 0.0;
+    if (!(Z > 0.0) || !std::isfinite(Z)) {
+      entropy = std::numeric_limits<double>::quiet_NaN();
     } else {
       entropy = (entropy / Z) * beta[i] + log(Z);
     }
@@ -76,8 +76,8 @@ void find_beta_knn(std::vector<double> &knn_distances, std::size_t k,
         entropy += knn_distances[idx + j] * W[idx + j];
         Z += W[idx + j];
       }
-      if (Z == 0.0) {
-        entropy = 0.0;
+      if (!(Z > 0.0) || !std::isfinite(Z)) {
+        entropy = std::numeric_limits<double>::quiet_NaN();
       } else {
         entropy = (entropy / Z) * beta[i] + log(Z);
       }
@@ -136,8 +136,8 @@ void find_beta(const std::vector<double> &data, std::size_t n, std::size_t d,
       entropy += D2i[j] * Wi[j];
       Z += Wi[j];
     }
-    if (Z == 0.0) {
-      entropy = 0.0;
+    if (!(Z > 0.0) || !std::isfinite(Z)) {
+      entropy = std::numeric_limits<double>::quiet_NaN();
     } else {
       entropy = (entropy / Z) * beta[i] + log(Z);
     }
@@ -173,8 +173,8 @@ void find_beta(const std::vector<double> &data, std::size_t n, std::size_t d,
         entropy += D2i[j] * Wi[j];
         Z += Wi[j];
       }
-      if (Z == 0.0) {
-        entropy = 0.0;
+      if (!(Z > 0.0) || !std::isfinite(Z)) {
+        entropy = std::numeric_limits<double>::quiet_NaN();
       } else {
         entropy = (entropy / Z) * beta[i] + log(Z);
       }

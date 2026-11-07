@@ -168,6 +168,8 @@ $$
 
 This form includes the Kullback-Leibler divergence, where the last two terms
 cancel when $P$ and $Q$ are probabilities.
+Terms that depend only on $P$ do not affect the gradient, but they still matter for reported costs
+and cost-based stopping.
 
 $$
 \frac{\partial C}{\partial q_{ij}} =
@@ -233,14 +235,9 @@ w_{ij}
  \mathbf{y}_i - \mathbf{y}_j
 \right)
 $$
-This can also be derived from the standard gradient. The $\sum_{kl} 1$ term
-is interesting. I rather lazily write the sum as being over two indices, but
-we really should ignore $q_{ii}$, i.e. the N diagonal "self" probabilities.
-So should that sum be $N^2$ or $N^2 - N$? In my tests, to get finite difference
-and analytical gradients to agree, I had to treat the sum in the cost function
-to be $N^2$, but the sum in the gradient to be $N^2 - N$. As usual, I will
-leave this mystery unresolved with a vague and unfulfilled promise to return
-and update if I ever work this out.
+This can also be derived from the standard gradient. Both the cost and gradient sums exclude
+the $N$ diagonal "self" probabilities, so $\sum_{k \ne l} 1 = N(N - 1)$.
+Each column of the cost therefore subtracts $N - 1$, giving zero divergence when $P = Q$.
 
 #### alpha = 0, beta != 0 {#alpha-0-beta-neq-0}
 

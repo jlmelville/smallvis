@@ -54,11 +54,19 @@ class QuadTree {
 public:
   // Node structure
   struct Node {
+    struct Point {
+      double x;
+      double y;
+      std::size_t count;
+    };
+
     // Center of mass of points within this node
     double center_of_mass_x = 0.0;
     double center_of_mass_y = 0.0;
     std::size_t num_points = 0;
     std::unique_ptr<Node> children[4];
+    // Only populated when distinct points cannot be separated by subdivision.
+    std::unique_ptr<std::vector<Point>> terminal_points;
 
     Node(double center_x, double center_y, double length) noexcept
         : center_x(center_x), center_y(center_y), length(length),
@@ -71,6 +79,21 @@ public:
     }
 
     void add_point(double point_x, double point_y, std::size_t count = 1) {
+      if (terminal_points) {
+        const auto point =
+            std::find_if(terminal_points->begin(), terminal_points->end(),
+                         [point_x, point_y](const Point &p) {
+                           return p.x == point_x && p.y == point_y;
+                         });
+        if (point == terminal_points->end()) {
+          terminal_points->push_back({point_x, point_y, count});
+        } else {
+          point->count += count;
+        }
+        update_center_of_mass(point_x, point_y, count);
+        return;
+      }
+
       if (num_points == 0) {
         center_of_mass_x = point_x;
         center_of_mass_y = point_y;
@@ -81,6 +104,14 @@ public:
       if (is_leaf) {
         if (center_of_mass_x == point_x && center_of_mass_y == point_y) {
           num_points += count;
+          return;
+        }
+        if (!can_split(point_x, point_y)) {
+          terminal_points = std::make_unique<std::vector<Point>>();
+          terminal_points->push_back(
+              {center_of_mass_x, center_of_mass_y, num_points});
+          terminal_points->push_back({point_x, point_y, count});
+          update_center_of_mass(point_x, point_y, count);
           return;
         }
         split();
@@ -111,6 +142,22 @@ public:
     // length squared used in Barnes Hut criterion
     double length2;
     bool is_leaf = true;
+
+    bool can_split(double point_x, double point_y) const noexcept {
+      if (!std::isfinite(length)) {
+        return false;
+      }
+      const auto qid = find_quadrant(point_x, point_y);
+      if (qid != find_quadrant(center_of_mass_x, center_of_mass_y)) {
+        return true;
+      }
+      const double offset = (length * 0.5) * 0.5;
+      const double child_x = center_x + (qid % 2 == 0 ? -offset : offset);
+      const double child_y = center_y + (qid < 2 ? -offset : offset);
+      // A child center must still move along at least one differing axis.
+      return (point_x != center_of_mass_x && child_x != center_x) ||
+             (point_y != center_of_mass_y && child_y != center_y);
+    }
 
     void update_center_of_mass(double point_x, double point_y,
                                std::size_t count) noexcept {

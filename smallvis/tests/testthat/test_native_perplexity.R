@@ -71,60 +71,77 @@ test_that("native calibration failures retain finite non-self affinities", {
   }
 })
 
-test_that("native failure warnings are issued once with the correct count", {
-  for (X in list(diag(24), matrix(0, 24, 2))) {
-    for (kernel in c("gaussian", "nngaussian")) {
-      warnings <- character()
-      res <- withCallingHandlers(
-        smallvis(
-          diag(24),
-          Y_init = matrix(sin(seq_len(48)), 24),
-          scale = FALSE,
-          perplexity = 4,
-          max_iter = 0,
-          method = list(
-            "tsne",
-            inp_kernel = kernel,
-            use_cpp = TRUE,
-            n_threads = 2
+test_that("calibration failures warn once and retain valid public affinities", {
+  routes <- list(
+    list("tsne", inp_kernel = "gaussian", use_cpp = FALSE),
+    list("tsne", inp_kernel = "gaussian", use_cpp = TRUE),
+    list("tsne", inp_kernel = "nngaussian", use_cpp = TRUE)
+  )
+  for (X in list(diag(24), matrix(0, 24, 4))) {
+    for (perplexity in c(1, 4)) {
+      for (method in routes) {
+        warnings <- character()
+        res <- withCallingHandlers(
+          smallvis(
+            X,
+            Y_init = matrix(sin(seq_len(48)), 24),
+            scale = FALSE,
+            perplexity = perplexity,
+            max_iter = 0,
+            method = method,
+            n_threads = 2,
+            ret_extra = c("P", "V"),
+            epoch_callback = FALSE,
+            verbose = FALSE
           ),
-          ret_extra = "P",
-          epoch_callback = FALSE,
-          verbose = FALSE
-        ),
-        warning = function(w) {
-          warnings <<- c(warnings, conditionMessage(w))
-          invokeRestart("muffleWarning")
+          warning = function(w) {
+            warnings <<- c(warnings, conditionMessage(w))
+            invokeRestart("muffleWarning")
+          }
+        )
+        expect_equal(warnings, "24 perplexity calibrations failed")
+        expect_equal(diag(res$P), rep(0, 24))
+        expect_true(all(is.finite(res$P)))
+        expect_true(all(rowSums(res$P) > 0))
+        expect_equal(sum(res$P), 1)
+        expect_true(all(is.finite(res$V)))
+        expect_equal(diag(res$V), rep(0, 24))
+        neighbors <- if (method$inp_kernel == "nngaussian") {
+          3 * perplexity
+        } else {
+          perplexity
         }
-      )
-      expect_equal(warnings, "24 perplexity calibrations failed")
-      expect_equal(diag(res$P), rep(0, 24))
-      expect_true(all(is.finite(res$P)))
-      expect_equal(sum(res$P), 1)
+        expect_equal(rowSums(res$V > 0), rep(neighbors, 24))
+      }
     }
   }
 })
 
-test_that("native Gaussian diagnostics retain calibrated precisions", {
+test_that("dense Gaussian diagnostics retain calibrated precisions", {
   X <- matrix(sin(seq_len(96)), 24, 4)
-  res <- smallvis(
-    X,
-    scale = FALSE,
-    perplexity = 4,
-    use_cpp = TRUE,
-    max_iter = 0,
-    ret_extra = c("beta", "V"),
-    epoch_callback = FALSE,
-    verbose = FALSE
-  )
-  expect_length(res$beta, 24)
-  expect_true(all(is.finite(res$beta)))
-  D2 <- as.matrix(stats::dist(X))^2
-  dimnames(D2) <- NULL
-  W <- exp(-D2 * res$beta)
-  diag(W) <- 0
-  expect_equal(res$V, W, tolerance = 1e-12)
-  expect_equal(perpp(W), rep(4, 24), tolerance = 1e-4)
+  for (use_cpp in c(FALSE, TRUE)) {
+    expect_warning(
+      res <- smallvis(
+        X,
+        scale = FALSE,
+        perplexity = 4,
+        use_cpp = use_cpp,
+        max_iter = 0,
+        ret_extra = c("beta", "V"),
+        epoch_callback = FALSE,
+        verbose = FALSE
+      ),
+      NA
+    )
+    expect_length(res$beta, 24)
+    expect_true(all(is.finite(res$beta)))
+    D2 <- as.matrix(stats::dist(X))^2
+    dimnames(D2) <- NULL
+    W <- exp(-D2 * res$beta)
+    diag(W) <- 0
+    expect_equal(res$V, W, tolerance = 1e-12)
+    expect_equal(perpp(W), rep(4, 24), tolerance = 1e-4)
+  }
 })
 
 test_that("native kNN output checks the matrix shape and write indices", {

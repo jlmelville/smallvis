@@ -13,6 +13,21 @@ void _bh_tsne_negative_gradient_single(const smallvis::QuadTree::Node &node,
     return;
   }
 
+  if (node.terminal_points) {
+    for (const auto &point : *node.terminal_points) {
+      const bool is_query =
+          contains_query && point.x == point_x && point.y == point_y;
+      const auto count = point.count - (is_query ? 1 : 0);
+      const double diff_x = point.x - point_x;
+      const double diff_y = point.y - point_y;
+      const double weight = 1.0 / (1.0 + diff_x * diff_x + diff_y * diff_y);
+      Zi += count * weight;
+      gradient_x += count * weight * weight * diff_x;
+      gradient_y += count * weight * weight * diff_y;
+    }
+    return;
+  }
+
   // Compute the squared Euclidean distance between the point and the center of
   // mass
   double diff_x = node.center_of_mass_x - point_x;
@@ -106,6 +121,19 @@ double _bh_Zi(const smallvis::QuadTree::Node &node, double point_x,
   // Empty nodes contribute neither force nor probability mass.
   if (node.num_points == 0) {
     return 0.0;
+  }
+
+  if (node.terminal_points) {
+    double Zi = 0.0;
+    for (const auto &point : *node.terminal_points) {
+      const bool is_query =
+          contains_query && point.x == point_x && point.y == point_y;
+      const auto count = point.count - (is_query ? 1 : 0);
+      const double diff_x = point.x - point_x;
+      const double diff_y = point.y - point_y;
+      Zi += count / (1.0 + diff_x * diff_x + diff_y * diff_y);
+    }
+    return Zi;
   }
 
   double diff_x = node.center_of_mass_x - point_x;

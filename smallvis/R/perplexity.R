@@ -84,6 +84,9 @@ sne_init <- function(
       verbose = verbose
     )
     cost$P <- mspres$P
+    if ("pdeg" %in% tolower(ret_extra)) {
+      cost$pdeg <- colSums(cost$P)
+    }
     return(cost)
   } else if (tolower(kernel) == "sigma") {
     tsmessage("Using fixed sigma = ", formatC(perplexity))
@@ -337,7 +340,8 @@ x2aff <- function(
     # seems to be better most of the time based on my testing though, so we'll
     # only use it for the first point.
     if (is.null(guesses) && i == 1) {
-      beta[1] <- 0.5 * perplexity / mean(Di)
+      mean_distance <- mean(Di)
+      beta[1] <- if (mean_distance == 0) 0 else 0.5 * perplexity / mean_distance
     }
 
     sres <- shannon(Di, beta[i])
@@ -347,7 +351,7 @@ x2aff <- function(
 
     Hdiff <- H - logU
     tries <- 0
-    while (abs(Hdiff) > tol && tries < 50) {
+    while (is.finite(Hdiff) && abs(Hdiff) > tol && tries < 50) {
       if (Hdiff > 0) {
         betamin <- beta[i]
         if (is.infinite(betamax)) {
@@ -372,7 +376,7 @@ x2aff <- function(
       Hdiff <- H - logU
       tries <- tries + 1
     }
-    if (abs(Hdiff) > tol) {
+    if (!is.finite(Hdiff) || abs(Hdiff) > tol) {
       # Put a weight of 1/perplexity on the perplexity-nearest neighbors
       bad_perp <- bad_perp + 1
       knn_idx <- order(Di, decreasing = FALSE)[1:max(floor(perplexity), 1)]
@@ -417,8 +421,9 @@ shannon <- function(D2, beta) {
   W <- exp(-D2 * beta)
   Z <- sum(W)
 
-  if (Z == 0) {
-    H <- 0
+  if (!is.finite(Z) || Z <= 0) {
+    # No probability distribution exists; zero entropy would imply success at 1.
+    H <- NA_real_
   } else {
     H <- log(Z) + beta * sum(D2 * W) / Z
   }
@@ -452,44 +457,22 @@ x2aff_sigma <- function(
 # Create a symmetrized distance matrix based on the k-nearest neighbors
 # Non-neighbor distances are set to Inf
 knn_dist <- function(X, k, n_threads, verbose) {
-  if (methods::is(X, "dist")) {
-    # If it's already a distance matrix, find k-smallest distance per column
-    # (ignoring self-distances of zero) and set everything larger to Inf
-    # (potentially more than k finite distances in the event of ties, not
-    # going to worry about that)
-    D <- as.matrix(X)
-    n <- nrow(D)
-    if (k > n - 1) {
-      stop("k must be not be > n - 1")
-    }
-    kdists <- Rfast::colnth(D, rep(k + 1, n))
-    for (i in 1:n) {
-      Di <- D[, i]
-      Di[Di > kdists[i]] <- Inf
-      D[, i] <- Di
-    }
-  } else {
-    # Find the k-nearest indexes and distances of X, and set the corresponding
-    # distance matrix elements
-    n <- nrow(X)
-    if (k > n - 1) {
-      stop("k must be not be > n - 1")
-    }
-    knn <- get_nn(
-      X,
-      k = k + 1,
-      exact = TRUE,
-      n_threads = n_threads,
-      verbose = verbose
-    )
-    knn$idx <- knn$idx[, 2:(k + 1)]
-    knn$dist <- knn$dist[, 2:(k + 1)]
-
-    D <- matrix(Inf, nrow = n, ncol = n)
-    diag(D) <- 0
-    for (i in 1:n) {
-      D[i, knn$idx[i, ]] <- knn$dist[i, ]
-    }
+  n <- if (methods::is(X, "dist")) attr(X, "Size") else nrow(X)
+  if (length(k) != 1 || !is.finite(k) || k < 1 || k > n - 1 || k != floor(k)) {
+    stop("k must be a whole number between 1 and n - 1")
+  }
+  knn <- get_nn(
+    X,
+    k = k + 1,
+    exact = TRUE,
+    n_threads = n_threads,
+    verbose = verbose
+  )
+  D <- matrix(Inf, nrow = n, ncol = n)
+  diag(D) <- 0
+  for (i in seq_len(n)) {
+    keep <- utils::head(which(knn$idx[i, ] != i), k)
+    D[i, knn$idx[i, keep]] <- knn$dist[i, keep]
   }
 
   # symmetrize

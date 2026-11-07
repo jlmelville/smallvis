@@ -6,6 +6,13 @@
 #include <limits>
 
 std::size_t check_counts(const smallvis::QuadTree::Node &node) {
+  if (node.terminal_points) {
+    std::size_t points = 0;
+    for (const auto &point : *node.terminal_points) {
+      points += point.count;
+    }
+    assert(points == node.num_points);
+  }
   std::size_t children = 0;
   for (const auto &child : node.children) {
     if (child) {
@@ -17,6 +24,23 @@ std::size_t check_counts(const smallvis::QuadTree::Node &node) {
 }
 
 int main() {
+  {
+    const double eps = std::numeric_limits<double>::epsilon();
+    smallvis::QuadTree tree({1 + eps, 0, 1 + 2 * eps, 0, 1 + eps, 0});
+    assert(check_counts(*tree.root) == 3);
+  }
+  // Exercise bucket destruction during exception unwinding as well as success.
+  try {
+    const double eps = std::numeric_limits<double>::epsilon();
+    smallvis::QuadTree tree({1 + eps, 0, 1 + 2 * eps, 0});
+    throw std::runtime_error("unwind tree");
+  } catch (const std::runtime_error &) {
+  }
+  {
+    const double largest = std::numeric_limits<double>::max();
+    smallvis::QuadTree tree({-largest, 0, largest, 0, 0, 0});
+    assert(check_counts(*tree.root) == 3);
+  }
   {
     smallvis::QuadTree tree({0, 0, 0, 0, 0, 0, 2, 1, -3, 4, 1, -2});
     assert(check_counts(*tree.root) == 6);

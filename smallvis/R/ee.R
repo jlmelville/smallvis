@@ -22,7 +22,7 @@ ee <- function(
       symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       if (neg_weights) {
         if (methods::is(X, "dist")) {
-          R <- X
+          R <- as.matrix(X)
         } else {
           R <- calc_d(X, use_cpp = use_cpp, n_threads = n_threads)
         }

@@ -598,8 +598,12 @@ tsneu <- function(
 
       cost$eps <- eps
 
-      cost$V <- cost$V / rowSums(cost$V)
-      cost$V <- 0.5 * (cost$V + t(cost$V))
+      if (perp_method(perplexity) == "multiscale") {
+        cost$V <- nrow(cost$P) * cost$P
+      } else {
+        cost$V <- cost$V / rowSums(cost$V)
+        cost$V <- 0.5 * (cost$V + t(cost$V))
+      }
       cost$Vsum <- sum(cost$V)
       cost$invVsum <- 1 / (cost$Vsum)
 
@@ -649,8 +653,12 @@ pstsne <- function(
       )
 
       # need to row-normalize and symmetrize affinities
-      cost$V <- cost$V / rowSums(cost$V)
-      cost$V <- 0.5 * (cost$V + t(cost$V))
+      if (perp_method(perplexity) == "multiscale") {
+        cost$V <- nrow(cost$P) * cost$P
+      } else {
+        cost$V <- cost$V / rowSums(cost$V)
+        cost$V <- 0.5 * (cost$V + t(cost$V))
+      }
       cost$Vsum <- sum(cost$V)
       cost$invVsum <- 1 / (cost$Vsum)
 
@@ -862,6 +870,12 @@ btsne <- function(
   n_threads = 0,
   use_cpp = FALSE
 ) {
+  if (perp_method(perplexity) == "multiscale" && is.null(beta)) {
+    stop(
+      "Method 'btsne' cannot transfer beta from multiscale perplexities; ",
+      "set beta explicitly."
+    )
+  }
   lreplace(
     tsne(
       perplexity = perplexity,
@@ -920,6 +934,12 @@ bssne <- function(
   n_threads = 0,
   use_cpp = FALSE
 ) {
+  if (perp_method(perplexity) == "multiscale" && is.null(beta)) {
+    stop(
+      "Method 'bssne' cannot transfer beta from multiscale perplexities; ",
+      "set beta explicitly."
+    )
+  }
   lreplace(
     ssne(
       perplexity = perplexity,
@@ -976,6 +996,12 @@ basne <- function(
   n_threads = 0,
   use_cpp = FALSE
 ) {
+  if (perp_method(perplexity) == "multiscale" && is.null(beta)) {
+    stop(
+      "Methods 'basne' and 'btasne' cannot transfer beta from multiscale ",
+      "perplexities; set beta explicitly."
+    )
+  }
   lreplace(
     asne(
       perplexity = perplexity,

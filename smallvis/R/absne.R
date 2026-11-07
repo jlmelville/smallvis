@@ -193,7 +193,7 @@ absneb0 <- function(
       P[P < eps] <- eps
       Pa <- powm(P, alpha, eps)
       cost$Pa <- Pa
-      cost$PlPac <- colSums(P * logm(Pa, eps))
+      cost$PlPac <- colSums(Pa * logm(Pa, eps))
       cost$Pac <- colSums(Pa)
       cost$Pas <- sum(cost$Pac)
       cost
@@ -301,7 +301,7 @@ absneamb <- function(
     pfn = function(cost, Y) {
       cost <- cost_update(cost, Y)
       cost$pcost <- cost$inva2 *
-        (cost$lQac - cost$lPac + cost$PadivQac - cost$N)
+        (cost$lQac - cost$lPac + cost$PadivQac - (cost$N - 1))
       cost
     },
     gr = function(cost, Y) {

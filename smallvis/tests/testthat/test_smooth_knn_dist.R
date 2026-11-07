@@ -370,3 +370,85 @@ test_that("fractional local connectivity matches the UMAP reference", {
 
   expect_equal(res$P, Pl, tolerance = 1e-5)
 })
+
+test_that("duplicated inputs retain k minus one non-self UMAP neighbors", {
+  X <- rbind(matrix(0, 6, 2), cbind(1:10, (1:10)^2))
+  # Inspect the directed graph before fuzzy symmetrization can increase degree.
+  for (input in list(X, stats::dist(X))) {
+    set.seed(42)
+    result <- smooth_knn_distances(input, k = 4, n_threads = 1)
+    expect_equal(diag(result$P), rep(0, 16))
+    expect_true(all(is.finite(result$P)))
+    expect_equal(rowSums(result$P[1:6, ] > 0), rep(3, 6))
+    expect_true(all(rowSums(result$P > 0) <= 3))
+  }
+})
+
+test_that("neighbor extraction removes self by identity before truncation", {
+  # A controlled tied pool tests membership independently of backend tie choices.
+  # These private graph builders own the directed support, hidden by public
+  # symmetrization or shortest-path completion.
+  candidates <- rbind(
+    c(2L, 1L, 3L),
+    c(3L, 4L, 2L),
+    c(1L, 2L, 4L),
+    c(4L, 1L, 2L)
+  )
+  local_mocked_bindings(get_nn = function(X, k, ...) {
+    expect_equal(k, 3)
+    list(idx = candidates, dist = matrix(0, 4, 3))
+  })
+  expected <- matrix(0, 4, 4)
+  expected[1, c(2, 3)] <- 1
+  expected[2, c(3, 4)] <- 1
+  expected[3, c(1, 2)] <- 1
+  expected[4, c(1, 2)] <- 1
+  X <- matrix(0, 4, 2)
+  expect_equal(smooth_knn_distances(X, k = 3)$P, expected)
+  graph <- matrix(Inf, 4, 4)
+  diag(graph) <- 0
+  graph[expected > 0] <- 0
+  expect_equal(
+    knn_dist(X, 2, n_threads = 1, verbose = FALSE),
+    pmin(graph, t(graph))
+  )
+})
+
+test_that("fractional UMAP k retains its continuous cardinality target", {
+  X <- cbind(sin(1:12), cos(1:12))
+  for (input in list(X, stats::dist(X))) {
+    result <- smooth_knn_distances(input, k = 4.5, n_threads = 1)
+    expect_equal(diag(result$P), rep(0, 12))
+    expect_true(all(rowSums(result$P > 0) <= 3))
+    expect_equal(rowSums(result$P), rep(log2(4.5), 12), tolerance = 1e-4)
+  }
+})
+
+test_that("public UMAP neighborhoods enforce the reserved-self count contract", {
+  X <- cbind(sin(1:12), cos(1:12))
+  for (input in list(X, stats::dist(X))) {
+    run <- function(perplexity) {
+      smallvis(
+        input,
+        method = "umap",
+        perplexity = perplexity,
+        scale = FALSE,
+        Y_init = cbind(sin(1:12), cos(1:12)),
+        max_iter = 0,
+        ret_extra = "P",
+        epoch_callback = FALSE,
+        verbose = FALSE
+      )
+    }
+    for (perplexity in c(1, 13)) {
+      expect_error(run(perplexity), "UMAP k.*between 2")
+    }
+    for (perplexity in c(2, 4.5, 12)) {
+      result <- run(perplexity)
+      expect_equal(diag(result$P), rep(0, 12))
+      expect_true(all(is.finite(result$P)))
+      expect_true(all(rowSums(result$P) > 0))
+      expect_true(all(is.finite(result$costs)))
+    }
+  }
+})

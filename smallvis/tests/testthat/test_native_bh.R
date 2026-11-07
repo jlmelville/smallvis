@@ -262,3 +262,81 @@ test_that("approximate Barnes-Hut still optimizes with finite results", {
   expect_true(all(is.finite(result$Y)))
   expect_true(all(is.finite(result$itercosts)))
 })
+
+test_that("finite-resolution leaves finish and retain exact pair contributions", {
+  dev <- pkgload::is_dev_package("smallvis")
+  path <- system.file(package = "smallvis")
+  # Keep the recursion regression bounded even if tree construction breaks again.
+  results <- callr::r(
+    function(dev, path) {
+      if (dev) {
+        pkgload::load_all(path, quiet = TRUE)
+      } else {
+        library("smallvis", lib.loc = dirname(path))
+      }
+      eps <- .Machine$double.eps
+      Y <- cbind(c(rep(1 + eps, 23), 1 + 2 * eps), 0)
+      P <- outer(1:24, 1:24, "+")
+      diag(P) <- 0
+      P <- P / sum(P)
+      results <- list()
+      for (order in list(1:24, 24:1, c(24, 1:23))) {
+        sparse <- as(
+          Matrix::Matrix(P[order, order], sparse = TRUE),
+          "generalMatrix"
+        )
+        for (threads in c(1L, 2L)) {
+          args <- list(
+            sparse@i,
+            sparse@p,
+            sparse@x,
+            Y[order, ],
+            theta = 0,
+            eps = eps,
+            n_threads = threads
+          )
+          gradient <- 4 * do.call(smallvis:::bh_tsne_gradient_cpp, args)
+          results[[length(results) + 1L]] <- list(
+            cost = sum(P[P > 0] * log(P[P > 0])) -
+              do.call(smallvis:::bh_plogq_cpp, args),
+            gradient = gradient[order(order), ]
+          )
+        }
+      }
+      public <- smallvis::smallvis(
+        cbind(1:24, sin(1:24)),
+        scale = FALSE,
+        Y_init = Y,
+        perplexity = 4,
+        bh = TRUE,
+        nn = "exact",
+        theta = 0,
+        max_iter = 0,
+        ret_extra = "P",
+        epoch_callback = FALSE,
+        verbose = FALSE
+      )
+      list(Y = Y, P = P, native = results, public = public)
+    },
+    args = list(dev = dev, path = path),
+    libpath = .libPaths(),
+    timeout = 30
+  )
+  expected <- bh_dense_reference(results$P, results$Y)
+  for (actual in results$native) {
+    expect_equal(actual$cost, expected$cost, tolerance = 1e-12)
+    # The forces are of order machine epsilon: an absolute bound would admit zero.
+    force_scale <- max(abs(expected$gradient))
+    expect_gt(force_scale, 0)
+    expect_equal(
+      actual$gradient / force_scale,
+      expected$gradient / force_scale,
+      tolerance = 1e-12
+    )
+  }
+  expect_equal(
+    results$public$costs,
+    bh_dense_reference(as.matrix(results$public$P), results$Y)$cost,
+    tolerance = 1e-12
+  )
+})

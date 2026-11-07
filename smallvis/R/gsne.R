@@ -32,7 +32,7 @@ gsne <- function(
 
       # Phat isn't affected by early exaggeration, so we cache it once only
       if (methods::is(X, "dist")) {
-        Phat <- as.matrix(X)
+        Phat <- as.matrix(X)^2
       } else {
         Phat <- calc_d2(X, use_cpp = use_cpp, n_threads = n_threads)
       }

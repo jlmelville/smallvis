@@ -177,6 +177,9 @@ bnerv <- function(
   n_threads = 0,
   use_cpp = FALSE
 ) {
+  if (perp_method(perplexity) == "multiscale") {
+    stop("Method 'bnerv' cannot transfer beta from multiscale perplexities.")
+  }
   lambda2 <- 2 * lambda
   oml <- 1 - lambda
   oml2 <- 2 * oml

@@ -117,3 +117,39 @@ test_that("zero-iteration repeats and immediate L-BFGS stops have usable scores"
     expect_equal(matrices, lapply(all, `[[`, "Y"))
   }
 })
+
+test_that("AB-SNE does not stop on a spurious negative objective constant", {
+  set.seed(42)
+  X <- matrix(rnorm(24 * 4), 24)
+  Y <- matrix(rnorm(48), 24)
+  reference_history <- numeric()
+  result <- smallvis(
+    X,
+    method = list("absne", alpha = 2, lambda = 2),
+    scale = FALSE,
+    perplexity = 4,
+    Y_init = Y,
+    opt = list("adam", eta = 0.001),
+    max_iter = 20,
+    epoch = 1,
+    tol = 0,
+    ret_extra = "P",
+    epoch_callback = function(Y, iter, cost, cost_fn) {
+      if (iter > 0) {
+        reference_history[iter] <<- absne_reference_cost(cost_fn$P, Y, 2, 2)
+      }
+    },
+    verbose = FALSE
+  )
+  expect_equal(result$iter, 20)
+  expect_length(reference_history, 20)
+  expect_true(all(is.finite(reference_history)))
+  expect_true(all(reference_history > 0))
+  expect_equal(unname(result$itercosts), reference_history, tolerance = 1e-10)
+  expect_equal(
+    sum(result$costs),
+    absne_reference_cost(result$P, result$Y, 2, 2),
+    tolerance = 1e-10
+  )
+  expect_lt(tail(reference_history, 1), reference_history[1])
+})

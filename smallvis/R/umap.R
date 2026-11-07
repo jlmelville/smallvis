@@ -273,27 +273,21 @@ smooth_knn_distances <-
   ) {
     tsmessage("Commencing smooth kNN distance calibration for k = ", formatC(k))
 
-    if (methods::is(X, "dist")) {
-      X <- as.matrix(X)
-      nn_idx <- t(apply(X, 2, order))[, 1:k]
-      nn_dist <- matrix(0, nrow = nrow(X), ncol = k)
-      for (i in 1:nrow(nn_idx)) {
-        nn_dist[i, ] <- X[i, nn_idx[i, ]]
-      }
-    } else {
-      # TODO: shouldn't this be k + 1 ?
-      knn <- get_nn(X, k = k, n_threads = n_threads, verbose = verbose)
-      knn$idx <- knn$idx[, 2:k]
-      knn$dist <- knn$dist[, 2:k]
-
-      nn_idx <- matrix(nrow = nrow(X), ncol = k)
-      nn_idx[, 1] <- 1:nrow(nn_idx)
-      nn_idx[, 2:ncol(nn_idx)] <- knn$idx
-      nn_dist <- matrix(0, nrow = nrow(X), ncol = k)
-      nn_dist[, 2:ncol(nn_dist)] <- knn$dist
+    n <- if (methods::is(X, "dist")) attr(X, "Size") else nrow(X)
+    if (length(k) != 1 || !is.finite(k) || k < 2 || k > n) {
+      stop("UMAP k must be finite and between 2 and the number of observations")
+    }
+    # k controls a continuous target; only the neighbor count is rounded down.
+    knn <- get_nn(X, k = floor(k), n_threads = n_threads, verbose = verbose)
+    nn_idx <- matrix(0L, nrow = n, ncol = floor(k))
+    nn_idx[, 1] <- seq_len(n)
+    nn_dist <- matrix(0, nrow = n, ncol = floor(k))
+    for (i in seq_len(n)) {
+      keep <- utils::head(which(knn$idx[i, ] != i), ncol(nn_idx) - 1)
+      nn_idx[i, -1] <- knn$idx[i, keep]
+      nn_dist[i, -1] <- knn$dist[i, keep]
     }
 
-    n <- nrow(nn_dist)
     target <- cardinality * bandwidth
     rho <- rep(0, n)
     sigma <- rep(0, n)
