@@ -12,10 +12,11 @@
 #'   \code{method = "tsne", bh = TRUE}.
 #'   \item \code{"largevis"} the cost function of the LargeVis algorithm
 #'   (Tang et al, 2016). Input affinities are calculated and symmetrized using
-#'   the same perplexity calibration method as t-SNE, but are not normalized.
+#'   the same perplexity calibration method as t-SNE. Use
+#'   \code{normalize = FALSE} to leave them unnormalized.
 #'   \item \code{"umap"} the cost function the UMAP method (McInnes, 2017).
-#'   Unlike LargeVis and t-SNE, UMAP uses un-normalized input weights, which
-#'   are calibrated via calculating smoothed k-nearest-neighbor distances,
+#'   UMAP uses unnormalized input weights, which are calibrated via
+#'   smoothed k-nearest-neighbor distances,
 #'   rather than perplexity (the procedure is similar, however). The value
 #'   of k is controlled by the \code{perplexity} parameter.
 #'   \item \code{"tumap"} Like UMAP, except the output weight function is the
@@ -68,7 +69,7 @@
 #' }
 #'
 #' By default, these methods use dense input affinities and gradients.
-#' For t-SNE, HSSNE, and TEE, \code{bh = TRUE} approximates repulsive
+#' For t-SNE, HSSNE, TEE, and LargeVis, \code{bh = TRUE} approximates repulsive
 #' interactions. Neighbor input kernels can use approximate neighbor search.
 #'
 #' @section Method-specific options:
@@ -590,8 +591,9 @@
 #'   values open more cells. Zero evaluates the repulsive sum exactly for the
 #'   chosen input affinities. Applies only with \code{bh = TRUE}.
 #' @param bh If \code{TRUE}, approximate repulsive interactions with Barnes-Hut
-#'   (van der Maaten, 2014). Available for \code{"tsne"}, \code{"hssne"}, and
-#'   \code{"tee"} in two dimensions. For HSSNE and TEE, choose
+#'   (van der Maaten, 2014). Available for \code{"tsne"}, \code{"hssne"},
+#'   \code{"tee"}, and \code{"largevis"} in two dimensions. For HSSNE, TEE,
+#'   and LargeVis, choose
 #'   \code{inp_kernel = "nngaussian"} (the default) or \code{"knn"} to build
 #'   sparse input affinities. These modes use approximate neighbor search by
 #'   default. Use \code{nn = "exact"} for exact neighbor lookup.
@@ -621,7 +623,7 @@
 #'  distance inputs use exact neighbor lookup.
 #' @param verbose If \code{TRUE}, log progress messages to the console.
 #' @param neighbors Optional list of precomputed nearest neighbors for
-#'   Barnes-Hut t-SNE, HSSNE, and TEE with \code{inp_kernel = "knn"} or
+#'   Barnes-Hut t-SNE, HSSNE, TEE, and LargeVis with \code{inp_kernel = "knn"} or
 #'   \code{"nngaussian"}. Supply equally sized matrices \code{idx} (one-based
 #'   row indices) and \code{dist} (finite, nonnegative, unsquared distances).
 #'   Match the row order of \code{X} and list non-self neighbors in distance
@@ -1824,8 +1826,11 @@ create_cost <- function(
     }
     method <- match.arg(tolower(method), method_names)
     if (bh) {
-      if (!method %in% c("tsne", "hssne", "tee")) {
-        stop("Barnes-Hut is only supported for 'tsne', 'hssne', and 'tee'")
+      if (!method %in% c("tsne", "hssne", "tee", "largevis")) {
+        stop(
+          "Barnes-Hut is only supported for 'tsne', 'hssne', 'tee', ",
+          "and 'largevis'"
+        )
       }
       method <- paste0("bh", method)
     }

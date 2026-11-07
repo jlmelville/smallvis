@@ -40,6 +40,19 @@ test_that("line searches reject unmatched forces before input calibration", {
       "requires a matching objective and gradient.*gradient-only optimizer"
     )
   }
+  expect_error(
+    smallvis(
+      iris10,
+      method = "largevis",
+      bh = TRUE,
+      perplexity = 4,
+      opt = list("l-bfgs"),
+      max_iter = 2,
+      epoch_callback = FALSE,
+      verbose = FALSE
+    ),
+    "requires a matching objective and gradient.*gradient-only optimizer"
+  )
 })
 
 test_that("unstabilized USNE matches its independent scalar derivative", {

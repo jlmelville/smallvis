@@ -24,7 +24,7 @@ test_that("all Barnes-Hut methods can calibrate the supplied graph without searc
     )
   }
   cases <- expand.grid(
-    method = c("tsne", "hssne", "tee"),
+    method = c("tsne", "hssne", "tee", "largevis"),
     kernel = c("knn", "nngaussian"),
     stringsAsFactors = FALSE
   )
@@ -50,6 +50,63 @@ test_that("all Barnes-Hut methods can calibrate the supplied graph without searc
     expect_equal(actual$P, expected[[i]]$P)
     expect_equal(actual$Y, expected[[i]]$Y)
     expect_equal(actual$costs, expected[[i]]$costs)
+  }
+})
+
+test_that("exact Barnes-Hut LargeVis matches dense forces on the saved graph", {
+  fixture <- saved_neighbors_fixture()
+  Y <- cbind(sin(seq_len(24)), cos(seq_len(24))) / 3
+  for (gr_eps in c(0, 0.2)) {
+    method <- list(
+      "largevis",
+      gamma = 0.03,
+      gr_eps = gr_eps,
+      normalize = FALSE,
+      row_weight = seq_len(24) / 24
+    )
+    coordinates <- Y
+    if (gr_eps != 0) {
+      coordinates[2, ] <- coordinates[1, ]
+    }
+    local({
+      prepare <- function(X, bh, ...) {
+        smallvis_run(
+          X,
+          method = method,
+          bh = bh,
+          inp_kernel = if (gr_eps == 0) "knn" else "nngaussian",
+          perplexity = 3,
+          theta = 0,
+          eps = if (gr_eps == 0) 0 else 1e-5,
+          n_threads = 2,
+          prepare_only = TRUE,
+          epoch_callback = FALSE,
+          verbose = FALSE,
+          ...
+        )$cost_fn
+      }
+      dense <- prepare(fixture$D, FALSE)
+      local_mocked_bindings(get_nn = function(...) stop("neighbor search ran"))
+      bh <- prepare(fixture$X, TRUE, neighbors = fixture$graph)
+      expect_equal(as.matrix(bh$P), dense$P, tolerance = 1e-12)
+      expect_equal(
+        cost_grad(bh, coordinates)$G,
+        cost_grad(dense, coordinates)$G,
+        tolerance = 1e-12
+      )
+      expect_equal(
+        cost_point(bh, coordinates)$pcost,
+        sum(cost_point(dense, coordinates)$pcost),
+        tolerance = 1e-12
+      )
+      if (gr_eps == 0) {
+        coordinates[2, ] <- coordinates[1, ]
+        expect_error(
+          cost_grad(bh, coordinates),
+          "undefined repulsion at zero distance"
+        )
+      }
+    })
   }
 })
 

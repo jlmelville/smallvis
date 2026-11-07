@@ -50,17 +50,91 @@ bhtee <- function(
   )
 }
 
-bh_sne <- function(
+bhlargevis <- function(
+  perplexity,
+  inp_kernel = "nngaussian",
+  symmetrize = "symmetric",
+  gamma = 1,
+  gr_eps = 0.1,
+  normalize = TRUE,
+  eps = 1e-9,
+  row_weight = NULL,
+  n_threads = 0,
+  theta = 0.5,
+  nn = "approximate"
+) {
+  if (!is.numeric(gamma) || length(gamma) != 1L || !is.finite(gamma)) {
+    stop("Barnes-Hut LargeVis requires a finite scalar gamma")
+  }
+  if (
+    !is.numeric(gr_eps) ||
+      length(gr_eps) != 1L ||
+      !is.finite(gr_eps) ||
+      gr_eps < 0
+  ) {
+    stop("Barnes-Hut LargeVis requires a finite nonnegative gr_eps")
+  }
+  if (!is.numeric(eps) || length(eps) != 1L || !is.finite(eps) || eps < 0) {
+    stop("Barnes-Hut LargeVis requires a finite nonnegative eps")
+  }
+  list(
+    ndim = 2,
+    gradient_only = gr_eps != 0,
+    init = bh_sparse_init(
+      perplexity,
+      inp_kernel,
+      symmetrize,
+      normalize,
+      n_threads,
+      nn,
+      row_normalize = if (is.null(row_weight)) TRUE else row_weight
+    ),
+    pfn = function(cost, Y) {
+      P <- cost$P
+      cost$pcost <- -bh_largevis_score_cpp(
+        P@i,
+        P@p,
+        P@x,
+        Y,
+        theta,
+        n_threads,
+        gamma,
+        eps
+      )
+      cost
+    },
+    gr = function(cost, Y) {
+      P <- cost$P
+      cost$G <- 4 *
+        bh_largevis_gradient_cpp(
+          P@i,
+          P@p,
+          P@x,
+          Y,
+          theta,
+          n_threads,
+          gamma,
+          gr_eps
+        )
+      cost
+    },
+    export = cost_export,
+    update = function(cost, Y) cost,
+    exaggerate = function(cost, exaggeration_factor) {
+      cost$P <- cost$P * exaggeration_factor
+      cost
+    }
+  )
+}
+
+bh_sparse_init <- function(
   perplexity,
   inp_kernel,
   symmetrize,
-  eps,
-  n_threads,
-  theta,
-  nn,
-  alpha,
   normalize,
-  lambda
+  n_threads,
+  nn,
+  row_normalize = TRUE
 ) {
   inp_kernel <- match.arg(tolower(inp_kernel), c("nngaussian", "knn"))
   symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
@@ -75,25 +149,51 @@ bh_sne <- function(
   ) {
     stop("n_threads must be a nonnegative integer")
   }
+  function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
+    cost <- sne_init(
+      cost,
+      X,
+      perplexity = perplexity,
+      kernel = inp_kernel,
+      symmetrize = symmetrize,
+      normalize = normalize,
+      row_normalize = row_normalize,
+      verbose = verbose,
+      ret_extra = ret_extra,
+      n_threads = n_threads,
+      nn = nn,
+      sparse = TRUE
+    )
+    cost$P <- Matrix::drop0(methods::as(cost$P, "generalMatrix"))
+    cost
+  }
+}
+
+bh_sne <- function(
+  perplexity,
+  inp_kernel,
+  symmetrize,
+  eps,
+  n_threads,
+  theta,
+  nn,
+  alpha,
+  normalize,
+  lambda
+) {
+  init <- bh_sparse_init(
+    perplexity,
+    inp_kernel,
+    symmetrize,
+    normalize,
+    n_threads,
+    nn
+  )
   list(
     ndim = 2,
     init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
-      cost <- sne_init(
-        cost,
-        X,
-        perplexity = perplexity,
-        kernel = inp_kernel,
-        symmetrize = symmetrize,
-        normalize = normalize,
-        verbose = verbose,
-        ret_extra = ret_extra,
-        n_threads = n_threads,
-        nn = nn,
-        sparse = TRUE
-      )
-      P <- Matrix::drop0(methods::as(cost$P, "generalMatrix"))
-      cost$P <- P
-      cost$invN <- if (normalize) 1 else 1 / sum(P)
+      cost <- init(cost, X, max_iter, verbose, ret_extra)
+      cost$invN <- if (normalize) 1 else 1 / sum(cost$P)
       cost
     },
     cache_input = function(cost) {

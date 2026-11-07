@@ -5,8 +5,8 @@ including t-SNE, LargeVis, and UMAP cost functions. It gives you control over in
 neighbors, initialization, and optimization so you can compare methods and try out ideas.
 
 Most methods use quadratic time and memory and suit small datasets. Barnes-Hut supports larger
-datasets for t-SNE, HSSNE, and t-distributed elastic embedding by combining sparse neighbor affinities
-with multithreaded C++ code.
+datasets for t-SNE, HSSNE, t-distributed elastic embedding, and LargeVis by combining sparse neighbor
+affinities with multithreaded C++ code.
 
 ## Install
 

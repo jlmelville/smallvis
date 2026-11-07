@@ -228,8 +228,9 @@ dimensions. Other dimensions use the general R calculations for those
 steps.}
 
 \item{bh}{If \code{TRUE}, approximate repulsive interactions with Barnes-Hut
-(van der Maaten, 2014). Available for \code{"tsne"}, \code{"hssne"}, and
-\code{"tee"} in two dimensions. For HSSNE and TEE, choose
+(van der Maaten, 2014). Available for \code{"tsne"}, \code{"hssne"},
+\code{"tee"}, and \code{"largevis"} in two dimensions. For HSSNE, TEE,
+and LargeVis, choose
 \code{inp_kernel = "nngaussian"} (the default) or \code{"knn"} to build
 sparse input affinities. These modes use approximate neighbor search by
 default. Use \code{nn = "exact"} for exact neighbor lookup.}
@@ -277,7 +278,7 @@ distance inputs use exact neighbor lookup.}
 \item{verbose}{If \code{TRUE}, log progress messages to the console.}
 
 \item{neighbors}{Optional list of precomputed nearest neighbors for
-Barnes-Hut t-SNE, HSSNE, and TEE with \code{inp_kernel = "knn"} or
+Barnes-Hut t-SNE, HSSNE, TEE, and LargeVis with \code{inp_kernel = "knn"} or
 \code{"nngaussian"}. Supply equally sized matrices \code{idx} (one-based
 row indices) and \code{dist} (finite, nonnegative, unsquared distances).
 Match the row order of \code{X} and list non-self neighbors in distance
@@ -383,10 +384,11 @@ to the \code{method} parameter are:
   \code{method = "tsne", bh = TRUE}.
   \item \code{"largevis"} the cost function of the LargeVis algorithm
   (Tang et al, 2016). Input affinities are calculated and symmetrized using
-  the same perplexity calibration method as t-SNE, but are not normalized.
+  the same perplexity calibration method as t-SNE. Use
+  \code{normalize = FALSE} to leave them unnormalized.
   \item \code{"umap"} the cost function the UMAP method (McInnes, 2017).
-  Unlike LargeVis and t-SNE, UMAP uses un-normalized input weights, which
-  are calibrated via calculating smoothed k-nearest-neighbor distances,
+  UMAP uses unnormalized input weights, which are calibrated via
+  smoothed k-nearest-neighbor distances,
   rather than perplexity (the procedure is similar, however). The value
   of k is controlled by the \code{perplexity} parameter.
   \item \code{"tumap"} Like UMAP, except the output weight function is the
@@ -439,7 +441,7 @@ to the \code{method} parameter are:
 }
 
 By default, these methods use dense input affinities and gradients.
-For t-SNE, HSSNE, and TEE, \code{bh = TRUE} approximates repulsive
+For t-SNE, HSSNE, TEE, and LargeVis, \code{bh = TRUE} approximates repulsive
 interactions. Neighbor input kernels can use approximate neighbor search.
 }
 \section{Method-specific options}{

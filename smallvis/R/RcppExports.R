@@ -17,6 +17,14 @@ bh_sne_score_cpp <- function(indices, indptr, P_data, embedding, theta, eps, n_t
     .Call(`_smallvis_bh_sne_score_cpp`, indices, indptr, P_data, embedding, theta, eps, n_threads, alpha, normalize, lambda)
 }
 
+bh_largevis_gradient_cpp <- function(indices, indptr, P_data, embedding, theta, n_threads, gamma, gr_eps) {
+    .Call(`_smallvis_bh_largevis_gradient_cpp`, indices, indptr, P_data, embedding, theta, n_threads, gamma, gr_eps)
+}
+
+bh_largevis_score_cpp <- function(indices, indptr, P_data, embedding, theta, n_threads, gamma, eps) {
+    .Call(`_smallvis_bh_largevis_score_cpp`, indices, indptr, P_data, embedding, theta, n_threads, gamma, eps)
+}
+
 dist2_cpp <- function(input, n_threads = 1L) {
     .Call(`_smallvis_dist2_cpp`, input, n_threads)
 }

@@ -9,6 +9,12 @@ struct CauchyKernel {
   double weight(double d2) const { return 1.0 / (1.0 + d2); }
   double slope(double d2) const { return weight(d2); }
   double log_weight(double d2) const { return -std::log(1.0 + d2); }
+  double repulsive_force(double, double w, double mass) const {
+    return mass * w;
+  }
+  double score_mass(std::size_t count, double d2) const {
+    return count * weight(d2);
+  }
 };
 
 struct HeavyTailKernel {
@@ -20,9 +26,38 @@ struct HeavyTailKernel {
   double log_weight(double d2) const {
     return exponent * std::log1p(alpha * d2);
   }
+  double repulsive_force(double d2, double, double mass) const {
+    return mass * slope(d2);
+  }
+  double score_mass(std::size_t count, double d2) const {
+    return count * weight(d2);
+  }
 
   double alpha;
   double exponent;
+};
+
+struct LargeVisKernel : CauchyKernel {
+  LargeVisKernel(double gr_eps, double eps) : gr_eps(gr_eps), eps(eps) {}
+
+  double repulsive_force(double d2, double, double mass) const {
+    if (mass == 0) {
+      return 0; // Self-only leaf.
+    }
+    if (d2 == 0 && gr_eps == 0) {
+      throw std::domain_error(
+          "LargeVis with gr_eps = 0 has undefined repulsion at zero distance");
+    }
+    // w^2 / (1 + (gr_eps - 1) * w) = w / (d2 + gr_eps).
+    return mass / (d2 + gr_eps);
+  }
+
+  double score_mass(std::size_t count, double d2) const {
+    return count == 0 ? 0.0 : -(count * std::log1p(eps - weight(d2)));
+  }
+
+  double gr_eps;
+  double eps;
 };
 
 template <typename Accumulate>
@@ -85,11 +120,12 @@ bh_gradient(const IntegerVector &indices, const IntegerVector &indptr,
           double &gy = gradient[2 * i + 1];
           auto accumulate = [&](std::size_t count, double dx, double dy,
                                 double d2) {
-            const double mass = count * kernel.weight(d2);
+            const double w = kernel.weight(d2);
+            const double mass = count * w;
             if (Normalize) {
               sum += mass;
             }
-            const double force = mass * kernel.slope(d2);
+            const double force = kernel.repulsive_force(d2, w, mass);
             gx += force * dx;
             gy += force * dy;
           };
@@ -131,8 +167,8 @@ bh_gradient(const IntegerVector &indices, const IntegerVector &indptr,
   return transpose(result);
 }
 
-// Sum P * log(w / Z) for normalized kernels, or P * log(w) - lambda * Z
-// for elastic embedding. Both sums exclude self interactions.
+// Sum the sparse log affinities and the dense kernel contribution.
+// The kernel supplies either normalization mass or repulsive cost.
 template <typename Kernel>
 double bh_score(const IntegerVector &indices, const IntegerVector &indptr,
                 const NumericVector &P_data, const NumericMatrix &embedding,
@@ -157,7 +193,7 @@ double bh_score(const IntegerVector &indices, const IntegerVector &indptr,
         double sum = 0.0;
         for (std::size_t i = start; i < end; ++i) {
           auto accumulate = [&](std::size_t count, double, double, double d2) {
-            sum += count * kernel.weight(d2);
+            sum += kernel.score_mass(count, d2);
           };
           visit_bh(*tree.root, Y[2 * i], Y[2 * i + 1], theta2, true,
                    accumulate);
@@ -242,4 +278,28 @@ double bh_sne_score_cpp(const IntegerVector &indices,
   }
   return bh_score(indices, indptr, P_data, embedding, theta, eps, n_threads,
                   CauchyKernel{}, normalize, lambda);
+}
+
+// [[Rcpp::export]]
+NumericMatrix bh_largevis_gradient_cpp(const IntegerVector &indices,
+                                       const IntegerVector &indptr,
+                                       const NumericVector &P_data,
+                                       const NumericMatrix &embedding,
+                                       double theta, int n_threads,
+                                       double gamma, double gr_eps) {
+  return bh_gradient<false>(indices, indptr, P_data, embedding, theta, 0.0,
+                            n_threads, LargeVisKernel(gr_eps, 0.0), gamma);
+}
+
+// [[Rcpp::export]]
+double bh_largevis_score_cpp(const IntegerVector &indices,
+                             const IntegerVector &indptr,
+                             const NumericVector &P_data,
+                             const NumericMatrix &embedding, double theta,
+                             int n_threads, double gamma, double eps) {
+  const double score =
+      bh_score(indices, indptr, P_data, embedding, theta, 0.0, n_threads,
+               LargeVisKernel(0.0, eps), false, gamma);
+  // The dense objective includes the constant diagonal, where w = 0.
+  return score + embedding.nrow() * gamma * std::log1p(eps);
 }
