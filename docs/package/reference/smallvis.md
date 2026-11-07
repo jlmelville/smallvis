@@ -41,7 +41,7 @@ smallvis(
   n_threads = 0,
   use_cpp = FALSE,
   bh = FALSE,
-  theta = 1,
+  theta = 0.5,
   eps = .Machine$double.eps,
   inp_kernel = NULL,
   nn = NULL,
@@ -305,7 +305,7 @@ smallvis(
 
 - theta:
 
-  Barnes-Hut opening threshold, default `1.0`. Smaller values open more
+  Barnes-Hut opening threshold, default `0.5`. Smaller values open more
   cells. Zero evaluates the repulsive sum exactly for the chosen input
   affinities. Applies only with `bh = TRUE`.
 

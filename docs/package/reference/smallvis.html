@@ -78,7 +78,7 @@ variety of neighbor embedding methods.</p>
 <span>  n_threads <span class="op">=</span> <span class="fl">0</span>,</span>
 <span>  use_cpp <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  bh <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  theta <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  theta <span class="op">=</span> <span class="fl">0.5</span>,</span>
 <span>  eps <span class="op">=</span> <span class="va">.Machine</span><span class="op">$</span><span class="va">double.eps</span>,</span>
 <span>  inp_kernel <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  nn <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -350,7 +350,7 @@ exact neighbor lookup.</p></dd>
 
 
 <dt id="arg-theta">theta<a class="anchor" aria-label="anchor" href="#arg-theta"></a></dt>
-<dd><p>Barnes-Hut opening threshold, default <code>1.0</code>. Smaller
+<dd><p>Barnes-Hut opening threshold, default <code>0.5</code>. Smaller
 values open more cells. Zero evaluates the repulsive sum exactly for the
 chosen input affinities. Applies only with <code>bh = TRUE</code>.</p></dd>
 

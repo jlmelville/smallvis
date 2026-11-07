@@ -25,7 +25,6 @@ bh_fit <- smallvis(
   nn = "approximate",
   n_threads = 2,
   perplexity = 30,
-  theta = 1,
   exaggeration_factor = 12,
   stop_lying_iter = 250,
   Y_init = "spca",
@@ -46,9 +45,9 @@ plot(
 color and plotting
 symbol.](barnes-hut_files/figure-html/barnes-hut-1.png)
 
-Barnes-Hut requires two output dimensions. Smaller `theta` values open
-more cells and require more work. Zero evaluates the repulsive sum
-exactly for the chosen input graph.
+Barnes-Hut requires two output dimensions. The default is `theta = 0.5`.
+Smaller values open more cells and require more work. Zero evaluates the
+repulsive sum exactly for the chosen input graph.
 
 The example uses binary k-nearest-neighbor affinities. Use
 `inp_kernel = "nngaussian"` for Gaussian perplexity calibration over

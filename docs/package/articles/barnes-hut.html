@@ -87,7 +87,6 @@ calculation is too expensive.</p>
 <span>  nn <span class="op">=</span> <span class="st">"approximate"</span>,</span>
 <span>  n_threads <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>  perplexity <span class="op">=</span> <span class="fl">30</span>,</span>
-<span>  theta <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  exaggeration_factor <span class="op">=</span> <span class="fl">12</span>,</span>
 <span>  stop_lying_iter <span class="op">=</span> <span class="fl">250</span>,</span>
 <span>  Y_init <span class="op">=</span> <span class="st">"spca"</span>,</span>
@@ -103,9 +102,10 @@ calculation is too expensive.</p>
 <span>  ylab <span class="op">=</span> <span class="st">"t-SNE 2"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p><img src="barnes-hut_files/figure-html/barnes-hut-1.png" class="r-plt" alt="Barnes-Hut t-SNE embedding of iris, with species distinguished by color and plotting symbol." width="700"></p>
-<p>Barnes-Hut requires two output dimensions. Smaller <code>theta</code>
-values open more cells and require more work. Zero evaluates the
-repulsive sum exactly for the chosen input graph.</p>
+<p>Barnes-Hut requires two output dimensions. The default is
+<code>theta = 0.5</code>. Smaller values open more cells and require
+more work. Zero evaluates the repulsive sum exactly for the chosen input
+graph.</p>
 <p>The example uses binary k-nearest-neighbor affinities. Use
 <code>inp_kernel = "nngaussian"</code> for Gaussian perplexity
 calibration over neighbors instead. The <a href="../reference/smallvis.html#arguments">input kernel and Barnes-Hut
