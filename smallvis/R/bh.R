@@ -110,8 +110,7 @@ bhjssne <- function(
   if (!is.numeric(eps) || length(eps) != 1L || !is.finite(eps) || eps <= 0) {
     stop("Barnes-Hut Jensen-Shannon SNE requires a finite positive eps")
   }
-  list(
-    ndim = 2,
+  bh_cost(
     init = bh_sparse_init(
       perplexity,
       inp_kernel,
@@ -138,12 +137,6 @@ bhjssne <- function(
       P <- cost$P
       cost$G <- bh_jssne_gradient_cpp(P@i, P@p, P@x, Y, theta, n_threads)
       cost
-    },
-    export = cost_export,
-    update = function(cost, Y) cost,
-    exaggerate = function(cost, exaggeration_factor) {
-      cost$P <- cost$P * exaggeration_factor
-      cost
     }
   )
 }
@@ -155,8 +148,7 @@ bhhlsne <- function(
   theta = 0.5,
   nn = "approximate"
 ) {
-  list(
-    ndim = 2,
+  bh_cost(
     init = bh_sparse_init(
       perplexity,
       inp_kernel,
@@ -195,12 +187,6 @@ bhhlsne <- function(
         n_threads
       )
       cost
-    },
-    export = cost_export,
-    update = function(cost, Y) cost,
-    exaggerate = function(cost, exaggeration_factor) {
-      cost$P <- cost$P * exaggeration_factor
-      cost
     }
   )
 }
@@ -213,8 +199,7 @@ bhchsne <- function(
   theta = 0.5,
   nn = "approximate"
 ) {
-  list(
-    ndim = 2,
+  bh_cost(
     init = bh_sparse_init(
       perplexity,
       inp_kernel,
@@ -245,12 +230,6 @@ bhchsne <- function(
         theta,
         n_threads
       )
-      cost
-    },
-    export = cost_export,
-    update = function(cost, Y) cost,
-    exaggerate = function(cost, exaggeration_factor) {
-      cost$P <- cost$P * exaggeration_factor
       cost
     }
   )
@@ -283,8 +262,7 @@ bhlargevis <- function(
   if (!is.numeric(eps) || length(eps) != 1L || !is.finite(eps) || eps < 0) {
     stop("Barnes-Hut LargeVis requires a finite nonnegative eps")
   }
-  list(
-    ndim = 2,
+  bh_cost(
     gradient_only = gr_eps != 0,
     init = bh_sparse_init(
       perplexity,
@@ -322,12 +300,6 @@ bhlargevis <- function(
           gamma,
           gr_eps
         )
-      cost
-    },
-    export = cost_export,
-    update = function(cost, Y) cost,
-    exaggerate = function(cost, exaggeration_factor) {
-      cost$P <- cost$P * exaggeration_factor
       cost
     }
   )
@@ -423,8 +395,7 @@ bh_bernoulli <- function(
     row_normalize = if (is.null(row_weight)) FALSE else row_weight,
     kernels = if (student) c("nngaussian", "knn", "skd") else "skd"
   )
-  list(
-    ndim = 2,
+  bh_cost(
     gradient_only = gr_eps != 0,
     init = if (student) {
       init
@@ -499,12 +470,6 @@ bh_bernoulli <- function(
       }
       cost$G <- 4 * G
       cost
-    },
-    export = cost_export,
-    update = function(cost, Y) cost,
-    exaggerate = function(cost, exaggeration_factor) {
-      cost$P <- cost$P * exaggeration_factor
-      cost
     }
   )
 }
@@ -572,8 +537,7 @@ bh_sne <- function(
     n_threads,
     nn
   )
-  list(
-    ndim = 2,
+  bh_cost(
     alpha = alpha,
     init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       cost <- init(cost, X, max_iter, verbose, ret_extra)
@@ -634,7 +598,14 @@ bh_sne <- function(
       )
       cost$G <- (4 * cost$invN) * G
       cost
-    },
+    }
+  )
+}
+
+bh_cost <- function(...) {
+  list(
+    ndim = 2,
+    ...,
     export = cost_export,
     update = function(cost, Y) cost,
     exaggerate = function(cost, exaggeration_factor) {

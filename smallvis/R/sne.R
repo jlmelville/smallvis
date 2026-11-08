@@ -91,8 +91,7 @@ bhtsne <- function(
   if (is.null(nn)) {
     nn <- "approximate"
   }
-  list(
-    ndim = 2,
+  bh_cost(
     init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       cost <- sne_init(
         cost,
@@ -148,17 +147,6 @@ bhtsne <- function(
       )
       # browser()
       cost$G <- 4 * cost$G
-      cost
-    },
-    export = function(cost, val) {
-      res <- cost_export(cost, val)
-      res
-    },
-    update = function(cost, Y) {
-      cost
-    },
-    exaggerate = function(cost, exaggeration_factor) {
-      cost$P <- cost$P * exaggeration_factor
       cost
     }
   )

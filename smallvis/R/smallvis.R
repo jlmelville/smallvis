@@ -1842,25 +1842,26 @@ create_cost <- function(
     }
     method <- match.arg(tolower(method), method_names)
     if (bh) {
-      if (
-        !method %in%
-          c(
-            "tsne",
-            "ssne",
-            "hssne",
-            "dhssne",
-            "tee",
-            "largevis",
-            "umap",
-            "tumap",
-            "jssne",
-            "hlsne",
-            "chsne"
-          )
-      ) {
+      bh_methods <- c(
+        "tsne",
+        "ssne",
+        "hssne",
+        "dhssne",
+        "tee",
+        "largevis",
+        "umap",
+        "tumap",
+        "jssne",
+        "hlsne",
+        "chsne"
+      )
+      if (!method %in% bh_methods) {
+        quoted <- sprintf("'%s'", bh_methods)
         stop(
-          "Barnes-Hut is only supported for 'tsne', 'ssne', 'hssne', 'dhssne', ",
-          "'tee', 'largevis', 'umap', 'tumap', 'jssne', 'hlsne', and 'chsne'"
+          "Barnes-Hut is only supported for ",
+          paste(utils::head(quoted, -1), collapse = ", "),
+          ", and ",
+          utils::tail(quoted, 1)
         )
       }
       # bhssne already names the bandwidth-scaled HSSNE method.
