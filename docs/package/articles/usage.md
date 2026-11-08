@@ -89,7 +89,7 @@ c(iterations = fit$iter, final_cost = sum(fit$costs))
 ```
 
     ##   iterations   final_cost 
-    ## 1000.0000000    0.1231099
+    ## 1000.0000000    0.1231161
 
 The final cost is evaluated at the returned coordinates after removing
 exaggeration. Values in the history were recorded during optimization

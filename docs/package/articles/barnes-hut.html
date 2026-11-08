@@ -68,8 +68,8 @@
 observations. That makes them convenient for experimentation on small
 datasets, but their time and memory requirements grow quadratically. For
 larger datasets, t-SNE, HSSNE, t-distributed elastic embedding (TEE),
-LargeVis, UMAP, and t-UMAP can combine sparse neighbor affinities with
-Barnes-Hut repulsion.</p>
+LargeVis, UMAP, t-UMAP, and Jensen-Shannon SNE can combine sparse
+neighbor affinities with Barnes-Hut repulsion.</p>
 <div class="section level2">
 <h2 id="run-barnes-hut-t-sne">Run Barnes-Hut t-SNE<a class="anchor" aria-label="anchor" href="#run-barnes-hut-t-sne"></a>
 </h2>
@@ -114,9 +114,9 @@ arguments</a> describe these controls.</p>
 <code>method = list("tee", lambda = 0.01)</code> with <code>"knn"</code>
 or <code>"nngaussian"</code> affinities. HSSNE changes the tail of the
 output kernel. TEE keeps the t-SNE kernel and uses a fixed repulsion
-multiplier. Use <code>method = "largevis"</code> for LargeVis or
-<code>method = "tumap"</code> for t-UMAP with the same input
-kernels.</p>
+multiplier. The same input kernels work with
+<code>method = "largevis"</code>, <code>method = "tumap"</code>, and
+<code>method = "jssne"</code>.</p>
 <p>If you already have a neighbor graph, pass its <code>idx</code> and
 <code>dist</code> matrices in a list as <code>neighbors = graph</code>
 and leave <code>nn</code> unset. With <code>"nngaussian"</code>, a

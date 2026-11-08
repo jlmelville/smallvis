@@ -296,12 +296,13 @@ smallvis(
 
   If `TRUE`, approximate repulsive interactions with Barnes-Hut (van der
   Maaten, 2014). Available for `"tsne"`, `"hssne"`, `"tee"`,
-  `"largevis"`, `"umap"`, and `"tumap"` in two dimensions. For HSSNE,
-  TEE, LargeVis, and t-UMAP, choose `inp_kernel = "nngaussian"` (the
-  default) or `"knn"` to build sparse input affinities. For UMAP, the
-  input kernel is `"skd"` (smooth kNN affinities). t-UMAP also accepts
-  `"skd"`. These modes use approximate neighbor search by default. Use
-  `nn = "exact"` for exact neighbor lookup.
+  `"largevis"`, `"umap"`, `"tumap"`, and `"jssne"` in two dimensions.
+  For HSSNE, TEE, LargeVis, t-UMAP, and Jensen-Shannon SNE, choose
+  `inp_kernel = "nngaussian"` (the default) or `"knn"` to build sparse
+  input affinities. For UMAP, the input kernel is `"skd"` (smooth kNN
+  affinities). t-UMAP also accepts `"skd"`. These modes use approximate
+  neighbor search by default. Use `nn = "exact"` for exact neighbor
+  lookup.
 
 - theta:
 
@@ -319,7 +320,8 @@ smallvis(
   weights in both the cost and gradient. Tree construction uses only the
   coordinates. When floating-point precision limits subdivision, a
   terminal leaf stores distinct coordinates as separate groups.
-  Barnes-Hut UMAP and t-UMAP require a positive epsilon.
+  Barnes-Hut UMAP, t-UMAP, and Jensen-Shannon SNE require a positive
+  epsilon.
 
 - inp_kernel:
 
@@ -362,17 +364,18 @@ smallvis(
 - neighbors:
 
   Optional list of precomputed nearest neighbors for Barnes-Hut t-SNE,
-  HSSNE, TEE, LargeVis, UMAP, and t-UMAP. Supply equally sized matrices
-  `idx` (one-based row indices) and `dist` (finite, nonnegative,
-  unsquared distances). Match the row order of `X` and list non-self
-  neighbors in distance order, with no duplicate indices. A self entry
-  is optional and is skipped. Leave `nn` unset. Supply a single numeric
-  perplexity (a whole number for `"knn"`). Each row needs `perplexity`
-  non-self neighbors for `"knn"`, or `floor(3 * perplexity)` for
-  `"nngaussian"`, capped at the number of other observations. For
-  `"skd"`, the neighborhood size includes self, so each row needs
-  `floor(perplexity) - 1` non-self neighbors. The supplied graph defines
-  the input affinities regardless of scaling or PCA.
+  HSSNE, TEE, LargeVis, UMAP, t-UMAP, and Jensen-Shannon SNE. Supply
+  equally sized matrices `idx` (one-based row indices) and `dist`
+  (finite, nonnegative, unsquared distances). Match the row order of `X`
+  and list non-self neighbors in distance order, with no duplicate
+  indices. A self entry is optional and is skipped. Leave `nn` unset.
+  Supply a single numeric perplexity (a whole number for `"knn"`). Each
+  row needs `perplexity` non-self neighbors for `"knn"`, or
+  `floor(3 * perplexity)` for `"nngaussian"`, capped at the number of
+  other observations. For `"skd"`, the neighborhood size includes self,
+  so each row needs `floor(perplexity) - 1` non-self neighbors. The
+  supplied graph defines the input affinities regardless of scaling or
+  PCA.
 
 ## Value
 
@@ -566,9 +569,9 @@ to the `method` parameter are:
 - `"gsne"`, The global SNE (g-SNE) method of Zhou and Sharpee (2018).
 
 By default, these methods use dense input affinities and gradients. For
-t-SNE, HSSNE, TEE, LargeVis, UMAP, and t-UMAP, `bh = TRUE` approximates
-repulsive interactions. Neighbor input kernels can use approximate
-neighbor search.
+t-SNE, HSSNE, TEE, LargeVis, UMAP, t-UMAP, and Jensen-Shannon SNE,
+`bh = TRUE` approximates repulsive interactions. Neighbor input kernels
+can use approximate neighbor search.
 
 ## Method-specific options
 
