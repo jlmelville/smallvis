@@ -296,14 +296,14 @@ smallvis(
 
   If `TRUE`, approximate repulsive interactions with Barnes-Hut (van der
   Maaten, 2014). Available for `"tsne"`, `"ssne"`, `"hssne"`,
-  `"dhssne"`, `"tee"`, `"largevis"`, `"umap"`, `"tumap"`, `"jssne"`,
-  `"hlsne"`, and `"chsne"` in two dimensions. SSNE, HSSNE, dynamic
-  HSSNE, TEE, LargeVis, t-UMAP, Jensen-Shannon SNE, Hellinger SNE, and
-  chi-squared SNE use `inp_kernel = "nngaussian"` by default and also
-  accept `"knn"`. For UMAP, the input kernel is `"skd"` (smooth kNN
-  affinities). t-UMAP also accepts `"skd"`. These modes use approximate
-  neighbor search by default. Use `nn = "exact"` for exact neighbor
-  lookup.
+  `"dhssne"`, `"snerv"`, `"tee"`, `"largevis"`, `"umap"`, `"tumap"`,
+  `"jssne"`, `"hlsne"`, and `"chsne"` in two dimensions. SSNE, HSSNE,
+  dynamic HSSNE, SNeRV, TEE, LargeVis, t-UMAP, Jensen-Shannon SNE,
+  Hellinger SNE, and chi-squared SNE use `inp_kernel = "nngaussian"` by
+  default and also accept `"knn"`. For UMAP, the input kernel is `"skd"`
+  (smooth kNN affinities). t-UMAP also accepts `"skd"`. These modes use
+  approximate neighbor search by default. Use `nn = "exact"` for exact
+  neighbor lookup.
 
 - theta:
 
@@ -322,8 +322,9 @@ smallvis(
   coordinates. When floating-point precision limits subdivision, a
   terminal leaf stores distinct coordinates as separate groups.
   Barnes-Hut SSNE uses unfloored Gaussian output affinities and ignores
-  `eps`. Barnes-Hut UMAP, t-UMAP, and Jensen-Shannon SNE require a
-  positive epsilon.
+  `eps`. Barnes-Hut SNeRV uses a positive `eps` to floor the input
+  affinities and leaves the output affinities unfloored. Barnes-Hut
+  UMAP, t-UMAP, and Jensen-Shannon SNE require a positive epsilon.
 
 - inp_kernel:
 
@@ -551,6 +552,9 @@ to the `method` parameter are:
   publications, see e.g. Yang and co-workers (2014). If you really want
   the version from Venna and co-workers, use method `"bnerv"`.
 
+- `"snerv"` Symmetric NeRV with globally normalized Gaussian output
+  affinities.
+
 - `"jse"` The Jensen-Shannon Embedding method of Lee and co-workers
   (2013).
 
@@ -571,7 +575,7 @@ to the `method` parameter are:
 - `"gsne"`, The global SNE (g-SNE) method of Zhou and Sharpee (2018).
 
 By default, these methods use dense input affinities and gradients. For
-t-SNE, SSNE, HSSNE, dynamic HSSNE, TEE, LargeVis, UMAP, t-UMAP,
+t-SNE, SSNE, HSSNE, dynamic HSSNE, SNeRV, TEE, LargeVis, UMAP, t-UMAP,
 Jensen-Shannon SNE, Hellinger SNE, and chi-squared SNE, `bh = TRUE`
 approximates repulsive interactions. Neighbor input kernels can use
 approximate neighbor search.
@@ -665,6 +669,11 @@ Some parameters are available for all (nor nearly all) methods.
     false negatives (in terms of output distances). Should be a value
     between 0 and 1. Setting to 1 performs like method `"ASNE"`. Default
     is `0.9` based on work in Yang and co-workers (2015).
+
+- `"SNeRV"`
+
+  - `lambda` Weight on the forward KL term, between 0 and 1. Default is
+    `0.9`.
 
 - `"JSE"`
 

@@ -3,7 +3,7 @@
 Most smallvis methods calculate interactions between every pair of
 observations. That makes them convenient for experimentation on small
 datasets, but their time and memory requirements grow quadratically. For
-larger datasets, t-SNE, SSNE, HSSNE, dynamic HSSNE, t-distributed
+larger datasets, t-SNE, SSNE, HSSNE, dynamic HSSNE, SNeRV, t-distributed
 elastic embedding (TEE), LargeVis, UMAP, t-UMAP, Jensen-Shannon SNE,
 Hellinger SNE, and chi-squared SNE can combine sparse neighbor
 affinities with Barnes-Hut repulsion.
@@ -61,9 +61,9 @@ You can also use `method = list("hssne", alpha = 0.5)` or
 affinities. HSSNE changes the tail of the output kernel, and
 `method = "dhssne"` allows `alpha` to change at each epoch. TEE keeps
 the t-SNE kernel and uses a fixed repulsion multiplier. The same input
-kernels work with `method = "ssne"`, `method = "largevis"`,
-`method = "tumap"`, `method = "jssne"`, `method = "hlsne"`, and
-`method = "chsne"`.
+kernels work with `method = "ssne"`, `method = "snerv"`,
+`method = "largevis"`, `method = "tumap"`, `method = "jssne"`,
+`method = "hlsne"`, and `method = "chsne"`.
 
 If you already have a neighbor graph, pass its `idx` and `dist` matrices
 in a list as `neighbors = graph` and leave `nn` unset. This works for
