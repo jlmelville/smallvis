@@ -67,8 +67,8 @@
 <p>Most smallvis methods calculate interactions between every pair of
 observations. That makes them convenient for experimentation on small
 datasets, but their time and memory requirements grow quadratically. For
-larger datasets, t-SNE, HSSNE, t-distributed elastic embedding (TEE),
-LargeVis, UMAP, t-UMAP, and Jensen-Shannon SNE can combine sparse
+larger datasets, t-SNE, SSNE, HSSNE, t-distributed elastic embedding
+(TEE), LargeVis, UMAP, t-UMAP, and Jensen-Shannon SNE can combine sparse
 neighbor affinities with Barnes-Hut repulsion.</p>
 <div class="section level2">
 <h2 id="run-barnes-hut-t-sne">Run Barnes-Hut t-SNE<a class="anchor" aria-label="anchor" href="#run-barnes-hut-t-sne"></a>
@@ -115,11 +115,13 @@ arguments</a> describe these controls.</p>
 or <code>"nngaussian"</code> affinities. HSSNE changes the tail of the
 output kernel. TEE keeps the t-SNE kernel and uses a fixed repulsion
 multiplier. The same input kernels work with
-<code>method = "largevis"</code>, <code>method = "tumap"</code>, and
-<code>method = "jssne"</code>.</p>
+<code>method = "ssne"</code>, <code>method = "largevis"</code>,
+<code>method = "tumap"</code>, and <code>method = "jssne"</code>.</p>
 <p>If you already have a neighbor graph, pass its <code>idx</code> and
 <code>dist</code> matrices in a list as <code>neighbors = graph</code>
-and leave <code>nn</code> unset. With <code>"nngaussian"</code>, a
+and leave <code>nn</code> unset. This works for dense and Barnes-Hut
+methods using <code>"knn"</code>, <code>"nngaussian"</code>, or
+<code>"skd"</code> affinities. With <code>"nngaussian"</code>, a
 perplexity of 30 takes 90 non-self neighbors per row on a dataset with
 at least 91 observations. UMAP uses smooth kNN affinities
 (<code>inp_kernel = "skd"</code>), which are also available for t-UMAP.

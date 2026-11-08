@@ -3,8 +3,8 @@
 Most smallvis methods calculate interactions between every pair of
 observations. That makes them convenient for experimentation on small
 datasets, but their time and memory requirements grow quadratically. For
-larger datasets, t-SNE, HSSNE, t-distributed elastic embedding (TEE),
-LargeVis, UMAP, t-UMAP, and Jensen-Shannon SNE can combine sparse
+larger datasets, t-SNE, SSNE, HSSNE, t-distributed elastic embedding
+(TEE), LargeVis, UMAP, t-UMAP, and Jensen-Shannon SNE can combine sparse
 neighbor affinities with Barnes-Hut repulsion.
 
 ## Run Barnes-Hut t-SNE
@@ -59,17 +59,19 @@ You can also use `method = list("hssne", alpha = 0.5)` or
 `method = list("tee", lambda = 0.01)` with `"knn"` or `"nngaussian"`
 affinities. HSSNE changes the tail of the output kernel. TEE keeps the
 t-SNE kernel and uses a fixed repulsion multiplier. The same input
-kernels work with `method = "largevis"`, `method = "tumap"`, and
-`method = "jssne"`.
+kernels work with `method = "ssne"`, `method = "largevis"`,
+`method = "tumap"`, and `method = "jssne"`.
 
 If you already have a neighbor graph, pass its `idx` and `dist` matrices
-in a list as `neighbors = graph` and leave `nn` unset. With
-`"nngaussian"`, a perplexity of 30 takes 90 non-self neighbors per row
-on a dataset with at least 91 observations. UMAP uses smooth kNN
-affinities (`inp_kernel = "skd"`), which are also available for t-UMAP.
-With `perplexity = 30`, `"skd"` takes 29 non-self neighbors per row. The
-saved graph supplies the affinities, so you can leave `pca = FALSE` and
-let `Y_init = "spca"` compute the starting coordinates.
+in a list as `neighbors = graph` and leave `nn` unset. This works for
+dense and Barnes-Hut methods using `"knn"`, `"nngaussian"`, or `"skd"`
+affinities. With `"nngaussian"`, a perplexity of 30 takes 90 non-self
+neighbors per row on a dataset with at least 91 observations. UMAP uses
+smooth kNN affinities (`inp_kernel = "skd"`), which are also available
+for t-UMAP. With `perplexity = 30`, `"skd"` takes 29 non-self neighbors
+per row. The saved graph supplies the affinities, so you can leave
+`pca = FALSE` and let `Y_init = "spca"` compute the starting
+coordinates.
 
 ## Accelerate a dense calculation
 

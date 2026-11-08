@@ -295,9 +295,9 @@ smallvis(
 - bh:
 
   If `TRUE`, approximate repulsive interactions with Barnes-Hut (van der
-  Maaten, 2014). Available for `"tsne"`, `"hssne"`, `"tee"`,
+  Maaten, 2014). Available for `"tsne"`, `"ssne"`, `"hssne"`, `"tee"`,
   `"largevis"`, `"umap"`, `"tumap"`, and `"jssne"` in two dimensions.
-  For HSSNE, TEE, LargeVis, t-UMAP, and Jensen-Shannon SNE, choose
+  For SSNE, HSSNE, TEE, LargeVis, t-UMAP, and Jensen-Shannon SNE, choose
   `inp_kernel = "nngaussian"` (the default) or `"knn"` to build sparse
   input affinities. For UMAP, the input kernel is `"skd"` (smooth kNN
   affinities). t-UMAP also accepts `"skd"`. These modes use approximate
@@ -320,8 +320,9 @@ smallvis(
   weights in both the cost and gradient. Tree construction uses only the
   coordinates. When floating-point precision limits subdivision, a
   terminal leaf stores distinct coordinates as separate groups.
-  Barnes-Hut UMAP, t-UMAP, and Jensen-Shannon SNE require a positive
-  epsilon.
+  Barnes-Hut SSNE uses unfloored Gaussian output affinities and ignores
+  `eps`. Barnes-Hut UMAP, t-UMAP, and Jensen-Shannon SNE require a
+  positive epsilon.
 
 - inp_kernel:
 
@@ -363,9 +364,9 @@ smallvis(
 
 - neighbors:
 
-  Optional list of precomputed nearest neighbors for Barnes-Hut t-SNE,
-  HSSNE, TEE, LargeVis, UMAP, t-UMAP, and Jensen-Shannon SNE. Supply
-  equally sized matrices `idx` (one-based row indices) and `dist`
+  Optional list of precomputed nearest neighbors for dense or Barnes-Hut
+  methods using the `"knn"`, `"nngaussian"`, or `"skd"` input kernel.
+  Supply equally sized matrices `idx` (one-based row indices) and `dist`
   (finite, nonnegative, unsquared distances). Match the row order of `X`
   and list non-self neighbors in distance order, with no duplicate
   indices. A self entry is optional and is skipped. Leave `nn` unset.
@@ -569,7 +570,7 @@ to the `method` parameter are:
 - `"gsne"`, The global SNE (g-SNE) method of Zhou and Sharpee (2018).
 
 By default, these methods use dense input affinities and gradients. For
-t-SNE, HSSNE, TEE, LargeVis, UMAP, t-UMAP, and Jensen-Shannon SNE,
+t-SNE, SSNE, HSSNE, TEE, LargeVis, UMAP, t-UMAP, and Jensen-Shannon SNE,
 `bh = TRUE` approximates repulsive interactions. Neighbor input kernels
 can use approximate neighbor search.
 
