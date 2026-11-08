@@ -338,10 +338,10 @@ steps.</p></dd>
 
 <dt id="arg-bh">bh<a class="anchor" aria-label="anchor" href="#arg-bh"></a></dt>
 <dd><p>If <code>TRUE</code>, approximate repulsive interactions with Barnes-Hut
-(van der Maaten, 2014). Available for <code>"tsne"</code>, <code>"hssne"</code>,
-<code>"tee"</code>, <code>"largevis"</code>, <code>"umap"</code>, <code>"tumap"</code>, and
-<code>"jssne"</code> in two dimensions.
-For HSSNE, TEE, LargeVis, t-UMAP, and Jensen-Shannon SNE, choose
+(van der Maaten, 2014). Available for <code>"tsne"</code>, <code>"ssne"</code>,
+<code>"hssne"</code>, <code>"tee"</code>, <code>"largevis"</code>, <code>"umap"</code>,
+<code>"tumap"</code>, and <code>"jssne"</code> in two dimensions.
+For SSNE, HSSNE, TEE, LargeVis, t-UMAP, and Jensen-Shannon SNE, choose
 <code>inp_kernel = "nngaussian"</code> (the default) or <code>"knn"</code> to build
 sparse input affinities. For UMAP, the input kernel is <code>"skd"</code>
 (smooth kNN affinities). t-UMAP also accepts <code>"skd"</code>. These modes use
@@ -365,6 +365,8 @@ weights in both the cost and gradient. Tree construction uses only the
 coordinates.
 When floating-point precision limits subdivision, a terminal leaf stores
 distinct coordinates as separate groups.
+Barnes-Hut SSNE uses unfloored Gaussian output affinities and ignores
+<code>eps</code>.
 Barnes-Hut UMAP, t-UMAP, and Jensen-Shannon SNE require a positive
 epsilon.</p></dd>
 
@@ -400,10 +402,11 @@ distance inputs use exact neighbor lookup.</p></dd>
 
 
 <dt id="arg-neighbors">neighbors<a class="anchor" aria-label="anchor" href="#arg-neighbors"></a></dt>
-<dd><p>Optional list of precomputed nearest neighbors for
-Barnes-Hut t-SNE, HSSNE, TEE, LargeVis, UMAP, t-UMAP, and Jensen-Shannon
-SNE. Supply equally sized matrices <code>idx</code> (one-based row indices)
-and <code>dist</code> (finite, nonnegative, unsquared distances).
+<dd><p>Optional list of precomputed nearest neighbors for dense
+or Barnes-Hut methods using the <code>"knn"</code>, <code>"nngaussian"</code>, or
+<code>"skd"</code> input kernel. Supply equally sized matrices <code>idx</code>
+(one-based row indices) and <code>dist</code> (finite, nonnegative, unsquared
+distances).
 Match the row order of <code>X</code> and list non-self neighbors in distance
 order, with no duplicate indices. A self entry is optional and is skipped.
 Leave <code>nn</code> unset. Supply a single numeric perplexity (a whole number
@@ -551,8 +554,8 @@ to the <code>method</code> parameter are:</p><ul><li><p><code>"tsne"</code> t-Di
 <li><p><code>"gsne"</code>, The global SNE (g-SNE) method of Zhou and Sharpee
   (2018).</p></li>
 </ul><p>By default, these methods use dense input affinities and gradients.
-For t-SNE, HSSNE, TEE, LargeVis, UMAP, t-UMAP, and Jensen-Shannon SNE,
-<code>bh = TRUE</code> approximates repulsive interactions. Neighbor input
+For t-SNE, SSNE, HSSNE, TEE, LargeVis, UMAP, t-UMAP, and Jensen-Shannon
+SNE, <code>bh = TRUE</code> approximates repulsive interactions. Neighbor input
 kernels can use approximate neighbor search.</p>
     </div>
     <div class="section level2">
