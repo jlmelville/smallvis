@@ -69,9 +69,9 @@
 #' }
 #'
 #' By default, these methods use dense input affinities and gradients.
-#' For t-SNE, HSSNE, TEE, LargeVis, UMAP, and t-UMAP, \code{bh = TRUE}
-#' approximates repulsive interactions. Neighbor input kernels can use
-#' approximate neighbor search.
+#' For t-SNE, HSSNE, TEE, LargeVis, UMAP, t-UMAP, and Jensen-Shannon SNE,
+#' \code{bh = TRUE} approximates repulsive interactions. Neighbor input
+#' kernels can use approximate neighbor search.
 #'
 #' @section Method-specific options:
 #'
@@ -588,15 +588,16 @@
 #'   coordinates.
 #'   When floating-point precision limits subdivision, a terminal leaf stores
 #'   distinct coordinates as separate groups.
-#'   Barnes-Hut UMAP and t-UMAP require a positive epsilon.
+#'   Barnes-Hut UMAP, t-UMAP, and Jensen-Shannon SNE require a positive
+#'   epsilon.
 #' @param theta Barnes-Hut opening threshold, default \code{0.5}. Smaller
 #'   values open more cells. Zero evaluates the repulsive sum exactly for the
 #'   chosen input affinities. Applies only with \code{bh = TRUE}.
 #' @param bh If \code{TRUE}, approximate repulsive interactions with Barnes-Hut
 #'   (van der Maaten, 2014). Available for \code{"tsne"}, \code{"hssne"},
-#'   \code{"tee"}, \code{"largevis"}, \code{"umap"}, and \code{"tumap"} in two
-#'   dimensions.
-#'   For HSSNE, TEE, LargeVis, and t-UMAP, choose
+#'   \code{"tee"}, \code{"largevis"}, \code{"umap"}, \code{"tumap"}, and
+#'   \code{"jssne"} in two dimensions.
+#'   For HSSNE, TEE, LargeVis, t-UMAP, and Jensen-Shannon SNE, choose
 #'   \code{inp_kernel = "nngaussian"} (the default) or \code{"knn"} to build
 #'   sparse input affinities. For UMAP, the input kernel is \code{"skd"}
 #'   (smooth kNN affinities). t-UMAP also accepts \code{"skd"}. These modes use
@@ -628,9 +629,9 @@
 #'  distance inputs use exact neighbor lookup.
 #' @param verbose If \code{TRUE}, log progress messages to the console.
 #' @param neighbors Optional list of precomputed nearest neighbors for
-#'   Barnes-Hut t-SNE, HSSNE, TEE, LargeVis, UMAP, and t-UMAP. Supply equally
-#'   sized matrices \code{idx} (one-based row indices) and \code{dist} (finite,
-#'   nonnegative, unsquared distances).
+#'   Barnes-Hut t-SNE, HSSNE, TEE, LargeVis, UMAP, t-UMAP, and Jensen-Shannon
+#'   SNE. Supply equally sized matrices \code{idx} (one-based row indices)
+#'   and \code{dist} (finite, nonnegative, unsquared distances).
 #'   Match the row order of \code{X} and list non-self neighbors in distance
 #'   order, with no duplicate indices. A self entry is optional and is skipped.
 #'   Leave \code{nn} unset. Supply a single numeric perplexity (a whole number
@@ -1833,10 +1834,13 @@ create_cost <- function(
     }
     method <- match.arg(tolower(method), method_names)
     if (bh) {
-      if (!method %in% c("tsne", "hssne", "tee", "largevis", "umap", "tumap")) {
+      if (
+        !method %in%
+          c("tsne", "hssne", "tee", "largevis", "umap", "tumap", "jssne")
+      ) {
         stop(
           "Barnes-Hut is only supported for 'tsne', 'hssne', 'tee', ",
-          "'largevis', 'umap', and 'tumap'"
+          "'largevis', 'umap', 'tumap', and 'jssne'"
         )
       }
       method <- paste0("bh", method)

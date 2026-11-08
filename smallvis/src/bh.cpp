@@ -126,23 +126,12 @@ void visit_bh(const smallvis::QuadTree::Node &node, double x, double y,
 }
 
 template <bool Normalize, typename Kernel>
-NumericMatrix
-bh_gradient(const IntegerVector &indices, const IntegerVector &indptr,
-            const NumericVector &P_data, const NumericMatrix &embedding,
-            double theta, double eps, std::size_t n_threads,
-            const Kernel &kernel, double repulsion) {
-  if (embedding.ncol() != 2) {
-    stop("Barnes-Hut requires two output dimensions");
-  }
-
-  const auto rows = as<std::vector<std::size_t>>(indices);
-  const auto offsets = as<std::vector<std::size_t>>(indptr);
-  const auto probabilities = as<std::vector<double>>(P_data);
-  const auto Y = as<std::vector<double>>(transpose(embedding));
+double bh_repulsion(const smallvis::QuadTree &tree,
+                    const std::vector<double> &Y, double theta, double eps,
+                    std::size_t n_threads, const Kernel &kernel,
+                    std::vector<double> &gradient) {
   const std::size_t n = Y.size() / 2;
-  const smallvis::QuadTree tree(Y);
   const double theta2 = theta * theta;
-  std::vector<double> gradient(Y.size(), 0.0);
   std::vector<double> sums(smallvis::worker_count(n, n_threads), 0.0);
 
   smallvis::parallel_for(
@@ -171,8 +160,30 @@ bh_gradient(const IntegerVector &indices, const IntegerVector &indptr,
         }
       });
 
+  return Normalize ? std::accumulate(sums.begin(), sums.end(), eps) : 0.0;
+}
+
+template <bool Normalize, typename Kernel>
+NumericMatrix
+bh_gradient(const IntegerVector &indices, const IntegerVector &indptr,
+            const NumericVector &P_data, const NumericMatrix &embedding,
+            double theta, double eps, std::size_t n_threads,
+            const Kernel &kernel, double repulsion) {
+  if (embedding.ncol() != 2) {
+    stop("Barnes-Hut requires two output dimensions");
+  }
+
+  const auto rows = as<std::vector<std::size_t>>(indices);
+  const auto offsets = as<std::vector<std::size_t>>(indptr);
+  const auto probabilities = as<std::vector<double>>(P_data);
+  const auto Y = as<std::vector<double>>(transpose(embedding));
+  const std::size_t n = Y.size() / 2;
+  const smallvis::QuadTree tree(Y);
+  std::vector<double> gradient(Y.size(), 0.0);
+  const double Z =
+      bh_repulsion<Normalize>(tree, Y, theta, eps, n_threads, kernel, gradient);
+
   if (Normalize) {
-    const double Z = std::accumulate(sums.begin(), sums.end(), eps);
     for (auto &value : gradient) {
       value /= Z;
     }
@@ -201,25 +212,14 @@ bh_gradient(const IntegerVector &indices, const IntegerVector &indptr,
   return transpose(result);
 }
 
-// Sum the sparse log affinities and the dense kernel contribution.
 // The kernel supplies either normalization mass or repulsive cost.
 template <typename Kernel>
-double bh_score(const IntegerVector &indices, const IntegerVector &indptr,
-                const NumericVector &P_data, const NumericMatrix &embedding,
-                double theta, double eps, std::size_t n_threads,
-                const Kernel &kernel, bool normalize, double repulsion) {
-  if (embedding.ncol() != 2) {
-    stop("Barnes-Hut requires two output dimensions");
-  }
-
-  const auto rows = as<std::vector<std::size_t>>(indices);
-  const auto offsets = as<std::vector<std::size_t>>(indptr);
-  const auto probabilities = as<std::vector<double>>(P_data);
-  const auto Y = as<std::vector<double>>(transpose(embedding));
+double bh_score_mass(const std::vector<double> &Y, double theta, double eps,
+                     std::size_t n_threads, const Kernel &kernel,
+                     std::vector<double> &sums) {
   const std::size_t n = Y.size() / 2;
   const smallvis::QuadTree tree(Y);
   const double theta2 = theta * theta;
-  std::vector<double> sums(smallvis::worker_count(n, n_threads), 0.0);
 
   smallvis::parallel_for(
       n, n_threads,
@@ -235,10 +235,27 @@ double bh_score(const IntegerVector &indices, const IntegerVector &indptr,
         sums[thread_id] = sum;
       });
 
+  return std::accumulate(sums.begin(), sums.end(), eps);
+}
+
+template <typename Kernel>
+double bh_score(const IntegerVector &indices, const IntegerVector &indptr,
+                const NumericVector &P_data, const NumericMatrix &embedding,
+                double theta, double eps, std::size_t n_threads,
+                const Kernel &kernel, bool normalize, double repulsion) {
+  if (embedding.ncol() != 2) {
+    stop("Barnes-Hut requires two output dimensions");
+  }
+
+  const auto rows = as<std::vector<std::size_t>>(indices);
+  const auto offsets = as<std::vector<std::size_t>>(indptr);
+  const auto probabilities = as<std::vector<double>>(P_data);
+  const auto Y = as<std::vector<double>>(transpose(embedding));
+  const std::size_t n = Y.size() / 2;
+  std::vector<double> sums(smallvis::worker_count(n, n_threads), 0.0);
   const double Z =
-      std::accumulate(sums.begin(), sums.end(), normalize ? eps : 0.0);
+      bh_score_mass(Y, theta, normalize ? eps : 0.0, n_threads, kernel, sums);
   const double log_offset = normalize ? -std::log(Z) : 0.0;
-  std::fill(sums.begin(), sums.end(), 0.0);
   smallvis::parallel_for(
       n, n_threads,
       [&](std::size_t start, std::size_t end, std::size_t thread_id) {
@@ -256,6 +273,47 @@ double bh_score(const IntegerVector &indices, const IntegerVector &indptr,
       });
   return std::accumulate(sums.begin(), sums.end(),
                          normalize ? 0.0 : -repulsion * Z);
+}
+
+template <bool Gradient>
+double jssne_edge_sum(const IntegerVector &indices, const IntegerVector &indptr,
+                      const NumericVector &P_data, const std::vector<double> &Y,
+                      double Z, std::size_t n_threads,
+                      std::vector<double> *gradient) {
+  const auto rows = as<std::vector<std::size_t>>(indices);
+  const auto offsets = as<std::vector<std::size_t>>(indptr);
+  const auto probabilities = as<std::vector<double>>(P_data);
+  const std::size_t n = Y.size() / 2;
+  const CauchyKernel kernel;
+  std::vector<double> sums(smallvis::worker_count(n, n_threads), 0.0);
+  smallvis::parallel_for(
+      n, n_threads,
+      [&](std::size_t start, std::size_t end, std::size_t thread_id) {
+        double sum = 0.0;
+        for (std::size_t i = start; i < end; ++i) {
+          for (std::size_t k = offsets[i]; k < offsets[i + 1]; ++k) {
+            const std::size_t j = rows[k];
+            const double dx = Y[2 * i] - Y[2 * j];
+            const double dy = Y[2 * i + 1] - Y[2 * j + 1];
+            const double w = kernel.weight(dx * dx + dy * dy);
+            const double q = w / Z;
+            const double p = probabilities[k];
+            // log(2Q / (P + Q)) = log(2) - log1p(P / Q).
+            // The correction vanishes off the input graph.
+            const double correction = std::log1p(p / q);
+            sum += q * correction;
+            if (Gradient) {
+              const double force = w * w * correction;
+              (*gradient)[2 * i] += force * dx;
+              (*gradient)[2 * i + 1] += force * dy;
+            } else {
+              sum += p * std::log(0.5 * (p + q));
+            }
+          }
+        }
+        sums[thread_id] = sum;
+      });
+  return std::accumulate(sums.begin(), sums.end(), 0.0);
 }
 
 } // namespace
@@ -380,4 +438,47 @@ double bh_umap_score_cpp(const IntegerVector &indices,
                          int n_threads, double eps, double a, double b) {
   return bh_score(indices, indptr, P_data, embedding, theta, 0.0, n_threads,
                   UmapKernel<false>(a, b, 0.0, eps), false, 1.0);
+}
+
+// [[Rcpp::export]]
+NumericMatrix bh_jssne_gradient_cpp(const IntegerVector &indices,
+                                    const IntegerVector &indptr,
+                                    const NumericVector &P_data,
+                                    const NumericMatrix &embedding,
+                                    double theta, int n_threads) {
+  if (embedding.ncol() != 2) {
+    stop("Barnes-Hut requires two output dimensions");
+  }
+  const auto Y = as<std::vector<double>>(transpose(embedding));
+  const smallvis::QuadTree tree(Y);
+  std::vector<double> repulsion(Y.size(), 0.0);
+  const double Z = bh_repulsion<true>(tree, Y, theta, 0.0, n_threads,
+                                      CauchyKernel{}, repulsion);
+  std::vector<double> gradient(Y.size(), 0.0);
+  const double edge_sum =
+      jssne_edge_sum<true>(indices, indptr, P_data, Y, Z, n_threads, &gradient);
+  const double scale = 2.0 / Z;
+  for (std::size_t i = 0; i < gradient.size(); ++i) {
+    gradient[i] = scale * (gradient[i] + edge_sum * repulsion[i]);
+  }
+  const NumericMatrix result(2, embedding.nrow(), gradient.begin());
+  return transpose(result);
+}
+
+// [[Rcpp::export]]
+double bh_jssne_score_cpp(const IntegerVector &indices,
+                          const IntegerVector &indptr,
+                          const NumericVector &P_data,
+                          const NumericMatrix &embedding, double theta,
+                          int n_threads) {
+  if (embedding.ncol() != 2) {
+    stop("Barnes-Hut requires two output dimensions");
+  }
+  const auto Y = as<std::vector<double>>(transpose(embedding));
+  const std::size_t n = Y.size() / 2;
+  std::vector<double> sums(smallvis::worker_count(n, n_threads), 0.0);
+  const double Z =
+      bh_score_mass(Y, theta, 0.0, n_threads, CauchyKernel{}, sums);
+  return std::log(2.0) - jssne_edge_sum<false>(indices, indptr, P_data, Y, Z,
+                                               n_threads, nullptr);
 }

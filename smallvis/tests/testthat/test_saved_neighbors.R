@@ -24,7 +24,7 @@ test_that("all Barnes-Hut methods can calibrate the supplied graph without searc
     )
   }
   cases <- expand.grid(
-    method = c("tsne", "hssne", "tee", "largevis", "tumap"),
+    method = c("tsne", "hssne", "tee", "largevis", "tumap", "jssne"),
     kernel = c("knn", "nngaussian"),
     stringsAsFactors = FALSE
   )
@@ -192,6 +192,43 @@ test_that("exact Barnes-Hut UMAP matches dense cost and gradient on a saved grap
         cost_grad(dense, Y)$G,
         tolerance = 1e-12
       )
+      expect_equal(
+        cost_point(bh, Y)$pcost,
+        sum(cost_point(dense, Y)$pcost),
+        tolerance = 1e-12
+      )
+    })
+  }
+})
+
+test_that("exact Barnes-Hut Jensen-Shannon SNE matches dense on the saved graph", {
+  fixture <- saved_neighbors_fixture()
+  Y <- cbind(sin(seq_len(24)), cos(seq_len(24))) / 3
+  Y[2, ] <- Y[1, ]
+  for (kernel in c("knn", "nngaussian")) {
+    local({
+      prepare <- function(X, bh, ...) {
+        smallvis_run(
+          X,
+          method = "jssne",
+          bh = bh,
+          inp_kernel = kernel,
+          perplexity = 3,
+          theta = 0,
+          eps = 1e-5,
+          n_threads = 2,
+          prepare_only = TRUE,
+          epoch_callback = FALSE,
+          verbose = FALSE,
+          ...
+        )$cost_fn
+      }
+      dense <- prepare(fixture$D, FALSE)
+      local_mocked_bindings(get_nn = function(...) stop("neighbor search ran"))
+      bh <- prepare(fixture$X, TRUE, neighbors = fixture$graph)
+      expect_s4_class(bh$P, "dgCMatrix")
+      expect_equal(as.matrix(bh$P), dense$P, tolerance = 1e-12)
+      expect_equal(cost_grad(bh, Y)$G, cost_grad(dense, Y)$G, tolerance = 1e-12)
       expect_equal(
         cost_point(bh, Y)$pcost,
         sum(cost_point(dense, Y)$pcost),

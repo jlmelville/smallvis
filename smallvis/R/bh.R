@@ -50,6 +50,56 @@ bhtee <- function(
   )
 }
 
+bhjssne <- function(
+  perplexity,
+  inp_kernel = "nngaussian",
+  symmetrize = "symmetric",
+  eps = .Machine$double.eps,
+  n_threads = 0,
+  theta = 0.5,
+  nn = "approximate"
+) {
+  if (!is.numeric(eps) || length(eps) != 1L || !is.finite(eps) || eps <= 0) {
+    stop("Barnes-Hut Jensen-Shannon SNE requires a finite positive eps")
+  }
+  list(
+    ndim = 2,
+    init = bh_sparse_init(
+      perplexity,
+      inp_kernel,
+      symmetrize,
+      normalize = TRUE,
+      n_threads = n_threads,
+      nn = nn
+    ),
+    cache_input = function(cost) {
+      P <- cost$P
+      p <- pmax(P@x, eps)
+      # Match the dense entropy floor on implicit off-diagonal zeros.
+      off_graph <- nrow(P) * (nrow(P) - 1) - length(p)
+      cost$plogp <- sum(p * log(p)) + off_graph * eps * log(eps)
+      cost
+    },
+    pfn = function(cost, Y) {
+      P <- cost$P
+      score <- bh_jssne_score_cpp(P@i, P@p, P@x, Y, theta, n_threads)
+      cost$pcost <- 0.5 * (cost$plogp + score)
+      cost
+    },
+    gr = function(cost, Y) {
+      P <- cost$P
+      cost$G <- bh_jssne_gradient_cpp(P@i, P@p, P@x, Y, theta, n_threads)
+      cost
+    },
+    export = cost_export,
+    update = function(cost, Y) cost,
+    exaggerate = function(cost, exaggeration_factor) {
+      cost$P <- cost$P * exaggeration_factor
+      cost
+    }
+  )
+}
+
 bhlargevis <- function(
   perplexity,
   inp_kernel = "nngaussian",

@@ -551,10 +551,11 @@ check_saved_neighbors <- function(
       !is.character(method) ||
       length(method) != 1L ||
       !tolower(method) %in%
-        c("tsne", "hssne", "tee", "largevis", "umap", "tumap")
+        c("tsne", "hssne", "tee", "largevis", "umap", "tumap", "jssne")
   ) {
     stop(
-      "neighbors requires Barnes-Hut t-SNE, HSSNE, TEE, LargeVis, UMAP, or t-UMAP"
+      "neighbors requires Barnes-Hut t-SNE, HSSNE, TEE, LargeVis, UMAP, ",
+      "t-UMAP, or Jensen-Shannon SNE"
     )
   }
   if (!is.null(nn)) {

@@ -41,6 +41,14 @@ bh_umap_score_cpp <- function(indices, indptr, P_data, embedding, theta, n_threa
     .Call(`_smallvis_bh_umap_score_cpp`, indices, indptr, P_data, embedding, theta, n_threads, eps, a, b)
 }
 
+bh_jssne_gradient_cpp <- function(indices, indptr, P_data, embedding, theta, n_threads) {
+    .Call(`_smallvis_bh_jssne_gradient_cpp`, indices, indptr, P_data, embedding, theta, n_threads)
+}
+
+bh_jssne_score_cpp <- function(indices, indptr, P_data, embedding, theta, n_threads) {
+    .Call(`_smallvis_bh_jssne_score_cpp`, indices, indptr, P_data, embedding, theta, n_threads)
+}
+
 dist2_cpp <- function(input, n_threads = 1L) {
     .Call(`_smallvis_dist2_cpp`, input, n_threads)
 }
