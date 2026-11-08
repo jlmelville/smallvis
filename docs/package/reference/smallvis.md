@@ -295,11 +295,12 @@ smallvis(
 - bh:
 
   If `TRUE`, approximate repulsive interactions with Barnes-Hut (van der
-  Maaten, 2014). Available for `"tsne"`, `"ssne"`, `"hssne"`, `"tee"`,
-  `"largevis"`, `"umap"`, `"tumap"`, and `"jssne"` in two dimensions.
-  For SSNE, HSSNE, TEE, LargeVis, t-UMAP, and Jensen-Shannon SNE, choose
-  `inp_kernel = "nngaussian"` (the default) or `"knn"` to build sparse
-  input affinities. For UMAP, the input kernel is `"skd"` (smooth kNN
+  Maaten, 2014). Available for `"tsne"`, `"ssne"`, `"hssne"`,
+  `"dhssne"`, `"tee"`, `"largevis"`, `"umap"`, `"tumap"`, `"jssne"`,
+  `"hlsne"`, and `"chsne"` in two dimensions. SSNE, HSSNE, dynamic
+  HSSNE, TEE, LargeVis, t-UMAP, Jensen-Shannon SNE, Hellinger SNE, and
+  chi-squared SNE use `inp_kernel = "nngaussian"` by default and also
+  accept `"knn"`. For UMAP, the input kernel is `"skd"` (smooth kNN
   affinities). t-UMAP also accepts `"skd"`. These modes use approximate
   neighbor search by default. Use `nn = "exact"` for exact neighbor
   lookup.
@@ -570,9 +571,10 @@ to the `method` parameter are:
 - `"gsne"`, The global SNE (g-SNE) method of Zhou and Sharpee (2018).
 
 By default, these methods use dense input affinities and gradients. For
-t-SNE, SSNE, HSSNE, TEE, LargeVis, UMAP, t-UMAP, and Jensen-Shannon SNE,
-`bh = TRUE` approximates repulsive interactions. Neighbor input kernels
-can use approximate neighbor search.
+t-SNE, SSNE, HSSNE, dynamic HSSNE, TEE, LargeVis, UMAP, t-UMAP,
+Jensen-Shannon SNE, Hellinger SNE, and chi-squared SNE, `bh = TRUE`
+approximates repulsive interactions. Neighbor input kernels can use
+approximate neighbor search.
 
 ## Method-specific options
 

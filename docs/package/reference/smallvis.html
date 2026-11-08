@@ -339,11 +339,13 @@ steps.</p></dd>
 <dt id="arg-bh">bh<a class="anchor" aria-label="anchor" href="#arg-bh"></a></dt>
 <dd><p>If <code>TRUE</code>, approximate repulsive interactions with Barnes-Hut
 (van der Maaten, 2014). Available for <code>"tsne"</code>, <code>"ssne"</code>,
-<code>"hssne"</code>, <code>"tee"</code>, <code>"largevis"</code>, <code>"umap"</code>,
-<code>"tumap"</code>, and <code>"jssne"</code> in two dimensions.
-For SSNE, HSSNE, TEE, LargeVis, t-UMAP, and Jensen-Shannon SNE, choose
-<code>inp_kernel = "nngaussian"</code> (the default) or <code>"knn"</code> to build
-sparse input affinities. For UMAP, the input kernel is <code>"skd"</code>
+<code>"hssne"</code>, <code>"dhssne"</code>, <code>"tee"</code>, <code>"largevis"</code>,
+<code>"umap"</code>, <code>"tumap"</code>, <code>"jssne"</code>, <code>"hlsne"</code>, and
+<code>"chsne"</code> in two dimensions.
+SSNE, HSSNE, dynamic HSSNE, TEE, LargeVis, t-UMAP, Jensen-Shannon SNE,
+Hellinger SNE, and chi-squared SNE use <code>inp_kernel = "nngaussian"</code>
+by default and also accept <code>"knn"</code>. For UMAP, the input kernel is
+<code>"skd"</code>
 (smooth kNN affinities). t-UMAP also accepts <code>"skd"</code>. These modes use
 approximate neighbor search by default. Use <code>nn = "exact"</code> for
 exact neighbor lookup.</p></dd>
@@ -554,9 +556,10 @@ to the <code>method</code> parameter are:</p><ul><li><p><code>"tsne"</code> t-Di
 <li><p><code>"gsne"</code>, The global SNE (g-SNE) method of Zhou and Sharpee
   (2018).</p></li>
 </ul><p>By default, these methods use dense input affinities and gradients.
-For t-SNE, SSNE, HSSNE, TEE, LargeVis, UMAP, t-UMAP, and Jensen-Shannon
-SNE, <code>bh = TRUE</code> approximates repulsive interactions. Neighbor input
-kernels can use approximate neighbor search.</p>
+For t-SNE, SSNE, HSSNE, dynamic HSSNE, TEE, LargeVis, UMAP, t-UMAP,
+Jensen-Shannon SNE, Hellinger SNE, and chi-squared SNE, <code>bh = TRUE</code>
+approximates repulsive interactions.
+Neighbor input kernels can use approximate neighbor search.</p>
     </div>
     <div class="section level2">
     <h2 id="method-specific-options">Method-specific options<a class="anchor" aria-label="anchor" href="#method-specific-options"></a></h2>
