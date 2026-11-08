@@ -441,7 +441,175 @@ double bh_divergence_score(const IntegerVector &indices,
   return Kind == Divergence::ChiSquared ? Z * edge_sum : edge_sum;
 }
 
+struct KlRow {
+  double mass = 0.0;
+  double log_mass = 0.0;
+  double forward_loss = 0.0;
+  double force[2] = {};
+  double log_force[2] = {};
+};
+
+template <bool Gradient, typename Kernel>
+double bh_kl_tree_rows(const smallvis::QuadTree &tree,
+                       const std::vector<double> &Y, double theta,
+                       std::size_t n_threads, const Kernel &kernel,
+                       std::vector<KlRow> &rows) {
+  const double theta2 = theta * theta;
+  smallvis::parallel_for(rows.size(), n_threads,
+                         [&](std::size_t start, std::size_t end, std::size_t) {
+                           for (std::size_t i = start; i < end; ++i) {
+                             KlRow row;
+                             auto accumulate = [&](std::size_t count, double dx,
+                                                   double dy, double d2) {
+                               const double mass = count * kernel.weight(d2);
+                               if (mass == 0.0) {
+                                 return;
+                               }
+                               const double log_w = kernel.log_weight(d2);
+                               row.mass += mass;
+                               row.log_mass += mass * log_w;
+                               if (Gradient) {
+                                 const double force = mass * kernel.slope(d2);
+                                 const double direction[2] = {dx, dy};
+                                 for (std::size_t axis = 0; axis < 2; ++axis) {
+                                   const double component =
+                                       force * direction[axis];
+                                   row.force[axis] += component;
+                                   row.log_force[axis] += component * log_w;
+                                 }
+                               }
+                             };
+                             visit_bh(*tree.root, Y[2 * i], Y[2 * i + 1],
+                                      theta2, true, accumulate);
+                             rows[i] = row;
+                           }
+                         });
+  return std::accumulate(
+      rows.begin(), rows.end(), 0.0,
+      [](double sum, const KlRow &row) { return sum + row.mass; });
+}
+
+template <bool Gradient, typename Kernel>
+SEXP bh_mixed_kl(const IntegerVector &indices, const IntegerVector &indptr,
+                 const NumericVector &log_ratio, const NumericVector &p_excess,
+                 const NumericMatrix &embedding, double theta,
+                 std::size_t n_threads, double eps, double lambda,
+                 double p_mass, double plogp, Kernel kernel) {
+  if (embedding.ncol() != 2) {
+    stop("Barnes-Hut requires two output dimensions");
+  }
+  const auto Y = as<std::vector<double>>(transpose(embedding));
+  const auto neighbors = as<std::vector<std::size_t>>(indices);
+  const auto offsets = as<std::vector<std::size_t>>(indptr);
+  const auto logs = as<std::vector<double>>(log_ratio);
+  const auto excess = as<std::vector<double>>(p_excess);
+  const std::size_t n = Y.size() / 2;
+  const smallvis::QuadTree tree(Y);
+  std::vector<KlRow> rows(n);
+  double Z = bh_kl_tree_rows<Gradient>(tree, Y, theta, n_threads, kernel, rows);
+  if (rescale_weights(kernel, tree, Y, theta, Z)) {
+    Z = bh_kl_tree_rows<Gradient>(tree, Y, theta, n_threads, kernel, rows);
+  }
+  if (!(Z > 0.0) || !std::isfinite(Z)) {
+    stop("Barnes-Hut KL requires a finite positive normalizer");
+  }
+
+  // Every off-diagonal pair starts at P = eps. Sparse edges correct log P
+  // in the reverse term and P itself in the forward term.
+  const double reverse_weight = (1.0 - lambda) / Z;
+  std::vector<double> gradient(Gradient ? Y.size() : 0, 0.0);
+  smallvis::parallel_for(
+      n, n_threads, [&](std::size_t start, std::size_t end, std::size_t) {
+        for (std::size_t i = start; i < end; ++i) {
+          for (std::size_t k = offsets[i]; k < offsets[i + 1]; ++k) {
+            const std::size_t j = neighbors[k];
+            const double dx = Y[2 * i] - Y[2 * j];
+            const double dy = Y[2 * i + 1] - Y[2 * j + 1];
+            const double d2 = dx * dx + dy * dy;
+            const double correction = kernel.weight(d2) * logs[k];
+            rows[i].log_mass -= correction;
+            if (Gradient) {
+              const double force =
+                  reverse_weight * correction * kernel.slope(d2) +
+                  lambda * excess[k];
+              gradient[2 * i] += force * dx;
+              gradient[2 * i + 1] += force * dy;
+            } else if (lambda != 0.0) {
+              rows[i].forward_loss -= excess[k] * kernel.log_weight(d2);
+            }
+          }
+        }
+      });
+
+  const double mean_log = std::accumulate(rows.begin(), rows.end(), 0.0,
+                                          [](double sum, const KlRow &row) {
+                                            return sum + row.log_mass;
+                                          }) /
+                          Z;
+  const double center[2] = {tree.root->center_of_mass_x,
+                            tree.root->center_of_mass_y};
+  const double forward_weight = lambda * p_mass / Z;
+  const double floor_force = lambda * eps * n;
+  double forward_loss = 0.0;
+  double centered_d2 = 0.0;
+  for (std::size_t i = 0; i < n; ++i) {
+    const KlRow &row = rows[i];
+    for (std::size_t axis = 0; axis < 2; ++axis) {
+      const double displacement = Y[2 * i + axis] - center[axis];
+      if (Gradient) {
+        gradient[2 * i + axis] +=
+            reverse_weight *
+                (row.log_force[axis] - mean_log * row.force[axis]) +
+            forward_weight * row.force[axis] + floor_force * displacement;
+        gradient[2 * i + axis] *= 4.0;
+      } else if (lambda != 0.0) {
+        centered_d2 += displacement * displacement;
+      }
+    }
+    forward_loss += row.forward_loss;
+  }
+  if (Gradient) {
+    NumericMatrix result(2, embedding.nrow(), gradient.begin());
+    return transpose(result);
+  }
+
+  const double log_z = std::log(Z);
+  const double reverse = mean_log - log_z - std::log(eps);
+  if (lambda == 0.0) {
+    return wrap(reverse);
+  }
+  // The Gaussian floor term uses the sum of all squared pair distances.
+  const double floor_loss =
+      eps * n * (2.0 * centered_d2 - (n - 1.0) * kernel.log_weight(0.0));
+  const double forward = plogp + p_mass * log_z + forward_loss + floor_loss;
+  return wrap(lambda * forward + (1.0 - lambda) * reverse);
+}
+
 } // namespace
+
+// [[Rcpp::export]]
+SEXP bh_mixed_kl_cpp(const IntegerVector &indices, const IntegerVector &indptr,
+                     const NumericVector &log_ratio,
+                     const NumericVector &p_excess,
+                     const NumericMatrix &embedding, double theta,
+                     std::size_t n_threads, double eps, double lambda,
+                     double p_mass, double plogp, bool gaussian,
+                     bool gradient) {
+  auto evaluate = [&](auto kernel) {
+    if (gradient) {
+      return bh_mixed_kl<true>(indices, indptr, log_ratio, p_excess, embedding,
+                               theta, n_threads, eps, lambda, p_mass, plogp,
+                               kernel);
+    }
+    return bh_mixed_kl<false>(indices, indptr, log_ratio, p_excess, embedding,
+                              theta, n_threads, eps, lambda, p_mass, plogp,
+                              kernel);
+  };
+  if (gaussian) {
+    return evaluate(GaussianKernel{});
+  }
+  return evaluate(CauchyKernel{});
+}
 
 // [[Rcpp::export]]
 NumericMatrix bh_tsne_gradient_cpp(const IntegerVector &indices,

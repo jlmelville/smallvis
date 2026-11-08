@@ -10,6 +10,29 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// bh_mixed_kl_cpp
+SEXP bh_mixed_kl_cpp(const IntegerVector& indices, const IntegerVector& indptr, const NumericVector& log_ratio, const NumericVector& p_excess, const NumericMatrix& embedding, double theta, std::size_t n_threads, double eps, double lambda, double p_mass, double plogp, bool gaussian, bool gradient);
+RcppExport SEXP _smallvis_bh_mixed_kl_cpp(SEXP indicesSEXP, SEXP indptrSEXP, SEXP log_ratioSEXP, SEXP p_excessSEXP, SEXP embeddingSEXP, SEXP thetaSEXP, SEXP n_threadsSEXP, SEXP epsSEXP, SEXP lambdaSEXP, SEXP p_massSEXP, SEXP plogpSEXP, SEXP gaussianSEXP, SEXP gradientSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const IntegerVector& >::type indices(indicesSEXP);
+    Rcpp::traits::input_parameter< const IntegerVector& >::type indptr(indptrSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type log_ratio(log_ratioSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type p_excess(p_excessSEXP);
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type embedding(embeddingSEXP);
+    Rcpp::traits::input_parameter< double >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< std::size_t >::type n_threads(n_threadsSEXP);
+    Rcpp::traits::input_parameter< double >::type eps(epsSEXP);
+    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
+    Rcpp::traits::input_parameter< double >::type p_mass(p_massSEXP);
+    Rcpp::traits::input_parameter< double >::type plogp(plogpSEXP);
+    Rcpp::traits::input_parameter< bool >::type gaussian(gaussianSEXP);
+    Rcpp::traits::input_parameter< bool >::type gradient(gradientSEXP);
+    rcpp_result_gen = Rcpp::wrap(bh_mixed_kl_cpp(indices, indptr, log_ratio, p_excess, embedding, theta, n_threads, eps, lambda, p_mass, plogp, gaussian, gradient));
+    return rcpp_result_gen;
+END_RCPP
+}
 // bh_tsne_gradient_cpp
 NumericMatrix bh_tsne_gradient_cpp(const IntegerVector& indices, const IntegerVector& indptr, const NumericVector& P_data, const NumericMatrix& embedding, double theta, double eps, std::size_t n_threads);
 RcppExport SEXP _smallvis_bh_tsne_gradient_cpp(SEXP indicesSEXP, SEXP indptrSEXP, SEXP P_dataSEXP, SEXP embeddingSEXP, SEXP thetaSEXP, SEXP epsSEXP, SEXP n_threadsSEXP) {
@@ -390,6 +413,7 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_smallvis_bh_mixed_kl_cpp", (DL_FUNC) &_smallvis_bh_mixed_kl_cpp, 13},
     {"_smallvis_bh_tsne_gradient_cpp", (DL_FUNC) &_smallvis_bh_tsne_gradient_cpp, 7},
     {"_smallvis_bh_plogq_cpp", (DL_FUNC) &_smallvis_bh_plogq_cpp, 7},
     {"_smallvis_bh_sne_gradient_cpp", (DL_FUNC) &_smallvis_bh_sne_gradient_cpp, 10},

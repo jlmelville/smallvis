@@ -52,6 +52,8 @@
 #'   which seems to reflect its presentation in later publications, see e.g.
 #'   Yang and co-workers (2014). If you really want the version from Venna and
 #'   co-workers, use method \code{"bnerv"}.
+#'   \item \code{"snerv"} Symmetric NeRV with globally normalized Gaussian
+#'   output affinities.
 #'   \item \code{"jse"} The Jensen-Shannon Embedding method of Lee and
 #'   co-workers (2013).
 #'   \item \code{"absne"} The alpha-beta SNE method of Narayan and co-workers
@@ -69,7 +71,7 @@
 #' }
 #'
 #' By default, these methods use dense input affinities and gradients.
-#' For t-SNE, SSNE, HSSNE, dynamic HSSNE, TEE, LargeVis, UMAP, t-UMAP,
+#' For t-SNE, SSNE, HSSNE, dynamic HSSNE, SNeRV, TEE, LargeVis, UMAP, t-UMAP,
 #' Jensen-Shannon SNE, Hellinger SNE, and chi-squared SNE, \code{bh = TRUE}
 #' approximates repulsive interactions.
 #' Neighbor input kernels can use approximate neighbor search.
@@ -162,6 +164,11 @@
 #'    versus false negatives (in terms of output distances). Should be a value
 #'    between 0 and 1. Setting to 1 performs like method \code{"ASNE"}. Default
 #'    is \code{0.9} based on work in Yang and co-workers (2015).
+#'    }
+#'    \item \code{"SNeRV"}
+#'    \itemize{
+#'    \item{\code{lambda}} Weight on the forward KL term, between 0 and 1.
+#'    Default is \code{0.9}.
 #'    }
 #'    \item \code{"JSE"}
 #'    \itemize{
@@ -591,6 +598,8 @@
 #'   distinct coordinates as separate groups.
 #'   Barnes-Hut SSNE uses unfloored Gaussian output affinities and ignores
 #'   \code{eps}.
+#'   Barnes-Hut SNeRV uses a positive \code{eps} to floor the input
+#'   affinities and leaves the output affinities unfloored.
 #'   Barnes-Hut UMAP, t-UMAP, and Jensen-Shannon SNE require a positive
 #'   epsilon.
 #' @param theta Barnes-Hut opening threshold, default \code{0.5}. Smaller
@@ -598,16 +607,15 @@
 #'   chosen input affinities. Applies only with \code{bh = TRUE}.
 #' @param bh If \code{TRUE}, approximate repulsive interactions with Barnes-Hut
 #'   (van der Maaten, 2014). Available for \code{"tsne"}, \code{"ssne"},
-#'   \code{"hssne"}, \code{"dhssne"}, \code{"tee"}, \code{"largevis"},
-#'   \code{"umap"}, \code{"tumap"}, \code{"jssne"}, \code{"hlsne"}, and
-#'   \code{"chsne"} in two dimensions.
-#'   SSNE, HSSNE, dynamic HSSNE, TEE, LargeVis, t-UMAP, Jensen-Shannon SNE,
-#'   Hellinger SNE, and chi-squared SNE use \code{inp_kernel = "nngaussian"}
-#'   by default and also accept \code{"knn"}. For UMAP, the input kernel is
-#'   \code{"skd"}
-#'   (smooth kNN affinities). t-UMAP also accepts \code{"skd"}. These modes use
-#'   approximate neighbor search by default. Use \code{nn = "exact"} for
-#'   exact neighbor lookup.
+#'   \code{"hssne"}, \code{"dhssne"}, \code{"snerv"}, \code{"tee"},
+#'   \code{"largevis"}, \code{"umap"}, \code{"tumap"}, \code{"jssne"},
+#'   \code{"hlsne"}, and \code{"chsne"} in two dimensions.
+#'   SSNE, HSSNE, dynamic HSSNE, SNeRV, TEE, LargeVis, t-UMAP, Jensen-Shannon
+#'   SNE, Hellinger SNE, and chi-squared SNE use
+#'   \code{inp_kernel = "nngaussian"} by default and also accept \code{"knn"}.
+#'   For UMAP, the input kernel is \code{"skd"} (smooth kNN affinities).
+#'   t-UMAP also accepts \code{"skd"}. These modes use approximate neighbor
+#'   search by default. Use \code{nn = "exact"} for exact neighbor lookup.
 #' @param inp_kernel For t-SNE-like methods, determines how the input
 #'   similarities are calculated. Possible values are:
 #'   \itemize{
@@ -1847,6 +1855,7 @@ create_cost <- function(
         "ssne",
         "hssne",
         "dhssne",
+        "snerv",
         "tee",
         "largevis",
         "umap",

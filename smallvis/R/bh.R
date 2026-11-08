@@ -602,6 +602,124 @@ bh_sne <- function(
   )
 }
 
+bhrklsne <- function(
+  perplexity,
+  inp_kernel = "nngaussian",
+  symmetrize = "symmetric",
+  eps = .Machine$double.eps,
+  n_threads = 0,
+  theta = 0.5,
+  nn = "approximate"
+) {
+  bh_mixed_kl(
+    perplexity,
+    inp_kernel,
+    symmetrize,
+    eps,
+    n_threads,
+    theta,
+    nn,
+    lambda = 0,
+    gaussian = FALSE
+  )
+}
+
+bhsnerv <- function(
+  perplexity,
+  lambda = 0.9,
+  inp_kernel = "nngaussian",
+  symmetrize = "symmetric",
+  eps = .Machine$double.eps,
+  n_threads = 0,
+  theta = 0.5,
+  nn = "approximate"
+) {
+  bh_mixed_kl(
+    perplexity,
+    inp_kernel,
+    symmetrize,
+    eps,
+    n_threads,
+    theta,
+    nn,
+    lambda,
+    gaussian = TRUE
+  )
+}
+
+bh_mixed_kl <- function(
+  perplexity,
+  inp_kernel,
+  symmetrize,
+  eps,
+  n_threads,
+  theta,
+  nn,
+  lambda,
+  gaussian
+) {
+  if (!is.numeric(eps) || length(eps) != 1L || !is.finite(eps) || eps <= 0) {
+    stop("Barnes-Hut KL requires a finite positive eps")
+  }
+  if (
+    !is.numeric(lambda) ||
+      length(lambda) != 1L ||
+      !is.finite(lambda) ||
+      lambda < 0 ||
+      lambda > 1
+  ) {
+    stop("Barnes-Hut SNeRV requires lambda between 0 and 1")
+  }
+  evaluate <- function(cost, Y, gradient) {
+    P <- cost$P
+    bh_mixed_kl_cpp(
+      P@i,
+      P@p,
+      cost$log_ratio,
+      cost$p_excess,
+      Y,
+      theta,
+      n_threads,
+      eps,
+      lambda,
+      cost$p_mass,
+      cost$plogp,
+      gaussian,
+      gradient
+    )
+  }
+  bh_cost(
+    init = bh_sparse_init(
+      perplexity,
+      inp_kernel,
+      symmetrize,
+      normalize = TRUE,
+      n_threads = n_threads,
+      nn = nn
+    ),
+    cache_input = function(cost) {
+      P <- cost$P
+      p <- pmax(P@x, eps)
+      log_p <- log(p)
+      n <- nrow(P)
+      off_graph <- n * (n - 1.0) - length(p)
+      cost$log_ratio <- log_p - log(eps)
+      cost$p_excess <- p - eps
+      cost$p_mass <- sum(p) + off_graph * eps
+      cost$plogp <- sum(p * log_p) + off_graph * eps * log(eps)
+      cost
+    },
+    pfn = function(cost, Y) {
+      cost$pcost <- evaluate(cost, Y, gradient = FALSE)
+      cost
+    },
+    gr = function(cost, Y) {
+      cost$G <- evaluate(cost, Y, gradient = TRUE)
+      cost
+    }
+  )
+}
+
 bh_cost <- function(...) {
   list(
     ndim = 2,

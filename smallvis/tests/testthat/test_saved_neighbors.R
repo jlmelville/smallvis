@@ -28,6 +28,7 @@ test_that("dense and Barnes-Hut methods can use the supplied graph without searc
       "tsne",
       "ssne",
       "hssne",
+      "snerv",
       "tee",
       "largevis",
       "tumap",
@@ -271,6 +272,71 @@ test_that("exact Barnes-Hut divergence methods match dense on the saved graph", 
         )
       }
     })
+  }
+})
+
+test_that("exact Barnes-Hut mixed KL matches dense with an input floor", {
+  fixture <- saved_neighbors_fixture()
+  n <- nrow(fixture$X)
+  regular <- cbind(sin(seq_len(n)), cos(seq_len(n)))
+  regular[2, ] <- regular[1, ]
+  separated <- cbind(30 * seq_len(n), 0)
+  local_mocked_bindings(get_nn = function(...) stop("neighbor search ran"))
+
+  for (eps in c(.Machine$double.eps, 1e-3)) {
+    reverse_kl <- bhrklsne(perplexity = 3, theta = 0, eps = eps)
+    reverse_kl$neighbors <- fixture$graph
+    costs <- c(
+      list(cost_init(reverse_kl, fixture$X, max_iter = 1)),
+      lapply(c(0, 0.5, 1), function(lambda) {
+        smallvis_run(
+          fixture$X,
+          method = list("snerv", lambda = lambda),
+          bh = TRUE,
+          neighbors = fixture$graph,
+          perplexity = 3,
+          theta = 0,
+          eps = eps,
+          prepare_only = TRUE,
+          epoch_callback = FALSE,
+          verbose = FALSE
+        )$cost_fn
+      })
+    )
+    for (i in seq_along(costs)) {
+      cost <- costs[[i]]
+      gaussian <- i != 1L
+      lambda <- c(0, 0, 0.5, 1)[i]
+      P <- pmax(as.matrix(cost$P), eps)
+      diag(P) <- 0
+      logP <- logm(P, eps)
+
+      for (Y in if (gaussian) list(regular, separated) else list(regular)) {
+        d2 <- as.matrix(stats::dist(Y))^2
+        logW <- if (gaussian) -d2 else -log1p(d2)
+        diag(logW) <- -Inf
+        logW <- logW - max(logW)
+        logQ <- logW - log(sum(exp(logW)))
+        Q <- exp(logQ)
+        diag(logQ) <- 0
+        log_ratio <- logQ - logP
+        reverse <- sum(Q * log_ratio)
+        forward <- sum(-P * log_ratio)
+        expected_cost <- lambda * forward + (1 - lambda) * reverse
+        slope <- if (gaussian) 1 else 1 / (1 + d2)
+        K <- lambda *
+          (P - sum(P) * Q) +
+          (1 - lambda) * Q * (reverse - log_ratio)
+        expected_gradient <- unname(k2g(Y, 4 * slope * K))
+
+        expect_equal(
+          cost_point(cost, Y)$pcost,
+          expected_cost,
+          tolerance = 1e-12
+        )
+        expect_equal(cost_grad(cost, Y)$G, expected_gradient, tolerance = 1e-12)
+      }
+    }
   }
 })
 
