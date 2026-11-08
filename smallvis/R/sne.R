@@ -380,8 +380,7 @@ dhssne <- function(
   n_threads = 0,
   use_cpp = FALSE
 ) {
-  alpha_min <- 1e-8
-  alpha <- max(alpha, alpha_min)
+  alpha <- max(alpha, 1e-8)
   lreplace(
     tsne(
       perplexity = perplexity,
@@ -400,44 +399,7 @@ dhssne <- function(
       )
       cost
     },
-    epoch = function(opt, cost, iter, Y, fn_val) {
-      old_cost <- cost
-
-      # create up to two new candidate alpha values:
-      # alpha + 0.1 and alpha - 0.1 (but only if that's a valid alpha)
-      alpha_curr <- cost$alpha
-      alphas <- c(alpha_curr + 0.1)
-      if (alpha_curr - 0.1 >= alpha_min) {
-        alphas <- c(alphas, alpha_curr - 0.1)
-      }
-
-      # evaluate error for the new alphas
-      errs <- c()
-      for (candidate_alpha in alphas) {
-        cost$alpha <- candidate_alpha
-        cost$apow <- -1 / candidate_alpha
-        cost <- cost_clear(cost)
-        cost <- cost_point(cost, Y)
-        err <- sum(cost$pcost)
-        errs <- c(errs, err)
-      }
-
-      # append the current alpha and its error
-      errs <- c(errs, fn_val)
-      alphas <- c(alphas, alpha_curr)
-
-      # choose the alpha which minimizes the error
-      next_alpha <- alphas[which.min(errs)]
-      if (next_alpha != alpha_curr) {
-        old_cost$alpha <- next_alpha
-        old_cost$apow <- -1 / next_alpha
-        old_cost <- cost_clear(old_cost)
-        old_cost$Z <- NULL
-        old_cost$G <- NULL
-        old_cost$pcost <- NULL
-      }
-      list(cost = old_cost)
-    },
+    epoch = dhssne_epoch,
     update = function(cost, Y) {
       alpha <- cost$alpha
       W <- calc_d2(Y, use_cpp = use_cpp, n_threads = n_threads)
@@ -451,6 +413,37 @@ dhssne <- function(
     alpha = alpha,
     apow = -1 / alpha
   )
+}
+
+dhssne_epoch <- function(opt, cost, iter, Y, fn_val) {
+  with_alpha <- function(alpha) {
+    candidate <- cost
+    candidate$alpha <- alpha
+    if (!is.null(candidate$apow)) {
+      candidate$apow <- -1 / alpha
+    }
+    candidate <- cost_clear(candidate)
+    candidate$Z <- NULL
+    candidate$G <- NULL
+    candidate$pcost <- NULL
+    candidate
+  }
+
+  alpha <- cost$alpha
+  candidates <- alpha + c(0.1, -0.1)
+  candidates <- candidates[candidates >= 1e-8]
+  scores <- vapply(
+    candidates,
+    function(candidate) {
+      sum(cost_point(with_alpha(candidate), Y)$pcost)
+    },
+    numeric(1)
+  )
+  next_alpha <- c(candidates, alpha)[which.min(c(scores, fn_val))]
+  if (next_alpha != alpha) {
+    cost <- with_alpha(next_alpha)
+  }
+  list(cost = cost)
 }
 
 # Yang, Z., Peltonen, J., & Kaski, S. (2014).

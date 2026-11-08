@@ -47,6 +47,32 @@ bhhssne <- function(
   )
 }
 
+bhdhssne <- function(
+  perplexity,
+  alpha = 0.5,
+  inp_kernel = "nngaussian",
+  symmetrize = "symmetric",
+  eps = .Machine$double.eps,
+  n_threads = 0,
+  theta = 0.5,
+  nn = "approximate"
+) {
+  lreplace(
+    bhhssne(
+      perplexity,
+      alpha,
+      inp_kernel,
+      symmetrize,
+      eps,
+      n_threads,
+      theta,
+      nn
+    ),
+    gradient_only = TRUE,
+    epoch = dhssne_epoch
+  )
+}
+
 bhtee <- function(
   perplexity,
   inp_kernel = "nngaussian",
@@ -111,6 +137,114 @@ bhjssne <- function(
     gr = function(cost, Y) {
       P <- cost$P
       cost$G <- bh_jssne_gradient_cpp(P@i, P@p, P@x, Y, theta, n_threads)
+      cost
+    },
+    export = cost_export,
+    update = function(cost, Y) cost,
+    exaggerate = function(cost, exaggeration_factor) {
+      cost$P <- cost$P * exaggeration_factor
+      cost
+    }
+  )
+}
+
+bhhlsne <- function(
+  perplexity,
+  inp_kernel = "nngaussian",
+  n_threads = 0,
+  theta = 0.5,
+  nn = "approximate"
+) {
+  list(
+    ndim = 2,
+    init = bh_sparse_init(
+      perplexity,
+      inp_kernel,
+      symmetrize = "symmetric",
+      normalize = TRUE,
+      n_threads = n_threads,
+      nn = nn
+    ),
+    cache_input = function(cost) {
+      p <- cost$P@x
+      cost$sqrt_p <- sqrt(p)
+      cost$psum <- sum(p)
+      cost
+    },
+    pfn = function(cost, Y) {
+      P <- cost$P
+      similarity <- bh_hlsne_similarity_cpp(
+        P@i,
+        P@p,
+        cost$sqrt_p,
+        Y,
+        theta,
+        n_threads
+      )
+      cost$pcost <- cost$psum + 1 - 2 * similarity
+      cost
+    },
+    gr = function(cost, Y) {
+      P <- cost$P
+      cost$G <- bh_hlsne_gradient_cpp(
+        P@i,
+        P@p,
+        cost$sqrt_p,
+        Y,
+        theta,
+        n_threads
+      )
+      cost
+    },
+    export = cost_export,
+    update = function(cost, Y) cost,
+    exaggerate = function(cost, exaggeration_factor) {
+      cost$P <- cost$P * exaggeration_factor
+      cost
+    }
+  )
+}
+
+bhchsne <- function(
+  perplexity,
+  inp_kernel = "nngaussian",
+  symmetrize = "symmetric",
+  n_threads = 0,
+  theta = 0.5,
+  nn = "approximate"
+) {
+  list(
+    ndim = 2,
+    init = bh_sparse_init(
+      perplexity,
+      inp_kernel,
+      symmetrize,
+      normalize = TRUE,
+      n_threads = n_threads,
+      nn = nn
+    ),
+    cache_input = function(cost) {
+      p <- cost$P@x
+      cost$p_squared <- p * p
+      cost$constant <- 1 - 2 * sum(p)
+      cost
+    },
+    pfn = function(cost, Y) {
+      P <- cost$P
+      cost$pcost <- cost$constant +
+        bh_chsne_score_cpp(P@i, P@p, cost$p_squared, Y, theta, n_threads)
+      cost
+    },
+    gr = function(cost, Y) {
+      P <- cost$P
+      cost$G <- bh_chsne_gradient_cpp(
+        P@i,
+        P@p,
+        cost$p_squared,
+        Y,
+        theta,
+        n_threads
+      )
       cost
     },
     export = cost_export,
@@ -440,6 +574,7 @@ bh_sne <- function(
   )
   list(
     ndim = 2,
+    alpha = alpha,
     init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       cost <- init(cost, X, max_iter, verbose, ret_extra)
       cost$invN <- if (normalize) 1 else 1 / sum(cost$P)
@@ -476,7 +611,7 @@ bh_sne <- function(
         theta,
         0,
         n_threads,
-        alpha,
+        cost$alpha,
         normalize,
         lambda
       )
@@ -493,7 +628,7 @@ bh_sne <- function(
         theta,
         0,
         n_threads,
-        alpha,
+        cost$alpha,
         normalize,
         lambda
       )

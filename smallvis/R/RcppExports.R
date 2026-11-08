@@ -49,6 +49,22 @@ bh_jssne_score_cpp <- function(indices, indptr, P_data, embedding, theta, n_thre
     .Call(`_smallvis_bh_jssne_score_cpp`, indices, indptr, P_data, embedding, theta, n_threads)
 }
 
+bh_hlsne_gradient_cpp <- function(indices, indptr, sqrt_P_data, embedding, theta, n_threads) {
+    .Call(`_smallvis_bh_hlsne_gradient_cpp`, indices, indptr, sqrt_P_data, embedding, theta, n_threads)
+}
+
+bh_hlsne_similarity_cpp <- function(indices, indptr, sqrt_P_data, embedding, theta, n_threads) {
+    .Call(`_smallvis_bh_hlsne_similarity_cpp`, indices, indptr, sqrt_P_data, embedding, theta, n_threads)
+}
+
+bh_chsne_gradient_cpp <- function(indices, indptr, squared_P_data, embedding, theta, n_threads) {
+    .Call(`_smallvis_bh_chsne_gradient_cpp`, indices, indptr, squared_P_data, embedding, theta, n_threads)
+}
+
+bh_chsne_score_cpp <- function(indices, indptr, squared_P_data, embedding, theta, n_threads) {
+    .Call(`_smallvis_bh_chsne_score_cpp`, indices, indptr, squared_P_data, embedding, theta, n_threads)
+}
+
 dist2_cpp <- function(input, n_threads = 1L) {
     .Call(`_smallvis_dist2_cpp`, input, n_threads)
 }

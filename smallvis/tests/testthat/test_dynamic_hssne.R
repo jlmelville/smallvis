@@ -80,6 +80,53 @@ test_that("retaining alpha preserves the current objective and gradient", {
   expect_equal(sum(actual$pcost), 0, tolerance = 1e-12)
 })
 
+test_that("exact Barnes-Hut DHSSNE makes the same alpha updates as dense", {
+  set.seed(42)
+  X <- matrix(rnorm(24 * 4), 24)
+  Y <- matrix(rnorm(48), 24)
+  graph <- get_nn(stats::dist(X), k = 13)
+  local_mocked_bindings(get_nn = function(...) stop("neighbor search ran"))
+  run <- function(bh, kernel, opt = list("adam", eta = 0.01)) {
+    alphas <- numeric()
+    fit <- smallvis(
+      X,
+      method = list("dhssne", alpha = 0.5),
+      bh = bh,
+      theta = 0,
+      inp_kernel = kernel,
+      perplexity = 4,
+      neighbors = graph,
+      Y_init = Y,
+      opt = opt,
+      max_iter = 6,
+      epoch = 1,
+      tol = 0,
+      ret_extra = c("alpha", "P"),
+      epoch_callback = function(Y, iter, cost, cost_fn) {
+        alphas[iter + 1L] <<- cost_fn$alpha
+      },
+      verbose = FALSE
+    )
+    list(fit = fit, alphas = alphas)
+  }
+  for (kernel in c("knn", "nngaussian")) {
+    dense <- run(FALSE, kernel)
+    bh <- run(TRUE, kernel)
+    expect_equal(bh$fit$iter, 6)
+    expect_gt(length(unique(bh$alphas)), 1)
+    expect_equal(bh$alphas, dense$alphas)
+    expect_equal(bh$fit$alpha, dense$fit$alpha)
+    expect_equal(as.matrix(bh$fit$P), dense$fit$P, tolerance = 1e-12)
+    expect_equal(bh$fit$Y, dense$fit$Y, tolerance = 1e-12)
+    expect_equal(bh$fit$itercosts, dense$fit$itercosts, tolerance = 1e-12)
+    expect_equal(bh$fit$costs, sum(dense$fit$costs), tolerance = 1e-12)
+  }
+  expect_error(
+    run(TRUE, "knn", opt = list("l-bfgs")),
+    "requires a matching objective and gradient"
+  )
+})
+
 test_that("fixed-alpha HSSNE retains function-based optimization", {
   fit <- smallvis(
     matrix(sin(seq_len(96)^2), 24, 4),

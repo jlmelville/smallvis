@@ -24,7 +24,17 @@ test_that("dense and Barnes-Hut methods can use the supplied graph without searc
     )
   }
   cases <- expand.grid(
-    method = c("tsne", "ssne", "hssne", "tee", "largevis", "tumap", "jssne"),
+    method = c(
+      "tsne",
+      "ssne",
+      "hssne",
+      "tee",
+      "largevis",
+      "tumap",
+      "jssne",
+      "hlsne",
+      "chsne"
+    ),
     kernel = c("knn", "nngaussian"),
     stringsAsFactors = FALSE
   )
@@ -214,18 +224,23 @@ test_that("exact Barnes-Hut UMAP matches dense cost and gradient on a saved grap
   }
 })
 
-test_that("exact Barnes-Hut Jensen-Shannon SNE matches dense on the saved graph", {
+test_that("exact Barnes-Hut divergence methods match dense on the saved graph", {
   fixture <- saved_neighbors_fixture()
   Y <- cbind(sin(seq_len(24)), cos(seq_len(24))) / 3
   Y[2, ] <- Y[1, ]
-  for (kernel in c("knn", "nngaussian")) {
+  cases <- expand.grid(
+    method = c("jssne", "hlsne", "chsne"),
+    kernel = c("knn", "nngaussian"),
+    stringsAsFactors = FALSE
+  )
+  for (i in seq_len(nrow(cases))) {
     local({
-      prepare <- function(X, bh, ...) {
+      prepare <- function(bh) {
         smallvis_run(
-          X,
-          method = "jssne",
+          fixture$X,
+          method = cases$method[i],
           bh = bh,
-          inp_kernel = kernel,
+          inp_kernel = cases$kernel[i],
           perplexity = 3,
           theta = 0,
           eps = 1e-5,
@@ -233,20 +248,28 @@ test_that("exact Barnes-Hut Jensen-Shannon SNE matches dense on the saved graph"
           prepare_only = TRUE,
           epoch_callback = FALSE,
           verbose = FALSE,
-          ...
+          neighbors = fixture$graph
         )$cost_fn
       }
-      dense <- prepare(fixture$D, FALSE)
       local_mocked_bindings(get_nn = function(...) stop("neighbor search ran"))
-      bh <- prepare(fixture$X, TRUE, neighbors = fixture$graph)
+      dense <- prepare(FALSE)
+      bh <- prepare(TRUE)
       expect_s4_class(bh$P, "dgCMatrix")
       expect_equal(as.matrix(bh$P), dense$P, tolerance = 1e-12)
-      expect_equal(cost_grad(bh, Y)$G, cost_grad(dense, Y)$G, tolerance = 1e-12)
-      expect_equal(
-        cost_point(bh, Y)$pcost,
-        sum(cost_point(dense, Y)$pcost),
-        tolerance = 1e-12
-      )
+      for (factor in c(1, 4)) {
+        bh_scaled <- start_exaggerating(bh, factor)
+        dense_scaled <- start_exaggerating(dense, factor)
+        expect_equal(
+          cost_grad(bh_scaled, Y)$G,
+          cost_grad(dense_scaled, Y)$G,
+          tolerance = 1e-12
+        )
+        expect_equal(
+          cost_point(bh_scaled, Y)$pcost,
+          sum(cost_point(dense_scaled, Y)$pcost),
+          tolerance = 1e-12
+        )
+      }
     })
   }
 })

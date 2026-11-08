@@ -69,9 +69,10 @@
 #' }
 #'
 #' By default, these methods use dense input affinities and gradients.
-#' For t-SNE, SSNE, HSSNE, TEE, LargeVis, UMAP, t-UMAP, and Jensen-Shannon
-#' SNE, \code{bh = TRUE} approximates repulsive interactions. Neighbor input
-#' kernels can use approximate neighbor search.
+#' For t-SNE, SSNE, HSSNE, dynamic HSSNE, TEE, LargeVis, UMAP, t-UMAP,
+#' Jensen-Shannon SNE, Hellinger SNE, and chi-squared SNE, \code{bh = TRUE}
+#' approximates repulsive interactions.
+#' Neighbor input kernels can use approximate neighbor search.
 #'
 #' @section Method-specific options:
 #'
@@ -597,11 +598,13 @@
 #'   chosen input affinities. Applies only with \code{bh = TRUE}.
 #' @param bh If \code{TRUE}, approximate repulsive interactions with Barnes-Hut
 #'   (van der Maaten, 2014). Available for \code{"tsne"}, \code{"ssne"},
-#'   \code{"hssne"}, \code{"tee"}, \code{"largevis"}, \code{"umap"},
-#'   \code{"tumap"}, and \code{"jssne"} in two dimensions.
-#'   For SSNE, HSSNE, TEE, LargeVis, t-UMAP, and Jensen-Shannon SNE, choose
-#'   \code{inp_kernel = "nngaussian"} (the default) or \code{"knn"} to build
-#'   sparse input affinities. For UMAP, the input kernel is \code{"skd"}
+#'   \code{"hssne"}, \code{"dhssne"}, \code{"tee"}, \code{"largevis"},
+#'   \code{"umap"}, \code{"tumap"}, \code{"jssne"}, \code{"hlsne"}, and
+#'   \code{"chsne"} in two dimensions.
+#'   SSNE, HSSNE, dynamic HSSNE, TEE, LargeVis, t-UMAP, Jensen-Shannon SNE,
+#'   Hellinger SNE, and chi-squared SNE use \code{inp_kernel = "nngaussian"}
+#'   by default and also accept \code{"knn"}. For UMAP, the input kernel is
+#'   \code{"skd"}
 #'   (smooth kNN affinities). t-UMAP also accepts \code{"skd"}. These modes use
 #'   approximate neighbor search by default. Use \code{nn = "exact"} for
 #'   exact neighbor lookup.
@@ -1845,16 +1848,19 @@ create_cost <- function(
             "tsne",
             "ssne",
             "hssne",
+            "dhssne",
             "tee",
             "largevis",
             "umap",
             "tumap",
-            "jssne"
+            "jssne",
+            "hlsne",
+            "chsne"
           )
       ) {
         stop(
-          "Barnes-Hut is only supported for 'tsne', 'ssne', 'hssne', 'tee', ",
-          "'largevis', 'umap', 'tumap', and 'jssne'"
+          "Barnes-Hut is only supported for 'tsne', 'ssne', 'hssne', 'dhssne', ",
+          "'tee', 'largevis', 'umap', 'tumap', 'jssne', 'hlsne', and 'chsne'"
         )
       }
       # bhssne already names the bandwidth-scaled HSSNE method.

@@ -330,14 +330,17 @@ double bh_score(const IntegerVector &indices, const IntegerVector &indptr,
                          normalize ? 0.0 : -repulsion * Z);
 }
 
-template <bool Gradient>
-double jssne_edge_sum(const IntegerVector &indices, const IntegerVector &indptr,
-                      const NumericVector &P_data, const std::vector<double> &Y,
-                      double Z, std::size_t n_threads,
-                      std::vector<double> *gradient) {
+enum class Divergence { JensenShannon, Hellinger, ChiSquared };
+
+template <Divergence Kind, bool Gradient>
+double
+divergence_edge_sum(const IntegerVector &indices, const IntegerVector &indptr,
+                    const NumericVector &edge_data,
+                    const std::vector<double> &Y, double Z,
+                    std::size_t n_threads, std::vector<double> *gradient) {
   const auto rows = as<std::vector<std::size_t>>(indices);
   const auto offsets = as<std::vector<std::size_t>>(indptr);
-  const auto probabilities = as<std::vector<double>>(P_data);
+  const auto edges = as<std::vector<double>>(edge_data);
   const std::size_t n = Y.size() / 2;
   const CauchyKernel kernel;
   std::vector<double> sums(smallvis::worker_count(n, n_threads), 0.0);
@@ -350,25 +353,92 @@ double jssne_edge_sum(const IntegerVector &indices, const IntegerVector &indptr,
             const std::size_t j = rows[k];
             const double dx = Y[2 * i] - Y[2 * j];
             const double dy = Y[2 * i + 1] - Y[2 * j + 1];
-            const double w = kernel.weight(dx * dx + dy * dy);
-            const double q = w / Z;
-            const double p = probabilities[k];
-            // log(2Q / (P + Q)) = log(2) - log1p(P / Q).
-            // The correction vanishes off the input graph.
-            const double correction = std::log1p(p / q);
-            sum += q * correction;
+            const double d2 = dx * dx + dy * dy;
+            const double edge = edges[k];
+            double force = 0.0;
+            if (Kind == Divergence::ChiSquared) {
+              // The input edge holds P^2, so this sums P^2 / w.
+              sum += edge * (1.0 + d2);
+              force = edge;
+            } else {
+              const double w = kernel.weight(d2);
+              const double q = w / Z;
+              if (Kind == Divergence::Hellinger) {
+                // The input edge already holds sqrt(P).
+                const double sqrt_q = std::sqrt(q);
+                sum += edge * sqrt_q;
+                if (Gradient) {
+                  force = w * w * (edge / sqrt_q);
+                }
+              } else {
+                // log(2Q / (P + Q)) = log(2) - log1p(P / Q).
+                const double correction = std::log1p(edge / q);
+                sum += q * correction;
+                if (Gradient) {
+                  force = w * w * correction;
+                } else {
+                  sum += edge * std::log(0.5 * (edge + q));
+                }
+              }
+            }
             if (Gradient) {
-              const double force = w * w * correction;
               (*gradient)[2 * i] += force * dx;
               (*gradient)[2 * i + 1] += force * dy;
-            } else {
-              sum += p * std::log(0.5 * (p + q));
             }
           }
         }
         sums[thread_id] = sum;
       });
   return std::accumulate(sums.begin(), sums.end(), 0.0);
+}
+
+template <Divergence Kind>
+NumericMatrix bh_divergence_gradient(const IntegerVector &indices,
+                                     const IntegerVector &indptr,
+                                     const NumericVector &edge_data,
+                                     const NumericMatrix &embedding,
+                                     double theta, int n_threads) {
+  if (embedding.ncol() != 2) {
+    stop("Barnes-Hut requires two output dimensions");
+  }
+  const auto Y = as<std::vector<double>>(transpose(embedding));
+  const smallvis::QuadTree tree(Y);
+  std::vector<double> repulsion(Y.size(), 0.0);
+  const double Z = bh_repulsion<true>(tree, Y, theta, 0.0, n_threads,
+                                      CauchyKernel{}, repulsion);
+  std::vector<double> gradient(Y.size(), 0.0);
+  const double edge_sum = divergence_edge_sum<Kind, true>(
+      indices, indptr, edge_data, Y, Z, n_threads, &gradient);
+  const bool chi_squared = Kind == Divergence::ChiSquared;
+  const double scale =
+      (Kind == Divergence::JensenShannon ? 2.0 : 4.0) / (chi_squared ? 1.0 : Z);
+  const double attraction_scale = chi_squared ? Z : 1.0;
+  for (std::size_t i = 0; i < gradient.size(); ++i) {
+    gradient[i] =
+        scale * (attraction_scale * gradient[i] + edge_sum * repulsion[i]);
+  }
+  const NumericMatrix result(2, embedding.nrow(), gradient.begin());
+  return transpose(result);
+}
+
+template <Divergence Kind>
+double bh_divergence_score(const IntegerVector &indices,
+                           const IntegerVector &indptr,
+                           const NumericVector &edge_data,
+                           const NumericMatrix &embedding, double theta,
+                           int n_threads) {
+  if (embedding.ncol() != 2) {
+    stop("Barnes-Hut requires two output dimensions");
+  }
+  const auto Y = as<std::vector<double>>(transpose(embedding));
+  const std::size_t n = Y.size() / 2;
+  const smallvis::QuadTree tree(Y);
+  std::vector<double> sums(smallvis::worker_count(n, n_threads), 0.0);
+  const double Z =
+      bh_score_mass(tree, Y, theta, 0.0, n_threads, CauchyKernel{}, sums);
+  const double edge_sum = divergence_edge_sum<Kind, false>(
+      indices, indptr, edge_data, Y, Z, n_threads, nullptr);
+  return Kind == Divergence::ChiSquared ? Z * edge_sum : edge_sum;
 }
 
 } // namespace
@@ -509,23 +579,8 @@ NumericMatrix bh_jssne_gradient_cpp(const IntegerVector &indices,
                                     const NumericVector &P_data,
                                     const NumericMatrix &embedding,
                                     double theta, int n_threads) {
-  if (embedding.ncol() != 2) {
-    stop("Barnes-Hut requires two output dimensions");
-  }
-  const auto Y = as<std::vector<double>>(transpose(embedding));
-  const smallvis::QuadTree tree(Y);
-  std::vector<double> repulsion(Y.size(), 0.0);
-  const double Z = bh_repulsion<true>(tree, Y, theta, 0.0, n_threads,
-                                      CauchyKernel{}, repulsion);
-  std::vector<double> gradient(Y.size(), 0.0);
-  const double edge_sum =
-      jssne_edge_sum<true>(indices, indptr, P_data, Y, Z, n_threads, &gradient);
-  const double scale = 2.0 / Z;
-  for (std::size_t i = 0; i < gradient.size(); ++i) {
-    gradient[i] = scale * (gradient[i] + edge_sum * repulsion[i]);
-  }
-  const NumericMatrix result(2, embedding.nrow(), gradient.begin());
-  return transpose(result);
+  return bh_divergence_gradient<Divergence::JensenShannon>(
+      indices, indptr, P_data, embedding, theta, n_threads);
 }
 
 // [[Rcpp::export]]
@@ -534,15 +589,47 @@ double bh_jssne_score_cpp(const IntegerVector &indices,
                           const NumericVector &P_data,
                           const NumericMatrix &embedding, double theta,
                           int n_threads) {
-  if (embedding.ncol() != 2) {
-    stop("Barnes-Hut requires two output dimensions");
-  }
-  const auto Y = as<std::vector<double>>(transpose(embedding));
-  const std::size_t n = Y.size() / 2;
-  const smallvis::QuadTree tree(Y);
-  std::vector<double> sums(smallvis::worker_count(n, n_threads), 0.0);
-  const double Z =
-      bh_score_mass(tree, Y, theta, 0.0, n_threads, CauchyKernel{}, sums);
-  return std::log(2.0) - jssne_edge_sum<false>(indices, indptr, P_data, Y, Z,
-                                               n_threads, nullptr);
+  return std::log(2.0) -
+         bh_divergence_score<Divergence::JensenShannon>(
+             indices, indptr, P_data, embedding, theta, n_threads);
+}
+
+// [[Rcpp::export]]
+NumericMatrix bh_hlsne_gradient_cpp(const IntegerVector &indices,
+                                    const IntegerVector &indptr,
+                                    const NumericVector &sqrt_P_data,
+                                    const NumericMatrix &embedding,
+                                    double theta, int n_threads) {
+  return bh_divergence_gradient<Divergence::Hellinger>(
+      indices, indptr, sqrt_P_data, embedding, theta, n_threads);
+}
+
+// [[Rcpp::export]]
+double bh_hlsne_similarity_cpp(const IntegerVector &indices,
+                               const IntegerVector &indptr,
+                               const NumericVector &sqrt_P_data,
+                               const NumericMatrix &embedding, double theta,
+                               int n_threads) {
+  return bh_divergence_score<Divergence::Hellinger>(
+      indices, indptr, sqrt_P_data, embedding, theta, n_threads);
+}
+
+// [[Rcpp::export]]
+NumericMatrix bh_chsne_gradient_cpp(const IntegerVector &indices,
+                                    const IntegerVector &indptr,
+                                    const NumericVector &squared_P_data,
+                                    const NumericMatrix &embedding,
+                                    double theta, int n_threads) {
+  return bh_divergence_gradient<Divergence::ChiSquared>(
+      indices, indptr, squared_P_data, embedding, theta, n_threads);
+}
+
+// [[Rcpp::export]]
+double bh_chsne_score_cpp(const IntegerVector &indices,
+                          const IntegerVector &indptr,
+                          const NumericVector &squared_P_data,
+                          const NumericMatrix &embedding, double theta,
+                          int n_threads) {
+  return bh_divergence_score<Divergence::ChiSquared>(
+      indices, indptr, squared_P_data, embedding, theta, n_threads);
 }
