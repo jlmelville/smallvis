@@ -4,20 +4,20 @@ saved_neighbors_fixture <- function() {
   list(X = X, D = D, graph = get_nn(D, k = 10L))
 }
 
-test_that("all Barnes-Hut methods can calibrate the supplied graph without search", {
+test_that("dense and Barnes-Hut methods can use the supplied graph without search", {
   fixture <- saved_neighbors_fixture()
   Y <- cbind(sin(seq_len(24)), cos(seq_len(24))) / 3
-  run <- function(method, kernel, X, ...) {
+  run <- function(method, kernel, bh, X, ...) {
     smallvis(
       X,
       method = method,
-      bh = TRUE,
+      bh = bh,
       inp_kernel = kernel,
       perplexity = 3,
       Y_init = Y,
       theta = 0,
       max_iter = 1,
-      ret_extra = "P",
+      ret_extra = c("P", "beta"),
       epoch_callback = FALSE,
       verbose = FALSE,
       ...
@@ -28,9 +28,17 @@ test_that("all Barnes-Hut methods can calibrate the supplied graph without searc
     kernel = c("knn", "nngaussian"),
     stringsAsFactors = FALSE
   )
-  cases <- rbind(cases, data.frame(method = c("umap", "tumap"), kernel = "skd"))
+  cases <- rbind(
+    transform(cases, bh = TRUE),
+    data.frame(method = c("tsne", "umap", "tumap"), kernel = "skd", bh = TRUE),
+    data.frame(
+      method = c("ssne", "hlsne", "btsne", "umap"),
+      kernel = c("knn", "nngaussian", "nngaussian", "skd"),
+      bh = FALSE
+    )
+  )
   expected <- lapply(seq_len(nrow(cases)), function(i) {
-    run(cases$method[i], cases$kernel[i], fixture$D, nn = "exact")
+    run(cases$method[i], cases$kernel[i], cases$bh[i], fixture$D, nn = "exact")
   })
   local_mocked_bindings(get_nn = function(...) stop("neighbor search ran"))
   for (i in seq_len(nrow(cases))) {
@@ -45,12 +53,17 @@ test_that("all Barnes-Hut methods can calibrate the supplied graph without searc
     actual <- run(
       cases$method[i],
       cases$kernel[i],
+      cases$bh[i],
       fixture$X,
       neighbors = graph
     )
     expect_equal(actual$P, expected[[i]]$P)
     expect_equal(actual$Y, expected[[i]]$Y)
     expect_equal(actual$costs, expected[[i]]$costs)
+    if (cases$method[i] == "btsne") {
+      expect_length(actual$beta, nrow(fixture$X))
+      expect_equal(actual$beta, expected[[i]]$beta)
+    }
   }
 })
 
@@ -255,14 +268,17 @@ test_that("invalid saved graphs and incompatible options fail before search", {
     )
     do.call(smallvis, args)
   }
-  expect_error(fit(bh = FALSE), "neighbors requires Barnes-Hut")
+  expect_error(
+    fit(method = "hlsne", bh = FALSE),
+    "selected kernel is 'gaussian'"
+  )
+  expect_error(
+    fit(method = "mmds", bh = FALSE),
+    "does not use precomputed neighbors"
+  )
   expect_error(fit(nn = "exact"), "Leave nn unset")
   expect_error(fit(method = list("tee", nn = "exact")), "Leave nn unset")
   expect_error(fit(inp_kernel = "gaussian"), "neighbors requires inp_kernel")
-  expect_error(
-    fit(method = "tsne", inp_kernel = "skd"),
-    "neighbors requires inp_kernel"
-  )
   expect_error(fit(perplexity = c(2, 3)), "single numeric perplexity")
   expect_error(fit(perplexity = "idp"), "single numeric perplexity")
   expect_error(fit(perplexity = 4), "Perplexity 4 .* requires 12")
@@ -299,7 +315,15 @@ test_that("saved neighbors cover every active stage before optimization starts",
     verbose = FALSE
   )
   local({
-    local_mocked_bindings(sne_init = function(...) stop("calibration ran"))
+    local_mocked_bindings(find_beta_knn_cpp = function(...) {
+      stop("calibration ran")
+    })
+    expect_error(
+      do.call(smallvis_perpstep, c(args, list(step_iter = 2))),
+      "Perplexity 8 .* requires 23"
+    )
+    args$method[[1L]] <- "hlsne"
+    args$bh <- FALSE
     expect_error(
       do.call(smallvis_perpstep, c(args, list(step_iter = 2))),
       "Perplexity 8 .* requires 23"
@@ -340,6 +364,7 @@ test_that("saved smooth kNN neighborhoods cover the whole schedule", {
     )
     args$method <- list("umap", perplexity = 4.5)
     args$inp_kernel <- NULL
+    args$bh <- FALSE
     expect_error(
       do.call(smallvis_perpstep, c(args, list(step_iter = 1))),
       "Perplexity 8 .* requires 7"

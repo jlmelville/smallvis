@@ -106,6 +106,7 @@ kl_costr <- function(cost, Y) {
 }
 
 cost_init <- function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
+  has_neighbors <- !is.null(cost[["neighbors"]])
   if (!is.null(cost$init)) {
     cost <- cost$init(
       cost,
@@ -114,6 +115,12 @@ cost_init <- function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       ret_extra = ret_extra,
       max_iter = max_iter
     )
+  }
+  if (has_neighbors) {
+    if (!isTRUE(cost[["neighbors_used"]])) {
+      stop("The selected method does not use precomputed neighbors")
+    }
+    cost$neighbors_used <- NULL
   }
   cost_cache_input(cost)
 }

@@ -628,10 +628,11 @@
 #'  each method gets to choose the best method for its needs. Precomputed
 #'  distance inputs use exact neighbor lookup.
 #' @param verbose If \code{TRUE}, log progress messages to the console.
-#' @param neighbors Optional list of precomputed nearest neighbors for
-#'   Barnes-Hut t-SNE, HSSNE, TEE, LargeVis, UMAP, t-UMAP, and Jensen-Shannon
-#'   SNE. Supply equally sized matrices \code{idx} (one-based row indices)
-#'   and \code{dist} (finite, nonnegative, unsquared distances).
+#' @param neighbors Optional list of precomputed nearest neighbors for dense
+#'   or Barnes-Hut methods using the \code{"knn"}, \code{"nngaussian"}, or
+#'   \code{"skd"} input kernel. Supply equally sized matrices \code{idx}
+#'   (one-based row indices) and \code{dist} (finite, nonnegative, unsquared
+#'   distances).
 #'   Match the row order of \code{X} and list non-self neighbors in distance
 #'   order, with no duplicate indices. A self entry is optional and is skipped.
 #'   Leave \code{nn} unset. Supply a single numeric perplexity (a whole number
@@ -1054,7 +1055,8 @@ smallvis_run <- function(
   verbose = TRUE,
   neighbors = NULL,
   prepared = NULL,
-  prepare_only = FALSE
+  prepare_only = FALSE,
+  neighbor_perplexities = numeric()
 ) {
   if (is.logical(epoch_callback)) {
     if (epoch_callback) {
@@ -1114,7 +1116,8 @@ smallvis_run <- function(
       bh,
       supplied = names(match.call()),
       verbose = verbose,
-      neighbors = neighbors
+      neighbors = neighbors,
+      neighbor_perplexities = neighbor_perplexities
     )
   }
   X <- prepared$X
@@ -1641,8 +1644,15 @@ prepare_smallvis_input <- function(
   bh,
   supplied,
   verbose,
-  neighbors = NULL
+  neighbors = NULL,
+  neighbor_perplexities = numeric()
 ) {
+  if (
+    !is.null(neighbors) &&
+      (!is.null(nn) || (is.list(method) && !is.null(method[["nn"]])))
+  ) {
+    stop("Leave nn unset when supplying neighbors")
+  }
   # The embedding method
   cost_fn <- create_cost(
     method,
@@ -1669,15 +1679,8 @@ prepare_smallvis_input <- function(
   use_cpp <- controls$use_cpp
   n_threads <- controls$n_threads
   if (!is.null(neighbors)) {
-    cost_fn$neighbors <- check_saved_neighbors(
-      neighbors,
-      n = if (methods::is(X, "dist")) attr(X, "Size") else nrow(X),
-      method = method,
-      bh = bh,
-      inp_kernel = inp_kernel,
-      nn = nn,
-      perplexity = perplexity
-    )
+    cost_fn$neighbors <- neighbors
+    cost_fn$neighbor_perplexities <- neighbor_perplexities
   }
 
   if (!is.null(cost_fn$ndim) && k != cost_fn$ndim) {

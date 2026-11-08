@@ -247,20 +247,11 @@ smallvis_perpstep <- function(step_iter = 250, ...) {
     if (max_iter <= step_iter) {
       stop("max_iter must be > step_iter")
     }
-    if (!is.null(final_args$neighbors)) {
-      final_args$neighbors <- check_saved_neighbors(
-        final_args$neighbors,
-        n = n,
-        method = if (is.null(final_args$method)) "tsne" else final_args$method,
-        bh = final_args$bh,
-        inp_kernel = final_args$inp_kernel,
-        nn = final_args$nn,
-        perplexity = target_perplexity,
-        step_perplexities = perps
-      )
-    }
     max_iter_step <- max(1, floor(step_iter / length(perps)))
     preliminary <- final_args
+    if (!is.null(final_args$neighbors)) {
+      preliminary$neighbor_perplexities <- c(perps, target_perplexity)
+    }
     preliminary$ret_extra <- FALSE
     preliminary$max_iter <- max_iter_step
     preliminary$tol <- 0
@@ -281,7 +272,8 @@ smallvis_perpstep <- function(step_iter = 250, ...) {
         )
       }
       preliminary$perplexity <- perp
-      Y <- do.call(smallvis, preliminary)
+      Y <- do.call(smallvis_run, preliminary)
+      preliminary$neighbor_perplexities <- NULL
       preliminary$Y_init <- Y
     }
     final_args$Y_init <- Y

@@ -282,10 +282,11 @@ distance inputs use exact neighbor lookup.}
 
 \item{verbose}{If \code{TRUE}, log progress messages to the console.}
 
-\item{neighbors}{Optional list of precomputed nearest neighbors for
-Barnes-Hut t-SNE, HSSNE, TEE, LargeVis, UMAP, t-UMAP, and Jensen-Shannon
-SNE. Supply equally sized matrices \code{idx} (one-based row indices)
-and \code{dist} (finite, nonnegative, unsquared distances).
+\item{neighbors}{Optional list of precomputed nearest neighbors for dense
+or Barnes-Hut methods using the \code{"knn"}, \code{"nngaussian"}, or
+\code{"skd"} input kernel. Supply equally sized matrices \code{idx}
+(one-based row indices) and \code{dist} (finite, nonnegative, unsquared
+distances).
 Match the row order of \code{X} and list non-self neighbors in distance
 order, with no duplicate indices. A self entry is optional and is skipped.
 Leave \code{nn} unset. Supply a single numeric perplexity (a whole number

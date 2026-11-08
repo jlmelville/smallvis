@@ -33,7 +33,18 @@ sne_init <- function(
     )
   )
   neighbors <- cost[["neighbors"]]
-  cost$neighbors <- NULL
+  if (!is.null(neighbors)) {
+    neighbors <- check_saved_neighbors(
+      neighbors,
+      n = if (methods::is(X, "dist")) attr(X, "Size") else nrow(X),
+      kernel = kernel,
+      perplexity = perplexity,
+      step_perplexities = cost[["neighbor_perplexities"]]
+    )
+    cost$neighbors <- NULL
+    cost$neighbor_perplexities <- NULL
+    cost$neighbors_used <- TRUE
+  }
   if (kernel == "knn") {
     if (is.character(perplexity) || is.list(perplexity)) {
       stop("Can't use intrinsic dimensionality with knn kernel")
@@ -533,45 +544,16 @@ knn_graph <- function(
 check_saved_neighbors <- function(
   neighbors,
   n,
-  method,
-  bh,
-  inp_kernel,
-  nn,
+  kernel,
   perplexity,
   step_perplexities = numeric()
 ) {
-  if (is.list(method)) {
-    opts <- lmerge(method[-1L], list(inp_kernel = inp_kernel, nn = nn))
-    inp_kernel <- opts[["inp_kernel"]]
-    nn <- opts[["nn"]]
-    method <- method[1L][[1L]]
-  }
-  if (
-    !isTRUE(bh) ||
-      !is.character(method) ||
-      length(method) != 1L ||
-      !tolower(method) %in%
-        c("tsne", "hssne", "tee", "largevis", "umap", "tumap", "jssne")
-  ) {
+  if (!kernel %in% c("knn", "nngaussian", "skd")) {
     stop(
-      "neighbors requires Barnes-Hut t-SNE, HSSNE, TEE, LargeVis, UMAP, ",
-      "t-UMAP, or Jensen-Shannon SNE"
-    )
-  }
-  if (!is.null(nn)) {
-    stop("Leave nn unset when supplying neighbors")
-  }
-  kernels <- switch(
-    tolower(method),
-    umap = "skd",
-    tumap = c("nngaussian", "knn", "skd"),
-    c("nngaussian", "knn")
-  )
-  kernel <- if (is.null(inp_kernel)) kernels[1L] else tolower(inp_kernel)
-  if (length(kernel) != 1L || !kernel %in% kernels) {
-    stop(
-      "neighbors requires inp_kernel = ",
-      paste(shQuote(kernels), collapse = " or ")
+      "neighbors requires inp_kernel = 'knn', 'nngaussian', or 'skd'. ",
+      "The selected kernel is '",
+      kernel,
+      "'."
     )
   }
   if (!is.numeric(perplexity) || length(perplexity) != 1L) {
@@ -579,7 +561,8 @@ check_saved_neighbors <- function(
   }
   schedule <- c(step_perplexities, perplexity)
   if (kernel == "skd") {
-    validate_skd_k(perplexity, n)
+    validate_skd_k(min(schedule), n)
+    validate_skd_k(max(schedule), n)
   } else {
     validate_perplexity(schedule, n)
   }
