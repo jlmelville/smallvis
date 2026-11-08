@@ -1,3 +1,25 @@
+bh_ssne <- function(
+  perplexity,
+  inp_kernel = "nngaussian",
+  symmetrize = "symmetric",
+  n_threads = 0,
+  theta = 0.5,
+  nn = "approximate"
+) {
+  bh_sne(
+    perplexity,
+    inp_kernel,
+    symmetrize,
+    eps = 0,
+    n_threads = n_threads,
+    theta = theta,
+    nn = nn,
+    alpha = 0,
+    normalize = TRUE,
+    lambda = 0
+  )
+}
+
 bhhssne <- function(
   perplexity,
   alpha = 0.5,

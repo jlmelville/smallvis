@@ -37,6 +37,21 @@ struct HeavyTailKernel {
   double exponent;
 };
 
+struct GaussianKernel {
+  double weight(double d2) const {
+    // Only self-only leaves can have d2 below the shift.
+    return std::exp(std::min(0.0, log_weight(d2)));
+  }
+  double slope(double) const { return 1.0; }
+  double log_weight(double d2) const { return shift - d2; }
+  double repulsive_force(double, double, double mass) const { return mass; }
+  double score_mass(std::size_t count, double d2) const {
+    return count * weight(d2);
+  }
+
+  double shift = 0.0;
+};
+
 struct LargeVisKernel : CauchyKernel {
   LargeVisKernel(double gr_eps, double eps) : gr_eps(gr_eps), eps(eps) {}
 
@@ -125,6 +140,37 @@ void visit_bh(const smallvis::QuadTree::Node &node, double x, double y,
   }
 }
 
+template <typename Kernel>
+bool rescale_weights(Kernel &, const smallvis::QuadTree &,
+                     const std::vector<double> &, double, double) {
+  return false;
+}
+
+bool rescale_weights(GaussianKernel &kernel, const smallvis::QuadTree &tree,
+                     const std::vector<double> &Y, double theta, double Z) {
+  // Shift only when the unscaled sum is close to underflow. Use the same
+  // representatives as the normalization and exclude self-only leaves.
+  const double min_mass = std::numeric_limits<double>::min() /
+                          std::numeric_limits<double>::epsilon();
+  if (Z >= min_mass) {
+    return false;
+  }
+  double min_d2 = std::numeric_limits<double>::infinity();
+  auto accumulate = [&](std::size_t count, double, double, double d2) {
+    if (count != 0) {
+      min_d2 = std::min(min_d2, d2);
+    }
+  };
+  for (std::size_t i = 0; i < Y.size(); i += 2) {
+    visit_bh(*tree.root, Y[i], Y[i + 1], theta * theta, true, accumulate);
+  }
+  if (!std::isfinite(min_d2)) {
+    throw std::domain_error("Barnes-Hut SSNE requires a finite pair distance");
+  }
+  kernel.shift = min_d2;
+  return true;
+}
+
 template <bool Normalize, typename Kernel>
 double bh_repulsion(const smallvis::QuadTree &tree,
                     const std::vector<double> &Y, double theta, double eps,
@@ -167,8 +213,8 @@ template <bool Normalize, typename Kernel>
 NumericMatrix
 bh_gradient(const IntegerVector &indices, const IntegerVector &indptr,
             const NumericVector &P_data, const NumericMatrix &embedding,
-            double theta, double eps, std::size_t n_threads,
-            const Kernel &kernel, double repulsion) {
+            double theta, double eps, std::size_t n_threads, Kernel kernel,
+            double repulsion) {
   if (embedding.ncol() != 2) {
     stop("Barnes-Hut requires two output dimensions");
   }
@@ -180,10 +226,15 @@ bh_gradient(const IntegerVector &indices, const IntegerVector &indptr,
   const std::size_t n = Y.size() / 2;
   const smallvis::QuadTree tree(Y);
   std::vector<double> gradient(Y.size(), 0.0);
-  const double Z =
+  double Z =
       bh_repulsion<Normalize>(tree, Y, theta, eps, n_threads, kernel, gradient);
 
   if (Normalize) {
+    if (rescale_weights(kernel, tree, Y, theta, Z)) {
+      std::fill(gradient.begin(), gradient.end(), 0.0);
+      Z = bh_repulsion<Normalize>(tree, Y, theta, eps, n_threads, kernel,
+                                  gradient);
+    }
     for (auto &value : gradient) {
       value /= Z;
     }
@@ -214,11 +265,11 @@ bh_gradient(const IntegerVector &indices, const IntegerVector &indptr,
 
 // The kernel supplies either normalization mass or repulsive cost.
 template <typename Kernel>
-double bh_score_mass(const std::vector<double> &Y, double theta, double eps,
+double bh_score_mass(const smallvis::QuadTree &tree,
+                     const std::vector<double> &Y, double theta, double eps,
                      std::size_t n_threads, const Kernel &kernel,
                      std::vector<double> &sums) {
   const std::size_t n = Y.size() / 2;
-  const smallvis::QuadTree tree(Y);
   const double theta2 = theta * theta;
 
   smallvis::parallel_for(
@@ -241,8 +292,8 @@ double bh_score_mass(const std::vector<double> &Y, double theta, double eps,
 template <typename Kernel>
 double bh_score(const IntegerVector &indices, const IntegerVector &indptr,
                 const NumericVector &P_data, const NumericMatrix &embedding,
-                double theta, double eps, std::size_t n_threads,
-                const Kernel &kernel, bool normalize, double repulsion) {
+                double theta, double eps, std::size_t n_threads, Kernel kernel,
+                bool normalize, double repulsion) {
   if (embedding.ncol() != 2) {
     stop("Barnes-Hut requires two output dimensions");
   }
@@ -252,9 +303,13 @@ double bh_score(const IntegerVector &indices, const IntegerVector &indptr,
   const auto probabilities = as<std::vector<double>>(P_data);
   const auto Y = as<std::vector<double>>(transpose(embedding));
   const std::size_t n = Y.size() / 2;
+  const smallvis::QuadTree tree(Y);
   std::vector<double> sums(smallvis::worker_count(n, n_threads), 0.0);
-  const double Z =
-      bh_score_mass(Y, theta, normalize ? eps : 0.0, n_threads, kernel, sums);
+  const double offset = normalize ? eps : 0.0;
+  double Z = bh_score_mass(tree, Y, theta, offset, n_threads, kernel, sums);
+  if (normalize && rescale_weights(kernel, tree, Y, theta, Z)) {
+    Z = bh_score_mass(tree, Y, theta, offset, n_threads, kernel, sums);
+  }
   const double log_offset = normalize ? -std::log(Z) : 0.0;
   smallvis::parallel_for(
       n, n_threads,
@@ -345,6 +400,10 @@ NumericMatrix bh_sne_gradient_cpp(const IntegerVector &indices,
                                   const NumericMatrix &embedding, double theta,
                                   double eps, int n_threads, double alpha,
                                   bool normalize, double lambda) {
+  if (normalize && alpha == 0.0) {
+    return bh_gradient<true>(indices, indptr, P_data, embedding, theta, 0.0,
+                             n_threads, GaussianKernel{}, 0.0);
+  }
   if (normalize && alpha != 1.0) {
     return bh_gradient<true>(indices, indptr, P_data, embedding, theta, eps,
                              n_threads, HeavyTailKernel(alpha), 0.0);
@@ -364,6 +423,10 @@ double bh_sne_score_cpp(const IntegerVector &indices,
                         const NumericMatrix &embedding, double theta,
                         double eps, int n_threads, double alpha, bool normalize,
                         double lambda) {
+  if (normalize && alpha == 0.0) {
+    return bh_score(indices, indptr, P_data, embedding, theta, 0.0, n_threads,
+                    GaussianKernel{}, true, 0.0);
+  }
   if (normalize && alpha != 1.0) {
     return bh_score(indices, indptr, P_data, embedding, theta, eps, n_threads,
                     HeavyTailKernel(alpha), true, 0.0);
@@ -476,9 +539,10 @@ double bh_jssne_score_cpp(const IntegerVector &indices,
   }
   const auto Y = as<std::vector<double>>(transpose(embedding));
   const std::size_t n = Y.size() / 2;
+  const smallvis::QuadTree tree(Y);
   std::vector<double> sums(smallvis::worker_count(n, n_threads), 0.0);
   const double Z =
-      bh_score_mass(Y, theta, 0.0, n_threads, CauchyKernel{}, sums);
+      bh_score_mass(tree, Y, theta, 0.0, n_threads, CauchyKernel{}, sums);
   return std::log(2.0) - jssne_edge_sum<false>(indices, indptr, P_data, Y, Z,
                                                n_threads, nullptr);
 }

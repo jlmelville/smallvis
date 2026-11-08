@@ -24,7 +24,7 @@ test_that("dense and Barnes-Hut methods can use the supplied graph without searc
     )
   }
   cases <- expand.grid(
-    method = c("tsne", "hssne", "tee", "largevis", "tumap", "jssne"),
+    method = c("tsne", "ssne", "hssne", "tee", "largevis", "tumap", "jssne"),
     kernel = c("knn", "nngaussian"),
     stringsAsFactors = FALSE
   )

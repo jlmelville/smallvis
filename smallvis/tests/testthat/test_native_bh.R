@@ -103,6 +103,41 @@ test_that("splitting a leaf preserves all duplicate observations", {
   expect_bh_reference(Y, list(1:6, 6:1, c(4, 1, 6, 2, 5, 3)))
 })
 
+test_that("Barnes-Hut SSNE matches unfloored Gaussian affinities at theta zero", {
+  X <- as.matrix(iris[1:24, 1:4])
+  cost <- smallvis_run(
+    X,
+    method = "ssne",
+    bh = TRUE,
+    neighbors = get_nn(stats::dist(X), k = 13L),
+    perplexity = 4,
+    theta = 0,
+    eps = 1e-3,
+    n_threads = 2L,
+    prepare_only = TRUE,
+    epoch_callback = FALSE,
+    verbose = FALSE
+  )$cost_fn
+  P <- as.matrix(cost$P)
+  used <- P > 0
+
+  regular <- cbind(sin(1:24), cos(1:24))
+  regular[2, ] <- regular[1, ]
+  separated <- cbind(seq(0, by = 30, length.out = 24), 0)
+  for (Y in list(regular, separated)) {
+    logW <- -as.matrix(stats::dist(Y))^2
+    diag(logW) <- -Inf
+    logW <- logW - max(logW)
+    logQ <- logW - log(sum(exp(logW)))
+    expected_cost <- sum(P[used] * (log(P[used]) - logQ[used]))
+    K <- 4 * (P - exp(logQ))
+    expected_gradient <- unname(Y * rowSums(K) - K %*% Y)
+
+    expect_equal(cost_point(cost, Y)$pcost, expected_cost, tolerance = 1e-12)
+    expect_equal(cost_grad(cost, Y)$G, expected_gradient, tolerance = 1e-12)
+  }
+})
+
 test_that("points at internal centroids still enter the children", {
   Y <- rbind(c(-1, 0), c(1, 0), c(0, 0), c(3, 1))
   expect_bh_reference(Y, list(1:4, c(4, 3, 1, 2)))
@@ -246,10 +281,11 @@ test_that("Barnes-Hut rejects non-finite coordinates in a bounded subprocess", {
 })
 
 test_that("Barnes-Hut defaults to theta 0.5 and returns finite results", {
-  run <- function(...) {
+  run <- function(method, ...) {
     set.seed(42)
     smallvis(
       iris,
+      method = method,
       bh = TRUE,
       nn = "exact",
       perplexity = 10,
@@ -262,11 +298,13 @@ test_that("Barnes-Hut defaults to theta 0.5 and returns finite results", {
       ...
     )
   }
-  result <- run()
   expect_identical(formals(smallvis)$theta, 0.5)
-  expect_identical(result$Y, run(theta = 0.5)$Y)
-  expect_true(all(is.finite(result$Y)))
-  expect_true(all(is.finite(result$itercosts)))
+  for (method in c("tsne", "ssne")) {
+    result <- run(method)
+    expect_identical(result$Y, run(method, theta = 0.5)$Y)
+    expect_true(all(is.finite(result$Y)))
+    expect_true(all(is.finite(result$itercosts)))
+  }
 })
 
 test_that("finite-resolution leaves finish and retain exact pair contributions", {
@@ -423,7 +461,7 @@ test_that("TEE has zero cost when scaled output weights equal input weights", {
 })
 
 test_that("new Barnes-Hut methods require a sparse input kernel and two dimensions", {
-  for (method in c("tee", "hssne")) {
+  for (method in c("tee", "hssne", "ssne")) {
     expect_error(
       smallvis(iris, method = method, bh = TRUE, inp_kernel = "gaussian"),
       "nngaussian"

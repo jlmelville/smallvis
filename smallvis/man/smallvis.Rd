@@ -228,10 +228,10 @@ dimensions. Other dimensions use the general R calculations for those
 steps.}
 
 \item{bh}{If \code{TRUE}, approximate repulsive interactions with Barnes-Hut
-(van der Maaten, 2014). Available for \code{"tsne"}, \code{"hssne"},
-\code{"tee"}, \code{"largevis"}, \code{"umap"}, \code{"tumap"}, and
-\code{"jssne"} in two dimensions.
-For HSSNE, TEE, LargeVis, t-UMAP, and Jensen-Shannon SNE, choose
+(van der Maaten, 2014). Available for \code{"tsne"}, \code{"ssne"},
+\code{"hssne"}, \code{"tee"}, \code{"largevis"}, \code{"umap"},
+\code{"tumap"}, and \code{"jssne"} in two dimensions.
+For SSNE, HSSNE, TEE, LargeVis, t-UMAP, and Jensen-Shannon SNE, choose
 \code{inp_kernel = "nngaussian"} (the default) or \code{"knn"} to build
 sparse input affinities. For UMAP, the input kernel is \code{"skd"}
 (smooth kNN affinities). t-UMAP also accepts \code{"skd"}. These modes use
@@ -251,6 +251,8 @@ weights in both the cost and gradient. Tree construction uses only the
 coordinates.
 When floating-point precision limits subdivision, a terminal leaf stores
 distinct coordinates as separate groups.
+Barnes-Hut SSNE uses unfloored Gaussian output affinities and ignores
+\code{eps}.
 Barnes-Hut UMAP, t-UMAP, and Jensen-Shannon SNE require a positive
 epsilon.}
 
@@ -449,8 +451,8 @@ to the \code{method} parameter are:
 }
 
 By default, these methods use dense input affinities and gradients.
-For t-SNE, HSSNE, TEE, LargeVis, UMAP, t-UMAP, and Jensen-Shannon SNE,
-\code{bh = TRUE} approximates repulsive interactions. Neighbor input
+For t-SNE, SSNE, HSSNE, TEE, LargeVis, UMAP, t-UMAP, and Jensen-Shannon
+SNE, \code{bh = TRUE} approximates repulsive interactions. Neighbor input
 kernels can use approximate neighbor search.
 }
 \section{Method-specific options}{
