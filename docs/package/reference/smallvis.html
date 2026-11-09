@@ -673,7 +673,8 @@ parameters.</p>
 <p>Use <code>method = list("tsne", repulsion = ...)</code> to select <code>"exact"</code>
 (the default all-pairs calculation), <code>"bh"</code> (Barnes-Hut), or
 <code>"fft"</code> (FFT interpolation). The selector also works with
-<code>"tee"</code>, <code>"jssne"</code>, <code>"hlsne"</code>, and <code>"chsne"</code>.
+<code>"tee"</code>, <code>"jssne"</code>, <code>"hlsne"</code>, <code>"chsne"</code>,
+<code>"hssne"</code>, <code>"dhssne"</code>, <code>"ssne"</code>, and <code>"snerv"</code>.
 <code>bh = TRUE</code> also selects Barnes-Hut
 and conflicts with an explicit choice of exact or FFT repulsion.
 <code>theta</code> applies to Barnes-Hut, where zero evaluates the repulsive
@@ -687,7 +688,9 @@ three repulsion methods on the same input affinities by setting
 <code>inp_kernel</code> and supplying the same neighbors to each.</p>
 <p>FFT requires two output dimensions and a gradient-only optimizer such as
 the default <code>"dbd"</code>. It reports an approximate scalar objective.
-FFT attraction runs in native code and uses <code>n_threads</code>.
+FFT sparse edge calculations run in native code and use <code>n_threads</code>.
+The Gaussian and heavy-tailed SNE methods use exact repulsion if the
+off-diagonal normalization is too small to resolve on the FFT grid.
 The following options go in the <code>method</code> list:</p><dl><dt><code>fft_backend</code></dt>
 <dd><p><code>"stats"</code> (default) uses
   <code><a href="https://rdrr.io/r/stats/fft.html" class="external-link">fft</a></code>. <code>"fftwtools"</code> uses the optional

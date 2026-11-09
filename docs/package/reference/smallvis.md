@@ -716,10 +716,11 @@ parameters.
 Use `method = list("tsne", repulsion = ...)` to select `"exact"` (the
 default all-pairs calculation), `"bh"` (Barnes-Hut), or `"fft"` (FFT
 interpolation). The selector also works with `"tee"`, `"jssne"`,
-`"hlsne"`, and `"chsne"`. `bh = TRUE` also selects Barnes-Hut and
-conflicts with an explicit choice of exact or FFT repulsion. `theta`
-applies to Barnes-Hut, where zero evaluates the repulsive sum exactly
-for the chosen input affinities.
+`"hlsne"`, `"chsne"`, `"hssne"`, `"dhssne"`, `"ssne"`, and `"snerv"`.
+`bh = TRUE` also selects Barnes-Hut and conflicts with an explicit
+choice of exact or FFT repulsion. `theta` applies to Barnes-Hut, where
+zero evaluates the repulsive sum exactly for the chosen input
+affinities.
 
 Repulsion controls the output calculation. Use `inp_kernel` and
 `neighbors` to control the input affinities. Exact t-SNE defaults to
@@ -731,8 +732,10 @@ each.
 
 FFT requires two output dimensions and a gradient-only optimizer such as
 the default `"dbd"`. It reports an approximate scalar objective. FFT
-attraction runs in native code and uses `n_threads`. The following
-options go in the `method` list:
+sparse edge calculations run in native code and use `n_threads`. The
+Gaussian and heavy-tailed SNE methods use exact repulsion if the
+off-diagonal normalization is too small to resolve on the FFT grid. The
+following options go in the `method` list:
 
 - `fft_backend`:
 
