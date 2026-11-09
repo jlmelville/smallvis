@@ -749,11 +749,20 @@ crowded layouts. The following options go in the `method` list:
 - `grid_interval`:
 
   A finite positive target grid cell width in embedding units,
-  default 1. There are three interpolation nodes per axis in each cell
-  and at least 50 cells per axis. Increasing the interval can reduce
-  grid work at the cost of accuracy. The FFT is padded to a fast size
-  without moving the interpolation nodes. The fit stops before
-  allocating a padded grid larger than four million cells.
+  default 1. The cell width is based on at least 50 cells across the
+  full coordinate range. Each axis retains only the occupied range, with
+  three interpolation nodes per axis in each cell. Increasing the
+  interval can reduce grid work at the cost of accuracy. Each FFT axis
+  is padded to a fast size without moving the interpolation nodes. The
+  fit stops before allocating a padded grid larger than four million
+  cells.
+
+- `fft_reuse`:
+
+  Whether to retain source transforms used by more than one kernel
+  within an evaluation. Use `TRUE` to enable reuse or `FALSE` to save
+  memory. With `NULL` (default), reuse is enabled for SNeRV and
+  reverse-KL SNE.
 
 ## Output initialization
 
