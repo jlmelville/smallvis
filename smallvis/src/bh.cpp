@@ -525,30 +525,19 @@ double bh_kl_tree_rows(const smallvis::QuadTree &tree,
 }
 
 template <bool Gradient, typename Kernel>
-SEXP bh_mixed_kl(const IntegerVector &indices, const IntegerVector &indptr,
-                 const NumericVector &log_ratio, const NumericVector &p_excess,
-                 const NumericMatrix &embedding, double theta,
-                 std::size_t n_threads, double eps, double lambda,
-                 double p_mass, double plogp, Kernel kernel) {
-  if (embedding.ncol() != 2) {
-    stop("Barnes-Hut requires two output dimensions");
-  }
-  const auto Y = as<std::vector<double>>(transpose(embedding));
+SEXP mixed_kl_from_sums(const IntegerVector &indices,
+                        const IntegerVector &indptr,
+                        const NumericVector &log_ratio,
+                        const NumericVector &p_excess,
+                        const std::vector<double> &Y, const double *center,
+                        std::vector<KlRow> &rows, double Z,
+                        std::size_t n_threads, double eps, double lambda,
+                        double p_mass, double plogp, const Kernel &kernel) {
   const auto neighbors = as<std::vector<std::size_t>>(indices);
   const auto offsets = as<std::vector<std::size_t>>(indptr);
   const auto logs = as<std::vector<double>>(log_ratio);
   const auto excess = as<std::vector<double>>(p_excess);
   const std::size_t n = Y.size() / 2;
-  const smallvis::QuadTree tree(Y);
-  std::vector<KlRow> rows(n);
-  double Z = bh_kl_tree_rows<Gradient>(tree, Y, theta, n_threads, kernel, rows);
-  if (rescale_weights(kernel, tree, Y, theta, Z)) {
-    Z = bh_kl_tree_rows<Gradient>(tree, Y, theta, n_threads, kernel, rows);
-  }
-  if (!(Z > 0.0) || !std::isfinite(Z)) {
-    stop("Barnes-Hut KL requires a finite positive normalizer");
-  }
-
   // Every off-diagonal pair starts at P = eps. Sparse edges correct log P
   // in the reverse term and P itself in the forward term.
   const double reverse_weight = (1.0 - lambda) / Z;
@@ -581,8 +570,6 @@ SEXP bh_mixed_kl(const IntegerVector &indices, const IntegerVector &indptr,
                                             return sum + row.log_mass;
                                           }) /
                           Z;
-  const double center[2] = {tree.root->center_of_mass_x,
-                            tree.root->center_of_mass_y};
   const double forward_weight = lambda * p_mass / Z;
   const double floor_force = lambda * eps * n;
   double forward_loss = 0.0;
@@ -604,7 +591,7 @@ SEXP bh_mixed_kl(const IntegerVector &indices, const IntegerVector &indptr,
     forward_loss += row.forward_loss;
   }
   if (Gradient) {
-    NumericMatrix result(2, embedding.nrow(), gradient.begin());
+    NumericMatrix result(2, n, gradient.begin());
     return transpose(result);
   }
 
@@ -618,6 +605,34 @@ SEXP bh_mixed_kl(const IntegerVector &indices, const IntegerVector &indptr,
       eps * n * (2.0 * centered_d2 - (n - 1.0) * kernel.log_weight(0.0));
   const double forward = plogp + p_mass * log_z + forward_loss + floor_loss;
   return wrap(lambda * forward + (1.0 - lambda) * reverse);
+}
+
+template <bool Gradient, typename Kernel>
+SEXP bh_mixed_kl(const IntegerVector &indices, const IntegerVector &indptr,
+                 const NumericVector &log_ratio, const NumericVector &p_excess,
+                 const NumericMatrix &embedding, double theta,
+                 std::size_t n_threads, double eps, double lambda,
+                 double p_mass, double plogp, Kernel kernel) {
+  if (embedding.ncol() != 2) {
+    stop("Barnes-Hut requires two output dimensions");
+  }
+  const auto Y = as<std::vector<double>>(transpose(embedding));
+  const std::size_t n = Y.size() / 2;
+  const smallvis::QuadTree tree(Y);
+  std::vector<KlRow> rows(n);
+  double Z = bh_kl_tree_rows<Gradient>(tree, Y, theta, n_threads, kernel, rows);
+  if (rescale_weights(kernel, tree, Y, theta, Z)) {
+    Z = bh_kl_tree_rows<Gradient>(tree, Y, theta, n_threads, kernel, rows);
+  }
+  if (!(Z > 0.0) || !std::isfinite(Z)) {
+    stop("Barnes-Hut KL requires a finite positive normalizer");
+  }
+
+  const double center[2] = {tree.root->center_of_mass_x,
+                            tree.root->center_of_mass_y};
+  return mixed_kl_from_sums<Gradient>(indices, indptr, log_ratio, p_excess, Y,
+                                      center, rows, Z, n_threads, eps, lambda,
+                                      p_mass, plogp, kernel);
 }
 
 } // namespace
@@ -646,6 +661,45 @@ SEXP bh_mixed_kl_cpp(const IntegerVector &indices, const IntegerVector &indptr,
   return evaluate(CauchyKernel{});
 }
 
+// FFT provides the Gaussian and log-weighted sums; the objective and sparse
+// edge corrections are the same as in Barnes-Hut SNeRV.
+// [[Rcpp::export(rng = false)]]
+SEXP fft_snerv_cpp(const IntegerVector &indices, const IntegerVector &indptr,
+                   const NumericVector &log_ratio,
+                   const NumericVector &p_excess,
+                   const NumericMatrix &embedding, double Z,
+                   const NumericVector &log_mass, Nullable<NumericMatrix> force,
+                   Nullable<NumericMatrix> log_force, std::size_t n_threads,
+                   double eps, double lambda, double p_mass, double plogp) {
+  const auto Y = as<std::vector<double>>(transpose(embedding));
+  const std::size_t n = Y.size() / 2;
+  std::vector<KlRow> rows(n);
+  double center[2] = {};
+  for (std::size_t i = 0; i < n; ++i) {
+    rows[i].log_mass = log_mass[i];
+    center[0] += Y[2 * i];
+    center[1] += Y[2 * i + 1];
+  }
+  center[0] /= n;
+  center[1] /= n;
+  if (force.isNull()) {
+    return mixed_kl_from_sums<false>(indices, indptr, log_ratio, p_excess, Y,
+                                     center, rows, Z, n_threads, eps, lambda,
+                                     p_mass, plogp, GaussianKernel{});
+  }
+  const NumericMatrix raw_force(force);
+  const NumericMatrix raw_log_force(log_force);
+  for (std::size_t i = 0; i < n; ++i) {
+    for (std::size_t axis = 0; axis < 2; ++axis) {
+      rows[i].force[axis] = -raw_force(i, axis);
+      rows[i].log_force[axis] = -raw_log_force(i, axis);
+    }
+  }
+  return mixed_kl_from_sums<true>(indices, indptr, log_ratio, p_excess, Y,
+                                  center, rows, Z, n_threads, eps, lambda,
+                                  p_mass, plogp, GaussianKernel{});
+}
+
 // [[Rcpp::export]]
 NumericMatrix bh_tsne_gradient_cpp(const IntegerVector &indices,
                                    const IntegerVector &indptr,
@@ -659,18 +713,28 @@ NumericMatrix bh_tsne_gradient_cpp(const IntegerVector &indices,
 
 // The FFT method supplies the slots of its validated sparse affinity matrix.
 // [[Rcpp::export(rng = false)]]
-NumericMatrix tsne_sparse_attraction_cpp(const IntegerVector &indices,
-                                         const IntegerVector &indptr,
-                                         const NumericVector &P_data,
-                                         const NumericMatrix &embedding,
-                                         std::size_t n_threads) {
+NumericMatrix sne_sparse_attraction_cpp(const IntegerVector &indices,
+                                        const IntegerVector &indptr,
+                                        const NumericVector &P_data,
+                                        const NumericMatrix &embedding,
+                                        std::size_t n_threads,
+                                        double alpha = 1.0) {
   if (embedding.ncol() != 2) {
-    stop("FFT t-SNE requires two output dimensions");
+    stop("FFT requires two output dimensions");
   }
   const auto Y = as<std::vector<double>>(transpose(embedding));
   std::vector<double> gradient(Y.size(), 0.0);
-  sparse_attraction(indices.begin(), indptr.begin(), P_data.begin(), Y,
-                    n_threads, CauchyKernel{}, gradient);
+  auto accumulate = [&](const auto &kernel) {
+    sparse_attraction(indices.begin(), indptr.begin(), P_data.begin(), Y,
+                      n_threads, kernel, gradient);
+  };
+  if (alpha == 0.0) {
+    accumulate(GaussianKernel{});
+  } else if (alpha == 1.0) {
+    accumulate(CauchyKernel{});
+  } else {
+    accumulate(HeavyTailKernel(alpha));
+  }
   NumericMatrix result(2, embedding.nrow(), gradient.begin());
   return transpose(result);
 }

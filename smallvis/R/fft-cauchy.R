@@ -23,11 +23,11 @@ fft_tee <- function(
     lambda = lambda,
     score = function(P, Y, alpha) {
       Z <- fft$sums(Y, mass_only = TRUE)$Z
-      -cauchy_edge_loss(P, Y) - lambda * Z
+      -sne_edge_loss(P, Y) - lambda * Z
     },
     gradient = function(P, Y, alpha) {
       sums <- fft$sums(Y)
-      tsne_sparse_attraction_cpp(P@i, P@p, P@x, Y, n_threads) -
+      sne_sparse_attraction_cpp(P@i, P@p, P@x, Y, n_threads) -
         lambda * sums$force
     }
   )

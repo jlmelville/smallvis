@@ -30,9 +30,7 @@ bhhssne <- function(
   theta = 0.5,
   nn = "approximate"
 ) {
-  if (!is.numeric(alpha) || length(alpha) != 1L || !is.finite(alpha)) {
-    stop("Barnes-Hut HSSNE requires a finite scalar alpha")
-  }
+  alpha <- validate_hssne_alpha(alpha, "Barnes-Hut")
   bh_sne(
     perplexity,
     inp_kernel,
@@ -41,10 +39,22 @@ bhhssne <- function(
     n_threads,
     theta,
     nn,
-    alpha = max(alpha, 1e-8),
+    alpha = alpha,
     normalize = TRUE,
     lambda = 0
   )
+}
+
+validate_hssne_alpha <- function(alpha, label) {
+  if (
+    !is.numeric(alpha) ||
+      is.complex(alpha) ||
+      length(alpha) != 1L ||
+      !is.finite(alpha)
+  ) {
+    stop(label, " HSSNE requires a finite scalar alpha")
+  }
+  max(alpha, 1e-8)
 }
 
 bhdhssne <- function(
@@ -701,18 +711,6 @@ bh_mixed_kl <- function(
   lambda,
   gaussian
 ) {
-  if (!is.numeric(eps) || length(eps) != 1L || !is.finite(eps) || eps <= 0) {
-    stop("Barnes-Hut KL requires a finite positive eps")
-  }
-  if (
-    !is.numeric(lambda) ||
-      length(lambda) != 1L ||
-      !is.finite(lambda) ||
-      lambda < 0 ||
-      lambda > 1
-  ) {
-    stop("Barnes-Hut SNeRV requires lambda between 0 and 1")
-  }
   evaluate <- function(cost, Y, gradient) {
     P <- cost$P
     bh_mixed_kl_cpp(
@@ -730,6 +728,49 @@ bh_mixed_kl <- function(
       gaussian,
       gradient
     )
+  }
+  sparse_mixed_kl_cost(
+    perplexity,
+    inp_kernel,
+    symmetrize,
+    eps,
+    n_threads,
+    nn,
+    lambda,
+    evaluate,
+    "Barnes-Hut"
+  )
+}
+
+sparse_mixed_kl_cost <- function(
+  perplexity,
+  inp_kernel,
+  symmetrize,
+  eps,
+  n_threads,
+  nn,
+  lambda,
+  evaluate,
+  label
+) {
+  if (
+    !is.numeric(eps) ||
+      is.complex(eps) ||
+      length(eps) != 1L ||
+      !is.finite(eps) ||
+      eps <= 0
+  ) {
+    stop(label, " KL requires a finite positive eps")
+  }
+  if (
+    !is.numeric(lambda) ||
+      is.complex(lambda) ||
+      length(lambda) != 1L ||
+      !is.finite(lambda) ||
+      lambda < 0 ||
+      lambda > 1
+  ) {
+    stop(label, " SNeRV requires lambda between 0 and 1")
   }
   bh_cost(
     init = bh_sparse_init(

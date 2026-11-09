@@ -56,7 +56,7 @@ test_that("incompatible FFT settings fail before searching for neighbors", {
     "Unknown method option"
   )
   expect_error(run(list("tsne", repulsion = "auto")), "repulsion must")
-  expect_error(run(list("ssne", repulsion = "fft")), "Unknown method option")
+  expect_error(run(list("umap", repulsion = "fft")), "Unknown method option")
   expect_error(run(neighbors = list(), nn = "exact"), "Leave nn unset")
 })
 

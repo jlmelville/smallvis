@@ -597,7 +597,8 @@ parameters.
 Use \code{method = list("tsne", repulsion = ...)} to select \code{"exact"}
 (the default all-pairs calculation), \code{"bh"} (Barnes-Hut), or
 \code{"fft"} (FFT interpolation). The selector also works with
-\code{"tee"}, \code{"jssne"}, \code{"hlsne"}, and \code{"chsne"}.
+\code{"tee"}, \code{"jssne"}, \code{"hlsne"}, \code{"chsne"},
+\code{"hssne"}, \code{"dhssne"}, \code{"ssne"}, and \code{"snerv"}.
 \code{bh = TRUE} also selects Barnes-Hut
 and conflicts with an explicit choice of exact or FFT repulsion.
 \code{theta} applies to Barnes-Hut, where zero evaluates the repulsive
@@ -613,7 +614,9 @@ three repulsion methods on the same input affinities by setting
 
 FFT requires two output dimensions and a gradient-only optimizer such as
 the default \code{"dbd"}. It reports an approximate scalar objective.
-FFT attraction runs in native code and uses \code{n_threads}.
+FFT sparse edge calculations run in native code and use \code{n_threads}.
+The Gaussian and heavy-tailed SNE methods use exact repulsion if the
+off-diagonal normalization is too small to resolve on the FFT grid.
 The following options go in the \code{method} list:
 \describe{
   \item{\code{fft_backend}}{\code{"stats"} (default) uses

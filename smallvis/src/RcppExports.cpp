@@ -33,6 +33,29 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// fft_snerv_cpp
+SEXP fft_snerv_cpp(const IntegerVector& indices, const IntegerVector& indptr, const NumericVector& log_ratio, const NumericVector& p_excess, const NumericMatrix& embedding, double Z, const NumericVector& log_mass, Nullable<NumericMatrix> force, Nullable<NumericMatrix> log_force, std::size_t n_threads, double eps, double lambda, double p_mass, double plogp);
+RcppExport SEXP _smallvis_fft_snerv_cpp(SEXP indicesSEXP, SEXP indptrSEXP, SEXP log_ratioSEXP, SEXP p_excessSEXP, SEXP embeddingSEXP, SEXP ZSEXP, SEXP log_massSEXP, SEXP forceSEXP, SEXP log_forceSEXP, SEXP n_threadsSEXP, SEXP epsSEXP, SEXP lambdaSEXP, SEXP p_massSEXP, SEXP plogpSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< const IntegerVector& >::type indices(indicesSEXP);
+    Rcpp::traits::input_parameter< const IntegerVector& >::type indptr(indptrSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type log_ratio(log_ratioSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type p_excess(p_excessSEXP);
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type embedding(embeddingSEXP);
+    Rcpp::traits::input_parameter< double >::type Z(ZSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type log_mass(log_massSEXP);
+    Rcpp::traits::input_parameter< Nullable<NumericMatrix> >::type force(forceSEXP);
+    Rcpp::traits::input_parameter< Nullable<NumericMatrix> >::type log_force(log_forceSEXP);
+    Rcpp::traits::input_parameter< std::size_t >::type n_threads(n_threadsSEXP);
+    Rcpp::traits::input_parameter< double >::type eps(epsSEXP);
+    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
+    Rcpp::traits::input_parameter< double >::type p_mass(p_massSEXP);
+    Rcpp::traits::input_parameter< double >::type plogp(plogpSEXP);
+    rcpp_result_gen = Rcpp::wrap(fft_snerv_cpp(indices, indptr, log_ratio, p_excess, embedding, Z, log_mass, force, log_force, n_threads, eps, lambda, p_mass, plogp));
+    return rcpp_result_gen;
+END_RCPP
+}
 // bh_tsne_gradient_cpp
 NumericMatrix bh_tsne_gradient_cpp(const IntegerVector& indices, const IntegerVector& indptr, const NumericVector& P_data, const NumericMatrix& embedding, double theta, double eps, std::size_t n_threads);
 RcppExport SEXP _smallvis_bh_tsne_gradient_cpp(SEXP indicesSEXP, SEXP indptrSEXP, SEXP P_dataSEXP, SEXP embeddingSEXP, SEXP thetaSEXP, SEXP epsSEXP, SEXP n_threadsSEXP) {
@@ -50,9 +73,9 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// tsne_sparse_attraction_cpp
-NumericMatrix tsne_sparse_attraction_cpp(const IntegerVector& indices, const IntegerVector& indptr, const NumericVector& P_data, const NumericMatrix& embedding, std::size_t n_threads);
-RcppExport SEXP _smallvis_tsne_sparse_attraction_cpp(SEXP indicesSEXP, SEXP indptrSEXP, SEXP P_dataSEXP, SEXP embeddingSEXP, SEXP n_threadsSEXP) {
+// sne_sparse_attraction_cpp
+NumericMatrix sne_sparse_attraction_cpp(const IntegerVector& indices, const IntegerVector& indptr, const NumericVector& P_data, const NumericMatrix& embedding, std::size_t n_threads, double alpha);
+RcppExport SEXP _smallvis_sne_sparse_attraction_cpp(SEXP indicesSEXP, SEXP indptrSEXP, SEXP P_dataSEXP, SEXP embeddingSEXP, SEXP n_threadsSEXP, SEXP alphaSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< const IntegerVector& >::type indices(indicesSEXP);
@@ -60,7 +83,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const NumericVector& >::type P_data(P_dataSEXP);
     Rcpp::traits::input_parameter< const NumericMatrix& >::type embedding(embeddingSEXP);
     Rcpp::traits::input_parameter< std::size_t >::type n_threads(n_threadsSEXP);
-    rcpp_result_gen = Rcpp::wrap(tsne_sparse_attraction_cpp(indices, indptr, P_data, embedding, n_threads));
+    Rcpp::traits::input_parameter< double >::type alpha(alphaSEXP);
+    rcpp_result_gen = Rcpp::wrap(sne_sparse_attraction_cpp(indices, indptr, P_data, embedding, n_threads, alpha));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -445,8 +469,9 @@ END_RCPP
 
 static const R_CallMethodDef CallEntries[] = {
     {"_smallvis_bh_mixed_kl_cpp", (DL_FUNC) &_smallvis_bh_mixed_kl_cpp, 13},
+    {"_smallvis_fft_snerv_cpp", (DL_FUNC) &_smallvis_fft_snerv_cpp, 14},
     {"_smallvis_bh_tsne_gradient_cpp", (DL_FUNC) &_smallvis_bh_tsne_gradient_cpp, 7},
-    {"_smallvis_tsne_sparse_attraction_cpp", (DL_FUNC) &_smallvis_tsne_sparse_attraction_cpp, 5},
+    {"_smallvis_sne_sparse_attraction_cpp", (DL_FUNC) &_smallvis_sne_sparse_attraction_cpp, 6},
     {"_smallvis_bh_plogq_cpp", (DL_FUNC) &_smallvis_bh_plogq_cpp, 7},
     {"_smallvis_bh_sne_gradient_cpp", (DL_FUNC) &_smallvis_bh_sne_gradient_cpp, 10},
     {"_smallvis_bh_sne_score_cpp", (DL_FUNC) &_smallvis_bh_sne_score_cpp, 10},

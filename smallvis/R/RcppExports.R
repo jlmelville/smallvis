@@ -5,12 +5,16 @@ bh_mixed_kl_cpp <- function(indices, indptr, log_ratio, p_excess, embedding, the
     .Call(`_smallvis_bh_mixed_kl_cpp`, indices, indptr, log_ratio, p_excess, embedding, theta, n_threads, eps, lambda, p_mass, plogp, gaussian, gradient)
 }
 
+fft_snerv_cpp <- function(indices, indptr, log_ratio, p_excess, embedding, Z, log_mass, force, log_force, n_threads, eps, lambda, p_mass, plogp) {
+    .Call(`_smallvis_fft_snerv_cpp`, indices, indptr, log_ratio, p_excess, embedding, Z, log_mass, force, log_force, n_threads, eps, lambda, p_mass, plogp)
+}
+
 bh_tsne_gradient_cpp <- function(indices, indptr, P_data, embedding, theta = 0.5, eps = 1e-16, n_threads = 1L) {
     .Call(`_smallvis_bh_tsne_gradient_cpp`, indices, indptr, P_data, embedding, theta, eps, n_threads)
 }
 
-tsne_sparse_attraction_cpp <- function(indices, indptr, P_data, embedding, n_threads) {
-    .Call(`_smallvis_tsne_sparse_attraction_cpp`, indices, indptr, P_data, embedding, n_threads)
+sne_sparse_attraction_cpp <- function(indices, indptr, P_data, embedding, n_threads, alpha = 1.0) {
+    .Call(`_smallvis_sne_sparse_attraction_cpp`, indices, indptr, P_data, embedding, n_threads, alpha)
 }
 
 bh_plogq_cpp <- function(indices, indptr, P_data, embedding, theta = 0.5, eps = 1e-16, n_threads = 1L) {
