@@ -96,8 +96,8 @@ variety of neighbor embedding methods.</p>
 
 
 <dt id="arg-k">k<a class="anchor" aria-label="anchor" href="#arg-k"></a></dt>
-<dd><p>Number of output dimensions for the embedding. Barnes-Hut
-requires <code>k = 2</code>.</p></dd>
+<dd><p>Number of output dimensions for the embedding. Barnes-Hut and
+FFT t-SNE require <code>k = 2</code>.</p></dd>
 
 
 <dt id="arg-scale">scale<a class="anchor" aria-label="anchor" href="#arg-scale"></a></dt>
@@ -323,8 +323,8 @@ to those value which are returned when this value is <code>TRUE</code>. See the
 <dd><p>Number of threads to use in multi-threaded code. Default is
 0, which means no multi-threading. Mainly affects the calculation of things
 like distance matrices and perplexity calibration if you set
-<code>use_cpp = TRUE</code>. Otherwise, only methods that need to calculate
-nearest neighbors will be affected.</p></dd>
+<code>use_cpp = TRUE</code>. The thread count also applies to neighbor search,
+Barnes-Hut forces, and FFT t-SNE attraction.</p></dd>
 
 
 <dt id="arg-use-cpp">use_cpp<a class="anchor" aria-label="anchor" href="#arg-use-cpp"></a></dt>
@@ -353,7 +353,8 @@ search by default. Use <code>nn = "exact"</code> for exact neighbor lookup.</p><
 <dt id="arg-theta">theta<a class="anchor" aria-label="anchor" href="#arg-theta"></a></dt>
 <dd><p>Barnes-Hut opening threshold, default <code>0.5</code>. Smaller
 values open more cells. Zero evaluates the repulsive sum exactly for the
-chosen input affinities. Applies only with <code>bh = TRUE</code>.</p></dd>
+chosen input affinities. Applies with <code>bh = TRUE</code> or
+<code>method = list("tsne", repulsion = "bh")</code>.</p></dd>
 
 
 <dt id="arg-eps">eps<a class="anchor" aria-label="anchor" href="#arg-eps"></a></dt>
@@ -361,8 +362,8 @@ chosen input affinities. Applies only with <code>bh = TRUE</code>.</p></dd>
 <code>.Machine$double.eps</code>, but if you see inconsistent convergence results
 with optimizer that should be reducing the cost each iteration, then try
 setting this to a larger value, e.g. between <code>1e-3 - 1e-9</code>. For
-Barnes-Hut t-SNE, epsilon is added to the sum of non-self Student
-weights in both the cost and gradient. Tree construction uses only the
+Barnes-Hut and FFT t-SNE, epsilon is added to the sum of non-self Student
+weights in both the cost and gradient. The Barnes-Hut tree uses only the
 coordinates.
 When floating-point precision limits subdivision, a terminal leaf stores
 distinct coordinates as separate groups.
@@ -405,8 +406,8 @@ distance inputs use exact neighbor lookup.</p></dd>
 
 
 <dt id="arg-neighbors">neighbors<a class="anchor" aria-label="anchor" href="#arg-neighbors"></a></dt>
-<dd><p>Optional list of precomputed nearest neighbors for dense
-or Barnes-Hut methods using the <code>"knn"</code>, <code>"nngaussian"</code>, or
+<dd><p>Optional list of precomputed nearest neighbors for
+methods using the <code>"knn"</code>, <code>"nngaussian"</code>, or
 <code>"skd"</code> input kernel. Supply equally sized matrices <code>idx</code>
 (one-based row indices) and <code>dist</code> (finite, nonnegative, unsquared
 distances).
@@ -440,7 +441,7 @@ defines the input affinities regardless of scaling or PCA.</p></dd>
   coordinates, after removing exaggeration. Their sum is the final objective.
   ASNE and its bandwidth variants report one conditional KL divergence per
   row. Other dense methods generally group pairwise terms by column.
-  Barnes-Hut methods return a single scalar objective.</p></li>
+  Barnes-Hut and FFT methods return a single scalar objective.</p></li>
 <li><p><code>itercosts</code> Objective values recorded at epochs. This history
   can be empty if an optimizer stops before the first epoch. Values recorded
   during exaggeration need not match the final unexaggerated objective.</p></li>
@@ -500,6 +501,8 @@ to the <code>method</code> parameter are:</p><ul><li><p><code>"tsne"</code> t-Di
   (van der Maaten and Hinton, 2008).</p></li>
 <li><p>Barnes-Hut t-SNE (van der Maaten, 2014), selected with
   <code>method = "tsne", bh = TRUE</code>.</p></li>
+<li><p>FFT t-SNE (Linderman et al., 2019), selected with
+  <code>method = list("tsne", repulsion = "fft")</code>.</p></li>
 <li><p><code>"largevis"</code> the cost function of the LargeVis algorithm
   (Tang et al, 2016). Input affinities are calculated and symmetrized using
   the same perplexity calibration method as t-SNE. Use
@@ -662,6 +665,40 @@ to use. Subsequent elements must be named values specifying the parameters.</p>
 </ul><p>The examples demonstrate how to use <code>method</code> with these optional
 parameters.</p>
     </div>
+    <div class="section level2">
+    <h2 id="t-sne-repulsion">t-SNE repulsion<a class="anchor" aria-label="anchor" href="#t-sne-repulsion"></a></h2>
+
+
+
+<p>Use <code>method = list("tsne", repulsion = ...)</code> to select <code>"exact"</code>
+(the default all-pairs calculation), <code>"bh"</code> (Barnes-Hut), or
+<code>"fft"</code> (FFT interpolation). <code>bh = TRUE</code> also selects Barnes-Hut
+and conflicts with an explicit choice of exact or FFT repulsion.
+<code>theta</code> applies to Barnes-Hut, where zero evaluates the repulsive
+sum exactly for the chosen input affinities.</p>
+<p>Repulsion controls the output calculation. Use <code>inp_kernel</code> and
+<code>neighbors</code> to control the input affinities. Exact t-SNE defaults to
+<code>"gaussian"</code>. Barnes-Hut and FFT default to <code>"nngaussian"</code> and
+approximate neighbor search. FFT also accepts <code>"knn"</code>. Compare the
+three repulsion methods on the same input affinities by setting
+<code>inp_kernel</code> and supplying the same neighbors to each.</p>
+<p>FFT requires two output dimensions and a gradient-only optimizer such as
+the default <code>"dbd"</code>. It reports an approximate scalar objective.
+FFT attraction runs in native code and uses <code>n_threads</code>.
+The following options go in the <code>method</code> list:</p><dl><dt><code>fft_backend</code></dt>
+<dd><p><code>"stats"</code> (default) uses
+  <code><a href="https://rdrr.io/r/stats/fft.html" class="external-link">fft</a></code>. <code>"fftwtools"</code> uses the optional
+  <span class="pkg">fftwtools</span> package.</p></dd>
+
+  <dt><code>grid_interval</code></dt>
+<dd><p>A finite positive target grid cell width in
+  embedding units, default 1. There are three interpolation nodes per
+  axis in each cell and at least 50 cells per axis. Increasing the
+  interval can reduce grid work at the cost of accuracy. The fit stops
+  before allocating a padded grid larger than four million cells.</p></dd>
+
+
+</dl></div>
     <div class="section level2">
     <h2 id="output-initialization">Output initialization<a class="anchor" aria-label="anchor" href="#output-initialization"></a></h2>
 
@@ -879,7 +916,11 @@ function with these optimizers.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
-    <p>Belkin, M., &amp; Niyogi, P. (2002).
+    <p>Linderman, G. C., Rachh, M., Hoskins, J. G., Steinerberger, S., &amp; Kluger,
+Y. (2019). Fast interpolation-based t-SNE for improved visualization of
+single-cell RNA-seq data. <em>Nature Methods</em>, 16, 243–245.
+<a href="https://doi.org/10.1038/s41592-018-0308-4" class="external-link">doi:10.1038/s41592-018-0308-4</a></p>
+<p>Belkin, M., &amp; Niyogi, P. (2002).
 Laplacian eigenmaps and spectral techniques for embedding and clustering.
 In <em>Advances in neural information processing systems</em>
 (pp. 585-591).
@@ -1092,6 +1133,16 @@ Using global t-SNE to preserve inter-cluster data structure.
 <span class="r-in"><span><span class="co"># Also late exaggeration to improve cluster separation</span></span></span>
 <span class="r-in"><span><span class="va">tsne_late_ex</span> <span class="op">&lt;-</span> <span class="fu">smallvis</span><span class="op">(</span><span class="va">iris</span>, exaggeration_factor <span class="op">=</span> <span class="fl">4</span>, stop_lying_iter <span class="op">=</span> <span class="fl">100</span>,</span></span>
 <span class="r-in"><span>                         late_exaggeration_factor <span class="op">=</span> <span class="fl">1.5</span>, start_late_lying_iter <span class="op">=</span> <span class="fl">900</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># FFT t-SNE with the default FFT backend</span></span></span>
+<span class="r-in"><span><span class="va">fft_iris</span> <span class="op">&lt;-</span> <span class="fu">smallvis</span><span class="op">(</span><span class="va">iris</span>, method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"tsne"</span>, repulsion <span class="op">=</span> <span class="st">"fft"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Settings for a large fit with saved neighbors and fftwtools installed</span></span></span>
+<span class="r-in"><span><span class="co"># smallvis(X, neighbors = nn,</span></span></span>
+<span class="r-in"><span><span class="co">#          method = list("tsne", repulsion = "fft",</span></span></span>
+<span class="r-in"><span><span class="co">#                        fft_backend = "fftwtools"),</span></span></span>
+<span class="r-in"><span><span class="co">#          n_threads = 4, Y_init = "spca", eta = "optsne",</span></span></span>
+<span class="r-in"><span><span class="co">#          exaggeration_factor = 12, stop_lying_iter = 250, max_iter = 500)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Barnes-Hut, approximate nearest neighbors, multi-threading settings</span></span></span>
 <span class="r-in"><span><span class="co"># recommended for large datasets</span></span></span>

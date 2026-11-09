@@ -58,8 +58,8 @@ smallvis(
 
 - k:
 
-  Number of output dimensions for the embedding. Barnes-Hut requires
-  `k = 2`.
+  Number of output dimensions for the embedding. Barnes-Hut and FFT
+  t-SNE require `k = 2`.
 
 - scale:
 
@@ -281,8 +281,8 @@ smallvis(
   Number of threads to use in multi-threaded code. Default is 0, which
   means no multi-threading. Mainly affects the calculation of things
   like distance matrices and perplexity calibration if you set
-  `use_cpp = TRUE`. Otherwise, only methods that need to calculate
-  nearest neighbors will be affected.
+  `use_cpp = TRUE`. The thread count also applies to neighbor search,
+  Barnes-Hut forces, and FFT t-SNE attraction.
 
 - use_cpp:
 
@@ -309,7 +309,8 @@ smallvis(
 
   Barnes-Hut opening threshold, default `0.5`. Smaller values open more
   cells. Zero evaluates the repulsive sum exactly for the chosen input
-  affinities. Applies only with `bh = TRUE`.
+  affinities. Applies with `bh = TRUE` or
+  `method = list("tsne", repulsion = "bh")`.
 
 - eps:
 
@@ -317,14 +318,15 @@ smallvis(
   `.Machine$double.eps`, but if you see inconsistent convergence results
   with optimizer that should be reducing the cost each iteration, then
   try setting this to a larger value, e.g. between `1e-3 - 1e-9`. For
-  Barnes-Hut t-SNE, epsilon is added to the sum of non-self Student
-  weights in both the cost and gradient. Tree construction uses only the
-  coordinates. When floating-point precision limits subdivision, a
-  terminal leaf stores distinct coordinates as separate groups.
-  Barnes-Hut SSNE uses unfloored Gaussian output affinities and ignores
-  `eps`. Barnes-Hut SNeRV uses a positive `eps` to floor the input
-  affinities and leaves the output affinities unfloored. Barnes-Hut
-  UMAP, t-UMAP, and Jensen-Shannon SNE require a positive epsilon.
+  Barnes-Hut and FFT t-SNE, epsilon is added to the sum of non-self
+  Student weights in both the cost and gradient. The Barnes-Hut tree
+  uses only the coordinates. When floating-point precision limits
+  subdivision, a terminal leaf stores distinct coordinates as separate
+  groups. Barnes-Hut SSNE uses unfloored Gaussian output affinities and
+  ignores `eps`. Barnes-Hut SNeRV uses a positive `eps` to floor the
+  input affinities and leaves the output affinities unfloored.
+  Barnes-Hut UMAP, t-UMAP, and Jensen-Shannon SNE require a positive
+  epsilon.
 
 - inp_kernel:
 
@@ -366,14 +368,14 @@ smallvis(
 
 - neighbors:
 
-  Optional list of precomputed nearest neighbors for dense or Barnes-Hut
-  methods using the `"knn"`, `"nngaussian"`, or `"skd"` input kernel.
-  Supply equally sized matrices `idx` (one-based row indices) and `dist`
-  (finite, nonnegative, unsquared distances). Match the row order of `X`
-  and list non-self neighbors in distance order, with no duplicate
-  indices. A self entry is optional and is skipped. Leave `nn` unset.
-  Supply a single numeric perplexity (a whole number for `"knn"`). Each
-  row needs `perplexity` non-self neighbors for `"knn"`, or
+  Optional list of precomputed nearest neighbors for methods using the
+  `"knn"`, `"nngaussian"`, or `"skd"` input kernel. Supply equally sized
+  matrices `idx` (one-based row indices) and `dist` (finite,
+  nonnegative, unsquared distances). Match the row order of `X` and list
+  non-self neighbors in distance order, with no duplicate indices. A
+  self entry is optional and is skipped. Leave `nn` unset. Supply a
+  single numeric perplexity (a whole number for `"knn"`). Each row needs
+  `perplexity` non-self neighbors for `"knn"`, or
   `floor(3 * perplexity)` for `"nngaussian"`, capped at the number of
   other observations. For `"skd"`, the neighborhood size includes self,
   so each row needs `floor(perplexity) - 1` non-self neighbors. The
@@ -409,7 +411,8 @@ Otherwise, a list with the following items:
   coordinates, after removing exaggeration. Their sum is the final
   objective. ASNE and its bandwidth variants report one conditional KL
   divergence per row. Other dense methods generally group pairwise terms
-  by column. Barnes-Hut methods return a single scalar objective.
+  by column. Barnes-Hut and FFT methods return a single scalar
+  objective.
 
 - `itercosts` Objective values recorded at epochs. This history can be
   empty if an optimizer stops before the first epoch. Values recorded
@@ -496,6 +499,9 @@ to the `method` parameter are:
 
 - Barnes-Hut t-SNE (van der Maaten, 2014), selected with
   `method = "tsne", bh = TRUE`.
+
+- FFT t-SNE (Linderman et al., 2019), selected with
+  `method = list("tsne", repulsion = "fft")`.
 
 - `"largevis"` the cost function of the LargeVis algorithm (Tang et al,
   2016). Input affinities are calculated and symmetrized using the same
@@ -704,6 +710,40 @@ Some parameters are available for all (nor nearly all) methods.
 
 The examples demonstrate how to use `method` with these optional
 parameters.
+
+## t-SNE repulsion
+
+Use `method = list("tsne", repulsion = ...)` to select `"exact"` (the
+default all-pairs calculation), `"bh"` (Barnes-Hut), or `"fft"` (FFT
+interpolation). `bh = TRUE` also selects Barnes-Hut and conflicts with
+an explicit choice of exact or FFT repulsion. `theta` applies to
+Barnes-Hut, where zero evaluates the repulsive sum exactly for the
+chosen input affinities.
+
+Repulsion controls the output calculation. Use `inp_kernel` and
+`neighbors` to control the input affinities. Exact t-SNE defaults to
+`"gaussian"`. Barnes-Hut and FFT default to `"nngaussian"` and
+approximate neighbor search. FFT also accepts `"knn"`. Compare the three
+repulsion methods on the same input affinities by setting `inp_kernel`
+and supplying the same neighbors to each.
+
+FFT requires two output dimensions and a gradient-only optimizer such as
+the default `"dbd"`. It reports an approximate scalar objective. FFT
+attraction runs in native code and uses `n_threads`. The following
+options go in the `method` list:
+
+- `fft_backend`:
+
+  `"stats"` (default) uses [`fft`](https://rdrr.io/r/stats/fft.html).
+  `"fftwtools"` uses the optional fftwtools package.
+
+- `grid_interval`:
+
+  A finite positive target grid cell width in embedding units,
+  default 1. There are three interpolation nodes per axis in each cell
+  and at least 50 cells per axis. Increasing the interval can reduce
+  grid work at the cost of accuracy. The fit stops before allocating a
+  padded grid larger than four million cells.
 
 ## Output initialization
 
@@ -969,6 +1009,12 @@ function with these optimizers.
 
 ## References
 
+Linderman, G. C., Rachh, M., Hoskins, J. G., Steinerberger, S., &
+Kluger, Y. (2019). Fast interpolation-based t-SNE for improved
+visualization of single-cell RNA-seq data. *Nature Methods*, 16,
+243–245.
+[doi:10.1038/s41592-018-0308-4](https://doi.org/10.1038/s41592-018-0308-4)
+
 Belkin, M., & Niyogi, P. (2002). Laplacian eigenmaps and spectral
 techniques for embedding and clustering. In *Advances in neural
 information processing systems* (pp. 585-591).
@@ -1193,6 +1239,16 @@ tsne_early_ex <- smallvis(iris, exaggeration_factor = 4, stop_lying_iter = 100)
 # Also late exaggeration to improve cluster separation
 tsne_late_ex <- smallvis(iris, exaggeration_factor = 4, stop_lying_iter = 100,
                          late_exaggeration_factor = 1.5, start_late_lying_iter = 900)
+
+# FFT t-SNE with the default FFT backend
+fft_iris <- smallvis(iris, method = list("tsne", repulsion = "fft"))
+
+# Settings for a large fit with saved neighbors and fftwtools installed
+# smallvis(X, neighbors = nn,
+#          method = list("tsne", repulsion = "fft",
+#                        fft_backend = "fftwtools"),
+#          n_threads = 4, Y_init = "spca", eta = "optsne",
+#          exaggeration_factor = 12, stop_lying_iter = 250, max_iter = 500)
 
 # Barnes-Hut, approximate nearest neighbors, multi-threading settings
 # recommended for large datasets
