@@ -4,7 +4,7 @@ test_that("Gaussian FFT normalization excludes the interpolated self mass", {
   W <- exp(-d2)
   diag(W) <- 0
   log_mass <- rowSums(-d2 * W)
-  sums <- fft_sne_sums(Y, 0.1, stats::fft, alpha = 0, log_weighted = TRUE)
+  sums <- fft_settings("stats", 0.1, 1)$sums(Y, alpha = 0, log_weighted = TRUE)
   expect_equal(sums$Z, sum(W), tolerance = 0.005)
   expect_equal(sums$log_mass, unname(log_mass), tolerance = 0.005)
   expect_equal(
@@ -13,7 +13,7 @@ test_that("Gaussian FFT normalization excludes the interpolated self mass", {
     tolerance = 0.005
   )
 
-  expect_null(fft_sne_sums(10 * Y, 3, stats::fft, alpha = 0))
+  expect_null(fft_settings("stats", 3, 1)$sums(10 * Y, alpha = 0))
 })
 
 test_that("FFT SNE methods match exact BH on the same sparse affinities", {

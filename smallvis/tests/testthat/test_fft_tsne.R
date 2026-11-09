@@ -51,6 +51,7 @@ test_that("incompatible FFT settings fail before searching for neighbors", {
   )
   expect_error(run(c(fft, list(grid_interval = 0))), "finite positive")
   expect_error(run(c(fft, list(fft_backend = "missing"))), "fft_backend must")
+  expect_error(run(c(fft, list(fft_reuse = NA))), "fft_reuse must")
   expect_error(
     run(list("tsne", fft_backend = "stats")),
     "Unknown method option"
@@ -88,6 +89,10 @@ test_that("FFT t-SNE uses saved sparse affinities and approximates exact updates
   expect_equal(fft$Y, exact$Y, tolerance = 1e-5)
   expect_equal(fft$costs, tsne_reference_cost(fft$P, fft$Y), tolerance = 1e-5)
 
+  reuse <- run(list("tsne", repulsion = "fft", fft_reuse = TRUE))
+  expect_identical(reuse$Y, fft$Y)
+  expect_identical(reuse$costs, fft$costs)
+
   if (requireNamespace("fftwtools", quietly = TRUE)) {
     fftw <- run(
       list("tsne", repulsion = "fft", fft_backend = "fftwtools"),
@@ -107,20 +112,23 @@ test_that("FFT t-SNE uses saved sparse affinities and approximates exact updates
   }
 })
 
-test_that("FFT padding keeps interpolation nodes fixed on an odd-sized grid", {
-  Y <- rbind(c(0, 0), c(1, 1), c(202, 202))
+test_that("FFT crops unused boxes and pads rectangular axes independently", {
+  Y <- rbind(c(0, 50), c(1, 51), c(202, 67))
   grid <- fft_sne_grid(Y, 1)
   expect_equal(grid$width, 1)
-  expect_equal(grid$side, 1215)
-  expect_equal(dim(grid$S), c((3 * 202)^2, nrow(Y)))
+  expect_equal(grid$side, c(1215, 108))
+  expect_equal(dim(grid$S), c((3 * 202) * (3 * 18), nrow(Y)))
 
-  skip_if_not_installed("zufft")
   baseline <- fft_settings("stats", 1, 0)$sums(Y)
-  real_fft <- fft_settings("zufft", 1, 0)$sums(Y)
-  expect_equal(real_fft$Z, baseline$Z, tolerance = 1e-12)
   # Cancellation makes the distant point's tiny force sensitive to roundoff.
   force_scale <- max(abs(baseline$force))
-  expect_lt(max(abs(real_fft$force - baseline$force)) / force_scale, 1e-11)
+  for (backend in c("fftwtools", "zufft")) {
+    if (requireNamespace(backend, quietly = TRUE)) {
+      result <- fft_settings(backend, 1, 0)$sums(Y)
+      expect_equal(result$Z, baseline$Z, tolerance = 1e-12)
+      expect_lt(max(abs(result$force - baseline$force)) / force_scale, 1e-11)
+    }
+  }
 })
 
 test_that("FFT t-SNE evaluates coincident coordinates and guards wide grids", {
@@ -144,7 +152,7 @@ test_that("FFT t-SNE evaluates coincident coordinates and guards wide grids", {
     tsne_reference_cost(result$P, Y),
     tolerance = 1e-12
   )
-  Y[1L, 1L] <- 10000
+  Y[1L, ] <- 10000
   # The final score is evaluated after recentering even at max_iter = 0.
   expect_error(run(Y), "padded grid.*Increase grid_interval")
 })

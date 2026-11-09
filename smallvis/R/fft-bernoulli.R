@@ -10,9 +10,10 @@ fft_largevis <- function(
   n_threads = 0,
   nn = "approximate",
   fft_backend = "stats",
-  grid_interval = 1
+  grid_interval = 1,
+  fft_reuse = NULL
 ) {
-  fft <- fft_settings(fft_backend, grid_interval, n_threads)
+  fft <- fft_settings(fft_backend, grid_interval, n_threads, fft_reuse)
   cost <- bhlargevis(
     perplexity,
     inp_kernel,
@@ -39,9 +40,10 @@ fft_tumap <- function(
   n_threads = 0,
   nn = "approximate",
   fft_backend = "stats",
-  grid_interval = 1
+  grid_interval = 1,
+  fft_reuse = NULL
 ) {
-  fft <- fft_settings(fft_backend, grid_interval, n_threads)
+  fft <- fft_settings(fft_backend, grid_interval, n_threads, fft_reuse)
   cost <- bhtumap(
     perplexity,
     inp_kernel,
@@ -68,9 +70,10 @@ fft_umap <- function(
   n_threads = 0,
   nn = "approximate",
   fft_backend = "stats",
-  grid_interval = 1
+  grid_interval = 1,
+  fft_reuse = NULL
 ) {
-  fft <- fft_settings(fft_backend, grid_interval, n_threads)
+  fft <- fft_settings(fft_backend, grid_interval, n_threads, fft_reuse)
   cost <- bhumap(
     perplexity,
     inp_kernel,

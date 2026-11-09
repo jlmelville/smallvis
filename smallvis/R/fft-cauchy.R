@@ -7,10 +7,11 @@ fft_tee <- function(
   n_threads = 0,
   nn = "approximate",
   fft_backend = "stats",
-  grid_interval = 1
+  grid_interval = 1,
+  fft_reuse = NULL
 ) {
   validate_tee_lambda(lambda)
-  fft <- fft_settings(fft_backend, grid_interval, n_threads)
+  fft <- fft_settings(fft_backend, grid_interval, n_threads, fft_reuse)
   cost <- sparse_sne_cost(
     perplexity,
     inp_kernel,
@@ -42,7 +43,8 @@ fft_jssne <- function(
   n_threads = 0,
   nn = "approximate",
   fft_backend = "stats",
-  grid_interval = 1
+  grid_interval = 1,
+  fft_reuse = NULL
 ) {
   sparse_divergence_cost(
     "jssne",
@@ -52,7 +54,7 @@ fft_jssne <- function(
     n_threads,
     nn,
     eps = eps,
-    fft = fft_settings(fft_backend, grid_interval, n_threads)
+    fft = fft_settings(fft_backend, grid_interval, n_threads, fft_reuse)
   )
 }
 
@@ -62,7 +64,8 @@ fft_hlsne <- function(
   n_threads = 0,
   nn = "approximate",
   fft_backend = "stats",
-  grid_interval = 1
+  grid_interval = 1,
+  fft_reuse = NULL
 ) {
   sparse_divergence_cost(
     "hlsne",
@@ -71,7 +74,7 @@ fft_hlsne <- function(
     "symmetric",
     n_threads,
     nn,
-    fft = fft_settings(fft_backend, grid_interval, n_threads)
+    fft = fft_settings(fft_backend, grid_interval, n_threads, fft_reuse)
   )
 }
 
@@ -82,7 +85,8 @@ fft_chsne <- function(
   n_threads = 0,
   nn = "approximate",
   fft_backend = "stats",
-  grid_interval = 1
+  grid_interval = 1,
+  fft_reuse = NULL
 ) {
   sparse_divergence_cost(
     "chsne",
@@ -91,6 +95,6 @@ fft_chsne <- function(
     symmetrize,
     n_threads,
     nn,
-    fft = fft_settings(fft_backend, grid_interval, n_threads)
+    fft = fft_settings(fft_backend, grid_interval, n_threads, fft_reuse)
   )
 }

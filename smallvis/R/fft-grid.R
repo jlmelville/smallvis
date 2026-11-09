@@ -1,4 +1,9 @@
-fft_settings <- function(fft_backend, grid_interval, n_threads) {
+fft_settings <- function(
+  fft_backend,
+  grid_interval,
+  n_threads,
+  fft_reuse = NULL
+) {
   if (
     !is.numeric(grid_interval) ||
       length(grid_interval) != 1L ||
@@ -14,25 +19,32 @@ fft_settings <- function(fft_backend, grid_interval, n_threads) {
   ) {
     stop("fft_backend must be 'stats', 'fftwtools', or 'zufft'")
   }
-  transform <- stats::fft
+  if (
+    !is.null(fft_reuse) &&
+      (!is.logical(fft_reuse) || length(fft_reuse) != 1L || is.na(fft_reuse))
+  ) {
+    stop("fft_reuse must be NULL, TRUE, or FALSE")
+  }
+  transform <- function(x, inverse_dims = NULL) {
+    stats::fft(x, inverse = !is.null(inverse_dims))
+  }
   if (fft_backend == "fftwtools") {
     if (!requireNamespace("fftwtools", quietly = TRUE)) {
       stop("Install fftwtools or set fft_backend = 'stats'")
     }
-    transform <- function(x, inverse = FALSE) {
-      fftwtools::fftw2d(x, inverse = as.integer(inverse))
+    transform <- function(x, inverse_dims = NULL) {
+      fftwtools::fftw2d(x, inverse = as.integer(!is.null(inverse_dims)))
     }
   } else if (fft_backend == "zufft") {
     if (!requireNamespace("zufft", quietly = TRUE)) {
       stop("Install zufft or set fft_backend = 'stats'")
     }
     workers <- max(1L, n_threads)
-    transform <- function(x, inverse = FALSE) {
-      if (inverse) {
-        # The spectrum is halved along the first axis of the square grid.
+    transform <- function(x, inverse_dims = NULL) {
+      if (!is.null(inverse_dims)) {
         zufft::fft_c2r(
           x,
-          n = rep.int(ncol(x), 2L),
+          n = inverse_dims,
           norm = "none",
           workers = workers
         )
@@ -47,7 +59,15 @@ fft_settings <- function(fft_backend, grid_interval, n_threads) {
     grid_interval = grid_interval,
     transform = transform,
     sums = function(Y, mass_only = FALSE, alpha = 1, log_weighted = FALSE) {
-      fft_sne_sums(Y, grid_interval, transform, mass_only, alpha, log_weighted)
+      fft_sne_sums(
+        Y,
+        grid_interval,
+        transform,
+        mass_only,
+        alpha,
+        log_weighted,
+        fft_reuse
+      )
     }
   )
 }
@@ -74,7 +94,7 @@ fft_sne_grid <- function(Y, grid_interval) {
   }
 
   span <- diff(limits)
-  # Match FIt-SNE's square grid and round small grids to fast FFT sizes.
+  # Use the FIt-SNE lattice to set spacing and interpolation weights.
   boxes <- floor(max(50, span / grid_interval))
   fast_boxes <- c(
     50,
@@ -99,48 +119,59 @@ fft_sne_grid <- function(Y, grid_interval) {
   if (boxes < max(fast_boxes)) {
     boxes <- min(fast_boxes[fast_boxes >= boxes])
   }
-  nodes <- 3 * boxes
-  side <- 2 * nodes
-  if (!is.finite(side) || side > 2000) {
-    stop(
-      "FFT padded grid (",
-      format(side),
-      " x ",
-      format(side),
-      ") exceeds four million cells. Increase grid_interval or use Barnes-Hut."
-    )
-  }
-  # Round the FFT length without changing the interpolation nodes.
-  side <- stats::nextn(side)
-  width <- span / boxes
   local_basis <- function(values) {
     position <- ((values - limits[1L]) / span) * boxes
     cell <- pmin(floor(position), boxes - 1L)
     # The nodes are at 1/6, 1/2, and 5/6 of a cell.
     u <- 3 * (position - cell) - 1.5
+    # Trim unused boxes without moving the occupied interpolation nodes.
+    cells <- range(cell)
     list(
-      start = 3 * cell,
+      start = 3 * (cell - cells[1L]),
+      nodes = 3 * (diff(cells) + 1),
       weight = cbind(u * (u - 1) / 2, 1 - u^2, u * (u + 1) / 2)
     )
   }
+  grid_too_large <- function() {
+    stop(
+      "FFT padded grid exceeds four million cells. ",
+      "Increase grid_interval or use Barnes-Hut."
+    )
+  }
+  if (!is.finite(boxes)) {
+    grid_too_large()
+  }
   bx <- local_basis(Y[, 1L])
   by <- local_basis(Y[, 2L])
+  nodes <- c(bx$nodes, by$nodes)
+  # Check before nextn() as well as after rounding each FFT length.
+  side <- 2 * nodes
+  if (prod(side) > 4e6) {
+    grid_too_large()
+  }
+  side <- stats::nextn(side)
+  if (prod(side) > 4e6) {
+    grid_too_large()
+  }
   sx <- rep(1:3, times = 3L)
   sy <- rep(1:3, each = 3L)
   grid_index <- outer(bx$start, sx, "+") +
-    nodes * (outer(by$start, sy, "+") - 1)
+    nodes[1L] * (outer(by$start, sy, "+") - 1)
   weights <- bx$weight[, sx] * by$weight[, sy]
   S <- Matrix::sparseMatrix(
     i = as.vector(t(grid_index)),
     p = seq.int(0L, 9L * n, by = 9L),
     x = as.vector(t(weights)),
-    dims = c(nodes^2, n)
+    dims = c(prod(nodes), n)
   )
 
   # The signed offsets on the padded grid implement a linear convolution.
-  offset <- seq_len(side) - 1L
-  offset[offset >= side / 2] <- offset[offset >= side / 2] - side
-  d2 <- (offset * (width / 3))^2
+  width <- span / boxes
+  squared_offset <- function(length) {
+    offset <- seq_len(length) - 1L
+    offset[offset >= length / 2] <- offset[offset >= length / 2] - length
+    (offset * (width / 3))^2
+  }
   list(
     XY = Y - (limits[1L] + span / 2),
     S = S,
@@ -148,7 +179,7 @@ fft_sne_grid <- function(Y, grid_interval) {
     nodes = nodes,
     side = side,
     width = width,
-    d2 = outer(d2, d2, "+")
+    d2 = outer(squared_offset(side[1L]), squared_offset(side[2L]), "+")
   )
 }
 
@@ -157,26 +188,39 @@ fft_sne_grid <- function(Y, grid_interval) {
 fft_self_mass <- function(grid, kernel) {
   sx <- rep(1:3, times = 3L)
   sy <- rep(1:3, each = 3L)
-  dx <- outer(sx, sx, "-") %% grid$side
-  dy <- outer(sy, sy, "-") %% grid$side
-  stencil <- matrix(kernel[1 + dx + grid$side * dy], 9L, 9L)
+  dx <- outer(sx, sx, "-") %% grid$side[1L]
+  dy <- outer(sy, sy, "-") %% grid$side[2L]
+  stencil <- matrix(kernel[1 + dx + grid$side[1L] * dy], 9L, 9L)
   rowSums((grid$weights %*% stencil) * grid$weights)
 }
 
-fft_grid_convolver <- function(grid, transform, mass_only) {
-  grid_size <- grid$side^2
-  nodes <- seq_len(grid$nodes)
+fft_grid_convolver <- function(grid, transform, mass_only, reuse = integer()) {
+  grid_size <- prod(grid$side)
+  x <- seq_len(grid$nodes[1L])
+  y <- seq_len(grid$nodes[2L])
   XY <- grid$XY
   charge <- if (mass_only) matrix(1, nrow(XY), 1L) else cbind(1, XY)
   grid_charge <- as.matrix(grid$S %*% charge)
+  source_spectra <- vector("list", ncol(charge))
   function(kernel, fields) {
     spectrum <- transform(kernel)
-    buffer <- matrix(0, grid$side, grid$side)
+    buffer <- NULL
     potentials <- matrix(0, nrow(XY), length(fields))
     for (i in seq_along(fields)) {
-      buffer[nodes, nodes] <- grid_charge[, fields[i]]
-      spatial <- transform(transform(buffer) * spectrum, inverse = TRUE)
-      values <- as.vector(Re(spatial[nodes, nodes]))
+      field <- fields[i]
+      source <- source_spectra[[field]]
+      if (is.null(source)) {
+        if (is.null(buffer)) {
+          buffer <- matrix(0, grid$side[1L], grid$side[2L])
+        }
+        buffer[x, y] <- grid_charge[, field]
+        source <- transform(buffer)
+        if (field %in% reuse) {
+          source_spectra[[field]] <<- source
+        }
+      }
+      spatial <- transform(source * spectrum, inverse_dims = grid$side)
+      values <- as.vector(Re(spatial[x, y]))
       potentials[, i] <- as.vector(Matrix::crossprod(grid$S, values)) /
         grid_size
     }
@@ -194,7 +238,8 @@ fft_sne_sums <- function(
   transform,
   mass_only = FALSE,
   alpha = 1,
-  log_weighted = FALSE
+  log_weighted = FALSE,
+  fft_reuse = NULL
 ) {
   n <- nrow(Y)
   grid <- fft_sne_grid(Y, grid_interval)
@@ -207,7 +252,18 @@ fft_sne_sums <- function(
     ))
   }
 
-  evaluate <- fft_grid_convolver(grid, transform, mass_only)
+  fields <- if (mass_only) 1L else seq_len(3L)
+  if (is.null(fft_reuse)) {
+    fft_reuse <- log_weighted
+  }
+  reuse <- if (fft_reuse && log_weighted) {
+    fields
+  } else if (fft_reuse && !mass_only && alpha != 0) {
+    1L
+  } else {
+    integer()
+  }
+  evaluate <- fft_grid_convolver(grid, transform, mass_only, reuse)
 
   if (alpha == 1) {
     w <- 1 / (1 + grid$d2)
@@ -215,7 +271,6 @@ fft_sne_sums <- function(
     log_w <- if (alpha == 0) -grid$d2 else -log1p(alpha * grid$d2) / alpha
     w <- exp(log_w)
   }
-  fields <- if (mass_only) 1L else seq_len(3L)
   # The Gaussian force and mass use the same kernel and spectrum.
   mass <- evaluate(w, if (alpha == 0) fields else 1L)
   correct_self <- alpha != 1 || log_weighted

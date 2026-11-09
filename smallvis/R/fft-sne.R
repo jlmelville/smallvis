@@ -7,7 +7,8 @@ fft_hssne <- function(
   n_threads = 0,
   nn = "approximate",
   fft_backend = "stats",
-  grid_interval = 1
+  grid_interval = 1,
+  fft_reuse = NULL
 ) {
   alpha <- validate_hssne_alpha(alpha, "FFT")
   fft_normalized_sne(
@@ -18,7 +19,7 @@ fft_hssne <- function(
     n_threads,
     nn,
     alpha,
-    fft_settings(fft_backend, grid_interval, n_threads)
+    fft_settings(fft_backend, grid_interval, n_threads, fft_reuse)
   )
 }
 
@@ -31,7 +32,8 @@ fft_dhssne <- function(
   n_threads = 0,
   nn = "approximate",
   fft_backend = "stats",
-  grid_interval = 1
+  grid_interval = 1,
+  fft_reuse = NULL
 ) {
   cost <- fft_hssne(
     perplexity,
@@ -42,7 +44,8 @@ fft_dhssne <- function(
     n_threads,
     nn,
     fft_backend,
-    grid_interval
+    grid_interval,
+    fft_reuse
   )
   cost$epoch <- dhssne_epoch
   cost
@@ -55,7 +58,8 @@ fft_ssne <- function(
   n_threads = 0,
   nn = "approximate",
   fft_backend = "stats",
-  grid_interval = 1
+  grid_interval = 1,
+  fft_reuse = NULL
 ) {
   fft_normalized_sne(
     perplexity,
@@ -65,7 +69,7 @@ fft_ssne <- function(
     n_threads = n_threads,
     nn = nn,
     alpha = 0,
-    fft = fft_settings(fft_backend, grid_interval, n_threads)
+    fft = fft_settings(fft_backend, grid_interval, n_threads, fft_reuse)
   )
 }
 
@@ -122,7 +126,8 @@ fft_rklsne <- function(
   n_threads = 0,
   nn = "approximate",
   fft_backend = "stats",
-  grid_interval = 1
+  grid_interval = 1,
+  fft_reuse = NULL
 ) {
   fft_mixed_kl(
     perplexity,
@@ -133,7 +138,7 @@ fft_rklsne <- function(
     nn,
     lambda = 0,
     gaussian = FALSE,
-    fft = fft_settings(fft_backend, grid_interval, n_threads)
+    fft = fft_settings(fft_backend, grid_interval, n_threads, fft_reuse)
   )
 }
 
@@ -146,7 +151,8 @@ fft_snerv <- function(
   n_threads = 0,
   nn = "approximate",
   fft_backend = "stats",
-  grid_interval = 1
+  grid_interval = 1,
+  fft_reuse = NULL
 ) {
   fft_mixed_kl(
     perplexity,
@@ -157,7 +163,7 @@ fft_snerv <- function(
     nn,
     lambda,
     gaussian = TRUE,
-    fft = fft_settings(fft_backend, grid_interval, n_threads)
+    fft = fft_settings(fft_backend, grid_interval, n_threads, fft_reuse)
   )
 }
 
