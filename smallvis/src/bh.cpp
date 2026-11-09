@@ -209,6 +209,29 @@ double bh_repulsion(const smallvis::QuadTree &tree,
   return Normalize ? std::accumulate(sums.begin(), sums.end(), eps) : 0.0;
 }
 
+// Accumulate the sparse attractive force into an interleaved gradient.
+template <typename Index, typename Kernel>
+void sparse_attraction(const Index *rows, const Index *offsets,
+                       const double *probabilities,
+                       const std::vector<double> &Y, std::size_t n_threads,
+                       const Kernel &kernel, std::vector<double> &gradient) {
+  const std::size_t n = Y.size() / 2;
+  smallvis::parallel_for(
+      n, n_threads, [&](std::size_t start, std::size_t end, std::size_t) {
+        for (std::size_t i = start; i < end; ++i) {
+          for (Index k = offsets[i]; k < offsets[i + 1]; ++k) {
+            const std::size_t j = rows[k];
+            const double dx = Y[2 * i] - Y[2 * j];
+            const double dy = Y[2 * i + 1] - Y[2 * j + 1];
+            const double force =
+                probabilities[k] * kernel.slope(dx * dx + dy * dy);
+            gradient[2 * i] += force * dx;
+            gradient[2 * i + 1] += force * dy;
+          }
+        }
+      });
+}
+
 template <bool Normalize, typename Kernel>
 NumericMatrix
 bh_gradient(const IntegerVector &indices, const IntegerVector &indptr,
@@ -223,7 +246,6 @@ bh_gradient(const IntegerVector &indices, const IntegerVector &indptr,
   const auto offsets = as<std::vector<std::size_t>>(indptr);
   const auto probabilities = as<std::vector<double>>(P_data);
   const auto Y = as<std::vector<double>>(transpose(embedding));
-  const std::size_t n = Y.size() / 2;
   const smallvis::QuadTree tree(Y);
   std::vector<double> gradient(Y.size(), 0.0);
   double Z =
@@ -244,20 +266,8 @@ bh_gradient(const IntegerVector &indices, const IntegerVector &indptr,
     }
   }
 
-  smallvis::parallel_for(
-      n, n_threads, [&](std::size_t start, std::size_t end, std::size_t) {
-        for (std::size_t i = start; i < end; ++i) {
-          for (std::size_t k = offsets[i]; k < offsets[i + 1]; ++k) {
-            const std::size_t j = rows[k];
-            const double dx = Y[2 * i] - Y[2 * j];
-            const double dy = Y[2 * i + 1] - Y[2 * j + 1];
-            const double force =
-                probabilities[k] * kernel.slope(dx * dx + dy * dy);
-            gradient[2 * i] += force * dx;
-            gradient[2 * i + 1] += force * dy;
-          }
-        }
-      });
+  sparse_attraction(rows.data(), offsets.data(), probabilities.data(), Y,
+                    n_threads, kernel, gradient);
 
   NumericMatrix result(2, embedding.nrow(), gradient.begin());
   return transpose(result);
@@ -620,6 +630,24 @@ NumericMatrix bh_tsne_gradient_cpp(const IntegerVector &indices,
                                    std::size_t n_threads = 1) {
   return bh_gradient<true>(indices, indptr, P_data, embedding, theta, eps,
                            n_threads, CauchyKernel{}, 0.0);
+}
+
+// The FFT method supplies the slots of its validated sparse affinity matrix.
+// [[Rcpp::export(rng = false)]]
+NumericMatrix tsne_sparse_attraction_cpp(const IntegerVector &indices,
+                                         const IntegerVector &indptr,
+                                         const NumericVector &P_data,
+                                         const NumericMatrix &embedding,
+                                         std::size_t n_threads) {
+  if (embedding.ncol() != 2) {
+    stop("FFT t-SNE requires two output dimensions");
+  }
+  const auto Y = as<std::vector<double>>(transpose(embedding));
+  std::vector<double> gradient(Y.size(), 0.0);
+  sparse_attraction(indices.begin(), indptr.begin(), P_data.begin(), Y,
+                    n_threads, CauchyKernel{}, gradient);
+  NumericMatrix result(2, embedding.nrow(), gradient.begin());
+  return transpose(result);
 }
 
 // [[Rcpp::export]]

@@ -9,6 +9,10 @@ bh_tsne_gradient_cpp <- function(indices, indptr, P_data, embedding, theta = 0.5
     .Call(`_smallvis_bh_tsne_gradient_cpp`, indices, indptr, P_data, embedding, theta, eps, n_threads)
 }
 
+tsne_sparse_attraction_cpp <- function(indices, indptr, P_data, embedding, n_threads) {
+    .Call(`_smallvis_tsne_sparse_attraction_cpp`, indices, indptr, P_data, embedding, n_threads)
+}
+
 bh_plogq_cpp <- function(indices, indptr, P_data, embedding, theta = 0.5, eps = 1e-16, n_threads = 1L) {
     .Call(`_smallvis_bh_plogq_cpp`, indices, indptr, P_data, embedding, theta, eps, n_threads)
 }

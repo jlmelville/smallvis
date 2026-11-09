@@ -50,8 +50,8 @@ smallvis(
 \arguments{
 \item{X}{Input coordinates or distance matrix.}
 
-\item{k}{Number of output dimensions for the embedding. Barnes-Hut
-requires \code{k = 2}.}
+\item{k}{Number of output dimensions for the embedding. Barnes-Hut and
+FFT t-SNE require \code{k = 2}.}
 
 \item{scale}{If \code{TRUE}, scale each column to zero mean and unit
 variance. Alternatively, you may specify one of the following strings:
@@ -217,8 +217,8 @@ to those value which are returned when this value is \code{TRUE}. See the
 \item{n_threads}{Number of threads to use in multi-threaded code. Default is
 0, which means no multi-threading. Mainly affects the calculation of things
 like distance matrices and perplexity calibration if you set
-\code{use_cpp = TRUE}. Otherwise, only methods that need to calculate
-nearest neighbors will be affected.}
+\code{use_cpp = TRUE}. The thread count also applies to neighbor search,
+Barnes-Hut forces, and FFT t-SNE attraction.}
 
 \item{use_cpp}{If \code{TRUE} use multi-threaded C++ code for some
 calculations. Default is \code{FALSE}. This won't speed up all steps and
@@ -241,14 +241,15 @@ search by default. Use \code{nn = "exact"} for exact neighbor lookup.}
 
 \item{theta}{Barnes-Hut opening threshold, default \code{0.5}. Smaller
 values open more cells. Zero evaluates the repulsive sum exactly for the
-chosen input affinities. Applies only with \code{bh = TRUE}.}
+chosen input affinities. Applies with \code{bh = TRUE} or
+\code{method = list("tsne", repulsion = "bh")}.}
 
 \item{eps}{Set epsilon for avoiding division-by-zero errors. Default is
 \code{.Machine$double.eps}, but if you see inconsistent convergence results
 with optimizer that should be reducing the cost each iteration, then try
 setting this to a larger value, e.g. between \code{1e-3 - 1e-9}. For
-Barnes-Hut t-SNE, epsilon is added to the sum of non-self Student
-weights in both the cost and gradient. Tree construction uses only the
+Barnes-Hut and FFT t-SNE, epsilon is added to the sum of non-self Student
+weights in both the cost and gradient. The Barnes-Hut tree uses only the
 coordinates.
 When floating-point precision limits subdivision, a terminal leaf stores
 distinct coordinates as separate groups.
@@ -287,8 +288,8 @@ distance inputs use exact neighbor lookup.}
 
 \item{verbose}{If \code{TRUE}, log progress messages to the console.}
 
-\item{neighbors}{Optional list of precomputed nearest neighbors for dense
-or Barnes-Hut methods using the \code{"knn"}, \code{"nngaussian"}, or
+\item{neighbors}{Optional list of precomputed nearest neighbors for
+methods using the \code{"knn"}, \code{"nngaussian"}, or
 \code{"skd"} input kernel. Supply equally sized matrices \code{idx}
 (one-based row indices) and \code{dist} (finite, nonnegative, unsquared
 distances).
@@ -322,7 +323,7 @@ If \code{ret_extra} is \code{FALSE}, the embedded output coordinates
   coordinates, after removing exaggeration. Their sum is the final objective.
   ASNE and its bandwidth variants report one conditional KL divergence per
   row. Other dense methods generally group pairwise terms by column.
-  Barnes-Hut methods return a single scalar objective.
+  Barnes-Hut and FFT methods return a single scalar objective.
 \item{\code{itercosts}} Objective values recorded at epochs. This history
   can be empty if an optimizer stops before the first epoch. Values recorded
   during exaggeration need not match the final unexaggerated objective.
@@ -395,6 +396,8 @@ to the \code{method} parameter are:
   (van der Maaten and Hinton, 2008).
   \item Barnes-Hut t-SNE (van der Maaten, 2014), selected with
   \code{method = "tsne", bh = TRUE}.
+  \item FFT t-SNE (Linderman et al., 2019), selected with
+  \code{method = list("tsne", repulsion = "fft")}.
   \item \code{"largevis"} the cost function of the LargeVis algorithm
   (Tang et al, 2016). Input affinities are calculated and symmetrized using
   the same perplexity calibration method as t-SNE. Use
@@ -586,6 +589,39 @@ Some parameters are available for all (nor nearly all) methods.
 
 The examples demonstrate how to use \code{method} with these optional
 parameters.
+}
+
+\section{t-SNE repulsion}{
+
+
+Use \code{method = list("tsne", repulsion = ...)} to select \code{"exact"}
+(the default all-pairs calculation), \code{"bh"} (Barnes-Hut), or
+\code{"fft"} (FFT interpolation). \code{bh = TRUE} also selects Barnes-Hut
+and conflicts with an explicit choice of exact or FFT repulsion.
+\code{theta} applies to Barnes-Hut, where zero evaluates the repulsive
+sum exactly for the chosen input affinities.
+
+Repulsion controls the output calculation. Use \code{inp_kernel} and
+\code{neighbors} to control the input affinities. Exact t-SNE defaults to
+\code{"gaussian"}. Barnes-Hut and FFT default to \code{"nngaussian"} and
+approximate neighbor search. FFT also accepts \code{"knn"}. Compare the
+three repulsion methods on the same input affinities by setting
+\code{inp_kernel} and supplying the same neighbors to each.
+
+FFT requires two output dimensions and a gradient-only optimizer such as
+the default \code{"dbd"}. It reports an approximate scalar objective.
+FFT attraction runs in native code and uses \code{n_threads}.
+The following options go in the \code{method} list:
+\describe{
+  \item{\code{fft_backend}}{\code{"stats"} (default) uses
+  \code{\link[stats]{fft}}. \code{"fftwtools"} uses the optional
+  \pkg{fftwtools} package.}
+  \item{\code{grid_interval}}{A finite positive target grid cell width in
+  embedding units, default 1. There are three interpolation nodes per
+  axis in each cell and at least 50 cells per axis. Increasing the
+  interval can reduce grid work at the cost of accuracy. The fit stops
+  before allocating a padded grid larger than four million cells.}
+}
 }
 
 \section{Output initialization}{
@@ -947,6 +983,16 @@ tsne_early_ex <- smallvis(iris, exaggeration_factor = 4, stop_lying_iter = 100)
 tsne_late_ex <- smallvis(iris, exaggeration_factor = 4, stop_lying_iter = 100,
                          late_exaggeration_factor = 1.5, start_late_lying_iter = 900)
 
+# FFT t-SNE with the default FFT backend
+fft_iris <- smallvis(iris, method = list("tsne", repulsion = "fft"))
+
+# Settings for a large fit with saved neighbors and fftwtools installed
+# smallvis(X, neighbors = nn,
+#          method = list("tsne", repulsion = "fft",
+#                        fft_backend = "fftwtools"),
+#          n_threads = 4, Y_init = "spca", eta = "optsne",
+#          exaggeration_factor = 12, stop_lying_iter = 250, max_iter = 500)
+
 # Barnes-Hut, approximate nearest neighbors, multi-threading settings
 # recommended for large datasets
 bhtsne_iris <- smallvis(iris, bh = TRUE, n_threads = 4, perplexity = 30,
@@ -956,6 +1002,11 @@ bhtsne_iris <- smallvis(iris, bh = TRUE, n_threads = 4, perplexity = 30,
 }
 }
 \references{
+Linderman, G. C., Rachh, M., Hoskins, J. G., Steinerberger, S., & Kluger,
+Y. (2019). Fast interpolation-based t-SNE for improved visualization of
+single-cell RNA-seq data. \emph{Nature Methods}, 16, 243--245.
+\doi{10.1038/s41592-018-0308-4}
+
 Belkin, M., & Niyogi, P. (2002).
 Laplacian eigenmaps and spectral techniques for embedding and clustering.
 In \emph{Advances in neural information processing systems}

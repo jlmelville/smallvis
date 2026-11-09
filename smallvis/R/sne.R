@@ -91,34 +91,12 @@ bhtsne <- function(
   if (is.null(nn)) {
     nn <- "approximate"
   }
-  bh_cost(
-    init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
-      cost <- sne_init(
-        cost,
-        X,
-        perplexity = perplexity,
-        kernel = inp_kernel,
-        symmetrize = "symmetric",
-        normalize = TRUE,
-        row_normalize = TRUE,
-        verbose = verbose,
-        ret_extra = ret_extra,
-        n_threads = n_threads,
-        use_cpp = TRUE,
-        nn = nn,
-        sparse = TRUE
-      )
-      cost$P <- Matrix::drop0(methods::as(
-        Matrix::Matrix(cost$P, sparse = TRUE),
-        "generalMatrix"
-      ))
-      cost$eps <- eps
-      cost
-    },
-    cache_input = function(cost) {
-      cost$plogp <- sum(cost$P@x * log(cost$P@x))
-      cost
-    },
+  sparse_tsne_cost(
+    perplexity,
+    inp_kernel,
+    nn,
+    n_threads,
+    eps,
     pfn = function(cost, Y) {
       cost <- cost_update(cost, Y)
       cost$pcost <- cost$plogp -
@@ -149,6 +127,39 @@ bhtsne <- function(
       cost$G <- 4 * cost$G
       cost
     }
+  )
+}
+
+sparse_tsne_cost <- function(perplexity, inp_kernel, nn, n_threads, eps, ...) {
+  bh_cost(
+    init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
+      cost <- sne_init(
+        cost,
+        X,
+        perplexity = perplexity,
+        kernel = inp_kernel,
+        symmetrize = "symmetric",
+        normalize = TRUE,
+        row_normalize = TRUE,
+        verbose = verbose,
+        ret_extra = ret_extra,
+        n_threads = n_threads,
+        use_cpp = TRUE,
+        nn = nn,
+        sparse = TRUE
+      )
+      cost$P <- Matrix::drop0(methods::as(
+        Matrix::Matrix(cost$P, sparse = TRUE),
+        "generalMatrix"
+      ))
+      cost$eps <- eps
+      cost
+    },
+    cache_input = function(cost) {
+      cost$plogp <- sum(cost$P@x * log(cost$P@x))
+      cost
+    },
+    ...
   )
 }
 

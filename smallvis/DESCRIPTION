@@ -19,6 +19,7 @@ Imports:
     vizier
 Suggests:
     callr,
+    fftwtools,
     pkgload,
     RSpectra,
     testthat (>= 3.0.0)

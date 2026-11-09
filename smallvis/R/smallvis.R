@@ -10,6 +10,8 @@
 #'   (van der Maaten and Hinton, 2008).
 #'   \item Barnes-Hut t-SNE (van der Maaten, 2014), selected with
 #'   \code{method = "tsne", bh = TRUE}.
+#'   \item FFT t-SNE (Linderman et al., 2019), selected with
+#'   \code{method = list("tsne", repulsion = "fft")}.
 #'   \item \code{"largevis"} the cost function of the LargeVis algorithm
 #'   (Tang et al, 2016). Input affinities are calculated and symmetrized using
 #'   the same perplexity calibration method as t-SNE. Use
@@ -200,6 +202,37 @@
 #'
 #' The examples demonstrate how to use \code{method} with these optional
 #' parameters.
+#'
+#' @section t-SNE repulsion:
+#'
+#' Use \code{method = list("tsne", repulsion = ...)} to select \code{"exact"}
+#' (the default all-pairs calculation), \code{"bh"} (Barnes-Hut), or
+#' \code{"fft"} (FFT interpolation). \code{bh = TRUE} also selects Barnes-Hut
+#' and conflicts with an explicit choice of exact or FFT repulsion.
+#' \code{theta} applies to Barnes-Hut, where zero evaluates the repulsive
+#' sum exactly for the chosen input affinities.
+#'
+#' Repulsion controls the output calculation. Use \code{inp_kernel} and
+#' \code{neighbors} to control the input affinities. Exact t-SNE defaults to
+#' \code{"gaussian"}. Barnes-Hut and FFT default to \code{"nngaussian"} and
+#' approximate neighbor search. FFT also accepts \code{"knn"}. Compare the
+#' three repulsion methods on the same input affinities by setting
+#' \code{inp_kernel} and supplying the same neighbors to each.
+#'
+#' FFT requires two output dimensions and a gradient-only optimizer such as
+#' the default \code{"dbd"}. It reports an approximate scalar objective.
+#' FFT attraction runs in native code and uses \code{n_threads}.
+#' The following options go in the \code{method} list:
+#' \describe{
+#'   \item{\code{fft_backend}}{\code{"stats"} (default) uses
+#'   \code{\link[stats]{fft}}. \code{"fftwtools"} uses the optional
+#'   \pkg{fftwtools} package.}
+#'   \item{\code{grid_interval}}{A finite positive target grid cell width in
+#'   embedding units, default 1. There are three interpolation nodes per
+#'   axis in each cell and at least 50 cells per axis. Increasing the
+#'   interval can reduce grid work at the cost of accuracy. The fit stops
+#'   before allocating a padded grid larger than four million cells.}
+#' }
 #'
 #' @section Output initialization:
 #'
@@ -442,8 +475,8 @@
 #' function with these optimizers.
 #'
 #' @param X Input coordinates or distance matrix.
-#' @param k Number of output dimensions for the embedding. Barnes-Hut
-#'   requires \code{k = 2}.
+#' @param k Number of output dimensions for the embedding. Barnes-Hut and
+#'   FFT t-SNE require \code{k = 2}.
 #' @param scale If \code{TRUE}, scale each column to zero mean and unit
 #'   variance. Alternatively, you may specify one of the following strings:
 #'   \code{"range"}, which range scales the matrix elements between 0 and 1;
@@ -579,8 +612,8 @@
 #' @param n_threads Number of threads to use in multi-threaded code. Default is
 #'   0, which means no multi-threading. Mainly affects the calculation of things
 #'   like distance matrices and perplexity calibration if you set
-#'   \code{use_cpp = TRUE}. Otherwise, only methods that need to calculate
-#'   nearest neighbors will be affected.
+#'   \code{use_cpp = TRUE}. The thread count also applies to neighbor search,
+#'   Barnes-Hut forces, and FFT t-SNE attraction.
 #' @param use_cpp If \code{TRUE} use multi-threaded C++ code for some
 #'   calculations. Default is \code{FALSE}. This won't speed up all steps and
 #'   you will want to use this in conjunction with \code{n_threads}. The
@@ -591,8 +624,8 @@
 #'   \code{.Machine$double.eps}, but if you see inconsistent convergence results
 #'   with optimizer that should be reducing the cost each iteration, then try
 #'   setting this to a larger value, e.g. between \code{1e-3 - 1e-9}. For
-#'   Barnes-Hut t-SNE, epsilon is added to the sum of non-self Student
-#'   weights in both the cost and gradient. Tree construction uses only the
+#'   Barnes-Hut and FFT t-SNE, epsilon is added to the sum of non-self Student
+#'   weights in both the cost and gradient. The Barnes-Hut tree uses only the
 #'   coordinates.
 #'   When floating-point precision limits subdivision, a terminal leaf stores
 #'   distinct coordinates as separate groups.
@@ -604,7 +637,8 @@
 #'   epsilon.
 #' @param theta Barnes-Hut opening threshold, default \code{0.5}. Smaller
 #'   values open more cells. Zero evaluates the repulsive sum exactly for the
-#'   chosen input affinities. Applies only with \code{bh = TRUE}.
+#'   chosen input affinities. Applies with \code{bh = TRUE} or
+#'   \code{method = list("tsne", repulsion = "bh")}.
 #' @param bh If \code{TRUE}, approximate repulsive interactions with Barnes-Hut
 #'   (van der Maaten, 2014). Available for \code{"tsne"}, \code{"ssne"},
 #'   \code{"hssne"}, \code{"dhssne"}, \code{"snerv"}, \code{"tee"},
@@ -641,8 +675,8 @@
 #'  each method gets to choose the best method for its needs. Precomputed
 #'  distance inputs use exact neighbor lookup.
 #' @param verbose If \code{TRUE}, log progress messages to the console.
-#' @param neighbors Optional list of precomputed nearest neighbors for dense
-#'   or Barnes-Hut methods using the \code{"knn"}, \code{"nngaussian"}, or
+#' @param neighbors Optional list of precomputed nearest neighbors for
+#'   methods using the \code{"knn"}, \code{"nngaussian"}, or
 #'   \code{"skd"} input kernel. Supply equally sized matrices \code{idx}
 #'   (one-based row indices) and \code{dist} (finite, nonnegative, unsquared
 #'   distances).
@@ -674,7 +708,7 @@
 #'   coordinates, after removing exaggeration. Their sum is the final objective.
 #'   ASNE and its bandwidth variants report one conditional KL divergence per
 #'   row. Other dense methods generally group pairwise terms by column.
-#'   Barnes-Hut methods return a single scalar objective.
+#'   Barnes-Hut and FFT methods return a single scalar objective.
 #' \item{\code{itercosts}} Objective values recorded at epochs. This history
 #'   can be empty if an optimizer stops before the first epoch. Values recorded
 #'   during exaggeration need not match the final unexaggerated objective.
@@ -844,6 +878,16 @@
 #' tsne_late_ex <- smallvis(iris, exaggeration_factor = 4, stop_lying_iter = 100,
 #'                          late_exaggeration_factor = 1.5, start_late_lying_iter = 900)
 #'
+#' # FFT t-SNE with the default FFT backend
+#' fft_iris <- smallvis(iris, method = list("tsne", repulsion = "fft"))
+#'
+#' # Settings for a large fit with saved neighbors and fftwtools installed
+#' # smallvis(X, neighbors = nn,
+#' #          method = list("tsne", repulsion = "fft",
+#' #                        fft_backend = "fftwtools"),
+#' #          n_threads = 4, Y_init = "spca", eta = "optsne",
+#' #          exaggeration_factor = 12, stop_lying_iter = 250, max_iter = 500)
+#'
 #' # Barnes-Hut, approximate nearest neighbors, multi-threading settings
 #' # recommended for large datasets
 #' bhtsne_iris <- smallvis(iris, bh = TRUE, n_threads = 4, perplexity = 30,
@@ -852,6 +896,11 @@
 #'                         Y_init = "spca")
 #' }
 #' @references
+#' Linderman, G. C., Rachh, M., Hoskins, J. G., Steinerberger, S., & Kluger,
+#' Y. (2019). Fast interpolation-based t-SNE for improved visualization of
+#' single-cell RNA-seq data. \emph{Nature Methods}, 16, 243--245.
+#' \doi{10.1038/s41592-018-0308-4}
+#'
 #' Belkin, M., & Niyogi, P. (2002).
 #' Laplacian eigenmaps and spectral techniques for embedding and clustering.
 #' In \emph{Advances in neural information processing systems}
@@ -1283,6 +1332,9 @@ smallvis_run <- function(
   }
 
   if (!is.null(cost_fn$ndim) && any(!is.finite(Y))) {
+    if (identical(cost_fn$repulsion, "fft")) {
+      stop("FFT t-SNE coordinates must be finite")
+    }
     stop("Barnes-Hut coordinates must be finite")
   }
 
@@ -1697,6 +1749,9 @@ prepare_smallvis_input <- function(
   }
 
   if (!is.null(cost_fn$ndim) && k != cost_fn$ndim) {
+    if (identical(cost_fn$repulsion, "fft")) {
+      stop("FFT t-SNE requires k = 2")
+    }
     stop("Barnes-Hut requires k = 2")
   }
 
@@ -1849,6 +1904,34 @@ create_cost <- function(
       }
     }
     method <- match.arg(tolower(method), method_names)
+    if (method == "tsne" && "repulsion" %in% names(methodlist)) {
+      repulsion <- methodlist$repulsion
+      if (
+        !is.character(repulsion) ||
+          length(repulsion) != 1L ||
+          !repulsion %in% c("exact", "bh", "fft")
+      ) {
+        stop("repulsion must be 'exact', 'bh', or 'fft'")
+      }
+      if (!is.logical(bh) || length(bh) != 1L || is.na(bh)) {
+        stop("bh must be TRUE or FALSE")
+      }
+      if (bh && repulsion != "bh") {
+        stop("bh = TRUE conflicts with repulsion = '", repulsion, "'")
+      }
+      if (
+        repulsion != "bh" &&
+          (!is.null(methodlist$theta) ||
+            ("theta" %in% supplied && !is.null(theta)))
+      ) {
+        stop("theta applies only to repulsion = 'bh'")
+      }
+      methodlist$repulsion <- NULL
+      bh <- repulsion == "bh"
+      if (repulsion == "fft") {
+        method <- "fft_tsne"
+      }
+    }
     if (bh) {
       bh_methods <- c(
         "tsne",

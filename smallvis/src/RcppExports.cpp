@@ -50,6 +50,20 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// tsne_sparse_attraction_cpp
+NumericMatrix tsne_sparse_attraction_cpp(const IntegerVector& indices, const IntegerVector& indptr, const NumericVector& P_data, const NumericMatrix& embedding, std::size_t n_threads);
+RcppExport SEXP _smallvis_tsne_sparse_attraction_cpp(SEXP indicesSEXP, SEXP indptrSEXP, SEXP P_dataSEXP, SEXP embeddingSEXP, SEXP n_threadsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< const IntegerVector& >::type indices(indicesSEXP);
+    Rcpp::traits::input_parameter< const IntegerVector& >::type indptr(indptrSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type P_data(P_dataSEXP);
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type embedding(embeddingSEXP);
+    Rcpp::traits::input_parameter< std::size_t >::type n_threads(n_threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(tsne_sparse_attraction_cpp(indices, indptr, P_data, embedding, n_threads));
+    return rcpp_result_gen;
+END_RCPP
+}
 // bh_plogq_cpp
 double bh_plogq_cpp(const IntegerVector& indices, const IntegerVector& indptr, const NumericVector& P_data, const NumericMatrix& embedding, double theta, double eps, std::size_t n_threads);
 RcppExport SEXP _smallvis_bh_plogq_cpp(SEXP indicesSEXP, SEXP indptrSEXP, SEXP P_dataSEXP, SEXP embeddingSEXP, SEXP thetaSEXP, SEXP epsSEXP, SEXP n_threadsSEXP) {
@@ -415,6 +429,7 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_smallvis_bh_mixed_kl_cpp", (DL_FUNC) &_smallvis_bh_mixed_kl_cpp, 13},
     {"_smallvis_bh_tsne_gradient_cpp", (DL_FUNC) &_smallvis_bh_tsne_gradient_cpp, 7},
+    {"_smallvis_tsne_sparse_attraction_cpp", (DL_FUNC) &_smallvis_tsne_sparse_attraction_cpp, 5},
     {"_smallvis_bh_plogq_cpp", (DL_FUNC) &_smallvis_bh_plogq_cpp, 7},
     {"_smallvis_bh_sne_gradient_cpp", (DL_FUNC) &_smallvis_bh_sne_gradient_cpp, 10},
     {"_smallvis_bh_sne_score_cpp", (DL_FUNC) &_smallvis_bh_sne_score_cpp, 10},
