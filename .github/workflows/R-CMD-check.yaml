@@ -44,6 +44,53 @@ jobs:
           args: 'c("--no-manual")'
           error-on: '"warning"'
 
+  native-quality:
+    name: C++ warnings, format, and tidy
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install LLVM and R headers
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            clang-21 clang-format-21 clang-tidy-21 r-base-core r-cran-rcpp
+      - name: Check handwritten C++
+        shell: bash
+        run: |
+          mapfile -d '' -t files < <(git ls-files -z -- \
+            'smallvis/src/*.cpp' 'smallvis/src/*.h' \
+            'smallvis/tests/native/*.cpp' 'smallvis/tests/native/*.h' \
+            ':!smallvis/src/RcppExports.*')
+          sources=()
+          for file in "${files[@]}"; do
+            if [[ "$file" == *.cpp ]]; then
+              sources+=("$file")
+            fi
+          done
+          test "${#sources[@]}" -gt 0
+
+          r_include=$(Rscript --vanilla -e 'cat(R.home("include"))')
+          rcpp_include=$(Rscript --vanilla -e 'cat(system.file("include", package = "Rcpp", mustWork = TRUE))')
+          flags=(-std=c++17 -pthread -fPIC -isystem "$r_include" -isystem "$rcpp_include")
+
+          echo "Checking compiler warnings"
+          for file in "${sources[@]}"; do
+            clang++-21 "${flags[@]}" -O2 -Wall -Wextra -Wpedantic -Werror \
+              -c "$file" -o /dev/null
+          done
+
+          echo "Checking clang-format"
+          clang-format-21 --style=LLVM --dry-run --Werror "${files[@]}"
+
+          echo "Checking clang-tidy"
+          clang-tidy-21 --warnings-as-errors='*' \
+            --checks='-*,clang-analyzer-core.*,bugprone-use-after-move,bugprone-unused-raii,performance-unnecessary-copy-initialization' \
+            --header-filter='(^|/)smallvis/(src|tests/native)/' \
+            "${sources[@]}" -- "${flags[@]}"
+
   native-sanitizers:
     name: Native sanitizers
     runs-on: ubuntu-latest
