@@ -4,10 +4,12 @@ An R package for experimenting with dimensionality reduction using neighborhood 
 including t-SNE, LargeVis, and UMAP cost functions. It gives you control over input scaling, nearest
 neighbors, initialization, and optimization so you can compare methods and try out ideas.
 
-Most methods use quadratic time and memory and suit small datasets. Barnes-Hut supports larger
-datasets for t-SNE, SSNE, HSSNE, dynamic HSSNE, SNeRV, t-distributed elastic embedding, LargeVis,
-UMAP, t-UMAP, Jensen-Shannon SNE, Hellinger SNE, and chi-squared SNE by combining sparse neighbor
-affinities with multithreaded C++ code.
+Most methods use quadratic time and memory and suit small datasets. Barnes-Hut and FFT repulsion
+use sparse neighbor affinities for larger datasets in two dimensions. Both support t-SNE, SSNE,
+HSSNE, dynamic HSSNE, SNeRV, reverse-KL SNE, t-distributed elastic embedding, LargeVis, UMAP,
+t-UMAP, Jensen-Shannon SNE, Hellinger SNE, and chi-squared SNE. For a large t-SNE fit with saved
+neighbors and the optional zufft package installed, use
+`method = list("tsne", repulsion = "fft", fft_backend = "zufft")`.
 
 ## Install
 

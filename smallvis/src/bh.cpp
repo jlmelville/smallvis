@@ -801,16 +801,17 @@ SEXP bh_mixed_kl_cpp(const IntegerVector &indices, const IntegerVector &indptr,
   return evaluate(CauchyKernel{});
 }
 
-// FFT provides the Gaussian and log-weighted sums; the objective and sparse
-// edge corrections are the same as in Barnes-Hut SNeRV.
+// FFT provides the kernel sums, including the log-weighted terms.
 // [[Rcpp::export(rng = false)]]
-SEXP fft_snerv_cpp(const IntegerVector &indices, const IntegerVector &indptr,
-                   const NumericVector &log_ratio,
-                   const NumericVector &p_excess,
-                   const NumericMatrix &embedding, double Z,
-                   const NumericVector &log_mass, Nullable<NumericMatrix> force,
-                   Nullable<NumericMatrix> log_force, std::size_t n_threads,
-                   double eps, double lambda, double p_mass, double plogp) {
+SEXP fft_mixed_kl_cpp(const IntegerVector &indices, const IntegerVector &indptr,
+                      const NumericVector &log_ratio,
+                      const NumericVector &p_excess,
+                      const NumericMatrix &embedding, double Z,
+                      const NumericVector &log_mass,
+                      Nullable<NumericMatrix> force,
+                      Nullable<NumericMatrix> log_force, std::size_t n_threads,
+                      double eps, double lambda, double p_mass, double plogp,
+                      bool gaussian) {
   const auto Y = as<std::vector<double>>(transpose(embedding));
   const std::size_t n = Y.size() / 2;
   std::vector<KlRow> rows(n);
@@ -822,22 +823,28 @@ SEXP fft_snerv_cpp(const IntegerVector &indices, const IntegerVector &indptr,
   }
   center[0] /= n;
   center[1] /= n;
-  if (force.isNull()) {
-    return mixed_kl_from_sums<false>(indices, indptr, log_ratio, p_excess, Y,
-                                     center, rows, Z, n_threads, eps, lambda,
-                                     p_mass, plogp, GaussianKernel{});
-  }
-  const NumericMatrix raw_force(force);
-  const NumericMatrix raw_log_force(log_force);
-  for (std::size_t i = 0; i < n; ++i) {
-    for (std::size_t axis = 0; axis < 2; ++axis) {
-      rows[i].force[axis] = -raw_force(i, axis);
-      rows[i].log_force[axis] = -raw_log_force(i, axis);
+  auto evaluate = [&](auto kernel) {
+    if (force.isNull()) {
+      return mixed_kl_from_sums<false>(indices, indptr, log_ratio, p_excess, Y,
+                                       center, rows, Z, n_threads, eps, lambda,
+                                       p_mass, plogp, kernel);
     }
+    const NumericMatrix raw_force(force);
+    const NumericMatrix raw_log_force(log_force);
+    for (std::size_t i = 0; i < n; ++i) {
+      for (std::size_t axis = 0; axis < 2; ++axis) {
+        rows[i].force[axis] = -raw_force(i, axis);
+        rows[i].log_force[axis] = -raw_log_force(i, axis);
+      }
+    }
+    return mixed_kl_from_sums<true>(indices, indptr, log_ratio, p_excess, Y,
+                                    center, rows, Z, n_threads, eps, lambda,
+                                    p_mass, plogp, kernel);
+  };
+  if (gaussian) {
+    return evaluate(GaussianKernel{});
   }
-  return mixed_kl_from_sums<true>(indices, indptr, log_ratio, p_excess, Y,
-                                  center, rows, Z, n_threads, eps, lambda,
-                                  p_mass, plogp, GaussianKernel{});
+  return evaluate(CauchyKernel{});
 }
 
 // [[Rcpp::export]]

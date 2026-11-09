@@ -284,25 +284,25 @@ test_that("exact Barnes-Hut mixed KL matches dense with an input floor", {
   local_mocked_bindings(get_nn = function(...) stop("neighbor search ran"))
 
   for (eps in c(.Machine$double.eps, 1e-3)) {
-    reverse_kl <- bhrklsne(perplexity = 3, theta = 0, eps = eps)
-    reverse_kl$neighbors <- fixture$graph
-    costs <- c(
-      list(cost_init(reverse_kl, fixture$X, max_iter = 1)),
+    cases <- c(
+      list(list("rklsne")),
       lapply(c(0, 0.5, 1), function(lambda) {
-        smallvis_run(
-          fixture$X,
-          method = list("snerv", lambda = lambda),
-          bh = TRUE,
-          neighbors = fixture$graph,
-          perplexity = 3,
-          theta = 0,
-          eps = eps,
-          prepare_only = TRUE,
-          epoch_callback = FALSE,
-          verbose = FALSE
-        )$cost_fn
+        list("snerv", lambda = lambda)
       })
     )
+    costs <- lapply(cases, function(method) {
+      smallvis_run(
+        fixture$X,
+        method = c(method, list(repulsion = "bh")),
+        neighbors = fixture$graph,
+        perplexity = 3,
+        theta = 0,
+        eps = eps,
+        prepare_only = TRUE,
+        epoch_callback = FALSE,
+        verbose = FALSE
+      )$cost_fn
+    })
     for (i in seq_along(costs)) {
       cost <- costs[[i]]
       gaussian <- i != 1L

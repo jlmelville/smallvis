@@ -114,6 +114,29 @@ fft_normalized_sne <- function(
   use_fft_cost(cost, fft)
 }
 
+fft_rklsne <- function(
+  perplexity,
+  inp_kernel = "nngaussian",
+  symmetrize = "symmetric",
+  eps = .Machine$double.eps,
+  n_threads = 0,
+  nn = "approximate",
+  fft_backend = "stats",
+  grid_interval = 1
+) {
+  fft_mixed_kl(
+    perplexity,
+    inp_kernel,
+    symmetrize,
+    eps,
+    n_threads,
+    nn,
+    lambda = 0,
+    gaussian = FALSE,
+    fft = fft_settings(fft_backend, grid_interval, n_threads)
+  )
+}
+
 fft_snerv <- function(
   perplexity,
   lambda = 0.9,
@@ -125,10 +148,39 @@ fft_snerv <- function(
   fft_backend = "stats",
   grid_interval = 1
 ) {
-  fft <- fft_settings(fft_backend, grid_interval, n_threads)
+  fft_mixed_kl(
+    perplexity,
+    inp_kernel,
+    symmetrize,
+    eps,
+    n_threads,
+    nn,
+    lambda,
+    gaussian = TRUE,
+    fft = fft_settings(fft_backend, grid_interval, n_threads)
+  )
+}
+
+fft_mixed_kl <- function(
+  perplexity,
+  inp_kernel,
+  symmetrize,
+  eps,
+  n_threads,
+  nn,
+  lambda,
+  gaussian,
+  fft
+) {
+  alpha <- if (gaussian) 0 else 1
   evaluate <- function(cost, Y, gradient) {
     P <- cost$P
-    sums <- fft$sums(Y, mass_only = !gradient, alpha = 0, log_weighted = TRUE)
+    sums <- fft$sums(
+      Y,
+      mass_only = !gradient,
+      alpha = alpha,
+      log_weighted = TRUE
+    )
     if (is.null(sums)) {
       return(bh_mixed_kl_cpp(
         P@i,
@@ -142,13 +194,13 @@ fft_snerv <- function(
         lambda,
         cost$p_mass,
         cost$plogp,
-        TRUE,
+        gaussian,
         gradient
       ))
     }
     force <- if (gradient) sums$force else NULL
     log_force <- if (gradient) sums$log_force else NULL
-    fft_snerv_cpp(
+    fft_mixed_kl_cpp(
       P@i,
       P@p,
       cost$log_ratio,
@@ -162,7 +214,8 @@ fft_snerv <- function(
       eps,
       lambda,
       cost$p_mass,
-      cost$plogp
+      cost$plogp,
+      gaussian
     )
   }
   cost <- sparse_mixed_kl_cost(

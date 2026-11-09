@@ -210,7 +210,7 @@
 #' \code{"fft"} (FFT interpolation). The selector also works with
 #' \code{"tee"}, \code{"jssne"}, \code{"hlsne"}, \code{"chsne"},
 #' \code{"hssne"}, \code{"dhssne"}, \code{"ssne"}, \code{"snerv"},
-#' \code{"largevis"}, \code{"tumap"}, and \code{"umap"}.
+#' \code{"rklsne"}, \code{"largevis"}, \code{"tumap"}, and \code{"umap"}.
 #' \code{bh = TRUE} also selects Barnes-Hut
 #' and conflicts with an explicit choice of exact or FFT repulsion.
 #' \code{theta} applies to Barnes-Hut, where zero evaluates the repulsive
@@ -227,8 +227,8 @@
 #' FFT requires two output dimensions and a gradient-only optimizer such as
 #' the default \code{"dbd"}. It reports an approximate scalar objective.
 #' FFT sparse edge calculations run in native code and use \code{n_threads}.
-#' The Gaussian and heavy-tailed SNE methods use exact repulsion if the
-#' off-diagonal normalization is too small to resolve on the FFT grid.
+#' SSNE, HSSNE, dynamic HSSNE, SNeRV, and reverse-KL SNE use exact repulsion
+#' if the off-diagonal normalization is too small to resolve on the FFT grid.
 #' LargeVis, t-UMAP, and UMAP smooth the kernel for the grid and add a direct
 #' correction for nearby pairs. The correction can take longer in crowded
 #' layouts.
@@ -644,8 +644,8 @@
 #'   distinct coordinates as separate groups.
 #'   Barnes-Hut SSNE uses unfloored Gaussian output affinities and ignores
 #'   \code{eps}.
-#'   Barnes-Hut SNeRV uses a positive \code{eps} to floor the input
-#'   affinities and leaves the output affinities unfloored.
+#'   Barnes-Hut and FFT SNeRV and reverse-KL SNE use a positive \code{eps}
+#'   to floor the input affinities and leave the output affinities unfloored.
 #'   Barnes-Hut UMAP, t-UMAP, and Jensen-Shannon SNE require a positive
 #'   epsilon.
 #' @param theta Barnes-Hut opening threshold, default \code{0.5}. Smaller
@@ -654,11 +654,11 @@
 #'   \code{method = list("tsne", repulsion = "bh")}.
 #' @param bh If \code{TRUE}, approximate repulsive interactions with Barnes-Hut
 #'   (van der Maaten, 2014). Available for \code{"tsne"}, \code{"ssne"},
-#'   \code{"hssne"}, \code{"dhssne"}, \code{"snerv"}, \code{"tee"},
-#'   \code{"largevis"}, \code{"umap"}, \code{"tumap"}, \code{"jssne"},
-#'   \code{"hlsne"}, and \code{"chsne"} in two dimensions.
-#'   SSNE, HSSNE, dynamic HSSNE, SNeRV, TEE, LargeVis, t-UMAP, Jensen-Shannon
-#'   SNE, Hellinger SNE, and chi-squared SNE use
+#'   \code{"hssne"}, \code{"dhssne"}, \code{"snerv"}, \code{"rklsne"},
+#'   \code{"tee"}, \code{"largevis"}, \code{"umap"}, \code{"tumap"},
+#'   \code{"jssne"}, \code{"hlsne"}, and \code{"chsne"} in two dimensions.
+#'   SSNE, HSSNE, dynamic HSSNE, SNeRV, reverse-KL SNE, TEE, LargeVis, t-UMAP,
+#'   Jensen-Shannon SNE, Hellinger SNE, and chi-squared SNE use
 #'   \code{inp_kernel = "nngaussian"} by default and also accept \code{"knn"}.
 #'   For UMAP, the input kernel is \code{"skd"} (smooth kNN affinities).
 #'   t-UMAP also accepts \code{"skd"}. These modes use approximate neighbor
@@ -894,10 +894,10 @@
 #' # FFT t-SNE with the default FFT backend
 #' fft_iris <- smallvis(iris, method = list("tsne", repulsion = "fft"))
 #'
-#' # Settings for a large fit with saved neighbors and fftwtools installed
+#' # Settings for a large fit with saved neighbors and zufft installed
 #' # smallvis(X, neighbors = nn,
 #' #          method = list("tsne", repulsion = "fft",
-#' #                        fft_backend = "fftwtools"),
+#' #                        fft_backend = "zufft"),
 #' #          n_threads = 4, Y_init = "spca", eta = "optsne",
 #' #          exaggeration_factor = 12, stop_lying_iter = 250, max_iter = 500)
 #'
@@ -1923,6 +1923,7 @@ create_cost <- function(
       "hssne",
       "dhssne",
       "snerv",
+      "rklsne",
       "tee",
       "largevis",
       "umap",

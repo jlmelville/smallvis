@@ -218,15 +218,16 @@ fft_sne_sums <- function(
   fields <- if (mass_only) 1L else seq_len(3L)
   # The Gaussian force and mass use the same kernel and spectrum.
   mass <- evaluate(w, if (alpha == 0) fields else 1L)
-  Z <- if (alpha == 1) {
-    sum(mass[, 1L]) - n
-  } else {
+  correct_self <- alpha != 1 || log_weighted
+  Z <- if (correct_self) {
     sum(mass[, 1L] - fft_self_mass(grid, w))
+  } else {
+    sum(mass[, 1L]) - n
   }
 
   # When the off-diagonal mass is tiny relative to the self contribution,
   # the FFT roundoff is amplified by normalization. Use the exact evaluator.
-  if (alpha != 1 && (!is.finite(Z) || Z <= n * sqrt(.Machine$double.eps))) {
+  if (correct_self && (!is.finite(Z) || Z <= n * sqrt(.Machine$double.eps))) {
     return(NULL)
   }
   if (!is.finite(Z) || Z <= 0) {
@@ -247,10 +248,16 @@ fft_sne_sums <- function(
   if (log_weighted) {
     log_kernel <- w * (if (alpha == 1) log(w) else log_w)
     log_kernel[w == 0] <- 0
-    log_sums <- evaluate(log_kernel, fields)
+    log_sums <- evaluate(log_kernel, if (alpha == 0) fields else 1L)
     result$log_mass <- log_sums[, 1L] - fft_self_mass(grid, log_kernel)
     if (!mass_only) {
-      result$log_force <- fft_grid_force(grid, log_sums)
+      # The log-weighted force also includes the slope of the log kernel.
+      log_phi <- if (alpha == 0) {
+        log_sums
+      } else {
+        evaluate(log_kernel / (1 + alpha * grid$d2), fields)
+      }
+      result$log_force <- fft_grid_force(grid, log_phi)
     }
   }
   result

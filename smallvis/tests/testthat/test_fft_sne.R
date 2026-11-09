@@ -42,6 +42,7 @@ test_that("FFT SNE methods match exact BH on the same sparse affinities", {
     list("hssne", alpha = 1),
     list("dhssne", alpha = 0.5),
     list("ssne"),
+    list("rklsne"),
     list("snerv", lambda = 0),
     list("snerv", lambda = 0.9),
     list("snerv", lambda = 1)
