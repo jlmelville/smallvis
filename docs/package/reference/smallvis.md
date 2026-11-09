@@ -296,14 +296,14 @@ smallvis(
 
   If `TRUE`, approximate repulsive interactions with Barnes-Hut (van der
   Maaten, 2014). Available for `"tsne"`, `"ssne"`, `"hssne"`,
-  `"dhssne"`, `"snerv"`, `"tee"`, `"largevis"`, `"umap"`, `"tumap"`,
-  `"jssne"`, `"hlsne"`, and `"chsne"` in two dimensions. SSNE, HSSNE,
-  dynamic HSSNE, SNeRV, TEE, LargeVis, t-UMAP, Jensen-Shannon SNE,
-  Hellinger SNE, and chi-squared SNE use `inp_kernel = "nngaussian"` by
-  default and also accept `"knn"`. For UMAP, the input kernel is `"skd"`
-  (smooth kNN affinities). t-UMAP also accepts `"skd"`. These modes use
-  approximate neighbor search by default. Use `nn = "exact"` for exact
-  neighbor lookup.
+  `"dhssne"`, `"snerv"`, `"rklsne"`, `"tee"`, `"largevis"`, `"umap"`,
+  `"tumap"`, `"jssne"`, `"hlsne"`, and `"chsne"` in two dimensions.
+  SSNE, HSSNE, dynamic HSSNE, SNeRV, reverse-KL SNE, TEE, LargeVis,
+  t-UMAP, Jensen-Shannon SNE, Hellinger SNE, and chi-squared SNE use
+  `inp_kernel = "nngaussian"` by default and also accept `"knn"`. For
+  UMAP, the input kernel is `"skd"` (smooth kNN affinities). t-UMAP also
+  accepts `"skd"`. These modes use approximate neighbor search by
+  default. Use `nn = "exact"` for exact neighbor lookup.
 
 - theta:
 
@@ -323,10 +323,10 @@ smallvis(
   uses only the coordinates. When floating-point precision limits
   subdivision, a terminal leaf stores distinct coordinates as separate
   groups. Barnes-Hut SSNE uses unfloored Gaussian output affinities and
-  ignores `eps`. Barnes-Hut SNeRV uses a positive `eps` to floor the
-  input affinities and leaves the output affinities unfloored.
-  Barnes-Hut UMAP, t-UMAP, and Jensen-Shannon SNE require a positive
-  epsilon.
+  ignores `eps`. Barnes-Hut and FFT SNeRV and reverse-KL SNE use a
+  positive `eps` to floor the input affinities and leave the output
+  affinities unfloored. Barnes-Hut UMAP, t-UMAP, and Jensen-Shannon SNE
+  require a positive epsilon.
 
 - inp_kernel:
 
@@ -716,39 +716,44 @@ parameters.
 Use `method = list("tsne", repulsion = ...)` to select `"exact"` (the
 default all-pairs calculation), `"bh"` (Barnes-Hut), or `"fft"` (FFT
 interpolation). The selector also works with `"tee"`, `"jssne"`,
-`"hlsne"`, `"chsne"`, `"hssne"`, `"dhssne"`, `"ssne"`, and `"snerv"`.
-`bh = TRUE` also selects Barnes-Hut and conflicts with an explicit
-choice of exact or FFT repulsion. `theta` applies to Barnes-Hut, where
-zero evaluates the repulsive sum exactly for the chosen input
-affinities.
+`"hlsne"`, `"chsne"`, `"hssne"`, `"dhssne"`, `"ssne"`, `"snerv"`,
+`"rklsne"`, `"largevis"`, `"tumap"`, and `"umap"`. `bh = TRUE` also
+selects Barnes-Hut and conflicts with an explicit choice of exact or FFT
+repulsion. `theta` applies to Barnes-Hut, where zero evaluates the
+repulsive sum exactly for the chosen input affinities.
 
 Repulsion controls the output calculation. Use `inp_kernel` and
 `neighbors` to control the input affinities. Exact t-SNE defaults to
 `"gaussian"`. For these methods, Barnes-Hut and FFT default to
-`"nngaussian"` and approximate neighbor search. FFT also accepts
-`"knn"`. Compare the three repulsion methods on the same input
-affinities by setting `inp_kernel` and supplying the same neighbors to
-each.
+`"nngaussian"` and approximate neighbor search. UMAP uses `"skd"` for
+both approximate repulsion methods. Compare the three repulsion methods
+on the same input affinities by setting `inp_kernel` and supplying the
+same neighbors to each.
 
 FFT requires two output dimensions and a gradient-only optimizer such as
 the default `"dbd"`. It reports an approximate scalar objective. FFT
-sparse edge calculations run in native code and use `n_threads`. The
-Gaussian and heavy-tailed SNE methods use exact repulsion if the
-off-diagonal normalization is too small to resolve on the FFT grid. The
-following options go in the `method` list:
+sparse edge calculations run in native code and use `n_threads`. SSNE,
+HSSNE, dynamic HSSNE, SNeRV, and reverse-KL SNE use exact repulsion if
+the off-diagonal normalization is too small to resolve on the FFT grid.
+LargeVis, t-UMAP, and UMAP smooth the kernel for the grid and add a
+direct correction for nearby pairs. The correction can take longer in
+crowded layouts. The following options go in the `method` list:
 
 - `fft_backend`:
 
   `"stats"` (default) uses [`fft`](https://rdrr.io/r/stats/fft.html).
-  `"fftwtools"` uses the optional fftwtools package.
+  `"fftwtools"` uses the optional fftwtools package. `"zufft"` uses
+  real-valued transforms from the optional zufft package and uses
+  `n_threads` to set the number of FFT workers, with a minimum of one.
 
 - `grid_interval`:
 
   A finite positive target grid cell width in embedding units,
   default 1. There are three interpolation nodes per axis in each cell
   and at least 50 cells per axis. Increasing the interval can reduce
-  grid work at the cost of accuracy. The fit stops before allocating a
-  padded grid larger than four million cells.
+  grid work at the cost of accuracy. The FFT is padded to a fast size
+  without moving the interpolation nodes. The fit stops before
+  allocating a padded grid larger than four million cells.
 
 ## Output initialization
 
@@ -1248,10 +1253,10 @@ tsne_late_ex <- smallvis(iris, exaggeration_factor = 4, stop_lying_iter = 100,
 # FFT t-SNE with the default FFT backend
 fft_iris <- smallvis(iris, method = list("tsne", repulsion = "fft"))
 
-# Settings for a large fit with saved neighbors and fftwtools installed
+# Settings for a large fit with saved neighbors and zufft installed
 # smallvis(X, neighbors = nn,
 #          method = list("tsne", repulsion = "fft",
-#                        fft_backend = "fftwtools"),
+#                        fft_backend = "zufft"),
 #          n_threads = 4, Y_init = "spca", eta = "optsne",
 #          exaggeration_factor = 12, stop_lying_iter = 250, max_iter = 500)
 

@@ -339,11 +339,11 @@ steps.</p></dd>
 <dt id="arg-bh">bh<a class="anchor" aria-label="anchor" href="#arg-bh"></a></dt>
 <dd><p>If <code>TRUE</code>, approximate repulsive interactions with Barnes-Hut
 (van der Maaten, 2014). Available for <code>"tsne"</code>, <code>"ssne"</code>,
-<code>"hssne"</code>, <code>"dhssne"</code>, <code>"snerv"</code>, <code>"tee"</code>,
-<code>"largevis"</code>, <code>"umap"</code>, <code>"tumap"</code>, <code>"jssne"</code>,
-<code>"hlsne"</code>, and <code>"chsne"</code> in two dimensions.
-SSNE, HSSNE, dynamic HSSNE, SNeRV, TEE, LargeVis, t-UMAP, Jensen-Shannon
-SNE, Hellinger SNE, and chi-squared SNE use
+<code>"hssne"</code>, <code>"dhssne"</code>, <code>"snerv"</code>, <code>"rklsne"</code>,
+<code>"tee"</code>, <code>"largevis"</code>, <code>"umap"</code>, <code>"tumap"</code>,
+<code>"jssne"</code>, <code>"hlsne"</code>, and <code>"chsne"</code> in two dimensions.
+SSNE, HSSNE, dynamic HSSNE, SNeRV, reverse-KL SNE, TEE, LargeVis, t-UMAP,
+Jensen-Shannon SNE, Hellinger SNE, and chi-squared SNE use
 <code>inp_kernel = "nngaussian"</code> by default and also accept <code>"knn"</code>.
 For UMAP, the input kernel is <code>"skd"</code> (smooth kNN affinities).
 t-UMAP also accepts <code>"skd"</code>. These modes use approximate neighbor
@@ -369,8 +369,8 @@ When floating-point precision limits subdivision, a terminal leaf stores
 distinct coordinates as separate groups.
 Barnes-Hut SSNE uses unfloored Gaussian output affinities and ignores
 <code>eps</code>.
-Barnes-Hut SNeRV uses a positive <code>eps</code> to floor the input
-affinities and leaves the output affinities unfloored.
+Barnes-Hut and FFT SNeRV and reverse-KL SNE use a positive <code>eps</code>
+to floor the input affinities and leave the output affinities unfloored.
 Barnes-Hut UMAP, t-UMAP, and Jensen-Shannon SNE require a positive
 epsilon.</p></dd>
 
@@ -674,7 +674,8 @@ parameters.</p>
 (the default all-pairs calculation), <code>"bh"</code> (Barnes-Hut), or
 <code>"fft"</code> (FFT interpolation). The selector also works with
 <code>"tee"</code>, <code>"jssne"</code>, <code>"hlsne"</code>, <code>"chsne"</code>,
-<code>"hssne"</code>, <code>"dhssne"</code>, <code>"ssne"</code>, and <code>"snerv"</code>.
+<code>"hssne"</code>, <code>"dhssne"</code>, <code>"ssne"</code>, <code>"snerv"</code>,
+<code>"rklsne"</code>, <code>"largevis"</code>, <code>"tumap"</code>, and <code>"umap"</code>.
 <code>bh = TRUE</code> also selects Barnes-Hut
 and conflicts with an explicit choice of exact or FFT repulsion.
 <code>theta</code> applies to Barnes-Hut, where zero evaluates the repulsive
@@ -682,26 +683,32 @@ sum exactly for the chosen input affinities.</p>
 <p>Repulsion controls the output calculation. Use <code>inp_kernel</code> and
 <code>neighbors</code> to control the input affinities. Exact t-SNE defaults to
 <code>"gaussian"</code>. For these methods, Barnes-Hut and FFT default to
-<code>"nngaussian"</code> and
-approximate neighbor search. FFT also accepts <code>"knn"</code>. Compare the
+<code>"nngaussian"</code> and approximate neighbor search. UMAP uses
+<code>"skd"</code> for both approximate repulsion methods. Compare the
 three repulsion methods on the same input affinities by setting
 <code>inp_kernel</code> and supplying the same neighbors to each.</p>
 <p>FFT requires two output dimensions and a gradient-only optimizer such as
 the default <code>"dbd"</code>. It reports an approximate scalar objective.
 FFT sparse edge calculations run in native code and use <code>n_threads</code>.
-The Gaussian and heavy-tailed SNE methods use exact repulsion if the
-off-diagonal normalization is too small to resolve on the FFT grid.
+SSNE, HSSNE, dynamic HSSNE, SNeRV, and reverse-KL SNE use exact repulsion
+if the off-diagonal normalization is too small to resolve on the FFT grid.
+LargeVis, t-UMAP, and UMAP smooth the kernel for the grid and add a direct
+correction for nearby pairs. The correction can take longer in crowded
+layouts.
 The following options go in the <code>method</code> list:</p><dl><dt><code>fft_backend</code></dt>
 <dd><p><code>"stats"</code> (default) uses
   <code><a href="https://rdrr.io/r/stats/fft.html" class="external-link">fft</a></code>. <code>"fftwtools"</code> uses the optional
-  <span class="pkg">fftwtools</span> package.</p></dd>
+  <span class="pkg">fftwtools</span> package. <code>"zufft"</code> uses real-valued transforms
+  from the optional <span class="pkg">zufft</span> package and uses <code>n_threads</code>
+  to set the number of FFT workers, with a minimum of one.</p></dd>
 
   <dt><code>grid_interval</code></dt>
 <dd><p>A finite positive target grid cell width in
   embedding units, default 1. There are three interpolation nodes per
   axis in each cell and at least 50 cells per axis. Increasing the
-  interval can reduce grid work at the cost of accuracy. The fit stops
-  before allocating a padded grid larger than four million cells.</p></dd>
+  interval can reduce grid work at the cost of accuracy. The FFT is
+  padded to a fast size without moving the interpolation nodes. The fit
+  stops before allocating a padded grid larger than four million cells.</p></dd>
 
 
 </dl></div>
@@ -1143,10 +1150,10 @@ Using global t-SNE to preserve inter-cluster data structure.
 <span class="r-in"><span><span class="co"># FFT t-SNE with the default FFT backend</span></span></span>
 <span class="r-in"><span><span class="va">fft_iris</span> <span class="op">&lt;-</span> <span class="fu">smallvis</span><span class="op">(</span><span class="va">iris</span>, method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"tsne"</span>, repulsion <span class="op">=</span> <span class="st">"fft"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Settings for a large fit with saved neighbors and fftwtools installed</span></span></span>
+<span class="r-in"><span><span class="co"># Settings for a large fit with saved neighbors and zufft installed</span></span></span>
 <span class="r-in"><span><span class="co"># smallvis(X, neighbors = nn,</span></span></span>
 <span class="r-in"><span><span class="co">#          method = list("tsne", repulsion = "fft",</span></span></span>
-<span class="r-in"><span><span class="co">#                        fft_backend = "fftwtools"),</span></span></span>
+<span class="r-in"><span><span class="co">#                        fft_backend = "zufft"),</span></span></span>
 <span class="r-in"><span><span class="co">#          n_threads = 4, Y_init = "spca", eta = "optsne",</span></span></span>
 <span class="r-in"><span><span class="co">#          exaggeration_factor = 12, stop_lying_iter = 250, max_iter = 500)</span></span></span>
 <span class="r-in"><span></span></span>
