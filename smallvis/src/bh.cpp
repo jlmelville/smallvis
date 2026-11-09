@@ -300,6 +300,32 @@ double bh_score_mass(const smallvis::QuadTree &tree,
   return std::accumulate(sums.begin(), sums.end(), eps);
 }
 
+template <typename Index, typename Kernel>
+double sparse_log_weight_sum(const Index *rows, const Index *offsets,
+                             const double *probabilities,
+                             const std::vector<double> &Y,
+                             std::size_t n_threads, const Kernel &kernel,
+                             double log_offset, double initial) {
+  const std::size_t n = Y.size() / 2;
+  std::vector<double> sums(smallvis::worker_count(n, n_threads), 0.0);
+  smallvis::parallel_for(
+      n, n_threads,
+      [&](std::size_t start, std::size_t end, std::size_t thread_id) {
+        double score = 0.0;
+        for (std::size_t i = start; i < end; ++i) {
+          for (Index k = offsets[i]; k < offsets[i + 1]; ++k) {
+            const std::size_t j = rows[k];
+            const double dx = Y[2 * i] - Y[2 * j];
+            const double dy = Y[2 * i + 1] - Y[2 * j + 1];
+            score += probabilities[k] *
+                     (log_offset + kernel.log_weight(dx * dx + dy * dy));
+          }
+        }
+        sums[thread_id] = score;
+      });
+  return std::accumulate(sums.begin(), sums.end(), initial);
+}
+
 template <typename Kernel>
 double bh_score(const IntegerVector &indices, const IntegerVector &indptr,
                 const NumericVector &P_data, const NumericMatrix &embedding,
@@ -322,23 +348,9 @@ double bh_score(const IntegerVector &indices, const IntegerVector &indptr,
     Z = bh_score_mass(tree, Y, theta, offset, n_threads, kernel, sums);
   }
   const double log_offset = normalize ? -std::log(Z) : 0.0;
-  smallvis::parallel_for(
-      n, n_threads,
-      [&](std::size_t start, std::size_t end, std::size_t thread_id) {
-        double score = 0.0;
-        for (std::size_t i = start; i < end; ++i) {
-          for (std::size_t k = offsets[i]; k < offsets[i + 1]; ++k) {
-            const std::size_t j = rows[k];
-            const double dx = Y[2 * i] - Y[2 * j];
-            const double dy = Y[2 * i + 1] - Y[2 * j + 1];
-            score += probabilities[k] *
-                     (log_offset + kernel.log_weight(dx * dx + dy * dy));
-          }
-        }
-        sums[thread_id] = score;
-      });
-  return std::accumulate(sums.begin(), sums.end(),
-                         normalize ? 0.0 : -repulsion * Z);
+  return sparse_log_weight_sum(rows.data(), offsets.data(),
+                               probabilities.data(), Y, n_threads, kernel,
+                               log_offset, normalize ? 0.0 : -repulsion * Z);
 }
 
 enum class Divergence { JensenShannon, Hellinger, ChiSquared };
@@ -635,6 +647,134 @@ SEXP bh_mixed_kl(const IntegerVector &indices, const IntegerVector &indptr,
                                       p_mass, plogp, kernel);
 }
 
+template <typename Evaluate>
+auto with_bernoulli_kernel(const std::string &method, double eps, double gr_eps,
+                           double a, double b, Evaluate evaluate) {
+  if (method == "largevis") {
+    return evaluate(LargeVisKernel(gr_eps, eps));
+  }
+  if (method == "tumap") {
+    return evaluate(UmapKernel<true>(1.0, 1.0, gr_eps, eps));
+  }
+  if (method == "umap") {
+    return evaluate(UmapKernel<false>(a, b, gr_eps, eps));
+  }
+  stop("Unknown FFT Bernoulli kernel");
+}
+
+// Smooth the radial kernel across the cutoff with a quintic transition.
+// The local correction adds back exactly the part removed by this split.
+template <typename Kernel> struct BernoulliGridKernel {
+  BernoulliGridKernel(const Kernel &kernel, double radius, bool gradient)
+      : kernel(kernel), cutoff2(radius * radius), gradient(gradient),
+        at_cutoff(radius > 0.0 ? exact(cutoff2) : 0.0) {}
+
+  double exact(double d2) const {
+    if (gradient) {
+      const double w = kernel.weight(d2);
+      return kernel.repulsive_force(d2, w, w);
+    }
+    return kernel.score_mass(1, d2);
+  }
+
+  double near_fraction(double d2) const {
+    const double t = d2 / cutoff2;
+    const double complement = 1.0 - t;
+    return complement * complement * complement * (1.0 + t * (3.0 + 6.0 * t));
+  }
+
+  double smooth(double d2) const {
+    if (d2 >= cutoff2) {
+      return exact(d2);
+    }
+    if (d2 == 0.0) {
+      return at_cutoff;
+    }
+    const double fraction = near_fraction(d2);
+    return at_cutoff * fraction + (1.0 - fraction) * exact(d2);
+  }
+
+  double correction(double d2) const {
+    return near_fraction(d2) * (exact(d2) - at_cutoff);
+  }
+
+  const Kernel &kernel;
+  double cutoff2;
+  bool gradient;
+  double at_cutoff;
+};
+
+// Bucket widths equal the correction radius, so only adjacent buckets can
+// contain interacting pairs. Each worker updates only its own query points.
+template <typename Kernel>
+double bernoulli_near_pairs(const std::vector<double> &Y, double radius,
+                            std::size_t n_threads,
+                            const BernoulliGridKernel<Kernel> &split,
+                            std::vector<double> &gradient) {
+  if (radius == 0.0) {
+    return 0.0;
+  }
+  const std::size_t n = Y.size() / 2;
+  double xmin = Y[0], ymin = Y[1], xmax = xmin, ymax = ymin;
+  for (std::size_t i = 1; i < n; ++i) {
+    xmin = std::min(xmin, Y[2 * i]);
+    xmax = std::max(xmax, Y[2 * i]);
+    ymin = std::min(ymin, Y[2 * i + 1]);
+    ymax = std::max(ymax, Y[2 * i + 1]);
+  }
+  const auto nx = static_cast<std::size_t>((xmax - xmin) / radius) + 1;
+  const auto ny = static_cast<std::size_t>((ymax - ymin) / radius) + 1;
+  std::vector<std::size_t> cell(n), offsets(nx * ny + 1, 0);
+  for (std::size_t i = 0; i < n; ++i) {
+    const auto cx = static_cast<std::size_t>((Y[2 * i] - xmin) / radius);
+    const auto cy = static_cast<std::size_t>((Y[2 * i + 1] - ymin) / radius);
+    cell[i] = cx + nx * cy;
+    ++offsets[cell[i] + 1];
+  }
+  std::partial_sum(offsets.begin(), offsets.end(), offsets.begin());
+  auto next = offsets;
+  std::vector<std::size_t> order(n);
+  for (std::size_t i = 0; i < n; ++i) {
+    order[next[cell[i]]++] = i;
+  }
+
+  std::vector<double> sums(smallvis::worker_count(n, n_threads), 0.0);
+  smallvis::parallel_for(
+      n, n_threads, [&](std::size_t start, std::size_t end, std::size_t tid) {
+        double total = 0.0;
+        for (std::size_t i = start; i < end; ++i) {
+          const auto cx = cell[i] % nx;
+          const auto cy = cell[i] / nx;
+          for (auto y = cy == 0 ? 0 : cy - 1; y < std::min(ny, cy + 2); ++y) {
+            for (auto x = cx == 0 ? 0 : cx - 1; x < std::min(nx, cx + 2); ++x) {
+              const auto bucket = x + nx * y;
+              for (auto k = offsets[bucket]; k < offsets[bucket + 1]; ++k) {
+                const auto j = order[k];
+                if (i == j) {
+                  continue;
+                }
+                const double dx = Y[2 * i] - Y[2 * j];
+                const double dy = Y[2 * i + 1] - Y[2 * j + 1];
+                const double d2 = dx * dx + dy * dy;
+                if (d2 >= split.cutoff2) {
+                  continue;
+                }
+                const double correction = split.correction(d2);
+                if (split.gradient) {
+                  gradient[2 * i] += correction * dx;
+                  gradient[2 * i + 1] += correction * dy;
+                } else {
+                  total += correction;
+                }
+              }
+            }
+          }
+        }
+        sums[tid] = total;
+      });
+  return std::accumulate(sums.begin(), sums.end(), 0.0);
+}
+
 } // namespace
 
 // [[Rcpp::export]]
@@ -788,6 +928,68 @@ double bh_sne_score_cpp(const IntegerVector &indices,
   }
   return bh_score(indices, indptr, P_data, embedding, theta, eps, n_threads,
                   CauchyKernel{}, normalize, lambda);
+}
+
+// [[Rcpp::export(rng = false)]]
+NumericMatrix fft_bernoulli_grid_cpp(const NumericMatrix &d2,
+                                     const std::string &method, double eps,
+                                     double gr_eps, double a, double b,
+                                     double radius, bool gradient,
+                                     std::size_t n_threads) {
+  NumericMatrix values(d2.nrow(), d2.ncol());
+  const double *distance = d2.begin();
+  double *output = values.begin();
+  with_bernoulli_kernel(method, eps, gr_eps, a, b, [&](const auto &kernel) {
+    const BernoulliGridKernel split(kernel, radius, gradient);
+    smallvis::parallel_for(
+        d2.size(), n_threads,
+        [&](std::size_t start, std::size_t end, std::size_t) {
+          for (std::size_t k = start; k < end; ++k) {
+            output[k] = split.smooth(distance[k]);
+          }
+        });
+    return 0;
+  });
+  return values;
+}
+
+// [[Rcpp::export(rng = false)]]
+SEXP fft_bernoulli_finish_cpp(
+    const IntegerVector &indices, const IntegerVector &indptr,
+    const NumericVector &P_data, const NumericMatrix &embedding,
+    Nullable<NumericMatrix> grid_force, double grid_mass,
+    const std::string &method, double eps, double gr_eps, double a, double b,
+    double gamma, double radius, std::size_t n_threads) {
+  const auto Y = as<std::vector<double>>(transpose(embedding));
+  return with_bernoulli_kernel(
+      method, eps, gr_eps, a, b, [&](const auto &kernel) -> SEXP {
+        const bool gradient = grid_force.isNotNull();
+        const BernoulliGridKernel split(kernel, radius, gradient);
+        if (gradient) {
+          const NumericMatrix force(grid_force);
+          auto result = as<std::vector<double>>(transpose(force));
+          bernoulli_near_pairs(Y, radius, n_threads, split, result);
+          for (auto &value : result) {
+            value *= -gamma;
+          }
+          sparse_attraction(indices.begin(), indptr.begin(), P_data.begin(), Y,
+                            n_threads, kernel, result);
+          NumericMatrix gradient(2, embedding.nrow(), result.begin());
+          return transpose(gradient);
+        }
+
+        std::vector<double> unused;
+        const double near_mass =
+            bernoulli_near_pairs(Y, radius, n_threads, split, unused);
+        const double diag = method == "largevis"
+                                ? embedding.nrow() * gamma * std::log1p(eps)
+                                : 0.0;
+        return wrap(sparse_log_weight_sum(indices.begin(), indptr.begin(),
+                                          P_data.begin(), Y, n_threads, kernel,
+                                          0.0,
+                                          -gamma * (grid_mass + near_mass)) +
+                    diag);
+      });
 }
 
 // [[Rcpp::export]]

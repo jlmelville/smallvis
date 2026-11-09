@@ -209,7 +209,8 @@
 #' (the default all-pairs calculation), \code{"bh"} (Barnes-Hut), or
 #' \code{"fft"} (FFT interpolation). The selector also works with
 #' \code{"tee"}, \code{"jssne"}, \code{"hlsne"}, \code{"chsne"},
-#' \code{"hssne"}, \code{"dhssne"}, \code{"ssne"}, and \code{"snerv"}.
+#' \code{"hssne"}, \code{"dhssne"}, \code{"ssne"}, \code{"snerv"},
+#' \code{"largevis"}, \code{"tumap"}, and \code{"umap"}.
 #' \code{bh = TRUE} also selects Barnes-Hut
 #' and conflicts with an explicit choice of exact or FFT repulsion.
 #' \code{theta} applies to Barnes-Hut, where zero evaluates the repulsive
@@ -218,8 +219,8 @@
 #' Repulsion controls the output calculation. Use \code{inp_kernel} and
 #' \code{neighbors} to control the input affinities. Exact t-SNE defaults to
 #' \code{"gaussian"}. For these methods, Barnes-Hut and FFT default to
-#' \code{"nngaussian"} and
-#' approximate neighbor search. FFT also accepts \code{"knn"}. Compare the
+#' \code{"nngaussian"} and approximate neighbor search. UMAP uses
+#' \code{"skd"} for both approximate repulsion methods. Compare the
 #' three repulsion methods on the same input affinities by setting
 #' \code{inp_kernel} and supplying the same neighbors to each.
 #'
@@ -228,6 +229,9 @@
 #' FFT sparse edge calculations run in native code and use \code{n_threads}.
 #' The Gaussian and heavy-tailed SNE methods use exact repulsion if the
 #' off-diagonal normalization is too small to resolve on the FFT grid.
+#' LargeVis, t-UMAP, and UMAP smooth the kernel for the grid and add a direct
+#' correction for nearby pairs. The correction can take longer in crowded
+#' layouts.
 #' The following options go in the \code{method} list:
 #' \describe{
 #'   \item{\code{fft_backend}}{\code{"stats"} (default) uses
@@ -1910,18 +1914,21 @@ create_cost <- function(
       }
     }
     method <- match.arg(tolower(method), method_names)
-    fft_methods <- c(
+    bh_methods <- c(
       "tsne",
-      "tee",
-      "jssne",
-      "hlsne",
-      "chsne",
+      "ssne",
       "hssne",
       "dhssne",
-      "ssne",
-      "snerv"
+      "snerv",
+      "tee",
+      "largevis",
+      "umap",
+      "tumap",
+      "jssne",
+      "hlsne",
+      "chsne"
     )
-    if (method %in% fft_methods && "repulsion" %in% names(methodlist)) {
+    if (method %in% bh_methods && "repulsion" %in% names(methodlist)) {
       repulsion <- methodlist$repulsion
       if (
         !is.character(repulsion) ||
@@ -1950,20 +1957,6 @@ create_cost <- function(
       }
     }
     if (bh) {
-      bh_methods <- c(
-        "tsne",
-        "ssne",
-        "hssne",
-        "dhssne",
-        "snerv",
-        "tee",
-        "largevis",
-        "umap",
-        "tumap",
-        "jssne",
-        "hlsne",
-        "chsne"
-      )
       if (!method %in% bh_methods) {
         quoted <- sprintf("'%s'", bh_methods)
         stop(

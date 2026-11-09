@@ -145,6 +145,47 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// fft_bernoulli_grid_cpp
+NumericMatrix fft_bernoulli_grid_cpp(const NumericMatrix& d2, const std::string& method, double eps, double gr_eps, double a, double b, double radius, bool gradient, std::size_t n_threads);
+RcppExport SEXP _smallvis_fft_bernoulli_grid_cpp(SEXP d2SEXP, SEXP methodSEXP, SEXP epsSEXP, SEXP gr_epsSEXP, SEXP aSEXP, SEXP bSEXP, SEXP radiusSEXP, SEXP gradientSEXP, SEXP n_threadsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type d2(d2SEXP);
+    Rcpp::traits::input_parameter< const std::string& >::type method(methodSEXP);
+    Rcpp::traits::input_parameter< double >::type eps(epsSEXP);
+    Rcpp::traits::input_parameter< double >::type gr_eps(gr_epsSEXP);
+    Rcpp::traits::input_parameter< double >::type a(aSEXP);
+    Rcpp::traits::input_parameter< double >::type b(bSEXP);
+    Rcpp::traits::input_parameter< double >::type radius(radiusSEXP);
+    Rcpp::traits::input_parameter< bool >::type gradient(gradientSEXP);
+    Rcpp::traits::input_parameter< std::size_t >::type n_threads(n_threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(fft_bernoulli_grid_cpp(d2, method, eps, gr_eps, a, b, radius, gradient, n_threads));
+    return rcpp_result_gen;
+END_RCPP
+}
+// fft_bernoulli_finish_cpp
+SEXP fft_bernoulli_finish_cpp(const IntegerVector& indices, const IntegerVector& indptr, const NumericVector& P_data, const NumericMatrix& embedding, Nullable<NumericMatrix> grid_force, double grid_mass, const std::string& method, double eps, double gr_eps, double a, double b, double gamma, double radius, std::size_t n_threads);
+RcppExport SEXP _smallvis_fft_bernoulli_finish_cpp(SEXP indicesSEXP, SEXP indptrSEXP, SEXP P_dataSEXP, SEXP embeddingSEXP, SEXP grid_forceSEXP, SEXP grid_massSEXP, SEXP methodSEXP, SEXP epsSEXP, SEXP gr_epsSEXP, SEXP aSEXP, SEXP bSEXP, SEXP gammaSEXP, SEXP radiusSEXP, SEXP n_threadsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< const IntegerVector& >::type indices(indicesSEXP);
+    Rcpp::traits::input_parameter< const IntegerVector& >::type indptr(indptrSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type P_data(P_dataSEXP);
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type embedding(embeddingSEXP);
+    Rcpp::traits::input_parameter< Nullable<NumericMatrix> >::type grid_force(grid_forceSEXP);
+    Rcpp::traits::input_parameter< double >::type grid_mass(grid_massSEXP);
+    Rcpp::traits::input_parameter< const std::string& >::type method(methodSEXP);
+    Rcpp::traits::input_parameter< double >::type eps(epsSEXP);
+    Rcpp::traits::input_parameter< double >::type gr_eps(gr_epsSEXP);
+    Rcpp::traits::input_parameter< double >::type a(aSEXP);
+    Rcpp::traits::input_parameter< double >::type b(bSEXP);
+    Rcpp::traits::input_parameter< double >::type gamma(gammaSEXP);
+    Rcpp::traits::input_parameter< double >::type radius(radiusSEXP);
+    Rcpp::traits::input_parameter< std::size_t >::type n_threads(n_threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(fft_bernoulli_finish_cpp(indices, indptr, P_data, embedding, grid_force, grid_mass, method, eps, gr_eps, a, b, gamma, radius, n_threads));
+    return rcpp_result_gen;
+END_RCPP
+}
 // bh_largevis_gradient_cpp
 NumericMatrix bh_largevis_gradient_cpp(const IntegerVector& indices, const IntegerVector& indptr, const NumericVector& P_data, const NumericMatrix& embedding, double theta, int n_threads, double gamma, double gr_eps);
 RcppExport SEXP _smallvis_bh_largevis_gradient_cpp(SEXP indicesSEXP, SEXP indptrSEXP, SEXP P_dataSEXP, SEXP embeddingSEXP, SEXP thetaSEXP, SEXP n_threadsSEXP, SEXP gammaSEXP, SEXP gr_epsSEXP) {
@@ -475,6 +516,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_smallvis_bh_plogq_cpp", (DL_FUNC) &_smallvis_bh_plogq_cpp, 7},
     {"_smallvis_bh_sne_gradient_cpp", (DL_FUNC) &_smallvis_bh_sne_gradient_cpp, 10},
     {"_smallvis_bh_sne_score_cpp", (DL_FUNC) &_smallvis_bh_sne_score_cpp, 10},
+    {"_smallvis_fft_bernoulli_grid_cpp", (DL_FUNC) &_smallvis_fft_bernoulli_grid_cpp, 9},
+    {"_smallvis_fft_bernoulli_finish_cpp", (DL_FUNC) &_smallvis_fft_bernoulli_finish_cpp, 14},
     {"_smallvis_bh_largevis_gradient_cpp", (DL_FUNC) &_smallvis_bh_largevis_gradient_cpp, 8},
     {"_smallvis_bh_largevis_score_cpp", (DL_FUNC) &_smallvis_bh_largevis_score_cpp, 8},
     {"_smallvis_bh_tumap_gradient_cpp", (DL_FUNC) &_smallvis_bh_tumap_gradient_cpp, 8},

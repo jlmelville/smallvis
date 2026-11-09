@@ -29,6 +29,14 @@ bh_sne_score_cpp <- function(indices, indptr, P_data, embedding, theta, eps, n_t
     .Call(`_smallvis_bh_sne_score_cpp`, indices, indptr, P_data, embedding, theta, eps, n_threads, alpha, normalize, lambda)
 }
 
+fft_bernoulli_grid_cpp <- function(d2, method, eps, gr_eps, a, b, radius, gradient, n_threads) {
+    .Call(`_smallvis_fft_bernoulli_grid_cpp`, d2, method, eps, gr_eps, a, b, radius, gradient, n_threads)
+}
+
+fft_bernoulli_finish_cpp <- function(indices, indptr, P_data, embedding, grid_force, grid_mass, method, eps, gr_eps, a, b, gamma, radius, n_threads) {
+    .Call(`_smallvis_fft_bernoulli_finish_cpp`, indices, indptr, P_data, embedding, grid_force, grid_mass, method, eps, gr_eps, a, b, gamma, radius, n_threads)
+}
+
 bh_largevis_gradient_cpp <- function(indices, indptr, P_data, embedding, theta, n_threads, gamma, gr_eps) {
     .Call(`_smallvis_bh_largevis_gradient_cpp`, indices, indptr, P_data, embedding, theta, n_threads, gamma, gr_eps)
 }

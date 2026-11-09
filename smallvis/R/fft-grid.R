@@ -26,6 +26,8 @@ fft_settings <- function(fft_backend, grid_interval) {
 
   list(
     backend = fft_backend,
+    grid_interval = grid_interval,
+    transform = transform,
     sums = function(Y, mass_only = FALSE, alpha = 1, log_weighted = FALSE) {
       fft_sne_sums(Y, grid_interval, transform, mass_only, alpha, log_weighted)
     }
@@ -123,6 +125,7 @@ fft_sne_grid <- function(Y, grid_interval) {
     S = S,
     weights = weights,
     side = side,
+    width = width,
     d2 = outer(d2, d2, "+")
   )
 }
@@ -136,6 +139,33 @@ fft_self_mass <- function(grid, kernel) {
   dy <- outer(sy, sy, "-") %% grid$side
   stencil <- matrix(kernel[1 + dx + grid$side * dy], 9L, 9L)
   rowSums((grid$weights %*% stencil) * grid$weights)
+}
+
+fft_grid_convolver <- function(grid, transform, mass_only) {
+  grid_size <- grid$side^2
+  dims <- rep(grid$side, 2L)
+  XY <- grid$XY
+  charge <- if (mass_only) matrix(1, nrow(XY), 1L) else cbind(1, XY)
+  grid_charge <- as.matrix(grid$S %*% charge)
+  function(kernel, fields) {
+    spectrum <- transform(kernel)
+    spatial <- vapply(
+      fields,
+      function(j) {
+        inverse <- transform(
+          transform(array(grid_charge[, j], dims)) * spectrum,
+          inverse = TRUE
+        )
+        as.vector(Re(inverse) / grid_size)
+      },
+      numeric(grid_size)
+    )
+    as.matrix(Matrix::crossprod(grid$S, spatial))
+  }
+}
+
+fft_grid_force <- function(grid, phi) {
+  grid$XY * phi[, 1L] - phi[, 2:3]
 }
 
 fft_sne_sums <- function(
@@ -157,27 +187,7 @@ fft_sne_sums <- function(
     ))
   }
 
-  grid_size <- grid$side^2
-  dims <- rep(grid$side, 2L)
-  XY <- grid$XY
-  charge <- if (mass_only) matrix(1, n, 1L) else cbind(1, XY)
-  grid_charge <- as.matrix(grid$S %*% charge)
-  evaluate <- function(kernel, fields) {
-    spectrum <- transform(kernel)
-    spatial <- vapply(
-      fields,
-      function(j) {
-        inverse <- transform(
-          transform(array(grid_charge[, j], dims)) * spectrum,
-          inverse = TRUE
-        )
-        as.vector(Re(inverse) / grid_size)
-      },
-      numeric(grid_size)
-    )
-    as.matrix(Matrix::crossprod(grid$S, spatial))
-  }
-  raw_force <- function(phi) XY * phi[, 1L] - phi[, 2:3]
+  evaluate <- fft_grid_convolver(grid, transform, mass_only)
 
   if (alpha == 1) {
     w <- 1 / (1 + grid$d2)
@@ -212,7 +222,7 @@ fft_sne_sums <- function(
       force_weight <- if (alpha == 1) w^2 else w / (1 + alpha * grid$d2)
       evaluate(force_weight, fields)
     }
-    result$force <- raw_force(phi)
+    result$force <- fft_grid_force(grid, phi)
   }
   if (log_weighted) {
     log_kernel <- w * (if (alpha == 1) log(w) else log_w)
@@ -220,7 +230,7 @@ fft_sne_sums <- function(
     log_sums <- evaluate(log_kernel, fields)
     result$log_mass <- log_sums[, 1L] - fft_self_mass(grid, log_kernel)
     if (!mass_only) {
-      result$log_force <- raw_force(log_sums)
+      result$log_force <- fft_grid_force(grid, log_sums)
     }
   }
   result
