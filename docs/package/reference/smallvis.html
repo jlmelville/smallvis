@@ -97,7 +97,7 @@ variety of neighbor embedding methods.</p>
 
 <dt id="arg-k">k<a class="anchor" aria-label="anchor" href="#arg-k"></a></dt>
 <dd><p>Number of output dimensions for the embedding. Barnes-Hut and
-FFT t-SNE require <code>k = 2</code>.</p></dd>
+FFT repulsion require <code>k = 2</code>.</p></dd>
 
 
 <dt id="arg-scale">scale<a class="anchor" aria-label="anchor" href="#arg-scale"></a></dt>
@@ -324,7 +324,7 @@ to those value which are returned when this value is <code>TRUE</code>. See the
 0, which means no multi-threading. Mainly affects the calculation of things
 like distance matrices and perplexity calibration if you set
 <code>use_cpp = TRUE</code>. The thread count also applies to neighbor search,
-Barnes-Hut forces, and FFT t-SNE attraction.</p></dd>
+Barnes-Hut forces, and FFT sparse edge calculations.</p></dd>
 
 
 <dt id="arg-use-cpp">use_cpp<a class="anchor" aria-label="anchor" href="#arg-use-cpp"></a></dt>
@@ -666,19 +666,22 @@ to use. Subsequent elements must be named values specifying the parameters.</p>
 parameters.</p>
     </div>
     <div class="section level2">
-    <h2 id="t-sne-repulsion">t-SNE repulsion<a class="anchor" aria-label="anchor" href="#t-sne-repulsion"></a></h2>
+    <h2 id="exact-barnes-hut-and-fft-repulsion">Exact, Barnes-Hut, and FFT repulsion<a class="anchor" aria-label="anchor" href="#exact-barnes-hut-and-fft-repulsion"></a></h2>
 
 
 
 <p>Use <code>method = list("tsne", repulsion = ...)</code> to select <code>"exact"</code>
 (the default all-pairs calculation), <code>"bh"</code> (Barnes-Hut), or
-<code>"fft"</code> (FFT interpolation). <code>bh = TRUE</code> also selects Barnes-Hut
+<code>"fft"</code> (FFT interpolation). The selector also works with
+<code>"tee"</code>, <code>"jssne"</code>, <code>"hlsne"</code>, and <code>"chsne"</code>.
+<code>bh = TRUE</code> also selects Barnes-Hut
 and conflicts with an explicit choice of exact or FFT repulsion.
 <code>theta</code> applies to Barnes-Hut, where zero evaluates the repulsive
 sum exactly for the chosen input affinities.</p>
 <p>Repulsion controls the output calculation. Use <code>inp_kernel</code> and
 <code>neighbors</code> to control the input affinities. Exact t-SNE defaults to
-<code>"gaussian"</code>. Barnes-Hut and FFT default to <code>"nngaussian"</code> and
+<code>"gaussian"</code>. For these methods, Barnes-Hut and FFT default to
+<code>"nngaussian"</code> and
 approximate neighbor search. FFT also accepts <code>"knn"</code>. Compare the
 three repulsion methods on the same input affinities by setting
 <code>inp_kernel</code> and supplying the same neighbors to each.</p>

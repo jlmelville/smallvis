@@ -59,7 +59,7 @@ smallvis(
 - k:
 
   Number of output dimensions for the embedding. Barnes-Hut and FFT
-  t-SNE require `k = 2`.
+  repulsion require `k = 2`.
 
 - scale:
 
@@ -282,7 +282,7 @@ smallvis(
   means no multi-threading. Mainly affects the calculation of things
   like distance matrices and perplexity calibration if you set
   `use_cpp = TRUE`. The thread count also applies to neighbor search,
-  Barnes-Hut forces, and FFT t-SNE attraction.
+  Barnes-Hut forces, and FFT sparse edge calculations.
 
 - use_cpp:
 
@@ -711,21 +711,23 @@ Some parameters are available for all (nor nearly all) methods.
 The examples demonstrate how to use `method` with these optional
 parameters.
 
-## t-SNE repulsion
+## Exact, Barnes-Hut, and FFT repulsion
 
 Use `method = list("tsne", repulsion = ...)` to select `"exact"` (the
 default all-pairs calculation), `"bh"` (Barnes-Hut), or `"fft"` (FFT
-interpolation). `bh = TRUE` also selects Barnes-Hut and conflicts with
-an explicit choice of exact or FFT repulsion. `theta` applies to
-Barnes-Hut, where zero evaluates the repulsive sum exactly for the
-chosen input affinities.
+interpolation). The selector also works with `"tee"`, `"jssne"`,
+`"hlsne"`, and `"chsne"`. `bh = TRUE` also selects Barnes-Hut and
+conflicts with an explicit choice of exact or FFT repulsion. `theta`
+applies to Barnes-Hut, where zero evaluates the repulsive sum exactly
+for the chosen input affinities.
 
 Repulsion controls the output calculation. Use `inp_kernel` and
 `neighbors` to control the input affinities. Exact t-SNE defaults to
-`"gaussian"`. Barnes-Hut and FFT default to `"nngaussian"` and
-approximate neighbor search. FFT also accepts `"knn"`. Compare the three
-repulsion methods on the same input affinities by setting `inp_kernel`
-and supplying the same neighbors to each.
+`"gaussian"`. For these methods, Barnes-Hut and FFT default to
+`"nngaussian"` and approximate neighbor search. FFT also accepts
+`"knn"`. Compare the three repulsion methods on the same input
+affinities by setting `inp_kernel` and supplying the same neighbors to
+each.
 
 FFT requires two output dimensions and a gradient-only optimizer such as
 the default `"dbd"`. It reports an approximate scalar objective. FFT
