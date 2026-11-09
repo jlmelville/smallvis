@@ -51,7 +51,7 @@ smallvis(
 \item{X}{Input coordinates or distance matrix.}
 
 \item{k}{Number of output dimensions for the embedding. Barnes-Hut and
-FFT t-SNE require \code{k = 2}.}
+FFT repulsion require \code{k = 2}.}
 
 \item{scale}{If \code{TRUE}, scale each column to zero mean and unit
 variance. Alternatively, you may specify one of the following strings:
@@ -218,7 +218,7 @@ to those value which are returned when this value is \code{TRUE}. See the
 0, which means no multi-threading. Mainly affects the calculation of things
 like distance matrices and perplexity calibration if you set
 \code{use_cpp = TRUE}. The thread count also applies to neighbor search,
-Barnes-Hut forces, and FFT t-SNE attraction.}
+Barnes-Hut forces, and FFT sparse edge calculations.}
 
 \item{use_cpp}{If \code{TRUE} use multi-threaded C++ code for some
 calculations. Default is \code{FALSE}. This won't speed up all steps and
@@ -591,19 +591,22 @@ The examples demonstrate how to use \code{method} with these optional
 parameters.
 }
 
-\section{t-SNE repulsion}{
+\section{Exact, Barnes-Hut, and FFT repulsion}{
 
 
 Use \code{method = list("tsne", repulsion = ...)} to select \code{"exact"}
 (the default all-pairs calculation), \code{"bh"} (Barnes-Hut), or
-\code{"fft"} (FFT interpolation). \code{bh = TRUE} also selects Barnes-Hut
+\code{"fft"} (FFT interpolation). The selector also works with
+\code{"tee"}, \code{"jssne"}, \code{"hlsne"}, and \code{"chsne"}.
+\code{bh = TRUE} also selects Barnes-Hut
 and conflicts with an explicit choice of exact or FFT repulsion.
 \code{theta} applies to Barnes-Hut, where zero evaluates the repulsive
 sum exactly for the chosen input affinities.
 
 Repulsion controls the output calculation. Use \code{inp_kernel} and
 \code{neighbors} to control the input affinities. Exact t-SNE defaults to
-\code{"gaussian"}. Barnes-Hut and FFT default to \code{"nngaussian"} and
+\code{"gaussian"}. For these methods, Barnes-Hut and FFT default to
+\code{"nngaussian"} and
 approximate neighbor search. FFT also accepts \code{"knn"}. Compare the
 three repulsion methods on the same input affinities by setting
 \code{inp_kernel} and supplying the same neighbors to each.

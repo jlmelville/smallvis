@@ -43,7 +43,7 @@ test_that("incompatible FFT settings fail before searching for neighbors", {
   expect_error(run(list("tsne", repulsion = "exact"), bh = TRUE), "conflicts")
   expect_error(run(theta = 0), "theta applies only")
   expect_error(run(c(fft, list(theta = 0.5))), "theta applies only")
-  expect_error(run(k = 3), "FFT t-SNE requires k = 2")
+  expect_error(run(k = 3), "FFT repulsion requires k = 2")
   expect_error(run(inp_kernel = "gaussian"), "nngaussian.*knn")
   expect_error(
     run(opt = list("bfgs")),

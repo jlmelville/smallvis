@@ -231,6 +231,23 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// fft_divergence_cpp
+SEXP fft_divergence_cpp(const IntegerVector& indices, const IntegerVector& indptr, const NumericVector& edge_data, const NumericMatrix& embedding, double Z, Nullable<NumericMatrix> force, std::size_t n_threads, const std::string& method);
+RcppExport SEXP _smallvis_fft_divergence_cpp(SEXP indicesSEXP, SEXP indptrSEXP, SEXP edge_dataSEXP, SEXP embeddingSEXP, SEXP ZSEXP, SEXP forceSEXP, SEXP n_threadsSEXP, SEXP methodSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< const IntegerVector& >::type indices(indicesSEXP);
+    Rcpp::traits::input_parameter< const IntegerVector& >::type indptr(indptrSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type edge_data(edge_dataSEXP);
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type embedding(embeddingSEXP);
+    Rcpp::traits::input_parameter< double >::type Z(ZSEXP);
+    Rcpp::traits::input_parameter< Nullable<NumericMatrix> >::type force(forceSEXP);
+    Rcpp::traits::input_parameter< std::size_t >::type n_threads(n_threadsSEXP);
+    Rcpp::traits::input_parameter< const std::string& >::type method(methodSEXP);
+    rcpp_result_gen = Rcpp::wrap(fft_divergence_cpp(indices, indptr, edge_data, embedding, Z, force, n_threads, method));
+    return rcpp_result_gen;
+END_RCPP
+}
 // bh_jssne_gradient_cpp
 NumericMatrix bh_jssne_gradient_cpp(const IntegerVector& indices, const IntegerVector& indptr, const NumericVector& P_data, const NumericMatrix& embedding, double theta, int n_threads);
 RcppExport SEXP _smallvis_bh_jssne_gradient_cpp(SEXP indicesSEXP, SEXP indptrSEXP, SEXP P_dataSEXP, SEXP embeddingSEXP, SEXP thetaSEXP, SEXP n_threadsSEXP) {
@@ -439,6 +456,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_smallvis_bh_tumap_score_cpp", (DL_FUNC) &_smallvis_bh_tumap_score_cpp, 7},
     {"_smallvis_bh_umap_gradient_cpp", (DL_FUNC) &_smallvis_bh_umap_gradient_cpp, 10},
     {"_smallvis_bh_umap_score_cpp", (DL_FUNC) &_smallvis_bh_umap_score_cpp, 9},
+    {"_smallvis_fft_divergence_cpp", (DL_FUNC) &_smallvis_fft_divergence_cpp, 8},
     {"_smallvis_bh_jssne_gradient_cpp", (DL_FUNC) &_smallvis_bh_jssne_gradient_cpp, 6},
     {"_smallvis_bh_jssne_score_cpp", (DL_FUNC) &_smallvis_bh_jssne_score_cpp, 6},
     {"_smallvis_bh_hlsne_gradient_cpp", (DL_FUNC) &_smallvis_bh_hlsne_gradient_cpp, 6},

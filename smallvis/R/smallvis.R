@@ -203,18 +203,21 @@
 #' The examples demonstrate how to use \code{method} with these optional
 #' parameters.
 #'
-#' @section t-SNE repulsion:
+#' @section Exact, Barnes-Hut, and FFT repulsion:
 #'
 #' Use \code{method = list("tsne", repulsion = ...)} to select \code{"exact"}
 #' (the default all-pairs calculation), \code{"bh"} (Barnes-Hut), or
-#' \code{"fft"} (FFT interpolation). \code{bh = TRUE} also selects Barnes-Hut
+#' \code{"fft"} (FFT interpolation). The selector also works with
+#' \code{"tee"}, \code{"jssne"}, \code{"hlsne"}, and \code{"chsne"}.
+#' \code{bh = TRUE} also selects Barnes-Hut
 #' and conflicts with an explicit choice of exact or FFT repulsion.
 #' \code{theta} applies to Barnes-Hut, where zero evaluates the repulsive
 #' sum exactly for the chosen input affinities.
 #'
 #' Repulsion controls the output calculation. Use \code{inp_kernel} and
 #' \code{neighbors} to control the input affinities. Exact t-SNE defaults to
-#' \code{"gaussian"}. Barnes-Hut and FFT default to \code{"nngaussian"} and
+#' \code{"gaussian"}. For these methods, Barnes-Hut and FFT default to
+#' \code{"nngaussian"} and
 #' approximate neighbor search. FFT also accepts \code{"knn"}. Compare the
 #' three repulsion methods on the same input affinities by setting
 #' \code{inp_kernel} and supplying the same neighbors to each.
@@ -476,7 +479,7 @@
 #'
 #' @param X Input coordinates or distance matrix.
 #' @param k Number of output dimensions for the embedding. Barnes-Hut and
-#'   FFT t-SNE require \code{k = 2}.
+#'   FFT repulsion require \code{k = 2}.
 #' @param scale If \code{TRUE}, scale each column to zero mean and unit
 #'   variance. Alternatively, you may specify one of the following strings:
 #'   \code{"range"}, which range scales the matrix elements between 0 and 1;
@@ -613,7 +616,7 @@
 #'   0, which means no multi-threading. Mainly affects the calculation of things
 #'   like distance matrices and perplexity calibration if you set
 #'   \code{use_cpp = TRUE}. The thread count also applies to neighbor search,
-#'   Barnes-Hut forces, and FFT t-SNE attraction.
+#'   Barnes-Hut forces, and FFT sparse edge calculations.
 #' @param use_cpp If \code{TRUE} use multi-threaded C++ code for some
 #'   calculations. Default is \code{FALSE}. This won't speed up all steps and
 #'   you will want to use this in conjunction with \code{n_threads}. The
@@ -1333,7 +1336,7 @@ smallvis_run <- function(
 
   if (!is.null(cost_fn$ndim) && any(!is.finite(Y))) {
     if (identical(cost_fn$repulsion, "fft")) {
-      stop("FFT t-SNE coordinates must be finite")
+      stop("FFT coordinates must be finite")
     }
     stop("Barnes-Hut coordinates must be finite")
   }
@@ -1750,7 +1753,7 @@ prepare_smallvis_input <- function(
 
   if (!is.null(cost_fn$ndim) && k != cost_fn$ndim) {
     if (identical(cost_fn$repulsion, "fft")) {
-      stop("FFT t-SNE requires k = 2")
+      stop("FFT repulsion requires k = 2")
     }
     stop("Barnes-Hut requires k = 2")
   }
@@ -1904,7 +1907,8 @@ create_cost <- function(
       }
     }
     method <- match.arg(tolower(method), method_names)
-    if (method == "tsne" && "repulsion" %in% names(methodlist)) {
+    fft_methods <- c("tsne", "tee", "jssne", "hlsne", "chsne")
+    if (method %in% fft_methods && "repulsion" %in% names(methodlist)) {
       repulsion <- methodlist$repulsion
       if (
         !is.character(repulsion) ||
@@ -1929,7 +1933,7 @@ create_cost <- function(
       methodlist$repulsion <- NULL
       bh <- repulsion == "bh"
       if (repulsion == "fft") {
-        method <- "fft_tsne"
+        method <- paste0("fft_", method)
       }
     }
     if (bh) {

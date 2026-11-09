@@ -49,6 +49,10 @@ bh_umap_score_cpp <- function(indices, indptr, P_data, embedding, theta, n_threa
     .Call(`_smallvis_bh_umap_score_cpp`, indices, indptr, P_data, embedding, theta, n_threads, eps, a, b)
 }
 
+fft_divergence_cpp <- function(indices, indptr, edge_data, embedding, Z, force, n_threads, method) {
+    .Call(`_smallvis_fft_divergence_cpp`, indices, indptr, edge_data, embedding, Z, force, n_threads, method)
+}
+
 bh_jssne_gradient_cpp <- function(indices, indptr, P_data, embedding, theta, n_threads) {
     .Call(`_smallvis_bh_jssne_gradient_cpp`, indices, indptr, P_data, embedding, theta, n_threads)
 }

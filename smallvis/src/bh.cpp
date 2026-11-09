@@ -1,5 +1,6 @@
 #include "bh.h"
 #include <Rcpp.h>
+#include <type_traits>
 
 using namespace Rcpp;
 
@@ -403,6 +404,28 @@ divergence_edge_sum(const IntegerVector &indices, const IntegerVector &indptr,
 }
 
 template <Divergence Kind>
+NumericMatrix divergence_gradient_from_sums(
+    const IntegerVector &indices, const IntegerVector &indptr,
+    const NumericVector &edge_data, const std::vector<double> &Y, double Z,
+    const std::vector<double> &repulsion, double repulsion_sign,
+    std::size_t n_threads) {
+  std::vector<double> gradient(Y.size(), 0.0);
+  const double edge_sum = divergence_edge_sum<Kind, true>(
+      indices, indptr, edge_data, Y, Z, n_threads, &gradient);
+  const bool chi_squared = Kind == Divergence::ChiSquared;
+  const double scale =
+      (Kind == Divergence::JensenShannon ? 2.0 : 4.0) / (chi_squared ? 1.0 : Z);
+  const double attraction_scale = chi_squared ? Z : 1.0;
+  const double signed_edge_sum = repulsion_sign * edge_sum;
+  for (std::size_t i = 0; i < gradient.size(); ++i) {
+    gradient[i] = scale * (attraction_scale * gradient[i] +
+                           signed_edge_sum * repulsion[i]);
+  }
+  const NumericMatrix result(2, Y.size() / 2, gradient.begin());
+  return transpose(result);
+}
+
+template <Divergence Kind>
 NumericMatrix bh_divergence_gradient(const IntegerVector &indices,
                                      const IntegerVector &indptr,
                                      const NumericVector &edge_data,
@@ -416,19 +439,22 @@ NumericMatrix bh_divergence_gradient(const IntegerVector &indices,
   std::vector<double> repulsion(Y.size(), 0.0);
   const double Z = bh_repulsion<true>(tree, Y, theta, 0.0, n_threads,
                                       CauchyKernel{}, repulsion);
-  std::vector<double> gradient(Y.size(), 0.0);
-  const double edge_sum = divergence_edge_sum<Kind, true>(
-      indices, indptr, edge_data, Y, Z, n_threads, &gradient);
-  const bool chi_squared = Kind == Divergence::ChiSquared;
-  const double scale =
-      (Kind == Divergence::JensenShannon ? 2.0 : 4.0) / (chi_squared ? 1.0 : Z);
-  const double attraction_scale = chi_squared ? Z : 1.0;
-  for (std::size_t i = 0; i < gradient.size(); ++i) {
-    gradient[i] =
-        scale * (attraction_scale * gradient[i] + edge_sum * repulsion[i]);
+  return divergence_gradient_from_sums<Kind>(indices, indptr, edge_data, Y, Z,
+                                             repulsion, 1.0, n_threads);
+}
+
+template <Divergence Kind>
+double divergence_score_from_mass(const IntegerVector &indices,
+                                  const IntegerVector &indptr,
+                                  const NumericVector &edge_data,
+                                  const std::vector<double> &Y, double Z,
+                                  std::size_t n_threads) {
+  const double edge_sum = divergence_edge_sum<Kind, false>(
+      indices, indptr, edge_data, Y, Z, n_threads, nullptr);
+  if (Kind == Divergence::JensenShannon) {
+    return std::log(2.0) - edge_sum;
   }
-  const NumericMatrix result(2, embedding.nrow(), gradient.begin());
-  return transpose(result);
+  return Kind == Divergence::ChiSquared ? Z * edge_sum : edge_sum;
 }
 
 template <Divergence Kind>
@@ -446,9 +472,8 @@ double bh_divergence_score(const IntegerVector &indices,
   std::vector<double> sums(smallvis::worker_count(n, n_threads), 0.0);
   const double Z =
       bh_score_mass(tree, Y, theta, 0.0, n_threads, CauchyKernel{}, sums);
-  const double edge_sum = divergence_edge_sum<Kind, false>(
-      indices, indptr, edge_data, Y, Z, n_threads, nullptr);
-  return Kind == Divergence::ChiSquared ? Z * edge_sum : edge_sum;
+  return divergence_score_from_mass<Kind>(indices, indptr, edge_data, Y, Z,
+                                          n_threads);
 }
 
 struct KlRow {
@@ -769,6 +794,42 @@ double bh_umap_score_cpp(const IntegerVector &indices,
                   UmapKernel<false>(a, b, 0.0, eps), false, 1.0);
 }
 
+// A missing force requests only the objective's sparse edge term.
+// [[Rcpp::export(rng = false)]]
+SEXP fft_divergence_cpp(const IntegerVector &indices,
+                        const IntegerVector &indptr,
+                        const NumericVector &edge_data,
+                        const NumericMatrix &embedding, double Z,
+                        Nullable<NumericMatrix> force, std::size_t n_threads,
+                        const std::string &method) {
+  const auto Y = as<std::vector<double>>(transpose(embedding));
+  auto evaluate = [&](auto kind) -> SEXP {
+    constexpr auto Kind = decltype(kind)::value;
+    if (force.isNull()) {
+      return wrap(divergence_score_from_mass<Kind>(indices, indptr, edge_data,
+                                                   Y, Z, n_threads));
+    }
+    const NumericMatrix raw_force(force);
+    const auto repulsion = as<std::vector<double>>(transpose(raw_force));
+    // The FFT force uses query minus source, opposite to the tree sum.
+    return divergence_gradient_from_sums<Kind>(indices, indptr, edge_data, Y, Z,
+                                               repulsion, -1.0, n_threads);
+  };
+  if (method == "jssne") {
+    return evaluate(
+        std::integral_constant<Divergence, Divergence::JensenShannon>{});
+  }
+  if (method == "hlsne") {
+    return evaluate(
+        std::integral_constant<Divergence, Divergence::Hellinger>{});
+  }
+  if (method == "chsne") {
+    return evaluate(
+        std::integral_constant<Divergence, Divergence::ChiSquared>{});
+  }
+  stop("Unknown FFT divergence");
+}
+
 // [[Rcpp::export]]
 NumericMatrix bh_jssne_gradient_cpp(const IntegerVector &indices,
                                     const IntegerVector &indptr,
@@ -785,9 +846,8 @@ double bh_jssne_score_cpp(const IntegerVector &indices,
                           const NumericVector &P_data,
                           const NumericMatrix &embedding, double theta,
                           int n_threads) {
-  return std::log(2.0) -
-         bh_divergence_score<Divergence::JensenShannon>(
-             indices, indptr, P_data, embedding, theta, n_threads);
+  return bh_divergence_score<Divergence::JensenShannon>(
+      indices, indptr, P_data, embedding, theta, n_threads);
 }
 
 // [[Rcpp::export]]

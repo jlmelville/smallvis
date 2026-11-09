@@ -107,37 +107,15 @@ bhjssne <- function(
   theta = 0.5,
   nn = "approximate"
 ) {
-  if (!is.numeric(eps) || length(eps) != 1L || !is.finite(eps) || eps <= 0) {
-    stop("Barnes-Hut Jensen-Shannon SNE requires a finite positive eps")
-  }
-  bh_cost(
-    init = bh_sparse_init(
-      perplexity,
-      inp_kernel,
-      symmetrize,
-      normalize = TRUE,
-      n_threads = n_threads,
-      nn = nn
-    ),
-    cache_input = function(cost) {
-      P <- cost$P
-      p <- pmax(P@x, eps)
-      # Match the dense entropy floor on implicit off-diagonal zeros.
-      off_graph <- nrow(P) * (nrow(P) - 1) - length(p)
-      cost$plogp <- sum(p * log(p)) + off_graph * eps * log(eps)
-      cost
-    },
-    pfn = function(cost, Y) {
-      P <- cost$P
-      score <- bh_jssne_score_cpp(P@i, P@p, P@x, Y, theta, n_threads)
-      cost$pcost <- 0.5 * (cost$plogp + score)
-      cost
-    },
-    gr = function(cost, Y) {
-      P <- cost$P
-      cost$G <- bh_jssne_gradient_cpp(P@i, P@p, P@x, Y, theta, n_threads)
-      cost
-    }
+  sparse_divergence_cost(
+    "jssne",
+    perplexity,
+    inp_kernel,
+    symmetrize,
+    n_threads,
+    nn,
+    theta,
+    eps
   )
 }
 
@@ -148,46 +126,14 @@ bhhlsne <- function(
   theta = 0.5,
   nn = "approximate"
 ) {
-  bh_cost(
-    init = bh_sparse_init(
-      perplexity,
-      inp_kernel,
-      symmetrize = "symmetric",
-      normalize = TRUE,
-      n_threads = n_threads,
-      nn = nn
-    ),
-    cache_input = function(cost) {
-      p <- cost$P@x
-      cost$sqrt_p <- sqrt(p)
-      cost$psum <- sum(p)
-      cost
-    },
-    pfn = function(cost, Y) {
-      P <- cost$P
-      similarity <- bh_hlsne_similarity_cpp(
-        P@i,
-        P@p,
-        cost$sqrt_p,
-        Y,
-        theta,
-        n_threads
-      )
-      cost$pcost <- cost$psum + 1 - 2 * similarity
-      cost
-    },
-    gr = function(cost, Y) {
-      P <- cost$P
-      cost$G <- bh_hlsne_gradient_cpp(
-        P@i,
-        P@p,
-        cost$sqrt_p,
-        Y,
-        theta,
-        n_threads
-      )
-      cost
-    }
+  sparse_divergence_cost(
+    "hlsne",
+    perplexity,
+    inp_kernel,
+    "symmetric",
+    n_threads,
+    nn,
+    theta
   )
 }
 
@@ -199,7 +145,68 @@ bhchsne <- function(
   theta = 0.5,
   nn = "approximate"
 ) {
-  bh_cost(
+  sparse_divergence_cost(
+    "chsne",
+    perplexity,
+    inp_kernel,
+    symmetrize,
+    n_threads,
+    nn,
+    theta
+  )
+}
+
+sparse_divergence_cost <- function(
+  method,
+  perplexity,
+  inp_kernel,
+  symmetrize,
+  n_threads,
+  nn,
+  theta = 0.5,
+  eps = .Machine$double.eps,
+  fft = NULL
+) {
+  if (
+    method == "jssne" &&
+      (!is.numeric(eps) ||
+        is.complex(eps) ||
+        length(eps) != 1L ||
+        !is.finite(eps) ||
+        eps <= 0)
+  ) {
+    label <- if (is.null(fft)) "Barnes-Hut" else "FFT"
+    stop(label, " Jensen-Shannon SNE requires a finite positive eps")
+  }
+  bh_score <- switch(
+    method,
+    jssne = bh_jssne_score_cpp,
+    hlsne = bh_hlsne_similarity_cpp,
+    chsne = bh_chsne_score_cpp
+  )
+  bh_gradient <- switch(
+    method,
+    jssne = bh_jssne_gradient_cpp,
+    hlsne = bh_hlsne_gradient_cpp,
+    chsne = bh_chsne_gradient_cpp
+  )
+  evaluate <- function(cost, Y, gradient) {
+    P <- cost$P
+    edge <- switch(
+      method,
+      jssne = P@x,
+      hlsne = cost$sqrt_p,
+      chsne = cost$p_squared
+    )
+    if (is.null(fft)) {
+      fn <- if (gradient) bh_gradient else bh_score
+      return(fn(P@i, P@p, edge, Y, theta, n_threads))
+    }
+    sums <- fft$sums(Y, mass_only = !gradient)
+    force <- if (gradient) sums$force else NULL
+    fft_divergence_cpp(P@i, P@p, edge, Y, sums$Z, force, n_threads, method)
+  }
+  cost <- bh_cost(
     init = bh_sparse_init(
       perplexity,
       inp_kernel,
@@ -209,30 +216,38 @@ bhchsne <- function(
       nn = nn
     ),
     cache_input = function(cost) {
-      p <- cost$P@x
-      cost$p_squared <- p * p
-      cost$constant <- 1 - 2 * sum(p)
+      P <- cost$P
+      p <- P@x
+      if (method == "jssne") {
+        p <- pmax(p, eps)
+        # Count the entropy floor on implicit off-diagonal zeros.
+        off_graph <- nrow(P) * (nrow(P) - 1) - length(p)
+        cost$plogp <- sum(p * log(p)) + off_graph * eps * log(eps)
+      } else if (method == "hlsne") {
+        cost$sqrt_p <- sqrt(p)
+        cost$psum <- sum(p)
+      } else {
+        cost$p_squared <- p * p
+        cost$constant <- 1 - 2 * sum(p)
+      }
       cost
     },
     pfn = function(cost, Y) {
-      P <- cost$P
-      cost$pcost <- cost$constant +
-        bh_chsne_score_cpp(P@i, P@p, cost$p_squared, Y, theta, n_threads)
+      score <- evaluate(cost, Y, gradient = FALSE)
+      cost$pcost <- switch(
+        method,
+        jssne = 0.5 * (cost$plogp + score),
+        hlsne = cost$psum + 1 - 2 * score,
+        chsne = cost$constant + score
+      )
       cost
     },
     gr = function(cost, Y) {
-      P <- cost$P
-      cost$G <- bh_chsne_gradient_cpp(
-        P@i,
-        P@p,
-        cost$p_squared,
-        Y,
-        theta,
-        n_threads
-      )
+      cost$G <- evaluate(cost, Y, gradient = TRUE)
       cost
     }
   )
+  use_fft_cost(cost, fft)
 }
 
 bhlargevis <- function(
@@ -529,6 +544,60 @@ bh_sne <- function(
   normalize,
   lambda
 ) {
+  sparse_sne_cost(
+    perplexity,
+    inp_kernel,
+    symmetrize,
+    eps,
+    n_threads,
+    nn,
+    alpha,
+    normalize,
+    lambda,
+    score = function(P, Y, alpha) {
+      bh_sne_score_cpp(
+        P@i,
+        P@p,
+        P@x,
+        Y,
+        theta,
+        0,
+        n_threads,
+        alpha,
+        normalize,
+        lambda
+      )
+    },
+    gradient = function(P, Y, alpha) {
+      bh_sne_gradient_cpp(
+        P@i,
+        P@p,
+        P@x,
+        Y,
+        theta,
+        0,
+        n_threads,
+        alpha,
+        normalize,
+        lambda
+      )
+    }
+  )
+}
+
+sparse_sne_cost <- function(
+  perplexity,
+  inp_kernel,
+  symmetrize,
+  eps,
+  n_threads,
+  nn,
+  alpha,
+  normalize,
+  lambda,
+  score,
+  gradient
+) {
   init <- bh_sparse_init(
     perplexity,
     inp_kernel,
@@ -566,37 +635,11 @@ bh_sne <- function(
       cost
     },
     pfn = function(cost, Y) {
-      P <- cost$P
-      score <- bh_sne_score_cpp(
-        P@i,
-        P@p,
-        P@x,
-        Y,
-        theta,
-        0,
-        n_threads,
-        cost$alpha,
-        normalize,
-        lambda
-      )
-      cost$pcost <- cost$constant - cost$invN * score
+      cost$pcost <- cost$constant - cost$invN * score(cost$P, Y, cost$alpha)
       cost
     },
     gr = function(cost, Y) {
-      P <- cost$P
-      G <- bh_sne_gradient_cpp(
-        P@i,
-        P@p,
-        P@x,
-        Y,
-        theta,
-        0,
-        n_threads,
-        cost$alpha,
-        normalize,
-        lambda
-      )
-      cost$G <- (4 * cost$invN) * G
+      cost$G <- (4 * cost$invN) * gradient(cost$P, Y, cost$alpha)
       cost
     }
   )

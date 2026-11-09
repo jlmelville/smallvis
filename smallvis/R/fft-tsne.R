@@ -36,6 +36,30 @@ fft_tsne <- function(
   ) {
     stop("FFT t-SNE requires finite nonnegative eps")
   }
+  fft <- fft_settings(fft_backend, grid_interval)
+  cost <- sparse_tsne_cost(
+    perplexity,
+    inp_kernel,
+    nn,
+    n_threads,
+    eps,
+    pfn = function(cost, Y) {
+      Z <- fft$sums(Y, mass_only = TRUE)$Z
+      cost$pcost <- cost$plogp + cauchy_edge_loss(cost$P, Y, log(Z + eps))
+      cost
+    },
+    gr = function(cost, Y) {
+      repulsion <- fft$sums(Y)
+      P <- cost$P
+      attraction <- tsne_sparse_attraction_cpp(P@i, P@p, P@x, Y, n_threads)
+      cost$G <- 4 * (attraction - repulsion$force / (repulsion$Z + eps))
+      cost
+    }
+  )
+  use_fft_cost(cost, fft)
+}
+
+fft_settings <- function(fft_backend, grid_interval) {
   if (
     !is.numeric(grid_interval) ||
       length(grid_interval) != 1L ||
@@ -61,33 +85,29 @@ fft_tsne <- function(
     }
   }
 
-  sparse_tsne_cost(
-    perplexity,
-    inp_kernel,
-    nn,
-    n_threads,
-    eps,
-    repulsion = "fft",
-    fft_backend = fft_backend,
-    gradient_only = TRUE,
-    pfn = function(cost, Y) {
-      Z <- fft_tsne_repulsion(Y, grid_interval, transform, mass_only = TRUE)$Z
-      P <- cost$P
-      col <- rep(seq_len(ncol(P)), diff(P@p))
-      row <- P@i + 1L
-      dx <- Y[col, 1L] - Y[row, 1L]
-      dy <- Y[col, 2L] - Y[row, 2L]
-      cost$pcost <- cost$plogp + sum(P@x * (log1p(dx^2 + dy^2) + log(Z + eps)))
-      cost
-    },
-    gr = function(cost, Y) {
-      repulsion <- fft_tsne_repulsion(Y, grid_interval, transform)
-      P <- cost$P
-      attraction <- tsne_sparse_attraction_cpp(P@i, P@p, P@x, Y, n_threads)
-      cost$G <- 4 * (attraction - repulsion$force / (repulsion$Z + eps))
-      cost
+  list(
+    backend = fft_backend,
+    sums = function(Y, mass_only = FALSE) {
+      fft_tsne_repulsion(Y, grid_interval, transform, mass_only)
     }
   )
+}
+
+use_fft_cost <- function(cost, fft) {
+  if (!is.null(fft)) {
+    cost$repulsion <- "fft"
+    cost$fft_backend <- fft$backend
+    cost$gradient_only <- TRUE
+  }
+  cost
+}
+
+cauchy_edge_loss <- function(P, Y, offset = 0) {
+  col <- rep(seq_len(ncol(P)), diff(P@p))
+  row <- P@i + 1L
+  dx <- Y[col, 1L] - Y[row, 1L]
+  dy <- Y[col, 2L] - Y[row, 2L]
+  sum(P@x * (log1p(dx^2 + dy^2) + offset))
 }
 
 fft_tsne_repulsion <- function(Y, grid_interval, transform, mass_only = FALSE) {
