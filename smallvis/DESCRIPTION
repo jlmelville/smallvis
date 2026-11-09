@@ -22,7 +22,8 @@ Suggests:
     fftwtools,
     pkgload,
     RSpectra,
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    zufft
 Remotes: jlmelville/vizier
 Encoding: UTF-8
 URL: https://jlmelville.github.io/smallvis/package/,

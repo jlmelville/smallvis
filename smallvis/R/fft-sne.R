@@ -18,7 +18,7 @@ fft_hssne <- function(
     n_threads,
     nn,
     alpha,
-    fft_settings(fft_backend, grid_interval)
+    fft_settings(fft_backend, grid_interval, n_threads)
   )
 }
 
@@ -65,7 +65,7 @@ fft_ssne <- function(
     n_threads = n_threads,
     nn = nn,
     alpha = 0,
-    fft = fft_settings(fft_backend, grid_interval)
+    fft = fft_settings(fft_backend, grid_interval, n_threads)
   )
 }
 
@@ -125,7 +125,7 @@ fft_snerv <- function(
   fft_backend = "stats",
   grid_interval = 1
 ) {
-  fft <- fft_settings(fft_backend, grid_interval)
+  fft <- fft_settings(fft_backend, grid_interval, n_threads)
   evaluate <- function(cost, Y, gradient) {
     P <- cost$P
     sums <- fft$sums(Y, mass_only = !gradient, alpha = 0, log_weighted = TRUE)

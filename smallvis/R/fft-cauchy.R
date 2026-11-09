@@ -10,7 +10,7 @@ fft_tee <- function(
   grid_interval = 1
 ) {
   validate_tee_lambda(lambda)
-  fft <- fft_settings(fft_backend, grid_interval)
+  fft <- fft_settings(fft_backend, grid_interval, n_threads)
   cost <- sparse_sne_cost(
     perplexity,
     inp_kernel,
@@ -52,7 +52,7 @@ fft_jssne <- function(
     n_threads,
     nn,
     eps = eps,
-    fft = fft_settings(fft_backend, grid_interval)
+    fft = fft_settings(fft_backend, grid_interval, n_threads)
   )
 }
 
@@ -71,7 +71,7 @@ fft_hlsne <- function(
     "symmetric",
     n_threads,
     nn,
-    fft = fft_settings(fft_backend, grid_interval)
+    fft = fft_settings(fft_backend, grid_interval, n_threads)
   )
 }
 
@@ -91,6 +91,6 @@ fft_chsne <- function(
     symmetrize,
     n_threads,
     nn,
-    fft = fft_settings(fft_backend, grid_interval)
+    fft = fft_settings(fft_backend, grid_interval, n_threads)
   )
 }

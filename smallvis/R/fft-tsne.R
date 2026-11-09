@@ -36,7 +36,7 @@ fft_tsne <- function(
   ) {
     stop("FFT t-SNE requires finite nonnegative eps")
   }
-  fft <- fft_settings(fft_backend, grid_interval)
+  fft <- fft_settings(fft_backend, grid_interval, n_threads)
   cost <- sparse_tsne_cost(
     perplexity,
     inp_kernel,

@@ -12,7 +12,7 @@ fft_largevis <- function(
   fft_backend = "stats",
   grid_interval = 1
 ) {
-  fft <- fft_settings(fft_backend, grid_interval)
+  fft <- fft_settings(fft_backend, grid_interval, n_threads)
   cost <- bhlargevis(
     perplexity,
     inp_kernel,
@@ -41,7 +41,7 @@ fft_tumap <- function(
   fft_backend = "stats",
   grid_interval = 1
 ) {
-  fft <- fft_settings(fft_backend, grid_interval)
+  fft <- fft_settings(fft_backend, grid_interval, n_threads)
   cost <- bhtumap(
     perplexity,
     inp_kernel,
@@ -70,7 +70,7 @@ fft_umap <- function(
   fft_backend = "stats",
   grid_interval = 1
 ) {
-  fft <- fft_settings(fft_backend, grid_interval)
+  fft <- fft_settings(fft_backend, grid_interval, n_threads)
   cost <- bhumap(
     perplexity,
     inp_kernel,

@@ -96,6 +96,31 @@ test_that("FFT t-SNE uses saved sparse affinities and approximates exact updates
     expect_equal(fftw$Y, fft$Y, tolerance = 1e-12)
     expect_equal(fftw$costs, fft$costs, tolerance = 1e-12)
   }
+
+  if (requireNamespace("zufft", quietly = TRUE)) {
+    real_fft <- run(
+      list("tsne", repulsion = "fft", fft_backend = "zufft"),
+      n_threads = 2L
+    )
+    expect_equal(real_fft$Y, fft$Y, tolerance = 1e-12)
+    expect_equal(real_fft$costs, fft$costs, tolerance = 1e-12)
+  }
+})
+
+test_that("FFT padding keeps interpolation nodes fixed on an odd-sized grid", {
+  Y <- rbind(c(0, 0), c(1, 1), c(202, 202))
+  grid <- fft_sne_grid(Y, 1)
+  expect_equal(grid$width, 1)
+  expect_equal(grid$side, 1215)
+  expect_equal(dim(grid$S), c((3 * 202)^2, nrow(Y)))
+
+  skip_if_not_installed("zufft")
+  baseline <- fft_settings("stats", 1, 0)$sums(Y)
+  real_fft <- fft_settings("zufft", 1, 0)$sums(Y)
+  expect_equal(real_fft$Z, baseline$Z, tolerance = 1e-12)
+  # Cancellation makes the distant point's tiny force sensitive to roundoff.
+  force_scale <- max(abs(baseline$force))
+  expect_lt(max(abs(real_fft$force - baseline$force)) / force_scale, 1e-11)
 })
 
 test_that("FFT t-SNE evaluates coincident coordinates and guards wide grids", {

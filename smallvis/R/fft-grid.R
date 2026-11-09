@@ -1,4 +1,4 @@
-fft_settings <- function(fft_backend, grid_interval) {
+fft_settings <- function(fft_backend, grid_interval, n_threads) {
   if (
     !is.numeric(grid_interval) ||
       length(grid_interval) != 1L ||
@@ -10,9 +10,9 @@ fft_settings <- function(fft_backend, grid_interval) {
   if (
     !is.character(fft_backend) ||
       length(fft_backend) != 1L ||
-      !fft_backend %in% c("stats", "fftwtools")
+      !fft_backend %in% c("stats", "fftwtools", "zufft")
   ) {
-    stop("fft_backend must be 'stats' or 'fftwtools'")
+    stop("fft_backend must be 'stats', 'fftwtools', or 'zufft'")
   }
   transform <- stats::fft
   if (fft_backend == "fftwtools") {
@@ -21,6 +21,24 @@ fft_settings <- function(fft_backend, grid_interval) {
     }
     transform <- function(x, inverse = FALSE) {
       fftwtools::fftw2d(x, inverse = as.integer(inverse))
+    }
+  } else if (fft_backend == "zufft") {
+    if (!requireNamespace("zufft", quietly = TRUE)) {
+      stop("Install zufft or set fft_backend = 'stats'")
+    }
+    workers <- max(1L, n_threads)
+    transform <- function(x, inverse = FALSE) {
+      if (inverse) {
+        # The spectrum is halved along the first axis of the square grid.
+        zufft::fft_c2r(
+          x,
+          n = rep.int(ncol(x), 2L),
+          norm = "none",
+          workers = workers
+        )
+      } else {
+        zufft::fft_r2c(x, workers = workers)
+      }
     }
   }
 
@@ -81,9 +99,9 @@ fft_sne_grid <- function(Y, grid_interval) {
   if (boxes < max(fast_boxes)) {
     boxes <- min(fast_boxes[fast_boxes >= boxes])
   }
-  side <- 6 * boxes
-  grid_size <- side^2
-  if (!is.finite(grid_size) || grid_size > 4e6) {
+  nodes <- 3 * boxes
+  side <- 2 * nodes
+  if (!is.finite(side) || side > 2000) {
     stop(
       "FFT padded grid (",
       format(side),
@@ -92,6 +110,8 @@ fft_sne_grid <- function(Y, grid_interval) {
       ") exceeds four million cells. Increase grid_interval or use Barnes-Hut."
     )
   }
+  # Round the FFT length without changing the interpolation nodes.
+  side <- stats::nextn(side)
   width <- span / boxes
   local_basis <- function(values) {
     position <- ((values - limits[1L]) / span) * boxes
@@ -107,13 +127,14 @@ fft_sne_grid <- function(Y, grid_interval) {
   by <- local_basis(Y[, 2L])
   sx <- rep(1:3, times = 3L)
   sy <- rep(1:3, each = 3L)
-  grid_index <- outer(bx$start, sx, "+") + side * (outer(by$start, sy, "+") - 1)
+  grid_index <- outer(bx$start, sx, "+") +
+    nodes * (outer(by$start, sy, "+") - 1)
   weights <- bx$weight[, sx] * by$weight[, sy]
   S <- Matrix::sparseMatrix(
     i = as.vector(t(grid_index)),
     p = seq.int(0L, 9L * n, by = 9L),
     x = as.vector(t(weights)),
-    dims = c(grid_size, n)
+    dims = c(nodes^2, n)
   )
 
   # The signed offsets on the padded grid implement a linear convolution.
@@ -124,6 +145,7 @@ fft_sne_grid <- function(Y, grid_interval) {
     XY = Y - (limits[1L] + span / 2),
     S = S,
     weights = weights,
+    nodes = nodes,
     side = side,
     width = width,
     d2 = outer(d2, d2, "+")
@@ -143,24 +165,22 @@ fft_self_mass <- function(grid, kernel) {
 
 fft_grid_convolver <- function(grid, transform, mass_only) {
   grid_size <- grid$side^2
-  dims <- rep(grid$side, 2L)
+  nodes <- seq_len(grid$nodes)
   XY <- grid$XY
   charge <- if (mass_only) matrix(1, nrow(XY), 1L) else cbind(1, XY)
   grid_charge <- as.matrix(grid$S %*% charge)
   function(kernel, fields) {
     spectrum <- transform(kernel)
-    spatial <- vapply(
-      fields,
-      function(j) {
-        inverse <- transform(
-          transform(array(grid_charge[, j], dims)) * spectrum,
-          inverse = TRUE
-        )
-        as.vector(Re(inverse) / grid_size)
-      },
-      numeric(grid_size)
-    )
-    as.matrix(Matrix::crossprod(grid$S, spatial))
+    buffer <- matrix(0, grid$side, grid$side)
+    potentials <- matrix(0, nrow(XY), length(fields))
+    for (i in seq_along(fields)) {
+      buffer[nodes, nodes] <- grid_charge[, fields[i]]
+      spatial <- transform(transform(buffer) * spectrum, inverse = TRUE)
+      values <- as.vector(Re(spatial[nodes, nodes]))
+      potentials[, i] <- as.vector(Matrix::crossprod(grid$S, values)) /
+        grid_size
+    }
+    potentials
   }
 }
 
