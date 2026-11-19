@@ -219,3 +219,28 @@ test_that("geodesic MDS supports one non-self neighbor with either input", {
     expect_true(all(is.finite(fit$costs)))
   }
 })
+test_that("dense HLSNE and CETSNE honor the requested graph symmetrization", {
+  X <- matrix(sin(seq_len(96)^2), 24)
+  Y <- cbind(sin(1:24), cos(1:24))
+  affinity <- function(method, symmetrize) {
+    smallvis(
+      X,
+      method = list(method, symmetrize = symmetrize),
+      Y_init = Y,
+      scale = FALSE,
+      perplexity = 4,
+      max_iter = 0,
+      ret_extra = "P",
+      epoch_callback = FALSE,
+      verbose = FALSE
+    )$P
+  }
+  symmetric <- affinity("tsne", "symmetric")
+  mutual <- affinity("tsne", "mutual")
+  expect_gt(max(abs(symmetric - mutual)), 1e-3)
+  for (method in c("hlsne", "cetsne")) {
+    expect_equal(affinity(method, "symmetric"), symmetric)
+    expect_equal(affinity(method, "mutual"), mutual)
+    expect_error(affinity(method, "typo"), "arg.*should be one of")
+  }
+})

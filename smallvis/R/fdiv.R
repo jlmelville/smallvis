@@ -245,7 +245,7 @@ hlsne <- function(
         X,
         perplexity = perplexity,
         kernel = inp_kernel,
-        symmetrize = "symmetric",
+        symmetrize = symmetrize,
         normalize = TRUE,
         verbose = verbose,
         ret_extra = ret_extra,
