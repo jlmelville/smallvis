@@ -2,7 +2,6 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
-#include <numeric>
 #include <vector>
 
 #include <Rcpp.h>
@@ -72,11 +71,22 @@ bool calibrate_row(const double *distances, std::size_t size, std::size_t self,
   return true;
 }
 
+std::vector<int>
+fallback_rows(const std::vector<unsigned char> &used_fallback) {
+  std::vector<int> rows;
+  for (std::size_t i = 0; i < used_fallback.size(); ++i) {
+    if (used_fallback[i]) {
+      rows.push_back(static_cast<int>(i + 1));
+    }
+  }
+  return rows;
+}
+
 void find_beta_knn(std::vector<double> &knn_distances, std::size_t k,
                    double perplexity, double logU, double tol, int max_tries,
                    std::vector<double> &W, std::vector<double> &beta,
-                   double *row_scale, int &bad_perp, std::size_t start_row,
-                   std::size_t end_row) {
+                   double *row_scale, std::vector<unsigned char> &used_fallback,
+                   std::size_t start_row, std::size_t end_row) {
   for (std::size_t i = start_row; i < end_row; ++i) {
     const std::size_t idx = i * k;
     auto *distances = knn_distances.data() + idx;
@@ -92,7 +102,7 @@ void find_beta_knn(std::vector<double> &knn_distances, std::size_t k,
     if (!calibrate_row(distances, k, k, nearest, logU, tol, max_tries, beta[i],
                        row_scale == nullptr ? nullptr : row_scale + i,
                        W.data() + idx)) {
-      bad_perp++;
+      used_fallback[i] = 1;
       std::fill_n(W.data() + idx, k, 1.0 / k);
     }
   }
@@ -101,7 +111,8 @@ void find_beta_knn(std::vector<double> &knn_distances, std::size_t k,
 void find_beta(const std::vector<double> &data, std::size_t n, std::size_t d,
                double perplexity, double logU, double tol, int max_tries,
                double *W, std::vector<double> &beta, double *row_scale,
-               int &bad_perp, std::size_t start_row, std::size_t end_row) {
+               std::vector<unsigned char> &used_fallback, std::size_t start_row,
+               std::size_t end_row) {
 
   // Trials use contiguous per-worker storage. Scatter each completed row into
   // R's column-major output once, avoiding quadratic staging and transposes.
@@ -133,7 +144,7 @@ void find_beta(const std::vector<double> &data, std::size_t n, std::size_t d,
     if (!calibrate_row(D2i.data(), n, i, nearest, logU, tol, max_tries, beta[i],
                        row_scale == nullptr ? nullptr : row_scale + i,
                        Wi.data())) {
-      bad_perp++;
+      used_fallback[i] = 1;
       std::fill(Wi.begin(), Wi.end(), 0.0);
       std::vector<std::size_t> knn_idx;
       knn_idx.reserve(n - 1);
@@ -186,20 +197,22 @@ List find_beta_knn_cpp(const NumericMatrix &knn_distances,
   std::vector<double> beta(n, 0.0);
   std::vector<double> row_scale(shift_rows ? n : 0, 1.0);
   double *scale = shift_rows ? row_scale.data() : nullptr;
-  std::vector<int> failures(smallvis::worker_count(n, n_threads), 0);
-  auto worker = [&](std::size_t start, std::size_t end, std::size_t id) {
+  // Each worker owns a disjoint range of row flags.
+  std::vector<unsigned char> used_fallback(n, 0);
+  auto worker = [&](std::size_t start, std::size_t end, std::size_t) {
     find_beta_knn(knn_distances_vec, k, perplexity, logU, tol, max_tries, W,
-                  beta, scale, failures[id], start, end);
+                  beta, scale, used_fallback, start, end);
   };
   smallvis::parallel_for(n, n_threads, worker);
-  const int bad_perp = std::accumulate(failures.begin(), failures.end(), 0);
+  const auto rows = fallback_rows(used_fallback);
+  const auto bad_perp = static_cast<int>(rows.size());
 
   if (ret_sparse) {
     NumericVector P(n * k);
     std::copy(W.begin(), W.end(), P.begin());
-    return List::create(Named("P") = P, Named("beta") = beta,
-                        Named("bad_perp") = bad_perp,
-                        Named("row_scale") = row_scale);
+    return List::create(
+        Named("P") = P, Named("beta") = beta, Named("bad_perp") = bad_perp,
+        Named("fallback_rows") = rows, Named("row_scale") = row_scale);
   } else {
     NumericMatrix P(n, n);
     for (std::size_t i = 0; i < n; ++i) {
@@ -211,9 +224,9 @@ List find_beta_knn_cpp(const NumericMatrix &knn_distances,
         P(i, index - 1) = W[i * k + j];
       }
     }
-    return List::create(Named("P") = P, Named("beta") = beta,
-                        Named("bad_perp") = bad_perp,
-                        Named("row_scale") = row_scale);
+    return List::create(
+        Named("P") = P, Named("beta") = beta, Named("bad_perp") = bad_perp,
+        Named("fallback_rows") = rows, Named("row_scale") = row_scale);
   }
 }
 
@@ -239,15 +252,16 @@ List find_beta_cpp(const NumericMatrix &X, double perplexity = 15,
   std::vector<double> beta(n, 0.0);
   std::vector<double> row_scale(shift_rows ? n : 0, 1.0);
   double *scale = shift_rows ? row_scale.data() : nullptr;
-  std::vector<int> failures(smallvis::worker_count(n, n_threads), 0);
-  auto worker = [&](std::size_t start, std::size_t end, std::size_t id) {
+  std::vector<unsigned char> used_fallback(n, 0);
+  auto worker = [&](std::size_t start, std::size_t end, std::size_t) {
     find_beta(X_vec, n, d, perplexity, logU, tol, max_tries, W_data, beta,
-              scale, failures[id], start, end);
+              scale, used_fallback, start, end);
   };
   smallvis::parallel_for(n, n_threads, worker);
-  const int bad_perp = std::accumulate(failures.begin(), failures.end(), 0);
+  const auto rows = fallback_rows(used_fallback);
+  const auto bad_perp = static_cast<int>(rows.size());
 
-  return List::create(Named("W") = W, Named("beta") = beta,
-                      Named("bad_perp") = bad_perp,
-                      Named("row_scale") = row_scale);
+  return List::create(
+      Named("W") = W, Named("beta") = beta, Named("bad_perp") = bad_perp,
+      Named("fallback_rows") = rows, Named("row_scale") = row_scale);
 }

@@ -33,6 +33,7 @@ sne_init <- function(
     )
   )
   shift_rows <- shift_affinity_rows(row_normalize, symmetrize)
+  return_fallback_rows <- "perplexity_fallback_rows" %in% tolower(ret_extra)
   neighbors <- cost[["neighbors"]]
   if (!is.null(neighbors)) {
     neighbors <- check_saved_neighbors(
@@ -108,6 +109,9 @@ sne_init <- function(
       verbose = verbose
     )
     cost$P <- mspres$P
+    if (return_fallback_rows) {
+      cost$perplexity_fallback_rows <- mspres$fallback_rows
+    }
     if ("pdeg" %in% tolower(ret_extra)) {
       cost$pdeg <- colSums(cost$P)
     }
@@ -233,6 +237,9 @@ sne_init <- function(
   if (!is.null(x2ares$bad_perp) && x2ares$bad_perp > 0) {
     warning(x2ares$bad_perp, " perplexity calibrations failed")
   }
+  if (return_fallback_rows) {
+    cost$perplexity_fallback_rows <- x2ares$fallback_rows
+  }
 
   P <- scale_affinities(
     P,
@@ -300,8 +307,7 @@ sne_init <- function(
 
 # Calculates the input affinities from X, such that each normalized row of the
 # affinity matrix has the specified perplexity (within the supplied tolerance).
-# Returns a list containing the affinities, beta values and intrinsic
-# dimensionalities.
+# Returns affinities, beta values, intrinsic dimensionalities and fallback rows.
 # NB set default kernel to "exp" to get results closer to the tsne package.
 # This differs from the procedure in the t-SNE paper by exponentially weighting
 # the distances, rather than the squared distances.
@@ -353,7 +359,7 @@ x2aff <- function(
   } else {
     perps <- perplexity
   }
-  bad_perp <- 0
+  used_fallback <- logical(n)
 
   for (i in 1:n) {
     if (nperps > 1) {
@@ -423,7 +429,7 @@ x2aff <- function(
       !is.finite(Hdiff) || abs(Hdiff) > tol || (!shift_rows && raw_scale == 0)
     ) {
       # Put a weight of 1/perplexity on the perplexity-nearest neighbors
-      bad_perp <- bad_perp + 1
+      used_fallback[i] <- TRUE
       knn_idx <- order(Di, decreasing = FALSE)[1:max(floor(perplexity), 1)]
       knn_idx[knn_idx >= i] <- knn_idx[knn_idx >= i] + 1
       Wi <- rep(0, n)
@@ -448,6 +454,8 @@ x2aff <- function(
     }
   }
   sigma <- sqrt(1 / beta)
+  fallback_rows <- which(used_fallback)
+  bad_perp <- length(fallback_rows)
 
   if (bad_perp > 0) {
     tsmessage("Warning: ", bad_perp, " perplexity calibrations failed!")
@@ -458,7 +466,13 @@ x2aff <- function(
     summarize(sigma, "sigma summary", verbose = verbose)
     summarize(intd, "Dint", verbose = verbose)
   }
-  list(W = W, beta = beta, dint = intd, row_scale = row_scale)
+  list(
+    W = W,
+    beta = beta,
+    dint = intd,
+    row_scale = row_scale,
+    fallback_rows = fallback_rows
+  )
 }
 
 # Offsets are measured from the nearest non-self neighbor, so at least one
@@ -730,6 +744,7 @@ msp <- function(
   )
 
   res <- NULL
+  used_fallback <- logical(n)
   shift_rows <- shift_affinity_rows(row_normalize, symmetrize)
   for (perplexity in perplexities) {
     tsmessage(
@@ -745,6 +760,7 @@ msp <- function(
       guesses = guesses,
       shift_rows = shift_rows
     )
+    used_fallback[x2a_res$fallback_rows] <- TRUE
     P <- x2a_res$W
     Q <- scale_affinities(
       P,
@@ -770,6 +786,7 @@ msp <- function(
     )
   }
 
+  res$fallback_rows <- which(used_fallback)
   res
 }
 

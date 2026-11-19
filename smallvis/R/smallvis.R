@@ -774,6 +774,12 @@
 #' perplexity calibration was used as part of the embedding method:
 #'
 #' \itemize{
+#' \item{\code{perplexity_fallback_rows}} Sorted one-based row indices in
+#' the original input whose calibration used fallback affinities. An empty
+#' integer vector means calibration ran and no row fell back. Multiscale
+#' calibration reports the union across scales. Intrinsic dimensionality
+#' perplexity selection reports rows from the selected calibration. The field
+#' is omitted for kernels that do not run SNE-style perplexity calibration.
 #' \item{\code{V}} Input affinities (un-normalized weights used to generate
 #' \code{P}).
 #' \item{\code{beta}} Precisions (inverse standard deviation) of the input

@@ -117,6 +117,67 @@ test_that("calibration failures warn once and retain valid public affinities", {
   }
 })
 
+test_that("perplexity diagnostics identify the input rows that fell back", {
+  # Only the zero rows have three tied nearest neighbors at perplexity two.
+  X <- matrix(c(20, 0, 21, 0, 23, 0, 27, 0, 35, 51, 83, 147), ncol = 1)
+  expected <- c(2L, 4L, 6L, 8L)
+  Y <- cbind(sin(seq_len(nrow(X))), cos(seq_len(nrow(X))))
+  field <- "perplexity_fallback_rows"
+  run <- function(perplexity = 2, ret_extra = field, ...) {
+    smallvis(
+      X,
+      perplexity = perplexity,
+      Y_init = Y,
+      scale = FALSE,
+      max_iter = 0,
+      n_threads = 2,
+      ret_extra = ret_extra,
+      epoch_callback = FALSE,
+      verbose = FALSE,
+      ...
+    )
+  }
+  for (use_cpp in c(FALSE, TRUE)) {
+    expect_warning(
+      fit <- run(use_cpp = use_cpp),
+      "^4 perplexity calibrations failed$"
+    )
+    expect_identical(fit[[field]], expected)
+    expect_warning(fit <- run(4, use_cpp = use_cpp), NA)
+    expect_identical(fit[[field]], integer())
+  }
+
+  graph <- get_nn(stats::dist(X), k = 7L)
+  for (bh in c(FALSE, TRUE)) {
+    expect_warning(
+      fit <- run(
+        inp_kernel = "nngaussian",
+        bh = bh,
+        neighbors = graph,
+        ret_extra = c("P", field)
+      ),
+      "^4 perplexity calibrations failed$"
+    )
+    expect_identical(fit[[field]], expected)
+  }
+  expect_s4_class(fit$P, "dgCMatrix")
+
+  expect_warning(
+    fit <- run(list("multiscale", c(2, 4))),
+    "^4 perplexity calibrations failed$"
+  )
+  expect_identical(fit[[field]], expected)
+  expect_warning(
+    fit <- run(list("idp", c(4, 2))),
+    "^4 perplexity calibrations failed$"
+  )
+  expect_equal(fit$perplexity, 4)
+  expect_identical(fit[[field]], integer())
+
+  expect_false(field %in% names(run(4, ret_extra = TRUE)))
+  expect_false(field %in% names(run(inp_kernel = "knn")))
+})
+
 test_that("dense Gaussian diagnostics retain calibrated precisions", {
   X <- matrix(sin(seq_len(96)), 24, 4)
   for (use_cpp in c(FALSE, TRUE)) {
