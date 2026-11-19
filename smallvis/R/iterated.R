@@ -174,6 +174,8 @@ should_ret_extra <- function(ret_extra) {
 #' the optimization at the target perplexity is carried out, e.g. if
 #' \code{max_iter = 1000} and \code{step_iter = 250}, the final
 #' optimization will run for 750 iterations only.
+#' Any remainder is assigned one iteration at a time, starting with the largest
+#' perplexity. An explicit \code{Y_init_sdev} applies only to the initial start.
 #'
 #' Any value of \code{tol}, early or late exaggeration, and their iteration
 #' controls is used only with the final optimization. Final-run defaults are
@@ -186,9 +188,10 @@ should_ret_extra <- function(ret_extra) {
 #' including preliminary perplexities. The neighbor budget is checked before
 #' any embedding starts.
 #'
-#' @param step_iter Number of iterations to carry out the perplexity
-#'  stepping. Must be < the value of \code{max_iter} when preliminary runs
-#'  are needed. Zero skips stepping.
+#' @param step_iter Nonnegative whole number of iterations for perplexity
+#'  stepping. Zero skips stepping. A positive budget must allow at least one
+#'  iteration per preliminary perplexity and be less than \code{max_iter}
+#'  when preliminary runs are needed.
 #' @param ... Arguments to be passed to \code{\link{smallvis}}. See 'Details'
 #'  for information on which arguments may be modified or ignored during certain
 #'  parts of the embedding.
@@ -223,6 +226,16 @@ should_ret_extra <- function(ret_extra) {
 #' dimensionality reduction based on similarity preservation.
 #' \emph{Neurocomputing}, \emph{112}, 92-108.
 smallvis_perpstep <- function(step_iter = 250, ...) {
+  if (
+    !is.numeric(step_iter) ||
+      is.complex(step_iter) ||
+      length(step_iter) != 1L ||
+      !is.finite(step_iter) ||
+      step_iter < 0 ||
+      step_iter != floor(step_iter)
+  ) {
+    stop("step_iter must be a nonnegative whole number")
+  }
   final_args <- match_smallvis_args(list(...))
   max_iter <- final_args$max_iter
   if (is.null(max_iter)) {
@@ -243,25 +256,31 @@ smallvis_perpstep <- function(step_iter = 250, ...) {
     stop("Perplexity stepping requires a scalar target perplexity")
   }
   perps <- scale_perps(n = n, target_perp = target_perplexity)
-  if (length(perps) > 0 && step_iter > 0) {
+  nsteps <- length(perps)
+  if (nsteps > 0 && step_iter > 0) {
     if (max_iter <= step_iter) {
       stop("max_iter must be > step_iter")
     }
-    max_iter_step <- max(1, floor(step_iter / length(perps)))
+    if (step_iter < nsteps) {
+      stop(
+        "step_iter must allow at least one iteration per preliminary perplexity"
+      )
+    }
+    budgets <- step_iter %/% nsteps + (seq_len(nsteps) <= step_iter %% nsteps)
     preliminary <- final_args
     if (!is.null(final_args$neighbors)) {
       preliminary$neighbor_perplexities <- c(perps, target_perplexity)
     }
     preliminary$ret_extra <- FALSE
-    preliminary$max_iter <- max_iter_step
     preliminary$tol <- 0
     preliminary$exaggeration_factor <- 1
     preliminary$late_exaggeration_factor <- 1
-    preliminary$epoch <- max_iter_step
     if (is.list(preliminary$method)) {
       preliminary$method$perplexity <- NULL
     }
-    for (perp in perps) {
+    for (i in seq_along(perps)) {
+      perp <- perps[i]
+      max_iter_step <- budgets[i]
       if (nnat(final_args$verbose)) {
         tsmessage(
           "Optimizing at step perplexity ",
@@ -272,11 +291,15 @@ smallvis_perpstep <- function(step_iter = 250, ...) {
         )
       }
       preliminary$perplexity <- perp
+      preliminary$max_iter <- max_iter_step
+      preliminary$epoch <- max_iter_step
       Y <- do.call(smallvis_run, preliminary)
       preliminary$neighbor_perplexities <- NULL
       preliminary$Y_init <- Y
+      preliminary$Y_init_sdev <- NULL
     }
     final_args$Y_init <- Y
+    final_args$Y_init_sdev <- NULL
     final_args$max_iter <- max_iter - step_iter
     max_iter <- final_args$max_iter
   }

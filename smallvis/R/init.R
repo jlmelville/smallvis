@@ -44,14 +44,7 @@ pca_init <- function(X, ndim, pca_preprocessed, verbose = FALSE) {
 # A must contain symmetric nonnegative affinities with positive degrees.
 laplacian_eigenmap <- function(A, ndim = 2, use_RSpectra = TRUE) {
   n <- nrow(A)
-  if (ndim < 1 || ndim >= n || ndim != as.integer(ndim)) {
-    stop("ndim must be between 1 and n - 1")
-  }
-  degrees <- Matrix::colSums(A)
-  if (any(!is.finite(degrees) | degrees <= 0)) {
-    stop("Spectral initialization requires positive finite graph degrees")
-  }
-  Dsq <- sqrt(degrees)
+  Dsq <- sqrt(spectral_degrees(A, ndim))
   S <- Matrix::t(A / Dsq) / Dsq
   if (
     use_RSpectra && ndim + 1 < n && requireNamespace("RSpectra", quietly = TRUE)
@@ -76,7 +69,7 @@ normalized_spectral_init <- function(A, ndim = 2, use_RSpectra = TRUE) {
   # L <- I - D %*% A %*% D
 
   # A lot faster (order of magnitude when n = 1000)
-  Dsq <- sqrt(Matrix::colSums(A))
+  Dsq <- sqrt(spectral_degrees(A, ndim))
   L <- -Matrix::t(A / Dsq) / Dsq
   Matrix::diag(L) <- 1 + Matrix::diag(L)
 
@@ -95,14 +88,25 @@ normalized_spectral_init <- function(A, ndim = 2, use_RSpectra = TRUE) {
     )
     res <- RSpectra::eigs(L, k = k, which = "SM", opts = opt)
     vec_indices <- rev(order(res$values, decreasing = TRUE)[1:ndim])
-    res <- Re(res$vectors[, vec_indices])
+    res <- Re(res$vectors[, vec_indices, drop = FALSE])
   } else {
     tsmessage("Using eigen for eigenvectors")
     res <- eigen(L, symmetric = FALSE)
     vec_indices <- order(res$values, decreasing = FALSE)[2:(ndim + 1)]
-    res <- Re(res$vectors[, vec_indices])
+    res <- Re(res$vectors[, vec_indices, drop = FALSE])
   }
   res
+}
+
+spectral_degrees <- function(A, ndim) {
+  if (ndim < 1 || ndim >= nrow(A) || ndim != as.integer(ndim)) {
+    stop("ndim must be between 1 and n - 1")
+  }
+  degrees <- Matrix::colSums(A)
+  if (any(!is.finite(degrees) | degrees <= 0)) {
+    stop("Spectral initialization requires positive finite graph degrees")
+  }
+  degrees
 }
 
 is_spectral_init <- function(init) {

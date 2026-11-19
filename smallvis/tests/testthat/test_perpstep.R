@@ -105,3 +105,40 @@ test_that("zero stepping iterations preserve a direct positional-input call", {
   expect_equal(stepped$Y, direct$Y)
   expect_equal(stepped$costs, direct$costs)
 })
+
+test_that("stepping uses its exact budget and preserves coordinates at handoffs", {
+  X <- matrix(sin(seq_len(144)^2), 36)
+  trace <- list()
+  callback <- function(Y, iter) {
+    if (iter == 0) {
+      trace[[length(trace) + 1L]] <<- list()
+    }
+    trace[[length(trace)]][[iter + 1L]] <<- Y
+  }
+  run <- function(step_iter) {
+    smallvis_perpstep(
+      step_iter = step_iter,
+      X = X,
+      Y_init = "spca",
+      Y_init_sdev = 0.001,
+      perplexity = 3,
+      max_iter = 12,
+      tol = 0,
+      opt = list("adam", eta = 0.1),
+      epoch_callback = callback,
+      verbose = FALSE
+    )
+  }
+  expect_error(run(1), "one iteration per preliminary perplexity")
+  expect_error(run(3.5), "step_iter must be a nonnegative whole number")
+  expect_length(trace, 0L)
+  invisible(run(5))
+  expect_equal(lengths(trace) - 1L, c(2L, 2L, 1L, 7L))
+  expect_equal(apply(trace[[1L]][[1L]], 2, stats::sd), rep(0.001, 2))
+  for (i in seq_len(length(trace) - 1L)) {
+    expect_equal(
+      unname(trace[[i + 1L]][[1L]]),
+      unname(trace[[i]][[length(trace[[i]])]])
+    )
+  }
+})

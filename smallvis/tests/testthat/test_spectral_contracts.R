@@ -67,3 +67,37 @@ test_that("small normalized spectral inputs use a valid dense eigensolve", {
   A <- matrix(1, 3, 3) - diag(3)
   expect_equal(dim(normalized_spectral_init(A, ndim = 2)), c(3L, 2L))
 })
+
+test_that("normalized spectral initialization preserves a single dimension", {
+  A <- outer(1:10, 1:10, function(i, j) exp(-abs(i - j) / 3))
+  diag(A) <- 0
+  degrees <- rowSums(A)
+  L <- diag(10) - A / sqrt(outer(degrees, degrees))
+  eigenvalue <- sort(eigen(L, symmetric = TRUE, only.values = TRUE)$values)[2L]
+  for (use_RSpectra in c(FALSE, TRUE)) {
+    Y <- normalized_spectral_init(A, ndim = 1, use_RSpectra = use_RSpectra)
+    expect_equal(dim(Y), c(10L, 1L))
+    expect_equal(L %*% Y, eigenvalue * Y, tolerance = 1e-6)
+  }
+  expect_error(normalized_spectral_init(A, ndim = 10), "ndim must be")
+  A[, 1L] <- A[1L, ] <- 0
+  expect_error(
+    normalized_spectral_init(A, ndim = 1),
+    "positive finite graph degrees"
+  )
+
+  X <- matrix(sin(seq_len(96)^2), 24)
+  for (iterations in c(0L, 1L)) {
+    Y <- smallvis(
+      X,
+      perplexity = 4,
+      k = 1,
+      Y_init = "normlaplacian",
+      max_iter = iterations,
+      epoch_callback = FALSE,
+      verbose = FALSE
+    )
+    expect_equal(dim(Y), c(24L, 1L))
+    expect_true(all(is.finite(Y)))
+  }
+})

@@ -7,9 +7,10 @@
 smallvis_perpstep(step_iter = 250, ...)
 }
 \arguments{
-\item{step_iter}{Number of iterations to carry out the perplexity
-stepping. Must be < the value of \code{max_iter} when preliminary runs
-are needed. Zero skips stepping.}
+\item{step_iter}{Nonnegative whole number of iterations for perplexity
+stepping. Zero skips stepping. A positive budget must allow at least one
+iteration per preliminary perplexity and be less than \code{max_iter}
+when preliminary runs are needed.}
 
 \item{...}{Arguments to be passed to \code{\link{smallvis}}. See 'Details'
 for information on which arguments may be modified or ignored during certain
@@ -50,6 +51,8 @@ that used by a single run of \code{\link{smallvis}}, the value of
 the optimization at the target perplexity is carried out, e.g. if
 \code{max_iter = 1000} and \code{step_iter = 250}, the final
 optimization will run for 750 iterations only.
+Any remainder is assigned one iteration at a time, starting with the largest
+perplexity. An explicit \code{Y_init_sdev} applies only to the initial start.
 
 Any value of \code{tol}, early or late exaggeration, and their iteration
 controls is used only with the final optimization. Final-run defaults are
