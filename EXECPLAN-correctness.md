@@ -81,8 +81,9 @@ proposals remain below with their revisit conditions.
 ## Deferred proposals
 
 - Failed calibration row IDs are available through
-  `ret_extra = "perplexity_fallback_rows"`. A termination reason remains a
-  follow-up. Report achieved perplexity only with a defined normalization
+  `ret_extra = "perplexity_fallback_rows"`. The fit's stopping reason is
+  available through `ret_extra = "termination_reason"`. Report achieved
+  perplexity only with a defined normalization
   and stage. FFT already exposes `repulsion` and `fft_backend` through
   `ret_extra`. Revisit a wider resolved-settings API when needed.
 - Profile the repeated Barnes–Hut sparse buffer copies before changing them.

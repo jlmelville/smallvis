@@ -1,3 +1,65 @@
+test_that("termination reason identifies the limit or criterion that ended the fit", {
+  X <- matrix(sin(seq_len(96)^2), 24)
+  Y <- matrix(0, nrow(X), 2)
+  run <- function(
+    ...,
+    max_iter = 5,
+    tol = 0,
+    min_cost = -Inf,
+    ret_extra = "termination_reason"
+  ) {
+    smallvis(
+      X,
+      perplexity = 4,
+      Y_init = Y,
+      max_iter = max_iter,
+      min_cost = min_cost,
+      tol = tol,
+      epoch = 1,
+      tol_wait = 0,
+      ret_extra = ret_extra,
+      epoch_callback = FALSE,
+      verbose = FALSE,
+      ...
+    )
+  }
+  expect_identical(run(max_iter = 0)$termination_reason, "initialization_only")
+  expect_identical(run(max_iter = 1)$termination_reason, "max_iter")
+
+  threshold <- run(max_iter = 1, min_cost = Inf, g2tol = 1e-6)
+  expect_identical(threshold$termination_reason, "min_cost")
+  tol <- run(tol = 1e-6)
+  expect_identical(tol$termination_reason, "tol")
+  expect_equal(tol$iter, 2)
+  gradient <- run(g2tol = 1e-6)
+  expect_identical(gradient$termination_reason, "g2tol")
+  expect_equal(gradient$iter, 1)
+  expect_false("termination_reason" %in% names(run(ret_extra = TRUE)))
+})
+
+test_that("ending early exaggeration does not set the fit termination reason", {
+  X <- matrix(sin(seq_len(96)^2), 24)
+  fit <- smallvis(
+    X,
+    perplexity = 4,
+    Y_init = matrix(0, nrow(X), 2),
+    max_iter = 3,
+    epoch = 1,
+    min_cost = -Inf,
+    tol = 0,
+    tol_wait = 10,
+    g2tol = 1e-6,
+    exaggeration_factor = 4,
+    stop_lying_iter = 10,
+    ret_extra = "termination_reason",
+    epoch_callback = FALSE,
+    verbose = FALSE
+  )
+  expect_equal(fit$stop_lying_iter, 2)
+  expect_equal(fit$iter, 3)
+  expect_identical(fit$termination_reason, "max_iter")
+})
+
 test_that("final costs match returned coordinates before the first epoch", {
   X <- matrix(sin(seq_len(96)^2), 24, 4)
   for (iter0_cost in c(FALSE, TRUE)) {
@@ -8,11 +70,12 @@ test_that("final costs match returned coordinates before the first epoch", {
       epoch = 5,
       opt = list("l-bfgs", max_gr = 1),
       iter0_cost = iter0_cost,
-      ret_extra = c("P", "Q"),
+      ret_extra = c("P", "Q", "termination_reason"),
       epoch_callback = FALSE,
       verbose = FALSE
     )
     expect_equal(res$iter, 1)
+    expect_identical(res$termination_reason, "optimizer")
     expect_length(res$itercosts, as.integer(iter0_cost))
     expect_equal(
       sum(res$costs),

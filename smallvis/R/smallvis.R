@@ -757,10 +757,8 @@
 #'   A rough measure of convergence.
 #' }
 #' Additionally, if you set \code{ret_extra} to a vector of names, these will
-#' be returned in addition to the values given above. These values are optional
-#' and must be explicitly asked for, because they are either expensive to
-#' calculate, take up a lot of memory, or both. The available optional values
-#' are:
+#' be returned in addition to the values given above. The available optional
+#' values are:
 #' \itemize{
 #' \item{\code{X}} The input data, after filtering and scaling.
 #' \item{\code{P}} The input probabilities.
@@ -768,6 +766,15 @@
 #' \item{\code{DX}} Input distance matrix. The same as \code{X} when the input
 #'   data is already a distance matrix.
 #' \item{\code{DY}} Output coordinate distance matrix.
+#' \item{\code{termination_reason}} A single string explaining why the fit
+#' ended. Possible values are \code{"initialization_only"} when no iterations
+#' ran, \code{"max_iter"} for the iteration limit, \code{"min_cost"} for the
+#' objective cutoff, \code{"tol"} for relative objective tolerance,
+#' \code{"g2tol"} for gradient norm tolerance, and \code{"optimizer"} when
+#' the optimizer reported termination. When multiple epoch criteria end the
+#' fit, the first of \code{"min_cost"}, \code{"tol"}, and \code{"g2tol"}
+#' applies. A criterion that only advances to another optimization stage
+#' does not set the termination reason.
 #' }
 #'
 #' The following additional optional values are available only if the SNE-style
@@ -1411,7 +1418,8 @@ smallvis_run <- function(
         ),
         use_cpp = use_cpp,
         n_threads = n_threads,
-        original_dims = original_dims
+        original_dims = original_dims,
+        termination_reason = "initialization_only"
       )
     )
   }
@@ -1456,6 +1464,7 @@ smallvis_run <- function(
 
   # Use a while loop, so we can change max_iter inside the loop
   iter <- 0
+  termination_reason <- "max_iter"
   while (iter < max_iter) {
     iter <- iter + 1
     opt_res <- opt_step(opt, cost_fn, Y, iter)
@@ -1499,6 +1508,7 @@ smallvis_run <- function(
         opt$terminate$what
       )
       max_iter <- iter
+      termination_reason <- "optimizer"
       break
     }
 
@@ -1506,7 +1516,7 @@ smallvis_run <- function(
     Y <- sweep(Y, 2, colMeans(Y))
 
     if ((epoch > 0 && iter %% epoch == 0) || iter == max_iter) {
-      stop_early <- FALSE
+      stage_stop_reasons <- character()
 
       cost_eval_res <- cost_eval(cost_fn, Y, opt_res)
       cost_fn <- cost_eval_res$cost
@@ -1585,7 +1595,7 @@ smallvis_run <- function(
               cdiffrc < old_cdiffrc
           ) {
             if (ee_mon_buffer < 1) {
-              stop_early <- TRUE
+              stage_stop_reasons <- c(stage_stop_reasons, "ee_relative_change")
               tsmessage("Stopping early: EE relative change reached maximum")
             } else {
               ee_mon_buffer <- ee_mon_buffer - 1
@@ -1595,7 +1605,7 @@ smallvis_run <- function(
         old_cdiffrc <- cdiffrc
       }
       if (cost < min_cost) {
-        stop_early <- TRUE
+        stage_stop_reasons <- c(stage_stop_reasons, "min_cost")
         tsmessage("Stopping early: cost fell below min_cost")
       }
 
@@ -1607,7 +1617,7 @@ smallvis_run <- function(
           (iter > stop_lying_iter + tol_wait ||
             opt_stages[opt_stage_idx] != "opt")
       ) {
-        stop_early <- TRUE
+        stage_stop_reasons <- c(stage_stop_reasons, "tol")
         tsmessage(
           "Stopping early: relative tolerance (",
           formatC(tol),
@@ -1626,7 +1636,7 @@ smallvis_run <- function(
           (iter > stop_lying_iter + tol_wait ||
             opt_stages[opt_stage_idx] != "opt")
       ) {
-        stop_early <- TRUE
+        stage_stop_reasons <- c(stage_stop_reasons, "g2tol")
         tsmessage(
           "Stopping early: ||G||2 tolerance (",
           formatC(g2tol),
@@ -1635,9 +1645,10 @@ smallvis_run <- function(
       }
 
       # Stop current stage early if we aren't making progress
-      if (stop_early) {
+      if (length(stage_stop_reasons) > 0L) {
         if (opt_stage_idx == length(opt_stages)) {
           # run out of optimization stages, so give up
+          termination_reason <- stage_stop_reasons[[1L]]
           break
         }
 
@@ -1669,6 +1680,7 @@ smallvis_run <- function(
       }
 
       if (nnat(opt$is_terminated)) {
+        termination_reason <- "optimizer"
         break
       }
 
@@ -1714,7 +1726,8 @@ smallvis_run <- function(
     whiten = ifelse(pca && whiten, initial_dims, 0),
     use_cpp = use_cpp,
     n_threads = n_threads,
-    original_dims = original_dims
+    original_dims = original_dims,
+    termination_reason = termination_reason
   )
 
   res
@@ -2058,7 +2071,8 @@ ret_value <- function(
   optionals = c(),
   use_cpp = FALSE,
   n_threads = 1,
-  original_dims = NULL
+  original_dims = NULL,
+  termination_reason = NULL
 ) {
   attr(Y, "dimnames") <- NULL
   if (ret_extra) {
@@ -2141,6 +2155,10 @@ ret_value <- function(
 
     optionals <- tolower(unique(optionals))
     for (o in optionals) {
+      if (o == "termination_reason") {
+        res$termination_reason <- termination_reason
+        next
+      }
       exported <- NULL
       if (!is.null(cost_fn)) {
         # Could be NULL if max_iter was 0

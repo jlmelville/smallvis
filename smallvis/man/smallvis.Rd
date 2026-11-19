@@ -349,10 +349,8 @@ If \code{ret_extra} is \code{FALSE}, the embedded output coordinates
   A rough measure of convergence.
 }
 Additionally, if you set \code{ret_extra} to a vector of names, these will
-be returned in addition to the values given above. These values are optional
-and must be explicitly asked for, because they are either expensive to
-calculate, take up a lot of memory, or both. The available optional values
-are:
+be returned in addition to the values given above. The available optional
+values are:
 \itemize{
 \item{\code{X}} The input data, after filtering and scaling.
 \item{\code{P}} The input probabilities.
@@ -360,6 +358,15 @@ are:
 \item{\code{DX}} Input distance matrix. The same as \code{X} when the input
   data is already a distance matrix.
 \item{\code{DY}} Output coordinate distance matrix.
+\item{\code{termination_reason}} A single string explaining why the fit
+ended. Possible values are \code{"initialization_only"} when no iterations
+ran, \code{"max_iter"} for the iteration limit, \code{"min_cost"} for the
+objective cutoff, \code{"tol"} for relative objective tolerance,
+\code{"g2tol"} for gradient norm tolerance, and \code{"optimizer"} when
+the optimizer reported termination. When multiple epoch criteria end the
+fit, the first of \code{"min_cost"}, \code{"tol"}, and \code{"g2tol"}
+applies. A criterion that only advances to another optimization stage
+does not set the termination reason.
 }
 
 The following additional optional values are available only if the SNE-style
