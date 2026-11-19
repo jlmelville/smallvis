@@ -115,3 +115,45 @@ test_that("Gaussian output weights exclude self from their normalization shifts"
     }
   }
 })
+test_that("the exact HSSNE Gaussian limit scores separated coordinates in log space", {
+  X <- matrix(sin(seq_len(96)^2), 24)
+  Y <- 100 * cbind(seq_len(24), seq_len(24))
+  direction <- Y / sqrt(sum(Y^2))
+  for (use_cpp in c(FALSE, TRUE)) {
+    fit <- smallvis(
+      X,
+      method = list("hssne", alpha = 0),
+      perplexity = 4,
+      Y_init = Y,
+      scale = FALSE,
+      use_cpp = use_cpp,
+      max_iter = 0,
+      ret_extra = c("P", "Q"),
+      epoch_callback = FALSE,
+      verbose = FALSE
+    )
+    reference <- function(coords) {
+      logw <- -as.matrix(stats::dist(coords))^2
+      diag(logw) <- -Inf
+      peak <- max(logw)
+      logq <- logw - peak - log(sum(exp(logw - peak)))
+      used <- fit$P > 0
+      sum(fit$P[used] * (log(fit$P[used]) - logq[used]))
+    }
+    expect_gt(reference(Y), 1e6)
+    expect_equal(sum(fit$costs), reference(Y), tolerance = 1e-12)
+    expect_equal(sum(fit$Q), 1)
+    expect_true(any(fit$Q[row(fit$Q) != col(fit$Q)] == 0))
+    expect_true(all(diag(fit$Q) == 0))
+
+    cost <- cost_init(hssne(4, alpha = 0, use_cpp = use_cpp), X, max_iter = 1)
+    h <- 0.01
+    numeric <- (reference(Y + h * direction) - reference(Y - h * direction)) /
+      (2 * h)
+    expect_equal(
+      sum(cost_grad(cost, Y)$G * direction),
+      numeric,
+      tolerance = 1e-7
+    )
+  }
+})

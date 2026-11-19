@@ -1,5 +1,22 @@
 # ABSNE -------------------------------------------------------------------
 
+absne_limit <- function(alpha, beta, lambda) {
+  threshold <- 1e-5
+  if (abs(alpha) <= threshold) {
+    if (abs(beta) <= threshold) {
+      return("joint")
+    }
+    return("alpha")
+  }
+  if (abs(lambda) <= threshold) {
+    return("lambda")
+  }
+  if (abs(beta) <= threshold) {
+    return("beta")
+  }
+  "regular"
+}
+
 # alpha-beta divergence
 absne <- function(
   perplexity,
@@ -12,9 +29,9 @@ absne <- function(
   use_cpp = FALSE
 ) {
   beta <- lambda - alpha
+  limit <- absne_limit(alpha, beta, lambda)
 
-  eps0 <- 1e-5
-  if (abs(alpha) > eps0 && abs(lambda) < eps0) {
+  if (limit == "lambda") {
     # alpha != 0, beta = -alpha (=> lambda == 0)
     return(
       absneamb(
@@ -28,7 +45,7 @@ absne <- function(
       )
     )
   }
-  if (abs(alpha) > eps0 && abs(beta) < eps0) {
+  if (limit == "beta") {
     # alpha != 0, beta = 0 (=> lambda = alpha)
     return(
       absneb0(
@@ -42,7 +59,7 @@ absne <- function(
       )
     )
   }
-  if (abs(alpha) < eps0 && abs(beta) > eps0) {
+  if (limit == "alpha") {
     # alpha = 0, beta != 0 (=> lambda = beta)
     return(
       absnea0(
@@ -56,7 +73,7 @@ absne <- function(
       )
     )
   }
-  if (abs(alpha) < eps0 && abs(beta) < eps0) {
+  if (limit == "joint") {
     # alpha = 0, beta = 0 (=> lambda = 0)
     return(
       absne00(
@@ -70,9 +87,6 @@ absne <- function(
     )
   }
 
-  if (abs(lambda) < eps0) {
-    lambda <- ifelse(lambda == 0, 1, sign(lambda)) * eps0
-  }
   lreplace(
     tsne(
       perplexity = perplexity,
@@ -533,18 +547,15 @@ abssne <- function(
   use_cpp = FALSE
 ) {
   beta <- lambda - alpha
-
-  eps0 <- 1e-5
-
-  if (abs(alpha) < eps0) {
-    alpha <- ifelse(alpha == 0, 1, sign(alpha)) * eps0
-  }
-  if (abs(beta) < eps0) {
-    beta <- ifelse(beta == 0, 1, sign(beta)) * eps0
-  }
-  if (abs(lambda) < eps0) {
-    lambda <- ifelse(lambda == 0, 1, sign(lambda)) * eps0
-  }
+  limit <- absne_limit(alpha, beta, lambda)
+  exponent <- switch(
+    limit,
+    joint = 0,
+    alpha = beta,
+    beta = alpha,
+    lambda = 0,
+    regular = lambda
+  )
   lreplace(
     tsne(
       perplexity = perplexity,
@@ -573,39 +584,71 @@ abssne <- function(
         n_threads = n_threads,
         use_cpp = use_cpp
       )
-      cost$inva4 <- 4 / alpha
-      cost$minvab <- -1 / (alpha * beta)
-      cost$inval <- 1 / (alpha * lambda)
-      cost$ibl <- 1 / (beta * lambda)
-
       cost$eps <- eps
       cost
     },
     cache_input = function(cost) {
-      P <- cost$P
-      eps <- cost$eps
-      P[P < eps] <- eps
-      cost$Pa <- powm(P, alpha, eps)
-      cost$Plc <- colSums(powm(P, lambda, eps)) * cost$ibl
+      P <- pmax(cost$P, cost$eps)
+      if (limit == "regular") {
+        cost$Pa <- powm(P, alpha, cost$eps)
+        cost$P_power_sum <- colSums(powm(P, exponent, cost$eps))
+      } else {
+        cost$logP <- logm(P, cost$eps)
+        if (exponent != 0) {
+          cost$P_power <- powm(P, exponent, cost$eps)
+        }
+      }
       cost
     },
     pfn = function(cost, Y) {
       cost <- cost_update(cost, Y)
-      cost$pcost <- cost$minvab * cost$PaQbc + cost$Plc + cost$inval * cost$Qlc
+      if (limit == "regular") {
+        cost$pcost <- (alpha /
+          lambda *
+          cost$P_power_sum +
+          beta / lambda * colSums(cost$Q_power) -
+          colSums(cost$cross_power)) /
+          (alpha * beta)
+        return(cost)
+      }
+      ratio <- cost$log_ratio
+      divergence <- switch(
+        limit,
+        joint = 0.5 * ratio^2,
+        alpha = (cost$P_power -
+          cost$Q_power -
+          beta * weighted_log_ratio(cost$Q_power, ratio)) /
+          beta^2,
+        beta = (cost$Q_power -
+          cost$P_power +
+          alpha * weighted_log_ratio(cost$P_power, ratio)) /
+          alpha^2,
+        lambda = {
+          r <- alpha * ratio
+          value <- expm1(r) - r
+          value[is.infinite(r)] <- Inf
+          value / alpha^2
+        }
+      )
+      cost$pcost <- colSums(divergence)
       cost
     },
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
-      cost$G <- k2g(
-        Y,
-        cost$inva4 *
-          (cost$PaQb - cost$Ql + cost$Q * (cost$Qls - cost$PaQbs))
+      ratio <- cost$log_ratio
+      force <- switch(
+        limit,
+        joint = ratio,
+        alpha = weighted_log_ratio(cost$Q_power, ratio),
+        beta = (cost$P_power - cost$Q_power) / alpha,
+        lambda = expm1(alpha * ratio) / alpha,
+        regular = (cost$cross_power - cost$Q_power) / alpha
       )
+      # The second term differentiates the Gaussian probabilities' normalizer.
+      cost$G <- k2g(Y, 4 * (force - cost$Q * sum(force)))
       cost
     },
     update = function(cost, Y) {
-      eps <- cost$eps
-
       Q <- expQ(
         Y,
         cost$eps,
@@ -615,16 +658,24 @@ abssne <- function(
         n_threads = n_threads
       )$Q
 
-      cost$PaQb <- cost$Pa * powm(Q, beta, eps)
-      cost$PaQbc <- colSums(cost$PaQb)
-      cost$PaQbs <- sum(cost$PaQbc)
-
+      if (exponent != 0) {
+        cost$Q_power <- powm(Q, exponent, cost$eps)
+      }
+      if (limit == "regular") {
+        cost$cross_power <- cost$Pa * powm(Q, beta, cost$eps)
+      } else {
+        cost$log_ratio <- cost$logP - logm(Q, cost$eps)
+      }
       cost$Q <- Q
-      cost$Ql <- powm(Q, lambda, eps)
-      cost$Qlc <- colSums(cost$Ql)
-      cost$Qls <- sum(cost$Qlc)
-
       cost
-    }
+    },
+    sentinel = "Q"
   )
+}
+
+weighted_log_ratio <- function(weights, ratio) {
+  result <- weights * ratio
+  # A zero weight contributes zero even if its log ratio is infinite.
+  result[weights == 0] <- 0
+  result
 }

@@ -142,10 +142,12 @@
 #'    }
 #'    \item \code{"HSSNE"}
 #'    \itemize{
-#'    \item{\code{alpha}} Heavy-tailedness parameter, a positive numeric scalar.
+#'    \item{\code{alpha}} Heavy-tailedness parameter, a nonnegative numeric scalar.
 #'    Increasing this value increases the amount of stretching that occurs in
 #'    the output weighting function. A value of 0 performs like method
 #'    \code{"SSNE"}, and a value of 1 performs like method \code{"TSNE"}.
+#'    The exact Gaussian calculation at zero scores unfloored output
+#'    probabilities in log space.
 #'    Default is \code{0.5}.
 #'    }
 #'    \item \code{"EE"}

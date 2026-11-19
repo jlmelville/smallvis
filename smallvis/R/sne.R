@@ -273,17 +273,53 @@ hssne <- function(
   n_threads = 0,
   use_cpp = FALSE
 ) {
+  cost <- tsne(
+    perplexity = perplexity,
+    inp_kernel = inp_kernel,
+    symmetrize = symmetrize,
+    eps = eps,
+    n_threads = n_threads,
+    use_cpp = use_cpp
+  )
+  if (isTRUE(alpha == 0)) {
+    return(lreplace(
+      cost,
+      cache_input = function(cost) {
+        plogp <- cost$P
+        positive <- plogp > 0
+        plogp[positive] <- plogp[positive] * log(plogp[positive])
+        cost$plogp <- colSums(plogp)
+        cost
+      },
+      pfn = function(cost, Y) {
+        cost <- cost_update(cost, Y)
+        cost$pcost <- cost$plogp - colSums(cost$P * cost$logQ)
+        cost
+      },
+      gr = function(cost, Y) {
+        cost <- cost_update(cost, Y)
+        cost$G <- k2g(Y, 4 * (cost$P - cost$Q))
+        cost
+      },
+      update = function(cost, Y) {
+        logW <- -calc_d2(Y, use_cpp = use_cpp, n_threads = n_threads)
+        diag(logW) <- -Inf
+        logW <- logW - max(logW)
+        W <- exp(logW)
+        Z <- sum(W)
+        cost$Q <- W / Z
+        # Retain log probabilities even when the corresponding Q underflows.
+        cost$logQ <- logW - log(Z)
+        diag(cost$logQ) <- 0
+        cost
+      },
+      sentinel = "Q"
+    ))
+  }
   alpha <- max(alpha, 1e-8)
   apow <- -1 / alpha
   lreplace(
-    tsne(
-      perplexity = perplexity,
-      inp_kernel = inp_kernel,
-      symmetrize = symmetrize,
-      eps = eps,
-      n_threads = n_threads,
-      use_cpp = use_cpp
-    ),
+    cost,
     gr = function(cost, Y) {
       cost <- cost_update(cost, Y)
       # to include bandwidth

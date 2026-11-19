@@ -10,8 +10,9 @@ tsne_reference_cost <- function(P, Y) {
 
 # Evaluate the documented AB-divergence directly on non-self pairs, without
 # production power/log helpers or cached column sums. Fixtures avoid clipping.
-absne_reference_cost <- function(P, Y, alpha, lambda) {
-  W <- 1 / (1 + as.matrix(stats::dist(Y))^2)
+absne_reference_cost <- function(P, Y, alpha, lambda, gaussian = FALSE) {
+  D2 <- as.matrix(stats::dist(Y))^2
+  W <- if (gaussian) exp(-D2) else 1 / (1 + D2)
   diag(W) <- 0
   Q <- W / sum(W)
   off_diagonal <- row(P) != col(P)
