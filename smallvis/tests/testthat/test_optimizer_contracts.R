@@ -24,9 +24,29 @@ test_that("AdaMax retains an elementwise recurrence and safeguards zero gradient
   }
 })
 
+test_that("scaled NDBD handles zero gradients with and without momentum", {
+  zero <- matrix(0, 2, 2)
+  opt <- opt_init(ndbd(scale_grad = TRUE, beta = 0, momentum = 0.5), 2, 2)
+  opt <- opt$upd(opt, NULL, zero, 1, zero)
+  expect_equal(opt$uY, zero)
+  opt <- opt$upd(opt, NULL, zero, 2, matrix(1:4, 2, 2))
+  previous <- opt$uY
+  expect_gt(max(abs(previous)), 0)
+  opt <- opt$upd(opt, NULL, zero, 3, zero)
+  expect_equal(opt$uY, 0.5 * previous)
+})
+
 test_that("line searches reject unmatched forces before input calibration", {
   local_mocked_bindings(sne_init = function(...) stop("input calibration ran"))
-  for (method in c("umap", "tumap", "largevis", "usne", "pstsne", "dhssne")) {
+  for (method in list(
+    "umap",
+    "tumap",
+    "largevis",
+    "usne",
+    "pstsne",
+    "dhssne",
+    list("tsne", normalize = FALSE)
+  )) {
     expect_error(
       smallvis(
         iris10,
@@ -53,6 +73,36 @@ test_that("line searches reject unmatched forces before input calibration", {
     ),
     "requires a matching objective and gradient.*gradient-only optimizer"
   )
+})
+
+test_that("t-SNE preserves normalized line searches and unnormalized forces", {
+  X <- cbind(sin(1:8), cos(1:8))
+  Y <- matrix(sin(1:16), 8)
+  run <- function(normalize, opt) {
+    smallvis(
+      X,
+      method = list("tsne", normalize = normalize),
+      opt = opt,
+      scale = FALSE,
+      Y_init = Y,
+      perplexity = 4,
+      max_iter = 1,
+      ret_extra = "P",
+      epoch_callback = FALSE,
+      verbose = FALSE
+    )
+  }
+  normalized <- run(TRUE, list("l-bfgs"))
+  expect_equal(sum(normalized$P), 1)
+  expect_true(all(is.finite(normalized$Y)))
+
+  raw <- run(FALSE, list("steepd", eta = 0.1))
+  expect_equal(sum(raw$P), nrow(X))
+  W <- 1 / (1 + unname(as.matrix(stats::dist(Y)))^2)
+  diag(W) <- 0
+  force <- 4 * W * (raw$P - W / sum(W))
+  updated <- Y - 0.1 * (Y * rowSums(force) - force %*% Y)
+  expect_equal(raw$Y, sweep(updated, 2, colMeans(updated)), tolerance = 1e-12)
 })
 
 test_that("unstabilized USNE matches its independent scalar derivative", {

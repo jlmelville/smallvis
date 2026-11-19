@@ -481,6 +481,9 @@
 #' For UMAP, t-UMAP, LargeVis, and USNE, set method option \code{gr_eps = 0};
 #' their default stabilized forces require a gradient-only optimizer. Early
 #' and late exaggeration also require a gradient-only optimizer.
+#' Exact t-SNE with \code{method = list("tsne", normalize = FALSE)} also
+#' requires a gradient-only optimizer. The reported KL value is a diagnostic
+#' for this configuration because the forces scale attraction independently.
 #' Pseudo-separable t-SNE (\code{"pstsne"}) requires a gradient-only optimizer
 #' because its approximate forces do not differentiate its reported objective.
 #' Dynamic HSSNE (\code{"dhssne"}) also requires a gradient-only optimizer:

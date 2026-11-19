@@ -11,6 +11,7 @@ tsne <- function(
   nn = "exact"
 ) {
   list(
+    gradient_only = !normalize,
     init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
       symmetrize <- match.arg(tolower(symmetrize), true_symmetrize_options())
       cost <- sne_init(

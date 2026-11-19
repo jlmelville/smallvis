@@ -342,7 +342,10 @@ ndbd <- function(
       min_gain <- opt$min_gain
 
       if (scale_grad) {
-        G <- G / norm2(G)
+        gradient_norm <- norm2(G)
+        if (gradient_norm != 0) {
+          G <- G / gradient_norm
+        }
       }
 
       # compare signs of G with -update (== previous G, if we ignore momentum)
