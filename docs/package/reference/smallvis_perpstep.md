@@ -14,9 +14,10 @@ smallvis_perpstep(step_iter = 250, ...)
 
 - step_iter:
 
-  Number of iterations to carry out the perplexity stepping. Must be \<
-  the value of `max_iter` when preliminary runs are needed. Zero skips
-  stepping.
+  Nonnegative whole number of iterations for perplexity stepping. Zero
+  skips stepping. A positive budget must allow at least one iteration
+  per preliminary perplexity and be less than `max_iter` when
+  preliminary runs are needed.
 
 - ...:
 
@@ -59,7 +60,9 @@ to that used by a single run of
 the value of `step_iter` is subtracted from the value of `max_iter`
 before the optimization at the target perplexity is carried out, e.g. if
 `max_iter = 1000` and `step_iter = 250`, the final optimization will run
-for 750 iterations only.
+for 750 iterations only. Any remainder is assigned one iteration at a
+time, starting with the largest perplexity. An explicit `Y_init_sdev`
+applies only to the initial start.
 
 Any value of `tol`, early or late exaggeration, and their iteration
 controls is used only with the final optimization. Final-run defaults

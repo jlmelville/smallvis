@@ -138,14 +138,14 @@ best <- smallvis_rep(
 best$all_costs
 ```
 
-    ## [1] 0.1257385 0.1293317 0.1258546
+    ## [1] 0.1257125 0.1293274 0.1258573
 
 ``` r
 
 sum(best$costs)
 ```
 
-    ## [1] 0.1257385
+    ## [1] 0.1257125
 
 This comparison holds the objective and affinities fixed. Costs from
 different methods or input graphs generally have different meanings and
