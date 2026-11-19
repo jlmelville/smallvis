@@ -156,3 +156,41 @@ test_that("FFT t-SNE evaluates coincident coordinates and guards wide grids", {
   # The final score is evaluated after recentering even at max_iter = 0.
   expect_error(run(Y), "padded grid.*Increase grid_interval")
 })
+
+test_that("FFT spacing and t-SNE updates are invariant to translation", {
+  X <- matrix(sin(seq_len(96)^2), 24)
+  Y <- cbind(sin(1:24), cos(1:24))
+  translated <- sweep(Y, 2L, c(1000, -300), "+")
+  expect_equal(fft_sne_grid(translated, 1)$width, fft_sne_grid(Y, 1)$width)
+  expect_equal(fft_sne_grid(translated, 1)$side, fft_sne_grid(Y, 1)$side)
+
+  W2 <- (1 + as.matrix(stats::dist(Y))^2)^-2
+  diag(W2) <- 0
+  direct <- Y * rowSums(W2) - W2 %*% Y
+  fft <- fft_settings("stats", 1, 1)
+  for (Y_init in list(Y, translated)) {
+    error <- max(abs(fft$sums(Y_init)$force - direct)) / max(abs(direct))
+    expect_lt(error, 2e-5)
+  }
+
+  run <- function(Y_init, method) {
+    smallvis(
+      X,
+      method = method,
+      Y_init = Y_init,
+      nn = "exact",
+      perplexity = 4,
+      scale = FALSE,
+      opt = list("steepd", eta = 0.5),
+      max_iter = 1,
+      epoch_callback = FALSE,
+      verbose = FALSE
+    )
+  }
+  exact <- run(Y, list("tsne", repulsion = "bh", theta = 0))
+  method <- list("tsne", repulsion = "fft")
+  original <- run(Y, method)
+  shifted <- run(translated, method)
+  expect_lt(max(abs(shifted - exact)), 1e-5)
+  expect_equal(shifted, original, tolerance = 1e-10)
+})

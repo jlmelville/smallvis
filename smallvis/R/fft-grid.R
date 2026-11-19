@@ -84,17 +84,17 @@ use_fft_cost <- function(cost, fft) {
 fft_sne_grid <- function(Y, grid_interval) {
   xlim <- range(Y[, 1L])
   ylim <- range(Y[, 2L])
-  limits <- range(xlim, ylim)
-  if (any(!is.finite(limits))) {
+  if (any(!is.finite(c(xlim, ylim)))) {
     stop("FFT coordinates must be finite")
   }
   n <- nrow(Y)
-  if (xlim[1L] == xlim[2L] && ylim[1L] == ylim[2L]) {
+  axis_span <- c(diff(xlim), diff(ylim))
+  span <- max(axis_span)
+  if (span == 0) {
     return(NULL)
   }
 
-  span <- diff(limits)
-  # Use the FIt-SNE lattice to set spacing and interpolation weights.
+  # Use one spacing for both axes, with a separate origin for each.
   boxes <- floor(max(50, span / grid_interval))
   fast_boxes <- c(
     50,
@@ -120,7 +120,7 @@ fft_sne_grid <- function(Y, grid_interval) {
     boxes <- min(fast_boxes[fast_boxes >= boxes])
   }
   local_basis <- function(values) {
-    position <- ((values - limits[1L]) / span) * boxes
+    position <- (values / span) * boxes
     cell <- pmin(floor(position), boxes - 1L)
     # The nodes are at 1/6, 1/2, and 5/6 of a cell.
     u <- 3 * (position - cell) - 1.5
@@ -141,8 +141,9 @@ fft_sne_grid <- function(Y, grid_interval) {
   if (!is.finite(boxes)) {
     grid_too_large()
   }
-  bx <- local_basis(Y[, 1L])
-  by <- local_basis(Y[, 2L])
+  local <- sweep(Y, 2L, c(xlim[1L], ylim[1L]))
+  bx <- local_basis(local[, 1L])
+  by <- local_basis(local[, 2L])
   nodes <- c(bx$nodes, by$nodes)
   # Check before nextn() as well as after rounding each FFT length.
   side <- 2 * nodes
@@ -173,7 +174,7 @@ fft_sne_grid <- function(Y, grid_interval) {
     (offset * (width / 3))^2
   }
   list(
-    XY = Y - (limits[1L] + span / 2),
+    XY = sweep(local, 2L, axis_span / 2),
     S = S,
     weights = weights,
     nodes = nodes,
