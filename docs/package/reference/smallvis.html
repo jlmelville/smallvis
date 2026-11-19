@@ -466,18 +466,31 @@ defines the input affinities regardless of scaling or PCA.</p></dd>
 <li><p><code>G2norm</code> The 2-norm of the gradient on the final iteration.
   A rough measure of convergence.</p></li>
 </ul><p>Additionally, if you set <code>ret_extra</code> to a vector of names, these will
-be returned in addition to the values given above. These values are optional
-and must be explicitly asked for, because they are either expensive to
-calculate, take up a lot of memory, or both. The available optional values
-are:</p><ul><li><p><code>X</code> The input data, after filtering and scaling.</p></li>
+be returned in addition to the values given above. The available optional
+values are:</p><ul><li><p><code>X</code> The input data, after filtering and scaling.</p></li>
 <li><p><code>P</code> The input probabilities.</p></li>
 <li><p><code>Q</code> The output probabilities.</p></li>
 <li><p><code>DX</code> Input distance matrix. The same as <code>X</code> when the input
   data is already a distance matrix.</p></li>
 <li><p><code>DY</code> Output coordinate distance matrix.</p></li>
+<li><p><code>termination_reason</code> A single string explaining why the fit
+ended. Possible values are <code>"initialization_only"</code> when no iterations
+ran, <code>"max_iter"</code> for the iteration limit, <code>"min_cost"</code> for the
+objective cutoff, <code>"tol"</code> for relative objective tolerance,
+<code>"g2tol"</code> for gradient norm tolerance, and <code>"optimizer"</code> when
+the optimizer reported termination. When multiple epoch criteria end the
+fit, the first of <code>"min_cost"</code>, <code>"tol"</code>, and <code>"g2tol"</code>
+applies. A criterion that only advances to another optimization stage
+does not set the termination reason.</p></li>
 </ul><p>The following additional optional values are available only if the SNE-style
 perplexity calibration was used as part of the embedding method:</p>
-<ul><li><p><code>V</code> Input affinities (un-normalized weights used to generate
+<ul><li><p><code>perplexity_fallback_rows</code> Sorted one-based row indices in
+the original input whose calibration used fallback affinities. An empty
+integer vector means calibration ran and no row fell back. Multiscale
+calibration reports the union across scales. Intrinsic dimensionality
+perplexity selection reports rows from the selected calibration. The field
+is omitted for kernels that do not run SNE-style perplexity calibration.</p></li>
+<li><p><code>V</code> Input affinities (un-normalized weights used to generate
 <code>P</code>).</p></li>
 <li><p><code>beta</code> Precisions (inverse standard deviation) of the input
 kernel functions. Only available if the gaussian kernel was used.</p></li>

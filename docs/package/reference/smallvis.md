@@ -447,10 +447,8 @@ Otherwise, a list with the following items:
   measure of convergence.
 
 Additionally, if you set `ret_extra` to a vector of names, these will be
-returned in addition to the values given above. These values are
-optional and must be explicitly asked for, because they are either
-expensive to calculate, take up a lot of memory, or both. The available
-optional values are:
+returned in addition to the values given above. The available optional
+values are:
 
 - `X` The input data, after filtering and scaling.
 
@@ -463,9 +461,27 @@ optional values are:
 
 - `DY` Output coordinate distance matrix.
 
+- `termination_reason` A single string explaining why the fit ended.
+  Possible values are `"initialization_only"` when no iterations ran,
+  `"max_iter"` for the iteration limit, `"min_cost"` for the objective
+  cutoff, `"tol"` for relative objective tolerance, `"g2tol"` for
+  gradient norm tolerance, and `"optimizer"` when the optimizer reported
+  termination. When multiple epoch criteria end the fit, the first of
+  `"min_cost"`, `"tol"`, and `"g2tol"` applies. A criterion that only
+  advances to another optimization stage does not set the termination
+  reason.
+
 The following additional optional values are available only if the
 SNE-style perplexity calibration was used as part of the embedding
 method:
+
+- `perplexity_fallback_rows` Sorted one-based row indices in the
+  original input whose calibration used fallback affinities. An empty
+  integer vector means calibration ran and no row fell back. Multiscale
+  calibration reports the union across scales. Intrinsic dimensionality
+  perplexity selection reports rows from the selected calibration. The
+  field is omitted for kernels that do not run SNE-style perplexity
+  calibration.
 
 - `V` Input affinities (un-normalized weights used to generate `P`).
 
