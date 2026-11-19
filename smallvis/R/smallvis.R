@@ -832,7 +832,7 @@
 #'                       epoch_callback = ecb, perplexity = 50, verbose = TRUE)
 #'
 #' # Can also control extra UMAP parameters via a list
-#' umap_iris <- smallvis(iris, method = list("umap", lv_eps = 0.01), eta = 0.01,
+#' umap_iris <- smallvis(iris, method = list("umap", gr_eps = 0.01), eta = 0.01,
 #'                       epoch_callback = ecb, perplexity = 50, verbose = TRUE)
 #'
 #' # Make embedding deterministic by initializing with scaled PCA scores
@@ -866,12 +866,13 @@
 #'
 #' # L-BFGS optimization via the mize package
 #' umap_iris_lbfgs <- smallvis(iris, scale = FALSE, opt = list("l-bfgs", c1 = 1e-4, c2 = 0.9),
-#'                             method = "umap", Y_init = "spca", max_iter = 300)
+#'                             method = list("umap", gr_eps = 0),
+#'                             Y_init = "spca", max_iter = 300)
 #' # L-BFGS controlling maximum number of gradient evaluations and a further stopping
 #' # criterion for when the step size gets too small
 #' umap_iris_lbfgs <- smallvis(iris, scale = FALSE, opt = list("l-bfgs", max_gr = 1000,
-#'                             step_tol = 1e-6), method = "umap", Y_init = "spca",
-#'                             max_iter = 300)
+#'                             step_tol = 1e-6), method = list("umap", gr_eps = 0),
+#'                             Y_init = "spca", max_iter = 300)
 #' ## Example using distance matrix
 #' # Use gmmds: metric MDS using geodesic distances estimated from kNN distances
 #' # k is set via the perplexity argument. Use an epoch callback to get useful color

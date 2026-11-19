@@ -18,11 +18,10 @@ features; nonnumeric columns of a data frame are filtered out. Use a `dist` obje
 distances: an ordinary square matrix is still treated as observations and features.
 
 ```{r distances}
-set.seed(42)
 distance_fit <- smallvis(
   dist(iris[, 1:4]),
   scale = FALSE,
-  Y_init = "rand",
+  Y_init = "spca",
   perplexity = 30,
   epoch_callback = FALSE,
   n_threads = 1,
@@ -31,9 +30,9 @@ distance_fit <- smallvis(
 dim(distance_fit)
 ```
 
-Feature scaling and PCA need the original features, so choose those before calculating distances.
-PCA initialization also needs features; random or suitable spectral initialization can be used with
-distance inputs.
+Feature scaling and input PCA need the original features, so choose those before calculating
+distances. With distance input, `Y_init = "pca"` uses classical multidimensional scaling, and
+`"spca"` rescales those coordinates. Random and suitable spectral initializations are also available.
 
 ## Scale and reduce the features
 
