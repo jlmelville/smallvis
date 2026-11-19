@@ -584,7 +584,10 @@ tsneu <- function(
       n_threads = n_threads
     ),
     init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
-      ret_extra <- unique(c(ret_extra, "V"))
+      use_raw <- tolower(inp_kernel) == "skd"
+      if (use_raw) {
+        ret_extra <- unique(c(ret_extra, "V"))
+      }
       cost <- sne_init(
         cost,
         X,
@@ -600,11 +603,12 @@ tsneu <- function(
 
       cost$eps <- eps
 
-      if (perp_method(perplexity) == "multiscale") {
-        cost$V <- nrow(cost$P) * cost$P
-      } else {
+      if (use_raw) {
         cost$V <- cost$V / rowSums(cost$V)
         cost$V <- 0.5 * (cost$V + t(cost$V))
+      } else {
+        # P already contains the row-normalized, symmetrized affinities.
+        cost$V <- nrow(cost$P) * cost$P
       }
       cost$Vsum <- sum(cost$V)
       cost$invVsum <- 1 / (cost$Vsum)
@@ -641,7 +645,10 @@ pstsne <- function(
     ),
     gradient_only = TRUE,
     init = function(cost, X, max_iter, verbose = FALSE, ret_extra = c()) {
-      ret_extra <- unique(c(ret_extra, "V"))
+      use_raw <- tolower(inp_kernel) == "skd"
+      if (use_raw) {
+        ret_extra <- unique(c(ret_extra, "V"))
+      }
       cost <- sne_init(
         cost,
         X,
@@ -655,12 +662,11 @@ pstsne <- function(
         use_cpp = use_cpp
       )
 
-      # need to row-normalize and symmetrize affinities
-      if (perp_method(perplexity) == "multiscale") {
-        cost$V <- nrow(cost$P) * cost$P
-      } else {
+      if (use_raw) {
         cost$V <- cost$V / rowSums(cost$V)
         cost$V <- 0.5 * (cost$V + t(cost$V))
+      } else {
+        cost$V <- nrow(cost$P) * cost$P
       }
       cost$Vsum <- sum(cost$V)
       cost$invVsum <- 1 / (cost$Vsum)

@@ -477,8 +477,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // find_beta_knn_cpp
-List find_beta_knn_cpp(const NumericMatrix& knn_distances, const IntegerMatrix& knn_indices, double perplexity, double tol, int max_tries, bool ret_sparse, std::size_t n_threads);
-RcppExport SEXP _smallvis_find_beta_knn_cpp(SEXP knn_distancesSEXP, SEXP knn_indicesSEXP, SEXP perplexitySEXP, SEXP tolSEXP, SEXP max_triesSEXP, SEXP ret_sparseSEXP, SEXP n_threadsSEXP) {
+List find_beta_knn_cpp(const NumericMatrix& knn_distances, const IntegerMatrix& knn_indices, double perplexity, double tol, int max_tries, bool ret_sparse, std::size_t n_threads, bool shift_rows);
+RcppExport SEXP _smallvis_find_beta_knn_cpp(SEXP knn_distancesSEXP, SEXP knn_indicesSEXP, SEXP perplexitySEXP, SEXP tolSEXP, SEXP max_triesSEXP, SEXP ret_sparseSEXP, SEXP n_threadsSEXP, SEXP shift_rowsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -489,13 +489,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type max_tries(max_triesSEXP);
     Rcpp::traits::input_parameter< bool >::type ret_sparse(ret_sparseSEXP);
     Rcpp::traits::input_parameter< std::size_t >::type n_threads(n_threadsSEXP);
-    rcpp_result_gen = Rcpp::wrap(find_beta_knn_cpp(knn_distances, knn_indices, perplexity, tol, max_tries, ret_sparse, n_threads));
+    Rcpp::traits::input_parameter< bool >::type shift_rows(shift_rowsSEXP);
+    rcpp_result_gen = Rcpp::wrap(find_beta_knn_cpp(knn_distances, knn_indices, perplexity, tol, max_tries, ret_sparse, n_threads, shift_rows));
     return rcpp_result_gen;
 END_RCPP
 }
 // find_beta_cpp
-List find_beta_cpp(const NumericMatrix& X, double perplexity, double tol, int max_tries, std::size_t n_threads);
-RcppExport SEXP _smallvis_find_beta_cpp(SEXP XSEXP, SEXP perplexitySEXP, SEXP tolSEXP, SEXP max_triesSEXP, SEXP n_threadsSEXP) {
+List find_beta_cpp(const NumericMatrix& X, double perplexity, double tol, int max_tries, std::size_t n_threads, bool shift_rows);
+RcppExport SEXP _smallvis_find_beta_cpp(SEXP XSEXP, SEXP perplexitySEXP, SEXP tolSEXP, SEXP max_triesSEXP, SEXP n_threadsSEXP, SEXP shift_rowsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -504,7 +505,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
     Rcpp::traits::input_parameter< int >::type max_tries(max_triesSEXP);
     Rcpp::traits::input_parameter< std::size_t >::type n_threads(n_threadsSEXP);
-    rcpp_result_gen = Rcpp::wrap(find_beta_cpp(X, perplexity, tol, max_tries, n_threads));
+    Rcpp::traits::input_parameter< bool >::type shift_rows(shift_rowsSEXP);
+    rcpp_result_gen = Rcpp::wrap(find_beta_cpp(X, perplexity, tol, max_tries, n_threads, shift_rows));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -537,8 +539,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_smallvis_tweight_cpp", (DL_FUNC) &_smallvis_tweight_cpp, 2},
     {"_smallvis_tsne_grad_cpp", (DL_FUNC) &_smallvis_tsne_grad_cpp, 5},
     {"_smallvis_mmds_grad_cpp", (DL_FUNC) &_smallvis_mmds_grad_cpp, 5},
-    {"_smallvis_find_beta_knn_cpp", (DL_FUNC) &_smallvis_find_beta_knn_cpp, 7},
-    {"_smallvis_find_beta_cpp", (DL_FUNC) &_smallvis_find_beta_cpp, 5},
+    {"_smallvis_find_beta_knn_cpp", (DL_FUNC) &_smallvis_find_beta_knn_cpp, 8},
+    {"_smallvis_find_beta_cpp", (DL_FUNC) &_smallvis_find_beta_cpp, 6},
     {NULL, NULL, 0}
 };
 

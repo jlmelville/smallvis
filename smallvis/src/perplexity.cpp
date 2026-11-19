@@ -17,86 +17,91 @@ void validate_perplexity(double perplexity, std::size_t available) {
   }
 }
 
+// The caller excludes self by passing its index, or size for a kNN row.
+double shifted_entropy(const double *distances, std::size_t size,
+                       std::size_t self, double nearest, double beta) {
+  double sum_w = 0.0;
+  double sum_w_log_w = 0.0;
+  for (std::size_t j = 0; j < size; ++j) {
+    if (j != self) {
+      const double log_w = -beta * (distances[j] - nearest);
+      const double w = std::exp(log_w);
+      sum_w += w;
+      if (w > 0.0) {
+        sum_w_log_w += w * log_w;
+      }
+    }
+  }
+  return std::log(sum_w) - sum_w_log_w / sum_w;
+}
+
+bool calibrate_row(const double *distances, std::size_t size, std::size_t self,
+                   double nearest, double logU, double tol, int max_tries,
+                   double &beta, double *row_scale, double *weights) {
+  double lower = 0.0;
+  double upper = std::numeric_limits<double>::infinity();
+  double diff = shifted_entropy(distances, size, self, nearest, beta) - logU;
+
+  for (int tries = 0;
+       std::isfinite(diff) && std::abs(diff) > tol && tries < max_tries;
+       ++tries) {
+    if (diff > 0.0) {
+      lower = beta;
+      beta = std::isinf(upper) ? 2 * beta : (beta + upper) / 2;
+    } else {
+      upper = beta;
+      beta = (beta + lower) / 2;
+    }
+    diff = shifted_entropy(distances, size, self, nearest, beta) - logU;
+  }
+
+  if (!std::isfinite(diff) || std::abs(diff) > tol) {
+    return false;
+  }
+  const double raw_scale = std::exp(-beta * nearest);
+  if (row_scale == nullptr && raw_scale == 0.0) {
+    return false;
+  }
+  if (row_scale != nullptr) {
+    *row_scale = raw_scale;
+  }
+  const double offset = row_scale == nullptr ? 0.0 : nearest;
+  for (std::size_t j = 0; j < size; ++j) {
+    weights[j] = j == self ? 0.0 : std::exp(-beta * (distances[j] - offset));
+  }
+  return true;
+}
+
 void find_beta_knn(std::vector<double> &knn_distances, std::size_t k,
                    double perplexity, double logU, double tol, int max_tries,
                    std::vector<double> &W, std::vector<double> &beta,
-                   int &bad_perp, std::size_t start_row, std::size_t end_row) {
-
+                   double *row_scale, int &bad_perp, std::size_t start_row,
+                   std::size_t end_row) {
   for (std::size_t i = start_row; i < end_row; ++i) {
     const std::size_t idx = i * k;
-    double betamin = -std::numeric_limits<double>::infinity();
-    double betamax = std::numeric_limits<double>::infinity();
-
-    // Square the distances
+    auto *distances = knn_distances.data() + idx;
+    double sum_d2i = 0.0;
+    double nearest = std::numeric_limits<double>::infinity();
     for (std::size_t j = 0; j < k; ++j) {
-      knn_distances[idx + j] *= knn_distances[idx + j];
+      distances[j] *= distances[j];
+      sum_d2i += distances[j];
+      nearest = std::min(nearest, distances[j]);
     }
 
-    // Initial guess for beta: 0.5 * perplexity / mean(knn_distances)
-    double sum_d2i = std::accumulate(knn_distances.begin() + idx,
-                                     knn_distances.begin() + idx + k, 0.0);
     beta[i] = sum_d2i == 0.0 ? 0.0 : (0.5 * perplexity * k) / sum_d2i;
-
-    double Z = 0.0;
-    double entropy = 0.0;
-    for (std::size_t j = 0; j < k; ++j) {
-      W[idx + j] = exp(-knn_distances[idx + j] * beta[i]);
-      entropy += knn_distances[idx + j] * W[idx + j];
-      Z += W[idx + j];
-    }
-    if (!(Z > 0.0) || !std::isfinite(Z)) {
-      entropy = std::numeric_limits<double>::quiet_NaN();
-    } else {
-      entropy = (entropy / Z) * beta[i] + log(Z);
-    }
-
-    double Hdiff = entropy - logU;
-    int tries = 0;
-    while (fabs(Hdiff) > tol && tries < max_tries) {
-      if (Hdiff > 0) {
-        betamin = beta[i];
-        if (std::isinf(betamax)) {
-          beta[i] *= 2;
-        } else {
-          beta[i] = (beta[i] + betamax) / 2;
-        }
-      } else {
-        betamax = beta[i];
-        if (std::isinf(betamin)) {
-          beta[i] /= 2;
-        } else {
-          beta[i] = (beta[i] + betamin) / 2;
-        }
-      }
-
-      Z = 0.0;
-      entropy = 0.0;
-      for (std::size_t j = 0; j < k; ++j) {
-        W[idx + j] = exp(-knn_distances[idx + j] * beta[i]);
-        entropy += knn_distances[idx + j] * W[idx + j];
-        Z += W[idx + j];
-      }
-      if (!(Z > 0.0) || !std::isfinite(Z)) {
-        entropy = std::numeric_limits<double>::quiet_NaN();
-      } else {
-        entropy = (entropy / Z) * beta[i] + log(Z);
-      }
-
-      Hdiff = entropy - logU;
-      tries++;
-    }
-
-    if (!std::isfinite(Hdiff) || fabs(Hdiff) > tol) {
+    if (!calibrate_row(distances, k, k, nearest, logU, tol, max_tries, beta[i],
+                       row_scale == nullptr ? nullptr : row_scale + i,
+                       W.data() + idx)) {
       bad_perp++;
-      std::fill(W.begin() + idx, W.begin() + idx + k, 1.0 / k);
+      std::fill_n(W.data() + idx, k, 1.0 / k);
     }
   }
 }
 
 void find_beta(const std::vector<double> &data, std::size_t n, std::size_t d,
                double perplexity, double logU, double tol, int max_tries,
-               double *W, std::vector<double> &beta, int &bad_perp,
-               std::size_t start_row, std::size_t end_row) {
+               double *W, std::vector<double> &beta, double *row_scale,
+               int &bad_perp, std::size_t start_row, std::size_t end_row) {
 
   // Trials use contiguous per-worker storage. Scatter each completed row into
   // R's column-major output once, avoiding quadratic staging and transposes.
@@ -106,6 +111,7 @@ void find_beta(const std::vector<double> &data, std::size_t n, std::size_t d,
     const std::size_t i_d = i * d;
 
     double sum_d2i = 0.0;
+    double nearest = std::numeric_limits<double>::infinity();
 
     // D2
     for (std::size_t j = 0; j < n; ++j) {
@@ -117,73 +123,16 @@ void find_beta(const std::vector<double> &data, std::size_t n, std::size_t d,
       }
       sum_d2i += dist;
       D2i[j] = dist;
+      if (i != j) {
+        nearest = std::min(nearest, dist);
+      }
     }
-
-    double betamin = -std::numeric_limits<double>::infinity();
-    double betamax = std::numeric_limits<double>::infinity();
 
     // Initial guess for beta: 0.5 * perplexity / mean(D2i)
     beta[i] = sum_d2i == 0.0 ? 0.0 : (0.5 * perplexity * n) / sum_d2i;
-
-    double Z = 0.0;
-    double entropy = 0.0;
-    for (std::size_t j = 0; j < n; ++j) {
-      if (i == j) {
-        Wi[j] = 0.0;
-        continue;
-      }
-      Wi[j] = exp(-D2i[j] * beta[i]);
-      entropy += D2i[j] * Wi[j];
-      Z += Wi[j];
-    }
-    if (!(Z > 0.0) || !std::isfinite(Z)) {
-      entropy = std::numeric_limits<double>::quiet_NaN();
-    } else {
-      entropy = (entropy / Z) * beta[i] + log(Z);
-    }
-
-    double Hdiff = entropy - logU;
-
-    int tries = 0;
-    while (fabs(Hdiff) > tol && tries < max_tries) {
-      if (Hdiff > 0) {
-        betamin = beta[i];
-        if (std::isinf(betamax)) {
-          beta[i] *= 2;
-        } else {
-          beta[i] = (beta[i] + betamax) / 2;
-        }
-      } else {
-        betamax = beta[i];
-        if (std::isinf(betamin)) {
-          beta[i] /= 2;
-        } else {
-          beta[i] = (beta[i] + betamin) / 2;
-        }
-      }
-
-      Z = 0.0;
-      entropy = 0.0;
-      for (std::size_t j = 0; j < n; ++j) {
-        if (i == j) {
-          Wi[j] = 0.0;
-          continue;
-        }
-        Wi[j] = exp(-D2i[j] * beta[i]);
-        entropy += D2i[j] * Wi[j];
-        Z += Wi[j];
-      }
-      if (!(Z > 0.0) || !std::isfinite(Z)) {
-        entropy = std::numeric_limits<double>::quiet_NaN();
-      } else {
-        entropy = (entropy / Z) * beta[i] + log(Z);
-      }
-
-      Hdiff = entropy - logU;
-      tries++;
-    }
-
-    if (!std::isfinite(Hdiff) || fabs(Hdiff) > tol) {
+    if (!calibrate_row(D2i.data(), n, i, nearest, logU, tol, max_tries, beta[i],
+                       row_scale == nullptr ? nullptr : row_scale + i,
+                       Wi.data())) {
       bad_perp++;
       std::fill(Wi.begin(), Wi.end(), 0.0);
       std::vector<std::size_t> knn_idx;
@@ -213,7 +162,8 @@ void find_beta(const std::vector<double> &data, std::size_t n, std::size_t d,
 List find_beta_knn_cpp(const NumericMatrix &knn_distances,
                        const IntegerMatrix &knn_indices, double perplexity = 15,
                        double tol = 1e-5, int max_tries = 50,
-                       bool ret_sparse = false, std::size_t n_threads = 1) {
+                       bool ret_sparse = false, std::size_t n_threads = 1,
+                       bool shift_rows = false) {
 
   const std::size_t n = knn_distances.nrow();
   const std::size_t k = knn_distances.ncol();
@@ -234,10 +184,12 @@ List find_beta_knn_cpp(const NumericMatrix &knn_distances,
 
   std::vector<double> W(n * k, 0.0);
   std::vector<double> beta(n, 0.0);
+  std::vector<double> row_scale(shift_rows ? n : 0, 1.0);
+  double *scale = shift_rows ? row_scale.data() : nullptr;
   std::vector<int> failures(smallvis::worker_count(n, n_threads), 0);
   auto worker = [&](std::size_t start, std::size_t end, std::size_t id) {
     find_beta_knn(knn_distances_vec, k, perplexity, logU, tol, max_tries, W,
-                  beta, failures[id], start, end);
+                  beta, scale, failures[id], start, end);
   };
   smallvis::parallel_for(n, n_threads, worker);
   const int bad_perp = std::accumulate(failures.begin(), failures.end(), 0);
@@ -246,7 +198,8 @@ List find_beta_knn_cpp(const NumericMatrix &knn_distances,
     NumericVector P(n * k);
     std::copy(W.begin(), W.end(), P.begin());
     return List::create(Named("P") = P, Named("beta") = beta,
-                        Named("bad_perp") = bad_perp);
+                        Named("bad_perp") = bad_perp,
+                        Named("row_scale") = row_scale);
   } else {
     NumericMatrix P(n, n);
     for (std::size_t i = 0; i < n; ++i) {
@@ -259,14 +212,15 @@ List find_beta_knn_cpp(const NumericMatrix &knn_distances,
       }
     }
     return List::create(Named("P") = P, Named("beta") = beta,
-                        Named("bad_perp") = bad_perp);
+                        Named("bad_perp") = bad_perp,
+                        Named("row_scale") = row_scale);
   }
 }
 
 // [[Rcpp::export]]
 List find_beta_cpp(const NumericMatrix &X, double perplexity = 15,
                    double tol = 1e-5, int max_tries = 50,
-                   std::size_t n_threads = 1) {
+                   std::size_t n_threads = 1, bool shift_rows = false) {
 
   std::size_t n = X.nrow();
   std::size_t d = X.ncol();
@@ -283,14 +237,17 @@ List find_beta_cpp(const NumericMatrix &X, double perplexity = 15,
   NumericMatrix W(n, n);
   double *W_data = W.begin();
   std::vector<double> beta(n, 0.0);
+  std::vector<double> row_scale(shift_rows ? n : 0, 1.0);
+  double *scale = shift_rows ? row_scale.data() : nullptr;
   std::vector<int> failures(smallvis::worker_count(n, n_threads), 0);
   auto worker = [&](std::size_t start, std::size_t end, std::size_t id) {
     find_beta(X_vec, n, d, perplexity, logU, tol, max_tries, W_data, beta,
-              failures[id], start, end);
+              scale, failures[id], start, end);
   };
   smallvis::parallel_for(n, n_threads, worker);
   const int bad_perp = std::accumulate(failures.begin(), failures.end(), 0);
 
   return List::create(Named("W") = W, Named("beta") = beta,
-                      Named("bad_perp") = bad_perp);
+                      Named("bad_perp") = bad_perp,
+                      Named("row_scale") = row_scale);
 }

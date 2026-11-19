@@ -144,6 +144,112 @@ test_that("dense Gaussian diagnostics retain calibrated precisions", {
   }
 })
 
+test_that("Gaussian calibration preserves probabilities when raw weights underflow", {
+  n <- 24L
+  X <- diag(sqrt(1 + 1e-4 * (0:(n - 1L))))
+  D <- unname(as.matrix(stats::dist(X)))
+  neighbors <- get_nn(stats::dist(X), k = 13L)
+  Y <- matrix(sin(seq_len(2L * n)), n)
+
+  reference <- function(indices) {
+    P <- matrix(0, n, n)
+    for (i in seq_len(n)) {
+      j <- setdiff(indices[i, ], i)
+      d2 <- D[i, j]^2
+      delta <- d2 - min(d2)
+      weights <- function(beta) {
+        w <- exp(-beta * delta)
+        w / sum(w)
+      }
+      beta <- stats::uniroot(
+        function(beta) {
+          p <- weights(beta)
+          -sum(p * log(p)) - log(4)
+        },
+        c(0, 1e5)
+      )$root
+      P[i, j] <- weights(beta)
+    }
+    (P + t(P)) / (2 * n)
+  }
+  dense_P <- reference(matrix(seq_len(n), n, n, byrow = TRUE))
+  knn_P <- reference(neighbors$idx)
+  run <- function(
+    use_cpp = FALSE,
+    kernel = "gaussian",
+    graph = NULL,
+    bh = FALSE
+  ) {
+    smallvis(
+      X,
+      method = "tsne",
+      inp_kernel = kernel,
+      perplexity = 4,
+      use_cpp = use_cpp,
+      neighbors = graph,
+      bh = bh,
+      Y_init = Y,
+      scale = FALSE,
+      max_iter = 0,
+      ret_extra = c("P", "V", "adegin", "adegout"),
+      epoch_callback = FALSE,
+      verbose = FALSE
+    )
+  }
+  for (native in c(FALSE, TRUE)) {
+    expect_warning(res <- run(use_cpp = native), NA)
+    expect_lt(max(abs(res$P - dense_P)), 2e-7)
+    expect_equal(res$V, matrix(0, n, n))
+    expect_equal(res$adegin, rep(0, n))
+    expect_equal(res$adegout, rep(0, n))
+  }
+  for (bh in c(FALSE, TRUE)) {
+    expect_warning(res <- run(TRUE, "nngaussian", neighbors, bh), NA)
+    expect_lt(max(abs(as.matrix(res$P) - knn_P)), 2e-7)
+  }
+  for (method in c("tsneu", "pstsne")) {
+    expect_warning(
+      res <- smallvis(
+        X,
+        method = method,
+        perplexity = 4,
+        Y_init = Y,
+        scale = FALSE,
+        max_iter = 1,
+        eta = 0.1,
+        ret_extra = c("P", "V"),
+        epoch_callback = FALSE,
+        verbose = FALSE
+      ),
+      NA
+    )
+    expect_true(all(is.finite(res$Y)))
+    expect_lt(max(abs(res$V / n - dense_P)), 2e-7)
+  }
+})
+
+test_that("Gaussian row shifts preserve intentionally raw input weighting", {
+  X <- matrix(sin(seq_len(96)), 24, 4)
+  D2 <- unname(as.matrix(stats::dist(X)))^2
+  for (native in c(FALSE, TRUE)) {
+    res <- smallvis(
+      X,
+      method = list("tsne", row_normalize = FALSE),
+      perplexity = 4,
+      use_cpp = native,
+      scale = FALSE,
+      max_iter = 0,
+      ret_extra = c("P", "V", "beta"),
+      epoch_callback = FALSE,
+      verbose = FALSE
+    )
+    raw <- exp(-D2 * res$beta)
+    diag(raw) <- 0
+    expect_equal(res$V, raw, tolerance = 1e-12)
+    expect_equal(res$P, (raw + t(raw)) / (2 * sum(raw)), tolerance = 1e-12)
+  }
+})
+
 test_that("native kNN output checks the matrix shape and write indices", {
   # These checks protect the native scatter into an n-by-n affinity matrix.
   expect_error(

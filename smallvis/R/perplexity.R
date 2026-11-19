@@ -32,6 +32,7 @@ sne_init <- function(
       "exp"
     )
   )
+  shift_rows <- shift_affinity_rows(row_normalize, symmetrize)
   neighbors <- cost[["neighbors"]]
   if (!is.null(neighbors)) {
     neighbors <- check_saved_neighbors(
@@ -82,7 +83,13 @@ sne_init <- function(
       perplexities <- perplexity[[2]]
     }
 
-    x2ares <- idp(X, perplexities = perplexities, tol = 1e-5, verbose = verbose)
+    x2ares <- idp(
+      X,
+      perplexities = perplexities,
+      tol = 1e-5,
+      verbose = verbose,
+      shift_rows = shift_rows
+    )
     P <- x2ares$W
     ret_extra <- unique(c(ret_extra, "idp"))
   } else if (perp_method(perplexity) == "multiscale") {
@@ -170,7 +177,8 @@ sne_init <- function(
         knn_idx,
         perplexity = perplexity,
         n_threads = n_threads,
-        ret_sparse = sparse
+        ret_sparse = sparse,
+        shift_rows = shift_rows
       )
       P <- x2ares$P
       x2ares$W <- P
@@ -200,7 +208,8 @@ sne_init <- function(
           X,
           perplexity,
           tol = 1e-5,
-          n_threads = n_threads
+          n_threads = n_threads,
+          shift_rows = shift_rows
         )
         P <- x2ares$W
       } else {
@@ -213,7 +222,8 @@ sne_init <- function(
           perplexity,
           tol = 1e-5,
           kernel = kernel,
-          verbose = verbose
+          verbose = verbose,
+          shift_rows = shift_rows
         )
         P <- x2ares$W
       }
@@ -240,11 +250,19 @@ sne_init <- function(
       )
     }
 
-    for (r in unique(tolower(ret_extra))) {
+    optionals <- unique(tolower(ret_extra))
+    W <- x2ares$W
+    if (
+      length(x2ares$row_scale) > 0L &&
+        any(optionals %in% c("v", "adegc", "adegin", "adegout"))
+    ) {
+      W <- W * x2ares$row_scale
+    }
+    for (r in optionals) {
       switch(
         r,
         v = {
-          cost$V <- x2ares$W
+          cost$V <- W
         },
         dint = {
           if (!is.null(x2ares$dint)) {
@@ -257,13 +275,13 @@ sne_init <- function(
           }
         },
         adegc = {
-          cost$adegc <- 0.5 * (rowSums(x2ares$W) + colSums(x2ares$W))
+          cost$adegc <- 0.5 * (rowSums(W) + colSums(W))
         },
         adegin = {
-          cost$adegin <- colSums(x2ares$W)
+          cost$adegin <- colSums(W)
         },
         adegout = {
-          cost$adegout <- rowSums(x2ares$W)
+          cost$adegout <- rowSums(W)
         },
         pdeg = {
           cost$pdeg <- colSums(P)
@@ -293,7 +311,8 @@ x2aff <- function(
   tol = 1e-5,
   kernel = "gauss",
   verbose = FALSE,
-  guesses = NULL
+  guesses = NULL,
+  shift_rows = FALSE
 ) {
   kernel <- match.arg(tolower(kernel), c("gaussian", "exp"))
   x_is_dist <- methods::is(X, "dist")
@@ -322,6 +341,7 @@ x2aff <- function(
   }
 
   W <- matrix(0, n, n)
+  row_scale <- if (shift_rows) rep(1, n)
   intd <- rep(0, n)
   if (!is.null(guesses)) {
     beta <- guesses
@@ -364,7 +384,9 @@ x2aff <- function(
       beta[1] <- if (mean_distance == 0) 0 else 0.5 * perplexity / mean_distance
     }
 
-    sres <- shannon(Di, beta[i])
+    min_distance <- min(Di)
+    offset <- Di - min_distance
+    sres <- shannon(offset, beta[i])
     H <- sres$H
     Wi <- sres$W
     sumWi <- sres$Z
@@ -388,7 +410,7 @@ x2aff <- function(
         }
       }
 
-      sres <- shannon(Di, beta[i])
+      sres <- shannon(offset, beta[i])
       H <- sres$H
       Wi <- sres$W
       sumWi <- sres$Z
@@ -396,7 +418,10 @@ x2aff <- function(
       Hdiff <- H - logU
       tries <- tries + 1
     }
-    if (!is.finite(Hdiff) || abs(Hdiff) > tol) {
+    raw_scale <- exp(-min_distance * beta[i])
+    if (
+      !is.finite(Hdiff) || abs(Hdiff) > tol || (!shift_rows && raw_scale == 0)
+    ) {
       # Put a weight of 1/perplexity on the perplexity-nearest neighbors
       bad_perp <- bad_perp + 1
       knn_idx <- order(Di, decreasing = FALSE)[1:max(floor(perplexity), 1)]
@@ -413,8 +438,13 @@ x2aff <- function(
       if (is.null(guesses) && i < n) {
         beta[i + 1] <- beta[i]
       }
-      intd[i] <- intd_x2aff(Di, beta[i], Wi, sumWi, H)
-      W[i, -i] <- Wi
+      intd[i] <- intd_x2aff(offset, beta[i], Wi, sumWi, H)
+      if (shift_rows) {
+        row_scale[i] <- raw_scale
+        W[i, -i] <- Wi
+      } else {
+        W[i, -i] <- exp(-Di * beta[i])
+      }
     }
   }
   sigma <- sqrt(1 / beta)
@@ -428,24 +458,22 @@ x2aff <- function(
     summarize(sigma, "sigma summary", verbose = verbose)
     summarize(intd, "Dint", verbose = verbose)
   }
-  list(W = W, beta = beta, dint = intd)
+  list(W = W, beta = beta, dint = intd, row_scale = row_scale)
 }
 
-# Calculates affinites based on exponential weighting of D2 with beta
-# and returns a list containing:
-# W, the affinities; Z, the sum of the affinities; H, the Shannon entropy
-# This routine relies specifically on input weights being = exp(-beta * D)
-# and calculates the Shannon entropy as log(Z) + beta * sum(W * D) / Z
-# where Z is the sum of W.
-shannon <- function(D2, beta) {
-  W <- exp(-D2 * beta)
+# Offsets are measured from the nearest non-self neighbor, so at least one
+# weight is 1 even when the original weights would all underflow.
+shannon <- function(offset, beta) {
+  logW <- -beta * offset
+  W <- exp(logW)
   Z <- sum(W)
 
   if (!is.finite(Z) || Z <= 0) {
     # No probability distribution exists; zero entropy would imply success at 1.
     H <- NA_real_
   } else {
-    H <- log(Z) + beta * sum(D2 * W) / Z
+    positive <- W > 0
+    H <- log(Z) - sum(logW[positive] * W[positive]) / Z
   }
   list(W = W, Z = Z, H = H)
 }
@@ -467,8 +495,7 @@ x2aff_sigma <- function(
     D <- calc_d2(X, use_cpp = use_cpp, n_threads = n_threads)
   }
   beta <- 1 / (sigma * sigma)
-  sres <- shannon(D, beta)
-  W <- sres$W
+  W <- exp(-D * beta)
   diag(W) <- 0
 
   list(W = W, beta = beta)
@@ -703,6 +730,7 @@ msp <- function(
   )
 
   res <- NULL
+  shift_rows <- shift_affinity_rows(row_normalize, symmetrize)
   for (perplexity in perplexities) {
     tsmessage(
       "Commencing calibration for perplexity = ",
@@ -714,7 +742,8 @@ msp <- function(
       tol = tol,
       kernel = "gauss",
       verbose = verbose,
-      guesses = guesses
+      guesses = guesses,
+      shift_rows = shift_rows
     )
     P <- x2a_res$W
     Q <- scale_affinities(
@@ -753,7 +782,8 @@ idp <- function(
   perplexities = NULL,
   tol = 1e-5,
   verbose = FALSE,
-  guesses = NULL
+  guesses = NULL,
+  shift_rows = FALSE
 ) {
   if (methods::is(X, "dist")) {
     n <- attr(X, "Size")
@@ -790,7 +820,8 @@ idp <- function(
       tol = tol,
       kernel = "gauss",
       verbose = verbose,
-      guesses = guesses
+      guesses = guesses,
+      shift_rows = shift_rows
     )
     corr_dim <- mean(x2a_res$dint)
     if (corr_dim <= corr_dim_max) {
@@ -847,6 +878,11 @@ perp_method <- function(perplexity) {
 # necessary for symmetric methods (e.g. tsne vs asne).
 true_symmetrize_options <- function() {
   c("symmetric", "average", "mutual", "umap", "fuzzy")
+}
+
+# Row shifts cancel only if each row is normalized before combining rows.
+shift_affinity_rows <- function(row_normalize, symmetrize) {
+  is.numeric(row_normalize) || (nnat(row_normalize) && symmetrize != "rowsymm")
 }
 
 scale_affinities <- function(
