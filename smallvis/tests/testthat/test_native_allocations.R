@@ -248,3 +248,20 @@ test_that("complete native MDS runs match independent distance updates", {
     expect_identical(Y, before$Y)
   }
 })
+test_that("native distance kernels fill their own result across threads", {
+  X <- matrix(sin(seq_len(37 * 5)^2), 37, 5)
+  X[2, ] <- X[1, ]
+  D <- unname(as.matrix(stats::dist(X)))
+  for (threads in c(1L, 3L)) {
+    output <- dist_cpp(X, n_threads = threads)
+    squared <- dist2_cpp(X, n_threads = threads)
+    expect_equal(dim(output), c(37L, 37L))
+    expect_equal(dim(squared), c(37L, 37L))
+    expect_equal(diag(output), numeric(nrow(X)))
+    expect_equal(diag(squared), numeric(nrow(X)))
+    expect_equal(output, D, tolerance = 1e-14)
+    expect_equal(squared, D^2, tolerance = 1e-14)
+  }
+  expect_identical(dist_cpp(X, 1L), dist_cpp(X, 3L))
+  expect_identical(dist2_cpp(X, 1L), dist2_cpp(X, 3L))
+})

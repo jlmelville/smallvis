@@ -62,7 +62,7 @@ void tweight(const std::vector<double> &data, double *dist_matrix,
   }
 }
 
-void d2(const std::vector<double> &data, std::vector<double> &dist_matrix,
+void d2(const std::vector<double> &data, double *dist_matrix,
         std::size_t start_row, std::size_t end_row, std::size_t n,
         std::size_t d) {
   for (std::size_t i = start_row; i < end_row; ++i) {
@@ -80,7 +80,7 @@ void d2(const std::vector<double> &data, std::vector<double> &dist_matrix,
   }
 }
 
-void dist(const std::vector<double> &data, std::vector<double> &dist_matrix,
+void dist(const std::vector<double> &data, double *dist_matrix,
           std::size_t start_row, std::size_t end_row, std::size_t n,
           std::size_t d) {
   for (std::size_t i = start_row; i < end_row; ++i) {
@@ -108,13 +108,15 @@ NumericMatrix dist2_cpp(NumericMatrix input, std::size_t n_threads = 1) {
   std::vector<double> transposed_data =
       as<std::vector<double>>(transpose(input));
 
-  std::vector<double> dist_matrix(n * n, 0.0);
+  // Workers write disjoint columns of the main thread's protected result.
+  NumericMatrix result(n, n);
+  double *result_data = result.begin();
   auto worker = [&](std::size_t start, std::size_t end, std::size_t) {
-    d2(transposed_data, dist_matrix, start, end, n, d);
+    d2(transposed_data, result_data, start, end, n, d);
   };
   smallvis::parallel_for(n, n_threads, worker);
 
-  return NumericMatrix(n, n, dist_matrix.begin());
+  return result;
 }
 
 // [[Rcpp::export]]
@@ -127,13 +129,14 @@ NumericMatrix dist_cpp(NumericMatrix input, std::size_t n_threads = 1) {
   std::vector<double> transposed_data =
       as<std::vector<double>>(transpose(input));
 
-  std::vector<double> dist_matrix(n * n, 0.0);
+  NumericMatrix result(n, n);
+  double *result_data = result.begin();
   auto worker = [&](std::size_t start, std::size_t end, std::size_t) {
-    dist(transposed_data, dist_matrix, start, end, n, d);
+    dist(transposed_data, result_data, start, end, n, d);
   };
   smallvis::parallel_for(n, n_threads, worker);
 
-  return NumericMatrix(n, n, dist_matrix.begin());
+  return result;
 }
 
 // [[Rcpp::export]]
