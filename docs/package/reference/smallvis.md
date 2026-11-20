@@ -307,10 +307,10 @@ smallvis(
 
 - theta:
 
-  Barnes-Hut opening threshold, default `0.5`. Smaller values open more
-  cells. Zero evaluates the repulsive sum exactly for the chosen input
-  affinities. Applies with `bh = TRUE` or
-  `method = list("tsne", repulsion = "bh")`.
+  Tree opening threshold. The default is `0.5` for Barnes-Hut and `0.35`
+  for the mutual tree. Smaller values open more cells. Zero evaluates
+  the repulsive sum exactly for the chosen input affinities. Set this
+  directly or in the `method` list.
 
 - eps:
 
@@ -318,15 +318,15 @@ smallvis(
   `.Machine$double.eps`, but if you see inconsistent convergence results
   with optimizer that should be reducing the cost each iteration, then
   try setting this to a larger value, e.g. between `1e-3 - 1e-9`. For
-  Barnes-Hut and FFT t-SNE, epsilon is added to the sum of non-self
-  Student weights in both the cost and gradient. The Barnes-Hut tree
-  uses only the coordinates. When floating-point precision limits
+  Barnes-Hut, mutual-tree, and FFT t-SNE, epsilon is added to the sum of
+  non-self Student weights in both the cost and gradient. The Barnes-Hut
+  tree uses only the coordinates. When floating-point precision limits
   subdivision, a terminal leaf stores distinct coordinates as separate
   groups. Barnes-Hut SSNE uses unfloored Gaussian output affinities and
   ignores `eps`. Barnes-Hut and FFT SNeRV and reverse-KL SNE use a
   positive `eps` to floor the input affinities and leave the output
-  affinities unfloored. Barnes-Hut UMAP, t-UMAP, and Jensen-Shannon SNE
-  require a positive epsilon.
+  affinities unfloored. Barnes-Hut UMAP and t-UMAP and all three
+  approximate Jensen-Shannon SNE methods require a positive epsilon.
 
 - inp_kernel:
 
@@ -728,24 +728,35 @@ Some parameters are available for all (nor nearly all) methods.
 The examples demonstrate how to use `method` with these optional
 parameters.
 
-## Exact, Barnes-Hut, and FFT repulsion
+## Repulsion methods
 
 Use `method = list("tsne", repulsion = ...)` to select `"exact"` (the
 default all-pairs calculation), `"bh"` (Barnes-Hut), or `"fft"` (FFT
 interpolation). The selector also works with `"tee"`, `"jssne"`,
 `"hlsne"`, `"chsne"`, `"hssne"`, `"dhssne"`, `"ssne"`, `"snerv"`,
-`"rklsne"`, `"largevis"`, `"tumap"`, and `"umap"`. `bh = TRUE` also
-selects Barnes-Hut and conflicts with an explicit choice of exact or FFT
-repulsion. `theta` applies to Barnes-Hut, where zero evaluates the
-repulsive sum exactly for the chosen input affinities.
+`"rklsne"`, `"largevis"`, `"tumap"`, and `"umap"`.
+
+For two-dimensional t-SNE, TEE, JSSNE, HLSNE, and CHSNE,
+`repulsion = "mutual"` selects the hard mutual tree. It evaluates each
+pair of cells once, using a second-order expansion for sufficiently
+compact cells relative to the local Cauchy length scale. The threshold
+defaults to `theta = 0.35`. Opening a cell pair can cause a small jump
+in the approximate force as the coordinates move. With multiple workers,
+cell pairs are divided among workers with private force and mass
+accumulators, then combined in a fixed order. Tree construction and
+field propagation are serial. `n_threads` also applies to neighbor
+calibration and sparse gradients.
+
+`bh = TRUE` selects Barnes-Hut and conflicts with any other explicit
+repulsion choice. With either tree, `theta = 0` directly sums all
+repulsive interactions for the chosen input affinities.
 
 Repulsion controls the output calculation. Use `inp_kernel` and
 `neighbors` to control the input affinities. Exact t-SNE defaults to
-`"gaussian"`. For these methods, Barnes-Hut and FFT default to
-`"nngaussian"` and approximate neighbor search. UMAP uses `"skd"` for
-both approximate repulsion methods. Compare the three repulsion methods
-on the same input affinities by setting `inp_kernel` and supplying the
-same neighbors to each.
+`"gaussian"`. The tree and FFT methods default to `"nngaussian"` and
+approximate neighbor search, except UMAP, which uses `"skd"`. To compare
+repulsion methods on the same affinities, set `inp_kernel` and supply
+the same neighbors to each.
 
 FFT requires two output dimensions and a gradient-only optimizer such as
 the default `"dbd"`. It reports an approximate scalar objective. FFT

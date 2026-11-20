@@ -351,10 +351,10 @@ search by default. Use <code>nn = "exact"</code> for exact neighbor lookup.</p><
 
 
 <dt id="arg-theta">theta<a class="anchor" aria-label="anchor" href="#arg-theta"></a></dt>
-<dd><p>Barnes-Hut opening threshold, default <code>0.5</code>. Smaller
-values open more cells. Zero evaluates the repulsive sum exactly for the
-chosen input affinities. Applies with <code>bh = TRUE</code> or
-<code>method = list("tsne", repulsion = "bh")</code>.</p></dd>
+<dd><p>Tree opening threshold. The default is <code>0.5</code> for
+Barnes-Hut and <code>0.35</code> for the mutual tree. Smaller values open more
+cells. Zero evaluates the repulsive sum exactly for the chosen input
+affinities. Set this directly or in the <code>method</code> list.</p></dd>
 
 
 <dt id="arg-eps">eps<a class="anchor" aria-label="anchor" href="#arg-eps"></a></dt>
@@ -362,7 +362,7 @@ chosen input affinities. Applies with <code>bh = TRUE</code> or
 <code>.Machine$double.eps</code>, but if you see inconsistent convergence results
 with optimizer that should be reducing the cost each iteration, then try
 setting this to a larger value, e.g. between <code>1e-3 - 1e-9</code>. For
-Barnes-Hut and FFT t-SNE, epsilon is added to the sum of non-self Student
+Barnes-Hut, mutual-tree, and FFT t-SNE, epsilon is added to the sum of non-self Student
 weights in both the cost and gradient. The Barnes-Hut tree uses only the
 coordinates.
 When floating-point precision limits subdivision, a terminal leaf stores
@@ -371,7 +371,7 @@ Barnes-Hut SSNE uses unfloored Gaussian output affinities and ignores
 <code>eps</code>.
 Barnes-Hut and FFT SNeRV and reverse-KL SNE use a positive <code>eps</code>
 to floor the input affinities and leave the output affinities unfloored.
-Barnes-Hut UMAP, t-UMAP, and Jensen-Shannon SNE require a positive
+Barnes-Hut UMAP and t-UMAP and all three approximate Jensen-Shannon SNE methods require a positive
 epsilon.</p></dd>
 
 
@@ -681,7 +681,7 @@ to use. Subsequent elements must be named values specifying the parameters.</p>
 parameters.</p>
     </div>
     <div class="section level2">
-    <h2 id="exact-barnes-hut-and-fft-repulsion">Exact, Barnes-Hut, and FFT repulsion<a class="anchor" aria-label="anchor" href="#exact-barnes-hut-and-fft-repulsion"></a></h2>
+    <h2 id="repulsion-methods">Repulsion methods<a class="anchor" aria-label="anchor" href="#repulsion-methods"></a></h2>
 
 
 
@@ -690,18 +690,25 @@ parameters.</p>
 <code>"fft"</code> (FFT interpolation). The selector also works with
 <code>"tee"</code>, <code>"jssne"</code>, <code>"hlsne"</code>, <code>"chsne"</code>,
 <code>"hssne"</code>, <code>"dhssne"</code>, <code>"ssne"</code>, <code>"snerv"</code>,
-<code>"rklsne"</code>, <code>"largevis"</code>, <code>"tumap"</code>, and <code>"umap"</code>.
-<code>bh = TRUE</code> also selects Barnes-Hut
-and conflicts with an explicit choice of exact or FFT repulsion.
-<code>theta</code> applies to Barnes-Hut, where zero evaluates the repulsive
-sum exactly for the chosen input affinities.</p>
+<code>"rklsne"</code>, <code>"largevis"</code>, <code>"tumap"</code>, and <code>"umap"</code>.</p>
+<p>For two-dimensional t-SNE, TEE, JSSNE, HLSNE, and CHSNE,
+<code>repulsion = "mutual"</code> selects the hard mutual tree. It evaluates
+each pair of cells once, using a second-order expansion for sufficiently
+compact cells relative to the local Cauchy length scale. The threshold defaults to
+<code>theta = 0.35</code>. Opening a cell pair can cause a small jump in the
+approximate force as the coordinates move. With multiple workers, cell pairs are divided
+among workers with private force and mass accumulators, then combined in a
+fixed order. Tree construction and field propagation are serial.
+<code>n_threads</code> also applies to neighbor calibration and sparse gradients.</p>
+<p><code>bh = TRUE</code> selects Barnes-Hut and conflicts with any other explicit
+repulsion choice. With either tree, <code>theta = 0</code> directly sums all
+repulsive interactions for the chosen input affinities.</p>
 <p>Repulsion controls the output calculation. Use <code>inp_kernel</code> and
 <code>neighbors</code> to control the input affinities. Exact t-SNE defaults to
-<code>"gaussian"</code>. For these methods, Barnes-Hut and FFT default to
-<code>"nngaussian"</code> and approximate neighbor search. UMAP uses
-<code>"skd"</code> for both approximate repulsion methods. Compare the
-three repulsion methods on the same input affinities by setting
-<code>inp_kernel</code> and supplying the same neighbors to each.</p>
+<code>"gaussian"</code>. The tree and FFT methods default to <code>"nngaussian"</code>
+and approximate neighbor search, except UMAP, which uses <code>"skd"</code>.
+To compare repulsion methods on the same affinities, set <code>inp_kernel</code>
+and supply the same neighbors to each.</p>
 <p>FFT requires two output dimensions and a gradient-only optimizer such as
 the default <code>"dbd"</code>. It reports an approximate scalar objective.
 FFT sparse edge calculations run in native code and use <code>n_threads</code>.
