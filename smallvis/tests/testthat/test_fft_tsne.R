@@ -112,6 +112,18 @@ test_that("FFT t-SNE uses saved sparse affinities and approximates exact updates
   }
 })
 
+test_that("FFT keeps all nine stencil entries for the self-mass correction", {
+  grid <- fft_sne_grid(rbind(c(0, 0), c(50, 2), c(0.5, 0.5)), 1)
+  S <- grid$S
+  expect_identical(diff(S@p), rep(9L, 3L))
+  # The last point lands exactly on the center node of the first box.
+  expect_identical(tail(S@i, 9), c(0:2, 150:152, 300:302))
+  expect_equal(tail(S@x, 9), as.numeric(seq_len(9) == 5L))
+  impulse <- matrix(0, grid$side[1L], grid$side[2L])
+  impulse[1L, 1L] <- 1
+  expect_equal(fft_self_mass(grid, impulse), Matrix::colSums(S^2))
+})
+
 test_that("FFT crops unused boxes and pads rectangular axes independently", {
   Y <- rbind(c(0, 50), c(1, 51), c(202, 67))
   grid <- fft_sne_grid(Y, 1)

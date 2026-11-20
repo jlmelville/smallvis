@@ -425,6 +425,19 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// fft_stencil_cpp
+List fft_stencil_cpp(const NumericVector& first, int stride, const NumericMatrix& wx, const NumericMatrix& wy);
+RcppExport SEXP _smallvis_fft_stencil_cpp(SEXP firstSEXP, SEXP strideSEXP, SEXP wxSEXP, SEXP wySEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< const NumericVector& >::type first(firstSEXP);
+    Rcpp::traits::input_parameter< int >::type stride(strideSEXP);
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type wx(wxSEXP);
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type wy(wySEXP);
+    rcpp_result_gen = Rcpp::wrap(fft_stencil_cpp(first, stride, wx, wy));
+    return rcpp_result_gen;
+END_RCPP
+}
 // dist2_cpp
 NumericMatrix dist2_cpp(NumericMatrix input, std::size_t n_threads);
 RcppExport SEXP _smallvis_dist2_cpp(SEXP inputSEXP, SEXP n_threadsSEXP) {
@@ -563,6 +576,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_smallvis_bh_hlsne_similarity_cpp", (DL_FUNC) &_smallvis_bh_hlsne_similarity_cpp, 6},
     {"_smallvis_bh_chsne_gradient_cpp", (DL_FUNC) &_smallvis_bh_chsne_gradient_cpp, 6},
     {"_smallvis_bh_chsne_score_cpp", (DL_FUNC) &_smallvis_bh_chsne_score_cpp, 6},
+    {"_smallvis_fft_stencil_cpp", (DL_FUNC) &_smallvis_fft_stencil_cpp, 4},
     {"_smallvis_dist2_cpp", (DL_FUNC) &_smallvis_dist2_cpp, 2},
     {"_smallvis_dist_cpp", (DL_FUNC) &_smallvis_dist_cpp, 2},
     {"_smallvis_tweight_cpp", (DL_FUNC) &_smallvis_tweight_cpp, 2},

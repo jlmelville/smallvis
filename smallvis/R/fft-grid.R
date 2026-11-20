@@ -158,16 +158,18 @@ fft_sne_grid <- function(Y, grid_interval) {
   if (prod(side) > 4e6) {
     grid_too_large()
   }
-  sx <- rep(1:3, times = 3L)
-  sy <- rep(1:3, each = 3L)
-  grid_index <- outer(bx$start, sx, "+") +
-    nodes[1L] * (outer(by$start, sy, "+") - 1)
-  weights <- bx$weight[, sx] * by$weight[, sy]
-  S <- Matrix::sparseMatrix(
-    i = as.vector(t(grid_index)),
+  stencil <- fft_stencil_cpp(
+    bx$start + nodes[1L] * by$start,
+    nodes[1L],
+    bx$weight,
+    by$weight
+  )
+  S <- methods::new(
+    "dgCMatrix",
+    i = stencil$i,
     p = seq.int(0L, 9L * n, by = 9L),
-    x = as.vector(t(weights)),
-    dims = c(prod(nodes), n)
+    x = stencil$x,
+    Dim = as.integer(c(prod(nodes), n))
   )
 
   # The signed offsets on the padded grid implement a linear convolution.
@@ -180,7 +182,6 @@ fft_sne_grid <- function(Y, grid_interval) {
   list(
     XY = sweep(local, 2L, axis_span / 2),
     S = S,
-    weights = weights,
     nodes = nodes,
     side = side,
     width = width,
@@ -196,7 +197,8 @@ fft_self_mass <- function(grid, kernel) {
   dx <- outer(sx, sx, "-") %% grid$side[1L]
   dy <- outer(sy, sy, "-") %% grid$side[2L]
   stencil <- matrix(kernel[1 + dx + grid$side[1L] * dy], 9L, 9L)
-  rowSums((grid$weights %*% stencil) * grid$weights)
+  weights <- t(matrix(grid$S@x, nrow = 9L))
+  rowSums((weights %*% stencil) * weights)
 }
 
 fft_grid_convolver <- function(grid, transform, mass_only, reuse = integer()) {

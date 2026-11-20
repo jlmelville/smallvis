@@ -5,5 +5,6 @@
 #'
 #' @keywords internal
 #' @useDynLib smallvis, .registration = TRUE
+#' @importClassesFrom Matrix dgCMatrix
 #' @importFrom Rcpp sourceCpp
 "_PACKAGE"

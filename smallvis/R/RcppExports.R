@@ -93,6 +93,10 @@ bh_chsne_score_cpp <- function(indices, indptr, squared_P_data, embedding, theta
     .Call(`_smallvis_bh_chsne_score_cpp`, indices, indptr, squared_P_data, embedding, theta, n_threads)
 }
 
+fft_stencil_cpp <- function(first, stride, wx, wy) {
+    .Call(`_smallvis_fft_stencil_cpp`, first, stride, wx, wy)
+}
+
 dist2_cpp <- function(input, n_threads = 1L) {
     .Call(`_smallvis_dist2_cpp`, input, n_threads)
 }
