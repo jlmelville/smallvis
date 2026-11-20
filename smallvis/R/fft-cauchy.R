@@ -10,8 +10,29 @@ fft_tee <- function(
   grid_interval = 1,
   fft_reuse = NULL
 ) {
+  cauchy_tee_cost(
+    perplexity,
+    inp_kernel,
+    symmetrize,
+    lambda,
+    eps,
+    n_threads,
+    nn,
+    fft_settings(fft_backend, grid_interval, n_threads, fft_reuse)
+  )
+}
+
+cauchy_tee_cost <- function(
+  perplexity,
+  inp_kernel,
+  symmetrize,
+  lambda,
+  eps,
+  n_threads,
+  nn,
+  engine
+) {
   validate_tee_lambda(lambda)
-  fft <- fft_settings(fft_backend, grid_interval, n_threads, fft_reuse)
   cost <- sparse_sne_cost(
     perplexity,
     inp_kernel,
@@ -23,16 +44,16 @@ fft_tee <- function(
     normalize = FALSE,
     lambda = lambda,
     score = function(P, Y, alpha) {
-      Z <- fft$sums(Y, mass_only = TRUE)$Z
-      -sne_edge_loss(P, Y) - lambda * Z
+      Z <- engine$sums(Y, mass_only = TRUE)$Z
+      -cauchy_edge_loss_cpp(P@i, P@p, P@x, Y, 0, n_threads) - lambda * Z
     },
     gradient = function(P, Y, alpha) {
-      sums <- fft$sums(Y)
+      sums <- engine$sums(Y)
       sne_sparse_attraction_cpp(P@i, P@p, P@x, Y, n_threads) -
         lambda * sums$force
     }
   )
-  use_fft_cost(cost, fft)
+  use_repulsion_cost(cost, engine)
 }
 
 fft_jssne <- function(
@@ -54,7 +75,7 @@ fft_jssne <- function(
     n_threads,
     nn,
     eps = eps,
-    fft = fft_settings(fft_backend, grid_interval, n_threads, fft_reuse)
+    engine = fft_settings(fft_backend, grid_interval, n_threads, fft_reuse)
   )
 }
 
@@ -74,7 +95,7 @@ fft_hlsne <- function(
     "symmetric",
     n_threads,
     nn,
-    fft = fft_settings(fft_backend, grid_interval, n_threads, fft_reuse)
+    engine = fft_settings(fft_backend, grid_interval, n_threads, fft_reuse)
   )
 }
 
@@ -95,6 +116,6 @@ fft_chsne <- function(
     symmetrize,
     n_threads,
     nn,
-    fft = fft_settings(fft_backend, grid_interval, n_threads, fft_reuse)
+    engine = fft_settings(fft_backend, grid_interval, n_threads, fft_reuse)
   )
 }

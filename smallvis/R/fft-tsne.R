@@ -10,12 +10,31 @@ fft_tsne <- function(
   grid_interval = 1,
   fft_reuse = NULL
 ) {
+  cauchy_tsne_cost(
+    perplexity,
+    inp_kernel,
+    nn,
+    eps,
+    n_threads,
+    fft_settings(fft_backend, grid_interval, n_threads, fft_reuse)
+  )
+}
+
+cauchy_tsne_cost <- function(
+  perplexity,
+  inp_kernel,
+  nn,
+  eps,
+  n_threads,
+  engine
+) {
+  label <- engine$label
   if (
     !is.character(inp_kernel) ||
       length(inp_kernel) != 1L ||
       !inp_kernel %in% c("nngaussian", "knn")
   ) {
-    stop("FFT t-SNE requires inp_kernel = 'nngaussian' or 'knn'")
+    stop(label, " t-SNE requires inp_kernel = 'nngaussian' or 'knn'")
   }
   nn <- match.arg(nn, c("approximate", "exact"))
   if (
@@ -35,9 +54,8 @@ fft_tsne <- function(
       !is.finite(eps) ||
       eps < 0
   ) {
-    stop("FFT t-SNE requires finite nonnegative eps")
+    stop(label, " t-SNE requires finite nonnegative eps")
   }
-  fft <- fft_settings(fft_backend, grid_interval, n_threads, fft_reuse)
   cost <- sparse_tsne_cost(
     perplexity,
     inp_kernel,
@@ -45,17 +63,19 @@ fft_tsne <- function(
     n_threads,
     eps,
     pfn = function(cost, Y) {
-      Z <- fft$sums(Y, mass_only = TRUE)$Z
-      cost$pcost <- cost$plogp + sne_edge_loss(cost$P, Y, log(Z + eps))
+      Z <- engine$sums(Y, mass_only = TRUE)$Z
+      P <- cost$P
+      cost$pcost <- cost$plogp +
+        cauchy_edge_loss_cpp(P@i, P@p, P@x, Y, log(Z + eps), n_threads)
       cost
     },
     gr = function(cost, Y) {
-      repulsion <- fft$sums(Y)
+      repulsion <- engine$sums(Y)
       P <- cost$P
       attraction <- sne_sparse_attraction_cpp(P@i, P@p, P@x, Y, n_threads)
       cost$G <- 4 * (attraction - repulsion$force / (repulsion$Z + eps))
       cost
     }
   )
-  use_fft_cost(cost, fft)
+  use_repulsion_cost(cost, engine)
 }

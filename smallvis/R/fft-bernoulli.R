@@ -160,5 +160,5 @@ fft_bernoulli_cost <- function(
   }
   cost$pfn <- function(cost, Y) evaluate(cost, Y, gradient = FALSE)
   cost$gr <- function(cost, Y) evaluate(cost, Y, gradient = TRUE)
-  use_fft_cost(cost, fft)
+  use_repulsion_cost(cost, fft)
 }

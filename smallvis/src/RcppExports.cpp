@@ -74,6 +74,21 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// cauchy_edge_loss_cpp
+double cauchy_edge_loss_cpp(const IntegerVector& indices, const IntegerVector& indptr, const NumericVector& P_data, const NumericMatrix& embedding, double log_Z, int n_threads);
+RcppExport SEXP _smallvis_cauchy_edge_loss_cpp(SEXP indicesSEXP, SEXP indptrSEXP, SEXP P_dataSEXP, SEXP embeddingSEXP, SEXP log_ZSEXP, SEXP n_threadsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< const IntegerVector& >::type indices(indicesSEXP);
+    Rcpp::traits::input_parameter< const IntegerVector& >::type indptr(indptrSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type P_data(P_dataSEXP);
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type embedding(embeddingSEXP);
+    Rcpp::traits::input_parameter< double >::type log_Z(log_ZSEXP);
+    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(cauchy_edge_loss_cpp(indices, indptr, P_data, embedding, log_Z, n_threads));
+    return rcpp_result_gen;
+END_RCPP
+}
 // sne_sparse_attraction_cpp
 NumericMatrix sne_sparse_attraction_cpp(const IntegerVector& indices, const IntegerVector& indptr, const NumericVector& P_data, const NumericMatrix& embedding, std::size_t n_threads, double alpha);
 RcppExport SEXP _smallvis_sne_sparse_attraction_cpp(SEXP indicesSEXP, SEXP indptrSEXP, SEXP P_dataSEXP, SEXP embeddingSEXP, SEXP n_threadsSEXP, SEXP alphaSEXP) {
@@ -476,6 +491,19 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// mutual_cauchy_cpp
+List mutual_cauchy_cpp(const NumericMatrix& Y, double theta, bool mass_only, int n_threads);
+RcppExport SEXP _smallvis_mutual_cauchy_cpp(SEXP YSEXP, SEXP thetaSEXP, SEXP mass_onlySEXP, SEXP n_threadsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type Y(YSEXP);
+    Rcpp::traits::input_parameter< double >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< bool >::type mass_only(mass_onlySEXP);
+    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(mutual_cauchy_cpp(Y, theta, mass_only, n_threads));
+    return rcpp_result_gen;
+END_RCPP
+}
 // find_beta_knn_cpp
 List find_beta_knn_cpp(const NumericMatrix& knn_distances, const IntegerMatrix& knn_indices, double perplexity, double tol, int max_tries, bool ret_sparse, std::size_t n_threads, bool shift_rows);
 RcppExport SEXP _smallvis_find_beta_knn_cpp(SEXP knn_distancesSEXP, SEXP knn_indicesSEXP, SEXP perplexitySEXP, SEXP tolSEXP, SEXP max_triesSEXP, SEXP ret_sparseSEXP, SEXP n_threadsSEXP, SEXP shift_rowsSEXP) {
@@ -515,6 +543,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_smallvis_bh_mixed_kl_cpp", (DL_FUNC) &_smallvis_bh_mixed_kl_cpp, 13},
     {"_smallvis_fft_mixed_kl_cpp", (DL_FUNC) &_smallvis_fft_mixed_kl_cpp, 15},
     {"_smallvis_bh_tsne_gradient_cpp", (DL_FUNC) &_smallvis_bh_tsne_gradient_cpp, 7},
+    {"_smallvis_cauchy_edge_loss_cpp", (DL_FUNC) &_smallvis_cauchy_edge_loss_cpp, 6},
     {"_smallvis_sne_sparse_attraction_cpp", (DL_FUNC) &_smallvis_sne_sparse_attraction_cpp, 6},
     {"_smallvis_bh_plogq_cpp", (DL_FUNC) &_smallvis_bh_plogq_cpp, 7},
     {"_smallvis_bh_sne_gradient_cpp", (DL_FUNC) &_smallvis_bh_sne_gradient_cpp, 10},
@@ -539,6 +568,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_smallvis_tweight_cpp", (DL_FUNC) &_smallvis_tweight_cpp, 2},
     {"_smallvis_tsne_grad_cpp", (DL_FUNC) &_smallvis_tsne_grad_cpp, 5},
     {"_smallvis_mmds_grad_cpp", (DL_FUNC) &_smallvis_mmds_grad_cpp, 5},
+    {"_smallvis_mutual_cauchy_cpp", (DL_FUNC) &_smallvis_mutual_cauchy_cpp, 4},
     {"_smallvis_find_beta_knn_cpp", (DL_FUNC) &_smallvis_find_beta_knn_cpp, 8},
     {"_smallvis_find_beta_cpp", (DL_FUNC) &_smallvis_find_beta_cpp, 6},
     {NULL, NULL, 0}

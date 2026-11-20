@@ -55,6 +55,8 @@ fft_settings <- function(
   }
 
   list(
+    repulsion = "fft",
+    label = "FFT",
     backend = fft_backend,
     grid_interval = grid_interval,
     transform = transform,
@@ -72,11 +74,13 @@ fft_settings <- function(
   )
 }
 
-use_fft_cost <- function(cost, fft) {
-  if (!is.null(fft)) {
-    cost$repulsion <- "fft"
-    cost$fft_backend <- fft$backend
-    cost$gradient_only <- TRUE
+use_repulsion_cost <- function(cost, engine) {
+  if (!is.null(engine)) {
+    cost$repulsion <- engine$repulsion
+    if (engine$repulsion == "fft") {
+      cost$fft_backend <- engine$backend
+      cost$gradient_only <- TRUE
+    }
   }
   cost
 }

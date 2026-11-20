@@ -13,6 +13,10 @@ bh_tsne_gradient_cpp <- function(indices, indptr, P_data, embedding, theta = 0.5
     .Call(`_smallvis_bh_tsne_gradient_cpp`, indices, indptr, P_data, embedding, theta, eps, n_threads)
 }
 
+cauchy_edge_loss_cpp <- function(indices, indptr, P_data, embedding, log_Z, n_threads) {
+    .Call(`_smallvis_cauchy_edge_loss_cpp`, indices, indptr, P_data, embedding, log_Z, n_threads)
+}
+
 sne_sparse_attraction_cpp <- function(indices, indptr, P_data, embedding, n_threads, alpha = 1.0) {
     .Call(`_smallvis_sne_sparse_attraction_cpp`, indices, indptr, P_data, embedding, n_threads, alpha)
 }
@@ -107,6 +111,10 @@ tsne_grad_cpp <- function(P, W, Z, Y, n_threads) {
 
 mmds_grad_cpp <- function(R, D, Y, eps, n_threads) {
     .Call(`_smallvis_mmds_grad_cpp`, R, D, Y, eps, n_threads)
+}
+
+mutual_cauchy_cpp <- function(Y, theta, mass_only, n_threads = 0L) {
+    .Call(`_smallvis_mutual_cauchy_cpp`, Y, theta, mass_only, n_threads)
 }
 
 find_beta_knn_cpp <- function(knn_distances, knn_indices, perplexity = 15, tol = 1e-5, max_tries = 50L, ret_sparse = FALSE, n_threads = 1L, shift_rows = FALSE) {

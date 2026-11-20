@@ -31,6 +31,6 @@ URL: https://jlmelville.github.io/smallvis/package/,
 BugReports: https://github.com/jlmelville/smallvis/issues
 LinkingTo:
     Rcpp
-Config/roxygen2/version: 8.1.0
+Config/roxygen2/version: 8.1.1
 Config/testthat/edition: 3
 Config/Needs/website: pkgdown, knitr, rmarkdown

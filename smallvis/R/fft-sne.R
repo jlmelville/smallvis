@@ -115,7 +115,7 @@ fft_normalized_sne <- function(
     score = function(P, Y, alpha) evaluate(P, Y, alpha, FALSE),
     gradient = function(P, Y, alpha) evaluate(P, Y, alpha, TRUE)
   )
-  use_fft_cost(cost, fft)
+  use_repulsion_cost(cost, fft)
 }
 
 fft_rklsne <- function(
@@ -235,7 +235,7 @@ fft_mixed_kl <- function(
     evaluate,
     "FFT"
   )
-  use_fft_cost(cost, fft)
+  use_repulsion_cost(cost, fft)
 }
 
 sne_edge_loss <- function(P, Y, offset = 0, alpha = 1) {

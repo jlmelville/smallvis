@@ -205,7 +205,7 @@
 #' The examples demonstrate how to use \code{method} with these optional
 #' parameters.
 #'
-#' @section Exact, Barnes-Hut, and FFT repulsion:
+#' @section Repulsion methods:
 #'
 #' Use \code{method = list("tsne", repulsion = ...)} to select \code{"exact"}
 #' (the default all-pairs calculation), \code{"bh"} (Barnes-Hut), or
@@ -213,18 +213,27 @@
 #' \code{"tee"}, \code{"jssne"}, \code{"hlsne"}, \code{"chsne"},
 #' \code{"hssne"}, \code{"dhssne"}, \code{"ssne"}, \code{"snerv"},
 #' \code{"rklsne"}, \code{"largevis"}, \code{"tumap"}, and \code{"umap"}.
-#' \code{bh = TRUE} also selects Barnes-Hut
-#' and conflicts with an explicit choice of exact or FFT repulsion.
-#' \code{theta} applies to Barnes-Hut, where zero evaluates the repulsive
-#' sum exactly for the chosen input affinities.
+#'
+#' For two-dimensional t-SNE, TEE, JSSNE, HLSNE, and CHSNE,
+#' \code{repulsion = "mutual"} selects the hard mutual tree. It evaluates
+#' each pair of cells once, using a second-order expansion for sufficiently
+#' compact cells relative to the local Cauchy length scale. The threshold defaults to
+#' \code{theta = 0.35}. Opening a cell pair can cause a small jump in the
+#' approximate force as the coordinates move. With multiple workers, cell pairs are divided
+#' among workers with private force and mass accumulators, then combined in a
+#' fixed order. Tree construction and field propagation are serial.
+#' \code{n_threads} also applies to neighbor calibration and sparse gradients.
+#'
+#' \code{bh = TRUE} selects Barnes-Hut and conflicts with any other explicit
+#' repulsion choice. With either tree, \code{theta = 0} directly sums all
+#' repulsive interactions for the chosen input affinities.
 #'
 #' Repulsion controls the output calculation. Use \code{inp_kernel} and
 #' \code{neighbors} to control the input affinities. Exact t-SNE defaults to
-#' \code{"gaussian"}. For these methods, Barnes-Hut and FFT default to
-#' \code{"nngaussian"} and approximate neighbor search. UMAP uses
-#' \code{"skd"} for both approximate repulsion methods. Compare the
-#' three repulsion methods on the same input affinities by setting
-#' \code{inp_kernel} and supplying the same neighbors to each.
+#' \code{"gaussian"}. The tree and FFT methods default to \code{"nngaussian"}
+#' and approximate neighbor search, except UMAP, which uses \code{"skd"}.
+#' To compare repulsion methods on the same affinities, set \code{inp_kernel}
+#' and supply the same neighbors to each.
 #'
 #' FFT requires two output dimensions and a gradient-only optimizer such as
 #' the default \code{"dbd"}. It reports an approximate scalar objective.
@@ -647,7 +656,7 @@
 #'   \code{.Machine$double.eps}, but if you see inconsistent convergence results
 #'   with optimizer that should be reducing the cost each iteration, then try
 #'   setting this to a larger value, e.g. between \code{1e-3 - 1e-9}. For
-#'   Barnes-Hut and FFT t-SNE, epsilon is added to the sum of non-self Student
+#'   Barnes-Hut, mutual-tree, and FFT t-SNE, epsilon is added to the sum of non-self Student
 #'   weights in both the cost and gradient. The Barnes-Hut tree uses only the
 #'   coordinates.
 #'   When floating-point precision limits subdivision, a terminal leaf stores
@@ -656,12 +665,12 @@
 #'   \code{eps}.
 #'   Barnes-Hut and FFT SNeRV and reverse-KL SNE use a positive \code{eps}
 #'   to floor the input affinities and leave the output affinities unfloored.
-#'   Barnes-Hut UMAP, t-UMAP, and Jensen-Shannon SNE require a positive
+#'   Barnes-Hut UMAP and t-UMAP and all three approximate Jensen-Shannon SNE methods require a positive
 #'   epsilon.
-#' @param theta Barnes-Hut opening threshold, default \code{0.5}. Smaller
-#'   values open more cells. Zero evaluates the repulsive sum exactly for the
-#'   chosen input affinities. Applies with \code{bh = TRUE} or
-#'   \code{method = list("tsne", repulsion = "bh")}.
+#' @param theta Tree opening threshold. The default is \code{0.5} for
+#'   Barnes-Hut and \code{0.35} for the mutual tree. Smaller values open more
+#'   cells. Zero evaluates the repulsive sum exactly for the chosen input
+#'   affinities. Set this directly or in the \code{method} list.
 #' @param bh If \code{TRUE}, approximate repulsive interactions with Barnes-Hut
 #'   (van der Maaten, 2014). Available for \code{"tsne"}, \code{"ssne"},
 #'   \code{"hssne"}, \code{"dhssne"}, \code{"snerv"}, \code{"rklsne"},
@@ -1372,6 +1381,9 @@ smallvis_run <- function(
     if (identical(cost_fn$repulsion, "fft")) {
       stop("FFT coordinates must be finite")
     }
+    if (identical(cost_fn$repulsion, "mutual")) {
+      stop("Mutual tree coordinates must be finite")
+    }
     stop("Barnes-Hut coordinates must be finite")
   }
 
@@ -1795,6 +1807,9 @@ prepare_smallvis_input <- function(
     if (identical(cost_fn$repulsion, "fft")) {
       stop("FFT repulsion requires k = 2")
     }
+    if (identical(cost_fn$repulsion, "mutual")) {
+      stop("Mutual tree requires k = 2")
+    }
     stop("Barnes-Hut requires k = 2")
   }
 
@@ -1967,9 +1982,9 @@ create_cost <- function(
       if (
         !is.character(repulsion) ||
           length(repulsion) != 1L ||
-          !repulsion %in% c("exact", "bh", "fft")
+          !repulsion %in% c("exact", "bh", "fft", "mutual")
       ) {
-        stop("repulsion must be 'exact', 'bh', or 'fft'")
+        stop("repulsion must be 'exact', 'bh', 'fft', or 'mutual'")
       }
       if (!is.logical(bh) || length(bh) != 1L || is.na(bh)) {
         stop("bh must be TRUE or FALSE")
@@ -1978,16 +1993,25 @@ create_cost <- function(
         stop("bh = TRUE conflicts with repulsion = '", repulsion, "'")
       }
       if (
-        repulsion != "bh" &&
+        !repulsion %in% c("bh", "mutual") &&
           (!is.null(methodlist$theta) ||
             ("theta" %in% supplied && !is.null(theta)))
       ) {
-        stop("theta applies only to repulsion = 'bh'")
+        stop("theta applies only to repulsion = 'bh' or 'mutual'")
       }
       methodlist$repulsion <- NULL
       bh <- repulsion == "bh"
-      if (repulsion == "fft") {
-        method <- paste0("fft_", method)
+      if (repulsion == "mutual") {
+        if (!method %in% c("tsne", "tee", "jssne", "hlsne", "chsne")) {
+          stop(
+            "Mutual tree repulsion supports tsne, tee, jssne, hlsne and chsne"
+          )
+        }
+        # Let the mutual constructor supply its own opening threshold.
+        if (!"theta" %in% supplied) theta <- NULL
+      }
+      if (repulsion %in% c("fft", "mutual")) {
+        method <- paste0(repulsion, "_", method)
       }
     }
     if (bh) {

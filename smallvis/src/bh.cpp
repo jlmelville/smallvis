@@ -858,7 +858,22 @@ NumericMatrix bh_tsne_gradient_cpp(const IntegerVector &indices,
                            n_threads, CauchyKernel{}, 0.0);
 }
 
-// The FFT method supplies the slots of its validated sparse affinity matrix.
+// Sum directly over validated sparse affinities for a supplied log normalizer.
+// [[Rcpp::export(rng = false)]]
+double cauchy_edge_loss_cpp(const IntegerVector &indices,
+                            const IntegerVector &indptr,
+                            const NumericVector &P_data,
+                            const NumericMatrix &embedding, double log_Z,
+                            int n_threads) {
+  if (embedding.ncol() != 2)
+    stop("Cauchy edge loss requires two output dimensions");
+  const auto Y = as<std::vector<double>>(transpose(embedding));
+  return -sparse_log_weight_sum(indices.begin(), indptr.begin(), P_data.begin(),
+                                Y, n_threads, HeavyTailKernel(1.0), -log_Z,
+                                0.0);
+}
+
+// The repulsion methods supply the slots of their validated sparse affinities.
 // [[Rcpp::export(rng = false)]]
 NumericMatrix sne_sparse_attraction_cpp(const IntegerVector &indices,
                                         const IntegerVector &indptr,

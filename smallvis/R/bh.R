@@ -175,7 +175,7 @@ sparse_divergence_cost <- function(
   nn,
   theta = 0.5,
   eps = .Machine$double.eps,
-  fft = NULL
+  engine = NULL
 ) {
   if (
     method == "jssne" &&
@@ -185,7 +185,7 @@ sparse_divergence_cost <- function(
         !is.finite(eps) ||
         eps <= 0)
   ) {
-    label <- if (is.null(fft)) "Barnes-Hut" else "FFT"
+    label <- if (is.null(engine)) "Barnes-Hut" else engine$label
     stop(label, " Jensen-Shannon SNE requires a finite positive eps")
   }
   bh_score <- switch(
@@ -208,11 +208,11 @@ sparse_divergence_cost <- function(
       hlsne = cost$sqrt_p,
       chsne = cost$p_squared
     )
-    if (is.null(fft)) {
+    if (is.null(engine)) {
       fn <- if (gradient) bh_gradient else bh_score
       return(fn(P@i, P@p, edge, Y, theta, n_threads))
     }
-    sums <- fft$sums(Y, mass_only = !gradient)
+    sums <- engine$sums(Y, mass_only = !gradient)
     force <- if (gradient) sums$force else NULL
     fft_divergence_cpp(P@i, P@p, edge, Y, sums$Z, force, n_threads, method)
   }
@@ -257,7 +257,7 @@ sparse_divergence_cost <- function(
       cost
     }
   )
-  use_fft_cost(cost, fft)
+  use_repulsion_cost(cost, engine)
 }
 
 bhlargevis <- function(
