@@ -1,0 +1,256 @@
+#include "vendor/zufft.hpp"
+#include <Rcpp.h>
+#include <algorithm>
+#include <array>
+#include <cmath>
+#include <limits>
+#include <vector>
+
+using namespace Rcpp;
+
+namespace {
+// Keep only the point data read by the existing spread and gather loops.
+struct DirectGrid {
+  static void grid_too_large() {
+    stop("FFT padded grid exceeds four million cells. Increase grid_interval "
+         "or use Barnes-Hut.");
+  }
+  Rcpp::IntegerVector starts;
+  Rcpp::NumericVector weights;
+  Rcpp::NumericMatrix xy;
+  std::array<int, 2> side{};
+  double width = 0;
+
+  static int cell(double position, int boxes) {
+    return std::min(static_cast<int>(position), boxes - 1);
+  }
+
+  bool prepare(const Rcpp::NumericMatrix &points, double interval,
+               const NumericVector &fast_boxes, const zufft_api &api) {
+    const int n = points.nrow();
+    if (points.ncol() != 2 || n < 1 ||
+        n > std::numeric_limits<int>::max() / 9 || !std::isfinite(interval) ||
+        interval <= 0)
+      Rcpp::stop("Invalid FFT grid input");
+    double minimum[2], extent[2];
+    for (int axis = 0; axis < 2; ++axis) {
+      const double *column = points.begin() + axis * n;
+      double low = column[0], high = column[0];
+      for (int i = 0; i < n; ++i) {
+        if (!std::isfinite(column[i]))
+          Rcpp::stop("FFT coordinates must be finite");
+        low = std::min(low, column[i]);
+        high = std::max(high, column[i]);
+      }
+      minimum[axis] = low;
+      extent[axis] = high - low;
+    }
+    const double span = std::max(extent[0], extent[1]);
+    if (span == 0)
+      return false;
+    const double requested =
+        std::max(fast_boxes[0], std::floor(span / interval));
+    constexpr int limit = 4000000;
+    if (requested > limit)
+      grid_too_large();
+    int boxes = static_cast<int>(requested);
+    const auto fast =
+        std::lower_bound(fast_boxes.begin(), fast_boxes.end(), boxes);
+    if (fast != fast_boxes.end())
+      boxes = static_cast<int>(*fast);
+    width = span / boxes;
+    std::array<int, 2> nodes{};
+    // Each axis starts at its own minimum in box zero. Its maximum therefore
+    // determines the occupied extent without constructing a point-to-cell
+    // vector.
+    for (int axis = 0; axis < 2; ++axis) {
+      nodes[axis] = 3 * (1 + cell((extent[axis] / span) * boxes, boxes));
+    }
+    if (4.0 * nodes[0] * nodes[1] > limit)
+      grid_too_large();
+    for (int axis = 0; axis < 2; ++axis) {
+      side[axis] = static_cast<int>(api.good_size(2 * nodes[axis], 1));
+    }
+    if (side[0] <= 0 || side[1] <= 0 ||
+        static_cast<double>(side[0]) * side[1] > limit)
+      grid_too_large();
+    if (starts.size() != n) {
+      starts = Rcpp::IntegerVector(Rcpp::no_init(n));
+      weights = Rcpp::NumericVector(Rcpp::no_init(9 * n));
+      xy = Rcpp::NumericMatrix(n, 2);
+    }
+    for (int i = 0; i < n; ++i) {
+      double basis[2][3];
+      int start[2];
+      for (int axis = 0; axis < 2; ++axis) {
+        const double local = points(i, axis) - minimum[axis];
+        const double position = (local / span) * boxes;
+        const int box = cell(position, boxes);
+        const double u = 3 * (position - box) - 1.5;
+        basis[axis][0] = u * (u - 1) / 2;
+        basis[axis][1] = 1 - u * u;
+        basis[axis][2] = u * (u + 1) / 2;
+        start[axis] = 3 * box;
+        xy(i, axis) = local - extent[axis] / 2;
+      }
+      starts[i] = start[0] + side[0] * start[1];
+      for (int b = 0; b < 3; ++b)
+        for (int a = 0; a < 3; ++a)
+          weights[9 * i + 3 * b + a] = basis[0][a] * basis[1][b];
+    }
+    return true;
+  }
+};
+
+void fill_kernel(double *out, int nx, int ny, double width, bool squared) {
+  const double step = width / 3;
+  std::vector<double> dx(nx);
+  for (int x = 0; x < nx; ++x) {
+    double v = (2 * x >= nx ? x - nx : x) * step;
+    dx[x] = v * v;
+  }
+  for (int y = 0; y < ny; ++y) {
+    double v = (2 * y >= ny ? y - ny : y) * step;
+    double dy = v * v;
+    for (int x = 0; x < nx; ++x) {
+      double w = 1 / (1 + (dx[x] + dy));
+      out[y * nx + x] = squared ? w * w : w;
+    }
+  }
+}
+
+void spread(double *out, int nx, int ny, const IntegerVector &starts,
+            const NumericVector &weights, const NumericMatrix &xy, int field) {
+  std::fill_n(out, nx * ny, 0.0);
+  for (int i = 0; i < xy.nrow(); ++i) {
+    const double q = field == 0 ? 1 : xy(i, field - 1);
+    for (int b = 0; b < 3; ++b) {
+      const int offset = starts[i] + b * nx;
+      for (int a = 0; a < 3; ++a)
+        out[offset + a] += weights[9 * i + 3 * b + a] * q;
+    }
+  }
+}
+
+void gather(const double *in, double *out, int nx, int ny,
+            const IntegerVector &starts, const NumericVector &weights) {
+  for (int i = 0; i < starts.size(); ++i) {
+    double value = 0;
+    for (int b = 0; b < 3; ++b) {
+      const int offset = starts[i] + b * nx;
+      for (int a = 0; a < 3; ++a)
+        value += weights[9 * i + 3 * b + a] * in[offset + a];
+    }
+    out[i] = value / (nx * ny);
+  }
+}
+
+struct Workspace {
+  DirectGrid grid;
+  std::vector<double> real, kernel, source, unit_source, potential;
+  // Keep the largest grid seen by this fit. A new shape always gets fresh
+  // layouts, weights and spectra, including when it fits the existing storage.
+  static void ensure(std::vector<double> &buffer, size_t size) {
+    if (buffer.size() < size)
+      std::vector<double>(size).swap(buffer);
+  }
+};
+} // namespace
+
+// [[Rcpp::export(rng = false)]]
+SEXP zufft_workspace_cpp() { return XPtr<Workspace>(new Workspace(), true); }
+
+// [[Rcpp::export(rng = false)]]
+List zufft_tsne_sums_cpp(SEXP workspace, const NumericMatrix &points,
+                         double interval, const NumericVector &fast_boxes,
+                         int workers, bool mass_only, bool reuse) {
+  XPtr<Workspace> ws(workspace);
+  // Resolve the optional provider on the R thread, after requireNamespace().
+  const zufft_api *api = zufft_api_get();
+  if (!api)
+    stop("Incompatible zufft C interface (expected version 1)");
+  if (workers < 1 || fast_boxes.size() == 0)
+    stop("Invalid FFT settings");
+  auto &grid = ws->grid;
+  const int n = points.nrow();
+  if (!grid.prepare(points, interval, fast_boxes, *api)) {
+    List result = List::create(_["Z"] = static_cast<double>(n) * (n - 1));
+    if (!mass_only)
+      result["force"] = NumericMatrix(n, 2);
+    return result;
+  }
+
+  const int nx = grid.side[0], ny = grid.side[1];
+  const size_t shape[] = {static_cast<size_t>(nx), static_cast<size_t>(ny)};
+  const size_t half[] = {shape[0] / 2 + 1, shape[1]};
+  const size_t spectrum_size = 2 * half[0] * half[1];
+  const zufft_layout real_layout = {2, shape, nullptr},
+                     packed_layout = {2, half, nullptr};
+  // Pack the contiguous x axis. Both transforms are unnormalized.
+  const int axes[] = {1, 0};
+  Workspace::ensure(ws->real, shape[0] * shape[1]);
+  Workspace::ensure(ws->kernel, spectrum_size);
+  Workspace::ensure(ws->source, spectrum_size);
+  Workspace::ensure(ws->potential, n);
+  const bool save_unit = reuse && !mass_only;
+  if (save_unit)
+    Workspace::ensure(ws->unit_source, spectrum_size);
+  auto check = [&](int status) {
+    if (status != ZUFFT_OK)
+      stop("zufft: %s", api->message());
+  };
+  auto forward = [&](double *out) {
+    check(api->r2c(&real_layout, ws->real.data(), &packed_layout, out, 2, axes,
+                   1, 1, workers));
+  };
+
+  // First gather the Cauchy mass. The squared kernel then acts on unit,
+  // x and y charges for the two components of the unnormalized force.
+  List result;
+  NumericMatrix force = no_init_matrix(mass_only ? 0 : n, 2);
+  for (int col = 0; col < (mass_only ? 1 : 4); ++col) {
+    if (col < 2) {
+      fill_kernel(ws->real.data(), nx, ny, grid.width, col == 1);
+      forward(ws->kernel.data());
+    }
+    if (col == 1 && save_unit) {
+      std::copy_n(ws->unit_source.begin(), spectrum_size, ws->source.begin());
+    } else {
+      spread(ws->real.data(), nx, ny, grid.starts, grid.weights, grid.xy,
+             std::max(0, col - 1));
+      forward(ws->source.data());
+      if (col == 0 && save_unit)
+        std::copy_n(ws->source.begin(), spectrum_size, ws->unit_source.begin());
+    }
+    for (size_t i = 0; i < spectrum_size; i += 2) {
+      const double a = ws->source[i], b = ws->source[i + 1];
+      const double c = ws->kernel[i], d = ws->kernel[i + 1];
+      ws->source[i] = a * c - b * d;
+      ws->source[i + 1] = a * d + b * c;
+    }
+    check(api->c2r(&packed_layout, ws->source.data(), &real_layout,
+                   ws->real.data(), 2, axes, 0, 1, workers));
+    gather(ws->real.data(), ws->potential.data(), nx, ny, grid.starts,
+           grid.weights);
+    if (col == 0) {
+      long double mass = 0;
+      for (int i = 0; i < n; ++i)
+        mass += ws->potential[i];
+      const double Z = static_cast<double>(mass) - n;
+      if (!(Z > 0) || !std::isfinite(Z))
+        stop("FFT could not estimate a positive normalization. Reduce "
+             "grid_interval.");
+      result["Z"] = Z;
+    } else if (col == 1) {
+      for (int axis = 0; axis < 2; ++axis)
+        for (int i = 0; i < n; ++i)
+          force(i, axis) = grid.xy(i, axis) * ws->potential[i];
+    } else {
+      for (int i = 0; i < n; ++i)
+        force(i, col - 2) -= ws->potential[i];
+    }
+  }
+  if (!mass_only)
+    result["force"] = force;
+  return result;
+}

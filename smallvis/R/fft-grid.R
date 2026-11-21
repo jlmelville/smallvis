@@ -85,6 +85,27 @@ use_repulsion_cost <- function(cost, engine) {
   cost
 }
 
+fft_fast_boxes <- c(
+  50,
+  55,
+  60,
+  65,
+  70,
+  75,
+  80,
+  85,
+  90,
+  96,
+  100,
+  110,
+  120,
+  130,
+  140,
+  150,
+  175,
+  200
+)
+
 fft_sne_grid <- function(Y, grid_interval) {
   xlim <- range(Y[, 1L])
   ylim <- range(Y[, 2L])
@@ -100,28 +121,8 @@ fft_sne_grid <- function(Y, grid_interval) {
 
   # Use one spacing for both axes, with a separate origin for each.
   boxes <- floor(max(50, span / grid_interval))
-  fast_boxes <- c(
-    50,
-    55,
-    60,
-    65,
-    70,
-    75,
-    80,
-    85,
-    90,
-    96,
-    100,
-    110,
-    120,
-    130,
-    140,
-    150,
-    175,
-    200
-  )
-  if (boxes < max(fast_boxes)) {
-    boxes <- min(fast_boxes[fast_boxes >= boxes])
+  if (boxes < max(fft_fast_boxes)) {
+    boxes <- min(fft_fast_boxes[fft_fast_boxes >= boxes])
   }
   local_basis <- function(values) {
     position <- (values / span) * boxes

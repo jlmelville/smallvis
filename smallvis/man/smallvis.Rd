@@ -651,7 +651,9 @@ The following options go in the \code{method} list:
   \code{\link[stats]{fft}}. \code{"fftwtools"} uses the optional
   \pkg{fftwtools} package. \code{"zufft"} uses real-valued transforms
   from the optional \pkg{zufft} package and uses \code{n_threads}
-  to set the number of FFT workers, with a minimum of one.}
+  to set the number of FFT workers, with a minimum of one. For t-SNE,
+  smallvis spreads and interpolates the fields in compiled code and reuses
+  the FFT buffers across iterations.}
   \item{\code{grid_interval}}{A finite positive target grid cell width in
   embedding units, default 1. The cell width is based on at least 50 cells
   across the full coordinate range. Each axis retains only the occupied

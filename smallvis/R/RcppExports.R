@@ -93,6 +93,14 @@ bh_chsne_score_cpp <- function(indices, indptr, squared_P_data, embedding, theta
     .Call(`_smallvis_bh_chsne_score_cpp`, indices, indptr, squared_P_data, embedding, theta, n_threads)
 }
 
+zufft_workspace_cpp <- function() {
+    .Call(`_smallvis_zufft_workspace_cpp`)
+}
+
+zufft_tsne_sums_cpp <- function(workspace, points, interval, fast_boxes, workers, mass_only, reuse) {
+    .Call(`_smallvis_zufft_tsne_sums_cpp`, workspace, points, interval, fast_boxes, workers, mass_only, reuse)
+}
+
 fft_stencil_cpp <- function(first, stride, wx, wy) {
     .Call(`_smallvis_fft_stencil_cpp`, first, stride, wx, wy)
 }

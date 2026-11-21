@@ -206,3 +206,23 @@ test_that("FFT spacing and t-SNE updates are invariant to translation", {
   expect_lt(max(abs(shifted - exact)), 1e-5)
   expect_equal(shifted, original, tolerance = 1e-10)
 })
+
+test_that("fused zufft t-SNE refreshes its grid and preserves the Cauchy fields", {
+  skip_if_not_installed("zufft")
+  generic <- fft_settings("zufft", 0.75, 1)$sums
+  Y <- cbind(sin(1:50), cos(1:50))
+  wide <- sweep(Y, 2, c(40, 3), "*")
+  flat <- cbind(wide[, 1], 42)
+  for (reuse in c(FALSE, TRUE)) {
+    fused <- zufft_tsne_sums(0.75, if (reuse) 2L else 0L, reuse)
+    for (points in list(Y, wide, flat, Y)) {
+      ref <- generic(points)
+      observed <- fused(points)
+      expect_equal(observed, ref, tolerance = 1e-11)
+      expect_equal(fused(points, mass_only = TRUE), list(Z = observed$Z))
+    }
+    expect_equal(fused(matrix(2, 4, 2)), list(Z = 12, force = matrix(0, 4, 2)))
+    expect_error(fused(Y * 1e6), "padded grid.*Increase grid_interval")
+    expect_error(fused(Y * Inf), "coordinates must be finite")
+  }
+})

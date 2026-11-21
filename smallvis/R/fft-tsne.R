@@ -10,14 +10,36 @@ fft_tsne <- function(
   grid_interval = 1,
   fft_reuse = NULL
 ) {
+  engine <- fft_settings(fft_backend, grid_interval, n_threads, fft_reuse)
+  if (fft_backend == "zufft") {
+    engine$sums <- zufft_tsne_sums(grid_interval, n_threads, fft_reuse)
+  }
   cauchy_tsne_cost(
     perplexity,
     inp_kernel,
     nn,
     eps,
     n_threads,
-    fft_settings(fft_backend, grid_interval, n_threads, fft_reuse)
+    engine
   )
+}
+
+# Each fit owns its buffers. Coordinates and kernel values change every update.
+zufft_tsne_sums <- function(grid_interval, n_threads, fft_reuse) {
+  workspace <- zufft_workspace_cpp()
+  workers <- max(1L, n_threads)
+  reuse <- isTRUE(fft_reuse)
+  function(Y, mass_only = FALSE) {
+    zufft_tsne_sums_cpp(
+      workspace,
+      Y,
+      grid_interval,
+      fft_fast_boxes,
+      workers,
+      mass_only,
+      reuse
+    )
+  }
 }
 
 cauchy_tsne_cost <- function(

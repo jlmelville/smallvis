@@ -23,7 +23,7 @@ Suggests:
     pkgload,
     RSpectra,
     testthat (>= 3.0.0),
-    zufft
+    zufft (>= 0.1.0)
 Remotes: jlmelville/vizier
 Encoding: UTF-8
 URL: https://jlmelville.github.io/smallvis/package/,
