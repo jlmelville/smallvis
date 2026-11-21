@@ -737,10 +737,11 @@ The following options go in the <code>method</code> list:</p><dl><dt><code>fft_b
 
   <dt><code>fft_reuse</code></dt>
 <dd><p>Whether to retain source transforms used by more
-  than one kernel within an evaluation. With <code>TRUE</code>, t-SNE using
-  <code>fft_backend = "zufft"</code> reuses the unit-charge spectrum in its
-  existing buffers. Other FFT paths can save memory with <code>FALSE</code>.
-  With <code>NULL</code> (default), reuse is enabled for SNeRV and reverse-KL SNE.</p></dd>
+  than one kernel within an evaluation. With <code>NULL</code> (default), reuse
+  is enabled for SNeRV, reverse-KL SNE, and t-SNE with
+  <code>fft_backend = "zufft"</code>. The zufft t-SNE path reuses the unit-charge
+  spectrum in its existing FFT buffers. Set <code>FALSE</code> to disable reuse,
+  which can save memory on other FFT paths.</p></dd>
 
 
 </dl></div>
