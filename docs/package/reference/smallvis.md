@@ -790,9 +790,10 @@ crowded layouts. The following options go in the `method` list:
 - `fft_reuse`:
 
   Whether to retain source transforms used by more than one kernel
-  within an evaluation. Use `TRUE` to enable reuse or `FALSE` to save
-  memory. With `NULL` (default), reuse is enabled for SNeRV and
-  reverse-KL SNE.
+  within an evaluation. With `TRUE`, t-SNE using `fft_backend = "zufft"`
+  reuses the unit-charge spectrum in its existing buffers. Other FFT
+  paths can save memory with `FALSE`. With `NULL` (default), reuse is
+  enabled for SNeRV and reverse-KL SNE.
 
 ## Output initialization
 
