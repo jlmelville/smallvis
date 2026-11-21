@@ -722,7 +722,9 @@ The following options go in the <code>method</code> list:</p><dl><dt><code>fft_b
   <code><a href="https://rdrr.io/r/stats/fft.html" class="external-link">fft</a></code>. <code>"fftwtools"</code> uses the optional
   <span class="pkg">fftwtools</span> package. <code>"zufft"</code> uses real-valued transforms
   from the optional <span class="pkg">zufft</span> package and uses <code>n_threads</code>
-  to set the number of FFT workers, with a minimum of one.</p></dd>
+  to set the number of FFT workers, with a minimum of one. For t-SNE,
+  smallvis spreads and interpolates the fields in compiled code and reuses
+  the FFT buffers across iterations.</p></dd>
 
   <dt><code>grid_interval</code></dt>
 <dd><p>A finite positive target grid cell width in

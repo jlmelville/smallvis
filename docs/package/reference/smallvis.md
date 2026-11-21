@@ -773,6 +773,8 @@ crowded layouts. The following options go in the `method` list:
   `"fftwtools"` uses the optional fftwtools package. `"zufft"` uses
   real-valued transforms from the optional zufft package and uses
   `n_threads` to set the number of FFT workers, with a minimum of one.
+  For t-SNE, smallvis spreads and interpolates the fields in compiled
+  code and reuses the FFT buffers across iterations.
 
 - `grid_interval`:
 
