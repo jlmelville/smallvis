@@ -43,6 +43,28 @@ jobs:
           working-directory: smallvis
           args: 'c("--no-manual")'
           error-on: '"warning"'
+      - name: Run fused zufft t-SNE tests under ASan and UBSan
+        if: runner.os == 'Linux'
+        working-directory: smallvis
+        shell: bash
+        env:
+          # R and the dependency libraries on this runner are uninstrumented.
+          ASAN_OPTIONS: detect_leaks=0
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+        run: |
+          lib="$RUNNER_TEMP/smallvis-sanitized"
+          mkdir -p "$lib"
+          export R_LIBS="$lib${R_LIBS:+:$R_LIBS}"
+          PKG_CXXFLAGS="-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer" \
+            PKG_LIBS="-fsanitize=address,undefined" \
+            R CMD INSTALL --preclean --no-test-load -l "$lib" .
+
+          LD_PRELOAD="$(gcc -print-file-name=libasan.so)" Rscript --vanilla -e '
+            Sys.unsetenv("LD_PRELOAD")
+            stopifnot(requireNamespace("zufft", quietly = TRUE))
+            testthat::test_local(filter = "^fft_tsne$", load_package = "installed",
+                                 reporter = "summary", stop_on_warning = TRUE)
+          '
 
   native-quality:
     name: C++ warnings, format, and tidy

@@ -119,14 +119,20 @@ test_that("FFT t-SNE uses saved sparse affinities and approximates exact updates
       native(workspace, points, interval, fast_boxes, workers, mass_only, reuse)
     })
     zufft <- list("tsne", repulsion = "fft", fft_backend = "zufft")
-    real_fft <- run(zufft, n_threads = 2L)
+    one_worker <- run(zufft, n_threads = 0L)
+    expect_identical(settings, list(1L, TRUE))
+    expect_equal(one_worker$Y, fft$Y, tolerance = 1e-12)
+    expect_equal(one_worker$costs, fft$costs, tolerance = 1e-12)
+
+    two_workers <- run(zufft, n_threads = 2L)
     expect_identical(settings, list(2L, TRUE))
-    expect_equal(real_fft$Y, fft$Y, tolerance = 1e-12)
-    expect_equal(real_fft$costs, fft$costs, tolerance = 1e-12)
+    expect_equal(two_workers$Y, one_worker$Y, tolerance = 1e-12)
+    expect_equal(two_workers$costs, one_worker$costs, tolerance = 1e-12)
 
     separate <- run(c(zufft, list(fft_reuse = FALSE)), n_threads = 0L)
     expect_identical(settings, list(1L, FALSE))
-    expect_identical(separate$Y, real_fft$Y)
+    expect_identical(separate$Y, one_worker$Y)
+    expect_identical(separate$costs, one_worker$costs)
   }
 })
 
@@ -232,7 +238,7 @@ test_that("fused zufft t-SNE refreshes its grid and preserves the Cauchy fields"
   wide <- sweep(Y, 2, c(40, 3), "*")
   flat <- cbind(wide[, 1], 42)
   for (reuse in c(FALSE, TRUE)) {
-    fused <- zufft_tsne_sums(0.75, if (reuse) 2L else 0L, reuse)
+    fused <- zufft_tsne_sums(0.75, 2L, reuse)
     for (points in list(Y, wide, flat, Y)) {
       ref <- generic(points)
       observed <- fused(points)
