@@ -220,9 +220,11 @@ List zufft_tsne_sums_cpp(SEXP workspace, const NumericMatrix &points,
     // so the unit spectrum survives in source for the squared kernel.
     double *product =
         save_unit && col == 0 ? ws->kernel.data() : ws->source.data();
+    const double *source_data = ws->source.data();
+    const double *kernel_data = ws->kernel.data();
     for (size_t i = 0; i < spectrum_size; i += 2) {
-      const double a = ws->source[i], b = ws->source[i + 1];
-      const double c = ws->kernel[i], d = ws->kernel[i + 1];
+      const double a = source_data[i], b = source_data[i + 1];
+      const double c = kernel_data[i], d = kernel_data[i + 1];
       product[i] = a * c - b * d;
       product[i + 1] = a * d + b * c;
     }
