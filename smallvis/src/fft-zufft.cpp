@@ -186,7 +186,7 @@ List zufft_tsne_sums_cpp(SEXP workspace, const NumericMatrix &points,
   const size_t spectrum_size = 2 * half[0] * half[1];
   const zufft_layout real_layout = {2, shape, nullptr},
                      packed_layout = {2, half, nullptr};
-  // Pack the contiguous x axis. Both transforms are unnormalized.
+  // Pack the contiguous x axis. All transforms are unnormalized.
   const int axes[] = {1, 0};
   Workspace::ensure(ws->real, shape[0] * shape[1]);
   Workspace::ensure(ws->kernel, spectrum_size);
@@ -228,8 +228,12 @@ List zufft_tsne_sums_cpp(SEXP workspace, const NumericMatrix &points,
       ws->source[i] = a * c - b * d;
       ws->source[i + 1] = a * d + b * c;
     }
+    // The product spectrum can be overwritten. Invert y in place, then
+    // unpack x into the real grid for gathering.
+    check(api->c2c(&packed_layout, ws->source.data(), &packed_layout,
+                   ws->source.data(), 1, axes, 0, 1, workers));
     check(api->c2r(&packed_layout, ws->source.data(), &real_layout,
-                   ws->real.data(), 2, axes, 0, 1, workers));
+                   ws->real.data(), 1, axes + 1, 0, 1, workers));
     gather(ws->real.data(), ws->potential.data(), nx, ny, grid.starts,
            grid.weights);
     if (col == 0) {
