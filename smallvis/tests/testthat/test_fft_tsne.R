@@ -103,12 +103,30 @@ test_that("FFT t-SNE uses saved sparse affinities and approximates exact updates
   }
 
   if (requireNamespace("zufft", quietly = TRUE)) {
-    real_fft <- run(
-      list("tsne", repulsion = "fft", fft_backend = "zufft"),
-      n_threads = 2L
-    )
+    # Reuse gives identical coordinates, so check the settings at the native call.
+    settings <- NULL
+    native <- zufft_tsne_sums_cpp
+    local_mocked_bindings(zufft_tsne_sums_cpp = function(
+      workspace,
+      points,
+      interval,
+      fast_boxes,
+      workers,
+      mass_only,
+      reuse
+    ) {
+      settings <<- list(workers, reuse)
+      native(workspace, points, interval, fast_boxes, workers, mass_only, reuse)
+    })
+    zufft <- list("tsne", repulsion = "fft", fft_backend = "zufft")
+    real_fft <- run(zufft, n_threads = 2L)
+    expect_identical(settings, list(2L, TRUE))
     expect_equal(real_fft$Y, fft$Y, tolerance = 1e-12)
     expect_equal(real_fft$costs, fft$costs, tolerance = 1e-12)
+
+    separate <- run(c(zufft, list(fft_reuse = FALSE)), n_threads = 0L)
+    expect_identical(settings, list(1L, FALSE))
+    expect_identical(separate$Y, real_fft$Y)
   }
 })
 

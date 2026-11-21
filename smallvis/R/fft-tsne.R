@@ -28,7 +28,7 @@ fft_tsne <- function(
 zufft_tsne_sums <- function(grid_interval, n_threads, fft_reuse) {
   workspace <- zufft_workspace_cpp()
   workers <- max(1L, n_threads)
-  reuse <- isTRUE(fft_reuse)
+  reuse <- is.null(fft_reuse) || isTRUE(fft_reuse)
   function(Y, mass_only = FALSE) {
     zufft_tsne_sums_cpp(
       workspace,
