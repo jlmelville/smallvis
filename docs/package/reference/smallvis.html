@@ -362,7 +362,7 @@ affinities. Set this directly or in the <code>method</code> list.</p></dd>
 <code>.Machine$double.eps</code>, but if you see inconsistent convergence results
 with optimizer that should be reducing the cost each iteration, then try
 setting this to a larger value, e.g. between <code>1e-3 - 1e-9</code>. For
-Barnes-Hut, mutual-tree, and FFT t-SNE, epsilon is added to the sum of non-self Student
+Barnes-Hut, mutual-tree, hybrid, and FFT t-SNE, epsilon is added to the sum of non-self Student
 weights in both the cost and gradient. The Barnes-Hut tree uses only the
 coordinates.
 When floating-point precision limits subdivision, a terminal leaf stores
@@ -700,6 +700,16 @@ approximate force as the coordinates move. With multiple workers, cell pairs are
 among workers with private force and mass accumulators, then combined in a
 fixed order. Tree construction and field propagation are serial.
 <code>n_threads</code> also applies to neighbor calibration and sparse gradients.</p>
+<p>For two-dimensional t-SNE, <code>repulsion = "hybrid"</code> uses zufft when
+the padded FFT grid has at most 14 cells per point and at most four
+million cells in total. Otherwise it uses the mutual tree. Each gradient
+and score uses the current coordinates to choose the evaluator. The fit
+releases its FFT workspace when it switches to the tree and can switch
+back if the grid shrinks. Without the optional <span class="pkg">zufft</span> package it
+uses the mutual tree throughout. Both evaluators honor <code>n_threads</code>.
+The FFT stage accepts <code>grid_interval</code> and <code>fft_reuse</code>, and
+the tree stage accepts <code>theta</code> (default 0.35). Use a gradient-only
+optimizer such as the default <code>"dbd"</code>.</p>
 <p><code>bh = TRUE</code> selects Barnes-Hut and conflicts with any other explicit
 repulsion choice. With either tree, <code>theta = 0</code> directly sums all
 repulsive interactions for the chosen input affinities.</p>
@@ -732,8 +742,9 @@ The following options go in the <code>method</code> list:</p><dl><dt><code>fft_b
   across the full coordinate range. Each axis retains only the occupied
   range, with three interpolation nodes per axis in each cell. Increasing
   the interval can reduce grid work at the cost of accuracy. Each FFT axis
-  is padded to a fast size without moving the interpolation nodes. The fit
-  stops before allocating a padded grid larger than four million cells.</p></dd>
+  is padded to a fast size without moving the interpolation nodes. With
+  <code>repulsion = "fft"</code>, the fit stops before allocating a padded grid
+  larger than four million cells.</p></dd>
 
   <dt><code>fft_reuse</code></dt>
 <dd><p>Whether to retain source transforms used by more

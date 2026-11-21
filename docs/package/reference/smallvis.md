@@ -318,15 +318,16 @@ smallvis(
   `.Machine$double.eps`, but if you see inconsistent convergence results
   with optimizer that should be reducing the cost each iteration, then
   try setting this to a larger value, e.g. between `1e-3 - 1e-9`. For
-  Barnes-Hut, mutual-tree, and FFT t-SNE, epsilon is added to the sum of
-  non-self Student weights in both the cost and gradient. The Barnes-Hut
-  tree uses only the coordinates. When floating-point precision limits
-  subdivision, a terminal leaf stores distinct coordinates as separate
-  groups. Barnes-Hut SSNE uses unfloored Gaussian output affinities and
-  ignores `eps`. Barnes-Hut and FFT SNeRV and reverse-KL SNE use a
-  positive `eps` to floor the input affinities and leave the output
-  affinities unfloored. Barnes-Hut UMAP and t-UMAP and all three
-  approximate Jensen-Shannon SNE methods require a positive epsilon.
+  Barnes-Hut, mutual-tree, hybrid, and FFT t-SNE, epsilon is added to
+  the sum of non-self Student weights in both the cost and gradient. The
+  Barnes-Hut tree uses only the coordinates. When floating-point
+  precision limits subdivision, a terminal leaf stores distinct
+  coordinates as separate groups. Barnes-Hut SSNE uses unfloored
+  Gaussian output affinities and ignores `eps`. Barnes-Hut and FFT SNeRV
+  and reverse-KL SNE use a positive `eps` to floor the input affinities
+  and leave the output affinities unfloored. Barnes-Hut UMAP and t-UMAP
+  and all three approximate Jensen-Shannon SNE methods require a
+  positive epsilon.
 
 - inp_kernel:
 
@@ -747,6 +748,17 @@ accumulators, then combined in a fixed order. Tree construction and
 field propagation are serial. `n_threads` also applies to neighbor
 calibration and sparse gradients.
 
+For two-dimensional t-SNE, `repulsion = "hybrid"` uses zufft when the
+padded FFT grid has at most 14 cells per point and at most four million
+cells in total. Otherwise it uses the mutual tree. Each gradient and
+score uses the current coordinates to choose the evaluator. The fit
+releases its FFT workspace when it switches to the tree and can switch
+back if the grid shrinks. Without the optional zufft package it uses the
+mutual tree throughout. Both evaluators honor `n_threads`. The FFT stage
+accepts `grid_interval` and `fft_reuse`, and the tree stage accepts
+`theta` (default 0.35). Use a gradient-only optimizer such as the
+default `"dbd"`.
+
 `bh = TRUE` selects Barnes-Hut and conflicts with any other explicit
 repulsion choice. With either tree, `theta = 0` directly sums all
 repulsive interactions for the chosen input affinities.
@@ -783,9 +795,9 @@ crowded layouts. The following options go in the `method` list:
   full coordinate range. Each axis retains only the occupied range, with
   three interpolation nodes per axis in each cell. Increasing the
   interval can reduce grid work at the cost of accuracy. Each FFT axis
-  is padded to a fast size without moving the interpolation nodes. The
-  fit stops before allocating a padded grid larger than four million
-  cells.
+  is padded to a fast size without moving the interpolation nodes. With
+  `repulsion = "fft"`, the fit stops before allocating a padded grid
+  larger than four million cells.
 
 - `fft_reuse`:
 
