@@ -662,9 +662,10 @@ The following options go in the \code{method} list:
   is padded to a fast size without moving the interpolation nodes. The fit
   stops before allocating a padded grid larger than four million cells.}
   \item{\code{fft_reuse}}{Whether to retain source transforms used by more
-  than one kernel within an evaluation. Use \code{TRUE} to enable reuse or
-  \code{FALSE} to save memory. With \code{NULL} (default), reuse is enabled
-  for SNeRV and reverse-KL SNE.}
+  than one kernel within an evaluation. With \code{TRUE}, t-SNE using
+  \code{fft_backend = "zufft"} reuses the unit-charge spectrum in its
+  existing buffers. Other FFT paths can save memory with \code{FALSE}.
+  With \code{NULL} (default), reuse is enabled for SNeRV and reverse-KL SNE.}
 }
 }
 

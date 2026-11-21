@@ -147,7 +147,7 @@ void gather(const double *in, double *out, int nx, int ny,
 
 struct Workspace {
   DirectGrid grid;
-  std::vector<double> real, kernel, source, unit_source, potential;
+  std::vector<double> real, kernel, source, potential;
   // Keep the largest grid seen by this fit. A new shape always gets fresh
   // layouts, weights and spectra, including when it fits the existing storage.
   static void ensure(std::vector<double> &buffer, size_t size) {
@@ -193,8 +193,6 @@ List zufft_tsne_sums_cpp(SEXP workspace, const NumericMatrix &points,
   Workspace::ensure(ws->source, spectrum_size);
   Workspace::ensure(ws->potential, n);
   const bool save_unit = reuse && !mass_only;
-  if (save_unit)
-    Workspace::ensure(ws->unit_source, spectrum_size);
   auto check = [&](int status) {
     if (status != ZUFFT_OK)
       stop("zufft: %s", api->message());
@@ -213,27 +211,27 @@ List zufft_tsne_sums_cpp(SEXP workspace, const NumericMatrix &points,
       fill_kernel(ws->real.data(), nx, ny, grid.width, col == 1);
       forward(ws->kernel.data());
     }
-    if (col == 1 && save_unit) {
-      std::copy_n(ws->unit_source.begin(), spectrum_size, ws->source.begin());
-    } else {
+    if (!(save_unit && col == 1)) {
       spread(ws->real.data(), nx, ny, grid.starts, grid.weights, grid.xy,
              std::max(0, col - 1));
       forward(ws->source.data());
-      if (col == 0 && save_unit)
-        std::copy_n(ws->source.begin(), spectrum_size, ws->unit_source.begin());
     }
+    // The mass kernel is used once. Overwrite it with the first product
+    // so the unit spectrum survives in source for the squared kernel.
+    double *product =
+        save_unit && col == 0 ? ws->kernel.data() : ws->source.data();
     for (size_t i = 0; i < spectrum_size; i += 2) {
       const double a = ws->source[i], b = ws->source[i + 1];
       const double c = ws->kernel[i], d = ws->kernel[i + 1];
-      ws->source[i] = a * c - b * d;
-      ws->source[i + 1] = a * d + b * c;
+      product[i] = a * c - b * d;
+      product[i + 1] = a * d + b * c;
     }
     // The product spectrum can be overwritten. Invert y in place, then
     // unpack x into the real grid for gathering.
-    check(api->c2c(&packed_layout, ws->source.data(), &packed_layout,
-                   ws->source.data(), 1, axes, 0, 1, workers));
-    check(api->c2r(&packed_layout, ws->source.data(), &real_layout,
-                   ws->real.data(), 1, axes + 1, 0, 1, workers));
+    check(api->c2c(&packed_layout, product, &packed_layout, product, 1, axes, 0,
+                   1, workers));
+    check(api->c2r(&packed_layout, product, &real_layout, ws->real.data(), 1,
+                   axes + 1, 0, 1, workers));
     gather(ws->real.data(), ws->potential.data(), nx, ny, grid.starts,
            grid.weights);
     if (col == 0) {
