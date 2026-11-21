@@ -1,9 +1,4 @@
-fft_settings <- function(
-  fft_backend,
-  grid_interval,
-  n_threads,
-  fft_reuse = NULL
-) {
+check_fft_grid_options <- function(grid_interval, fft_reuse) {
   if (
     !is.numeric(grid_interval) ||
       length(grid_interval) != 1L ||
@@ -13,17 +8,26 @@ fft_settings <- function(
     stop("grid_interval must be a finite positive number")
   }
   if (
+    !is.null(fft_reuse) &&
+      (!is.logical(fft_reuse) || length(fft_reuse) != 1L || is.na(fft_reuse))
+  ) {
+    stop("fft_reuse must be NULL, TRUE, or FALSE")
+  }
+}
+
+fft_settings <- function(
+  fft_backend,
+  grid_interval,
+  n_threads,
+  fft_reuse = NULL
+) {
+  check_fft_grid_options(grid_interval, fft_reuse)
+  if (
     !is.character(fft_backend) ||
       length(fft_backend) != 1L ||
       !fft_backend %in% c("stats", "fftwtools", "zufft")
   ) {
     stop("fft_backend must be 'stats', 'fftwtools', or 'zufft'")
-  }
-  if (
-    !is.null(fft_reuse) &&
-      (!is.logical(fft_reuse) || length(fft_reuse) != 1L || is.na(fft_reuse))
-  ) {
-    stop("fft_reuse must be NULL, TRUE, or FALSE")
   }
   transform <- function(x, inverse_dims = NULL) {
     stats::fft(x, inverse = !is.null(inverse_dims))
@@ -79,6 +83,8 @@ use_repulsion_cost <- function(cost, engine) {
     cost$repulsion <- engine$repulsion
     if (engine$repulsion == "fft") {
       cost$fft_backend <- engine$backend
+    }
+    if (engine$repulsion %in% c("fft", "hybrid")) {
       cost$gradient_only <- TRUE
     }
   }

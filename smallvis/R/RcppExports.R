@@ -97,8 +97,8 @@ zufft_workspace_cpp <- function() {
     .Call(`_smallvis_zufft_workspace_cpp`)
 }
 
-zufft_tsne_sums_cpp <- function(workspace, points, interval, fast_boxes, workers, mass_only, reuse) {
-    .Call(`_smallvis_zufft_tsne_sums_cpp`, workspace, points, interval, fast_boxes, workers, mass_only, reuse)
+zufft_tsne_sums_cpp <- function(workspace, points, interval, fast_boxes, workers, mass_only, reuse, hybrid = FALSE) {
+    .Call(`_smallvis_zufft_tsne_sums_cpp`, workspace, points, interval, fast_boxes, workers, mass_only, reuse, hybrid)
 }
 
 fft_stencil_cpp <- function(first, stride, wx, wy) {

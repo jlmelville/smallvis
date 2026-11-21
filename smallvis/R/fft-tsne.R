@@ -24,21 +24,55 @@ fft_tsne <- function(
   )
 }
 
+hybrid_tsne <- function(
+  perplexity,
+  inp_kernel = "nngaussian",
+  nn = "approximate",
+  eps = .Machine$double.eps,
+  n_threads = 0,
+  theta = 0.35,
+  grid_interval = 1,
+  fft_reuse = NULL
+) {
+  check_fft_grid_options(grid_interval, fft_reuse)
+  tree <- mutual_settings(theta, n_threads)
+  sums <- tree$sums
+  if (requireNamespace("zufft", quietly = TRUE)) {
+    sums <- zufft_tsne_sums(grid_interval, n_threads, fft_reuse, tree$sums)
+  }
+  cauchy_tsne_cost(
+    perplexity,
+    inp_kernel,
+    nn,
+    eps,
+    n_threads,
+    list(repulsion = "hybrid", label = "Hybrid", sums = sums)
+  )
+}
+
 # Each fit owns its buffers. Coordinates and kernel values change every update.
-zufft_tsne_sums <- function(grid_interval, n_threads, fft_reuse) {
+zufft_tsne_sums <- function(
+  grid_interval,
+  n_threads,
+  fft_reuse,
+  mutual = NULL
+) {
   workspace <- zufft_workspace_cpp()
   workers <- max(1L, n_threads)
   reuse <- is.null(fft_reuse) || isTRUE(fft_reuse)
+  hybrid <- !is.null(mutual)
   function(Y, mass_only = FALSE) {
-    zufft_tsne_sums_cpp(
+    result <- zufft_tsne_sums_cpp(
       workspace,
       Y,
       grid_interval,
       fft_fast_boxes,
       workers,
       mass_only,
-      reuse
+      reuse,
+      hybrid
     )
+    if (is.null(result)) mutual(Y, mass_only) else result
   }
 }
 

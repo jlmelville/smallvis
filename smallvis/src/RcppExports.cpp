@@ -435,8 +435,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // zufft_tsne_sums_cpp
-List zufft_tsne_sums_cpp(SEXP workspace, const NumericMatrix& points, double interval, const NumericVector& fast_boxes, int workers, bool mass_only, bool reuse);
-RcppExport SEXP _smallvis_zufft_tsne_sums_cpp(SEXP workspaceSEXP, SEXP pointsSEXP, SEXP intervalSEXP, SEXP fast_boxesSEXP, SEXP workersSEXP, SEXP mass_onlySEXP, SEXP reuseSEXP) {
+SEXP zufft_tsne_sums_cpp(SEXP workspace, const NumericMatrix& points, double interval, const NumericVector& fast_boxes, int workers, bool mass_only, bool reuse, bool hybrid);
+RcppExport SEXP _smallvis_zufft_tsne_sums_cpp(SEXP workspaceSEXP, SEXP pointsSEXP, SEXP intervalSEXP, SEXP fast_boxesSEXP, SEXP workersSEXP, SEXP mass_onlySEXP, SEXP reuseSEXP, SEXP hybridSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< SEXP >::type workspace(workspaceSEXP);
@@ -446,7 +446,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type workers(workersSEXP);
     Rcpp::traits::input_parameter< bool >::type mass_only(mass_onlySEXP);
     Rcpp::traits::input_parameter< bool >::type reuse(reuseSEXP);
-    rcpp_result_gen = Rcpp::wrap(zufft_tsne_sums_cpp(workspace, points, interval, fast_boxes, workers, mass_only, reuse));
+    Rcpp::traits::input_parameter< bool >::type hybrid(hybridSEXP);
+    rcpp_result_gen = Rcpp::wrap(zufft_tsne_sums_cpp(workspace, points, interval, fast_boxes, workers, mass_only, reuse, hybrid));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -602,7 +603,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_smallvis_bh_chsne_gradient_cpp", (DL_FUNC) &_smallvis_bh_chsne_gradient_cpp, 6},
     {"_smallvis_bh_chsne_score_cpp", (DL_FUNC) &_smallvis_bh_chsne_score_cpp, 6},
     {"_smallvis_zufft_workspace_cpp", (DL_FUNC) &_smallvis_zufft_workspace_cpp, 0},
-    {"_smallvis_zufft_tsne_sums_cpp", (DL_FUNC) &_smallvis_zufft_tsne_sums_cpp, 7},
+    {"_smallvis_zufft_tsne_sums_cpp", (DL_FUNC) &_smallvis_zufft_tsne_sums_cpp, 8},
     {"_smallvis_fft_stencil_cpp", (DL_FUNC) &_smallvis_fft_stencil_cpp, 4},
     {"_smallvis_dist2_cpp", (DL_FUNC) &_smallvis_dist2_cpp, 2},
     {"_smallvis_dist_cpp", (DL_FUNC) &_smallvis_dist_cpp, 2},

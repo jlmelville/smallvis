@@ -248,7 +248,7 @@ affinities. Set this directly or in the \code{method} list.}
 \code{.Machine$double.eps}, but if you see inconsistent convergence results
 with optimizer that should be reducing the cost each iteration, then try
 setting this to a larger value, e.g. between \code{1e-3 - 1e-9}. For
-Barnes-Hut, mutual-tree, and FFT t-SNE, epsilon is added to the sum of non-self Student
+Barnes-Hut, mutual-tree, hybrid, and FFT t-SNE, epsilon is added to the sum of non-self Student
 weights in both the cost and gradient. The Barnes-Hut tree uses only the
 coordinates.
 When floating-point precision limits subdivision, a terminal leaf stores
@@ -626,6 +626,17 @@ among workers with private force and mass accumulators, then combined in a
 fixed order. Tree construction and field propagation are serial.
 \code{n_threads} also applies to neighbor calibration and sparse gradients.
 
+For two-dimensional t-SNE, \code{repulsion = "hybrid"} uses zufft when
+the padded FFT grid has at most 14 cells per point and at most four
+million cells in total. Otherwise it uses the mutual tree. Each gradient
+and score uses the current coordinates to choose the evaluator. The fit
+releases its FFT workspace when it switches to the tree and can switch
+back if the grid shrinks. Without the optional \pkg{zufft} package it
+uses the mutual tree throughout. Both evaluators honor \code{n_threads}.
+The FFT stage accepts \code{grid_interval} and \code{fft_reuse}, and
+the tree stage accepts \code{theta} (default 0.35). Use a gradient-only
+optimizer such as the default \code{"dbd"}.
+
 \code{bh = TRUE} selects Barnes-Hut and conflicts with any other explicit
 repulsion choice. With either tree, \code{theta = 0} directly sums all
 repulsive interactions for the chosen input affinities.
@@ -659,8 +670,9 @@ The following options go in the \code{method} list:
   across the full coordinate range. Each axis retains only the occupied
   range, with three interpolation nodes per axis in each cell. Increasing
   the interval can reduce grid work at the cost of accuracy. Each FFT axis
-  is padded to a fast size without moving the interpolation nodes. The fit
-  stops before allocating a padded grid larger than four million cells.}
+  is padded to a fast size without moving the interpolation nodes. With
+  \code{repulsion = "fft"}, the fit stops before allocating a padded grid
+  larger than four million cells.}
   \item{\code{fft_reuse}}{Whether to retain source transforms used by more
   than one kernel within an evaluation. With \code{NULL} (default), reuse
   is enabled for SNeRV, reverse-KL SNE, and t-SNE with

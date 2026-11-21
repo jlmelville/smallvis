@@ -11,13 +11,10 @@ using namespace Rcpp;
 namespace {
 // Keep only the point data read by the existing spread and gather loops.
 struct DirectGrid {
-  static void grid_too_large() {
-    stop("FFT padded grid exceeds four million cells. Increase grid_interval "
-         "or use Barnes-Hut.");
-  }
-  Rcpp::IntegerVector starts;
-  Rcpp::NumericVector weights;
-  Rcpp::NumericMatrix xy;
+  enum class Status { ready, coincident, too_large };
+  std::vector<int> starts;
+  std::vector<double> weights;
+  std::array<std::vector<double>, 2> xy;
   std::array<int, 2> side{};
   double width = 0;
 
@@ -25,8 +22,9 @@ struct DirectGrid {
     return std::min(static_cast<int>(position), boxes - 1);
   }
 
-  bool prepare(const Rcpp::NumericMatrix &points, double interval,
-               const NumericVector &fast_boxes, const zufft_api &api) {
+  Status prepare(const NumericMatrix &points, double interval,
+                 const NumericVector &fast_boxes, const zufft_api &api,
+                 double cell_limit) {
     const int n = points.nrow();
     if (points.ncol() != 2 || n < 1 ||
         n > std::numeric_limits<int>::max() / 9 || !std::isfinite(interval) ||
@@ -47,12 +45,11 @@ struct DirectGrid {
     }
     const double span = std::max(extent[0], extent[1]);
     if (span == 0)
-      return false;
+      return Status::coincident;
     const double requested =
         std::max(fast_boxes[0], std::floor(span / interval));
-    constexpr int limit = 4000000;
-    if (requested > limit)
-      grid_too_large();
+    if (requested > cell_limit)
+      return Status::too_large;
     int boxes = static_cast<int>(requested);
     const auto fast =
         std::lower_bound(fast_boxes.begin(), fast_boxes.end(), boxes);
@@ -66,19 +63,18 @@ struct DirectGrid {
     for (int axis = 0; axis < 2; ++axis) {
       nodes[axis] = 3 * (1 + cell((extent[axis] / span) * boxes, boxes));
     }
-    if (4.0 * nodes[0] * nodes[1] > limit)
-      grid_too_large();
+    if (4.0 * nodes[0] * nodes[1] > cell_limit)
+      return Status::too_large;
     for (int axis = 0; axis < 2; ++axis) {
       side[axis] = static_cast<int>(api.good_size(2 * nodes[axis], 1));
     }
     if (side[0] <= 0 || side[1] <= 0 ||
-        static_cast<double>(side[0]) * side[1] > limit)
-      grid_too_large();
-    if (starts.size() != n) {
-      starts = Rcpp::IntegerVector(Rcpp::no_init(n));
-      weights = Rcpp::NumericVector(Rcpp::no_init(9 * n));
-      xy = Rcpp::NumericMatrix(n, 2);
-    }
+        static_cast<double>(side[0]) * side[1] > cell_limit)
+      return Status::too_large;
+    starts.resize(n);
+    weights.resize(9 * n);
+    for (auto &column : xy)
+      column.resize(n);
     for (int i = 0; i < n; ++i) {
       double basis[2][3];
       int start[2];
@@ -91,14 +87,14 @@ struct DirectGrid {
         basis[axis][1] = 1 - u * u;
         basis[axis][2] = u * (u + 1) / 2;
         start[axis] = 3 * box;
-        xy(i, axis) = local - extent[axis] / 2;
+        xy[axis][i] = local - extent[axis] / 2;
       }
       starts[i] = start[0] + side[0] * start[1];
       for (int b = 0; b < 3; ++b)
         for (int a = 0; a < 3; ++a)
           weights[9 * i + 3 * b + a] = basis[0][a] * basis[1][b];
     }
-    return true;
+    return Status::ready;
   }
 };
 
@@ -119,27 +115,26 @@ void fill_kernel(double *out, int nx, int ny, double width, bool squared) {
   }
 }
 
-void spread(double *out, int nx, int ny, const IntegerVector &starts,
-            const NumericVector &weights, const NumericMatrix &xy, int field) {
+void spread(double *out, int nx, int ny, const DirectGrid &grid, int field) {
   std::fill_n(out, nx * ny, 0.0);
-  for (int i = 0; i < xy.nrow(); ++i) {
-    const double q = field == 0 ? 1 : xy(i, field - 1);
+  for (size_t i = 0; i < grid.starts.size(); ++i) {
+    const double q = field == 0 ? 1 : grid.xy[field - 1][i];
     for (int b = 0; b < 3; ++b) {
-      const int offset = starts[i] + b * nx;
+      const int offset = grid.starts[i] + b * nx;
       for (int a = 0; a < 3; ++a)
-        out[offset + a] += weights[9 * i + 3 * b + a] * q;
+        out[offset + a] += grid.weights[9 * i + 3 * b + a] * q;
     }
   }
 }
 
 void gather(const double *in, double *out, int nx, int ny,
-            const IntegerVector &starts, const NumericVector &weights) {
-  for (int i = 0; i < starts.size(); ++i) {
+            const DirectGrid &grid) {
+  for (size_t i = 0; i < grid.starts.size(); ++i) {
     double value = 0;
     for (int b = 0; b < 3; ++b) {
-      const int offset = starts[i] + b * nx;
+      const int offset = grid.starts[i] + b * nx;
       for (int a = 0; a < 3; ++a)
-        value += weights[9 * i + 3 * b + a] * in[offset + a];
+        value += grid.weights[9 * i + 3 * b + a] * in[offset + a];
     }
     out[i] = value / (nx * ny);
   }
@@ -148,8 +143,9 @@ void gather(const double *in, double *out, int nx, int ny,
 struct Workspace {
   DirectGrid grid;
   std::vector<double> real, kernel, source, potential;
-  // Keep the largest grid seen by this fit. A new shape always gets fresh
-  // layouts, weights and spectra, including when it fits the existing storage.
+  // Keep the largest grid seen during this FFT phase. A new shape always gets
+  // fresh layouts, weights and spectra, including when it fits the existing
+  // storage.
   static void ensure(std::vector<double> &buffer, size_t size) {
     if (buffer.size() < size)
       std::vector<double>(size).swap(buffer);
@@ -161,9 +157,10 @@ struct Workspace {
 SEXP zufft_workspace_cpp() { return XPtr<Workspace>(new Workspace(), true); }
 
 // [[Rcpp::export(rng = false)]]
-List zufft_tsne_sums_cpp(SEXP workspace, const NumericMatrix &points,
+SEXP zufft_tsne_sums_cpp(SEXP workspace, const NumericMatrix &points,
                          double interval, const NumericVector &fast_boxes,
-                         int workers, bool mass_only, bool reuse) {
+                         int workers, bool mass_only, bool reuse,
+                         bool hybrid = false) {
   XPtr<Workspace> ws(workspace);
   // Resolve the optional provider on the R thread, after requireNamespace().
   const zufft_api *api = zufft_api_get();
@@ -173,7 +170,19 @@ List zufft_tsne_sums_cpp(SEXP workspace, const NumericMatrix &points,
     stop("Invalid FFT settings");
   auto &grid = ws->grid;
   const int n = points.nrow();
-  if (!grid.prepare(points, interval, fast_boxes, *api)) {
+  constexpr double max_cells = 4000000;
+  const double limit = hybrid ? std::min(max_cells, 14.0 * n) : max_cells;
+  const auto status = grid.prepare(points, interval, fast_boxes, *api, limit);
+  if (status == DirectGrid::Status::too_large) {
+    if (!hybrid)
+      stop("FFT padded grid exceeds four million cells. Increase grid_interval "
+           "or use Barnes-Hut.");
+    // Free the FFT buffers before the caller allocates the mutual tree.
+    if (!ws->real.empty())
+      *ws = Workspace{};
+    return R_NilValue;
+  }
+  if (status == DirectGrid::Status::coincident) {
     List result = List::create(_["Z"] = static_cast<double>(n) * (n - 1));
     if (!mass_only)
       result["force"] = NumericMatrix(n, 2);
@@ -212,8 +221,7 @@ List zufft_tsne_sums_cpp(SEXP workspace, const NumericMatrix &points,
       forward(ws->kernel.data());
     }
     if (!(save_unit && col == 1)) {
-      spread(ws->real.data(), nx, ny, grid.starts, grid.weights, grid.xy,
-             std::max(0, col - 1));
+      spread(ws->real.data(), nx, ny, grid, std::max(0, col - 1));
       forward(ws->source.data());
     }
     // The mass kernel is used once. Overwrite it with the first product
@@ -234,8 +242,7 @@ List zufft_tsne_sums_cpp(SEXP workspace, const NumericMatrix &points,
                    1, workers));
     check(api->c2r(&packed_layout, product, &real_layout, ws->real.data(), 1,
                    axes + 1, 0, 1, workers));
-    gather(ws->real.data(), ws->potential.data(), nx, ny, grid.starts,
-           grid.weights);
+    gather(ws->real.data(), ws->potential.data(), nx, ny, grid);
     if (col == 0) {
       long double mass = 0;
       for (int i = 0; i < n; ++i)
@@ -248,7 +255,7 @@ List zufft_tsne_sums_cpp(SEXP workspace, const NumericMatrix &points,
     } else if (col == 1) {
       for (int axis = 0; axis < 2; ++axis)
         for (int i = 0; i < n; ++i)
-          force(i, axis) = grid.xy(i, axis) * ws->potential[i];
+          force(i, axis) = grid.xy[axis][i] * ws->potential[i];
     } else {
       for (int i = 0; i < n; ++i)
         force(i, col - 2) -= ws->potential[i];

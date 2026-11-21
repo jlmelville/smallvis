@@ -224,6 +224,17 @@
 #' fixed order. Tree construction and field propagation are serial.
 #' \code{n_threads} also applies to neighbor calibration and sparse gradients.
 #'
+#' For two-dimensional t-SNE, \code{repulsion = "hybrid"} uses zufft when
+#' the padded FFT grid has at most 14 cells per point and at most four
+#' million cells in total. Otherwise it uses the mutual tree. Each gradient
+#' and score uses the current coordinates to choose the evaluator. The fit
+#' releases its FFT workspace when it switches to the tree and can switch
+#' back if the grid shrinks. Without the optional \pkg{zufft} package it
+#' uses the mutual tree throughout. Both evaluators honor \code{n_threads}.
+#' The FFT stage accepts \code{grid_interval} and \code{fft_reuse}, and
+#' the tree stage accepts \code{theta} (default 0.35). Use a gradient-only
+#' optimizer such as the default \code{"dbd"}.
+#'
 #' \code{bh = TRUE} selects Barnes-Hut and conflicts with any other explicit
 #' repulsion choice. With either tree, \code{theta = 0} directly sums all
 #' repulsive interactions for the chosen input affinities.
@@ -257,8 +268,9 @@
 #'   across the full coordinate range. Each axis retains only the occupied
 #'   range, with three interpolation nodes per axis in each cell. Increasing
 #'   the interval can reduce grid work at the cost of accuracy. Each FFT axis
-#'   is padded to a fast size without moving the interpolation nodes. The fit
-#'   stops before allocating a padded grid larger than four million cells.}
+#'   is padded to a fast size without moving the interpolation nodes. With
+#'   \code{repulsion = "fft"}, the fit stops before allocating a padded grid
+#'   larger than four million cells.}
 #'   \item{\code{fft_reuse}}{Whether to retain source transforms used by more
 #'   than one kernel within an evaluation. With \code{NULL} (default), reuse
 #'   is enabled for SNeRV, reverse-KL SNE, and t-SNE with
@@ -660,7 +672,7 @@
 #'   \code{.Machine$double.eps}, but if you see inconsistent convergence results
 #'   with optimizer that should be reducing the cost each iteration, then try
 #'   setting this to a larger value, e.g. between \code{1e-3 - 1e-9}. For
-#'   Barnes-Hut, mutual-tree, and FFT t-SNE, epsilon is added to the sum of non-self Student
+#'   Barnes-Hut, mutual-tree, hybrid, and FFT t-SNE, epsilon is added to the sum of non-self Student
 #'   weights in both the cost and gradient. The Barnes-Hut tree uses only the
 #'   coordinates.
 #'   When floating-point precision limits subdivision, a terminal leaf stores
@@ -1385,6 +1397,9 @@ smallvis_run <- function(
     if (identical(cost_fn$repulsion, "fft")) {
       stop("FFT coordinates must be finite")
     }
+    if (identical(cost_fn$repulsion, "hybrid")) {
+      stop("Hybrid coordinates must be finite")
+    }
     if (identical(cost_fn$repulsion, "mutual")) {
       stop("Mutual tree coordinates must be finite")
     }
@@ -1811,6 +1826,9 @@ prepare_smallvis_input <- function(
     if (identical(cost_fn$repulsion, "fft")) {
       stop("FFT repulsion requires k = 2")
     }
+    if (identical(cost_fn$repulsion, "hybrid")) {
+      stop("Hybrid repulsion requires k = 2")
+    }
     if (identical(cost_fn$repulsion, "mutual")) {
       stop("Mutual tree requires k = 2")
     }
@@ -1986,9 +2004,9 @@ create_cost <- function(
       if (
         !is.character(repulsion) ||
           length(repulsion) != 1L ||
-          !repulsion %in% c("exact", "bh", "fft", "mutual")
+          !repulsion %in% c("exact", "bh", "fft", "mutual", "hybrid")
       ) {
-        stop("repulsion must be 'exact', 'bh', 'fft', or 'mutual'")
+        stop("repulsion must be 'exact', 'bh', 'fft', 'mutual', or 'hybrid'")
       }
       if (!is.logical(bh) || length(bh) != 1L || is.na(bh)) {
         stop("bh must be TRUE or FALSE")
@@ -1997,24 +2015,28 @@ create_cost <- function(
         stop("bh = TRUE conflicts with repulsion = '", repulsion, "'")
       }
       if (
-        !repulsion %in% c("bh", "mutual") &&
+        !repulsion %in% c("bh", "mutual", "hybrid") &&
           (!is.null(methodlist$theta) ||
             ("theta" %in% supplied && !is.null(theta)))
       ) {
-        stop("theta applies only to repulsion = 'bh' or 'mutual'")
+        stop("theta applies only to repulsion = 'bh', 'mutual', or 'hybrid'")
       }
       methodlist$repulsion <- NULL
       bh <- repulsion == "bh"
-      if (repulsion == "mutual") {
-        if (!method %in% c("tsne", "tee", "jssne", "hlsne", "chsne")) {
-          stop(
-            "Mutual tree repulsion supports tsne, tee, jssne, hlsne and chsne"
-          )
-        }
+      if (repulsion == "hybrid" && method != "tsne") {
+        stop("Hybrid repulsion supports only t-SNE")
+      }
+      if (
+        repulsion == "mutual" &&
+          !method %in% c("tsne", "tee", "jssne", "hlsne", "chsne")
+      ) {
+        stop("Mutual tree repulsion supports tsne, tee, jssne, hlsne and chsne")
+      }
+      if (repulsion %in% c("mutual", "hybrid")) {
         # Let the mutual constructor supply its own opening threshold.
         if (!"theta" %in% supplied) theta <- NULL
       }
-      if (repulsion %in% c("fft", "mutual")) {
+      if (repulsion %in% c("fft", "mutual", "hybrid")) {
         method <- paste0(repulsion, "_", method)
       }
     }

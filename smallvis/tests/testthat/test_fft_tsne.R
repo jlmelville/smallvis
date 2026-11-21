@@ -113,10 +113,20 @@ test_that("FFT t-SNE uses saved sparse affinities and approximates exact updates
       fast_boxes,
       workers,
       mass_only,
-      reuse
+      reuse,
+      hybrid
     ) {
       settings <<- list(workers, reuse)
-      native(workspace, points, interval, fast_boxes, workers, mass_only, reuse)
+      native(
+        workspace,
+        points,
+        interval,
+        fast_boxes,
+        workers,
+        mass_only,
+        reuse,
+        hybrid
+      )
     })
     zufft <- list("tsne", repulsion = "fft", fft_backend = "zufft")
     one_worker <- run(zufft, n_threads = 0L)
@@ -249,4 +259,95 @@ test_that("fused zufft t-SNE refreshes its grid and preserves the Cauchy fields"
     expect_error(fused(Y * 1e6), "padded grid.*Increase grid_interval")
     expect_error(fused(Y * Inf), "coordinates must be finite")
   }
+})
+
+test_that("hybrid t-SNE routes gradient and score on either side of 14 cells per point", {
+  skip_if_not_installed("zufft")
+  # Both line layouts occupy a 300 by 6 padded grid. Adding one point changes
+  # the ratio from just above 14 to just below it.
+  line <- cbind(seq(0, 1, length.out = 129), 0)
+  short <- line[-2, , drop = FALSE]
+  wide <- line * 1e6
+  tree <- mutual_settings(0.1, 2L)$sums
+  fft <- zufft_tsne_sums(1, 2L, FALSE)
+  hybrid <- zufft_tsne_sums(1, 2L, FALSE, tree)
+  for (mass_only in c(FALSE, TRUE)) {
+    expected <- fft(line, mass_only)
+    expect_false(identical(expected, tree(line, mass_only)))
+    expect_identical(hybrid(line, mass_only), expected)
+    expect_identical(hybrid(short, mass_only), tree(short, mass_only))
+    expect_identical(hybrid(wide, mass_only), tree(wide, mass_only))
+    expect_identical(hybrid(line, mass_only), expected)
+  }
+  # A 1,050 by 6 grid fits exactly at 14 cells per point until zufft pads it.
+  padded <- cbind(seq(0, 175, length.out = 450), 0)
+  expect_identical(hybrid(padded), tree(padded))
+  # 2,048^2 cells fit the per-point budget here, but exceed the absolute cap.
+  large <- cbind(rep(c(0, 340), 160000), rep(c(0, 340), 160000))
+  capped <- zufft_tsne_sums(1, 1L, TRUE, function(...) "tree")
+  expect_identical(capped(large), "tree")
+})
+
+test_that("hybrid is an opt-in two-dimensional t-SNE method", {
+  run <- function(method = list("tsne", repulsion = "hybrid"), ...) {
+    smallvis(
+      iris10,
+      method = method,
+      perplexity = 2,
+      nn = "exact",
+      Y_init = "spca",
+      max_iter = 2,
+      n_threads = 2L,
+      ret_extra = "P",
+      epoch_callback = FALSE,
+      verbose = FALSE,
+      ...
+    )
+  }
+  # The small data takes the mutual route with or without optional zufft.
+  hybrid <- run(theta = 0.1)
+  pure <- run(list("tsne", repulsion = "mutual", theta = 0.1))
+  expect_identical(hybrid$Y, pure$Y)
+  expect_identical(hybrid$costs, pure$costs)
+  expect_error(run(k = 3), "Hybrid repulsion requires k = 2")
+  expect_error(
+    run(opt = list("bfgs")),
+    "requires a matching objective and gradient"
+  )
+  expect_error(run(bh = TRUE), "conflicts")
+  expect_error(run(theta = -1), "finite and nonnegative")
+  expect_error(run(list("tee", repulsion = "hybrid")), "only t-SNE")
+  expect_error(
+    run(list("tsne", repulsion = "hybrid", fft_reuse = NA)),
+    "fft_reuse"
+  )
+})
+
+test_that("hybrid uses the available evaluator for a compact grid", {
+  y <- cbind(seq(0, 1, length.out = 150), 0)
+  run <- function(method) {
+    smallvis(
+      y,
+      method = method,
+      perplexity = 2,
+      nn = "exact",
+      scale = FALSE,
+      Y_init = y,
+      n_threads = 2L,
+      max_iter = 1,
+      eta = 1,
+      ret_extra = "P",
+      epoch_callback = FALSE,
+      verbose = FALSE
+    )
+  }
+  hybrid <- run(list("tsne", repulsion = "hybrid"))
+  method <- if (requireNamespace("zufft", quietly = TRUE)) {
+    list("tsne", repulsion = "fft", fft_backend = "zufft")
+  } else {
+    list("tsne", repulsion = "mutual")
+  }
+  pure <- run(method)
+  expect_identical(hybrid$Y, pure$Y)
+  expect_identical(hybrid$costs, pure$costs)
 })
