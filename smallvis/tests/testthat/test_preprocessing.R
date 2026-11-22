@@ -141,6 +141,31 @@ test_that("truncated PCA whitening matches full SVD eigenvalues and scores", {
   expect_equal(dim(one), c(24L, 1L))
 })
 
+test_that("PCA initialization accepts integer matrices with saved neighbors", {
+  X <- matrix(as.integer(100 * sin(seq_len(24 * 14)^2)), 24, 14)
+  graph <- get_nn(stats::dist(X), k = 13L)
+  fit <- function(X) {
+    set.seed(42)
+    smallvis(
+      X,
+      neighbors = graph,
+      method = list("tsne", repulsion = "mutual", rebuild_interval = 4L),
+      scale = FALSE,
+      Y_init = "spca",
+      perplexity = 4,
+      max_iter = 0,
+      epoch_callback = FALSE,
+      verbose = FALSE
+    )
+  }
+  X_double <- X
+  storage.mode(X_double) <- "double"
+  expected <- fit(X_double)
+  expect_no_warning(actual <- fit(X))
+  expect_identical(actual, expected)
+  expect_type(X, "integer")
+})
+
 test_that("PCA initialization rejects unavailable components", {
   expect_error(
     smallvis(

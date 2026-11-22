@@ -151,6 +151,9 @@ pca_scores <- function(
     scores <- res_mds$points
   } else {
     if (ncol < 0.5 * min(dim(X))) {
+      if (is.matrix(X) && is.integer(X)) {
+        storage.mode(X) <- "double"
+      }
       res <- irlba::prcomp_irlba(
         X,
         n = ncol,
