@@ -700,6 +700,14 @@ approximate force as the coordinates move. With multiple workers, cell pairs are
 among workers with private force and mass accumulators, then combined in a
 fixed order. Tree construction and field propagation are serial.
 <code>n_threads</code> also applies to neighbor calibration and sparse gradients.</p>
+<p>For mutual-tree t-SNE, set <code>rebuild_interval = 4</code> in the method list
+to rebuild on gradient updates 1, 5, 9, and so on. Between rebuilds, the
+tree keeps its cell membership and recomputes each cell's geometry from
+the current coordinates. This saves construction time but can change the
+approximate forces and final embedding. Larger intervals can also slow
+traversal when points move rapidly. The default of 1 rebuilds on every
+gradient. Intervals greater than 1 require a gradient-only optimizer such
+as <code>"dbd"</code>. Scores always use a fresh tree.</p>
 <p>For two-dimensional t-SNE, <code>repulsion = "hybrid"</code> uses zufft when
 the padded FFT grid has at most 14 cells per point and at most four
 million cells in total. Otherwise it uses the mutual tree. Each gradient

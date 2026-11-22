@@ -63,7 +63,7 @@ best <- smallvis_rep(
   verbose = FALSE
 )
 range(best$all_costs)
-#> [1] 0.1423043 0.2038164
+#> [1] 0.1422500 0.2050554
 
 if (FALSE) { # \dontrun{
 # Return best result out of five random initializations
