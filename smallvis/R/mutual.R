@@ -23,9 +23,20 @@ mutual_tsne <- function(
   nn = "approximate",
   eps = .Machine$double.eps,
   n_threads = 0,
-  theta = 0.35
+  theta = 0.35,
+  rebuild_interval = 1L
 ) {
-  cauchy_tsne_cost(
+  if (
+    !is.numeric(rebuild_interval) ||
+      length(rebuild_interval) != 1L ||
+      !is.finite(rebuild_interval) ||
+      rebuild_interval < 1 ||
+      rebuild_interval > .Machine$integer.max ||
+      rebuild_interval != trunc(rebuild_interval)
+  ) {
+    stop("rebuild_interval must be a positive integer")
+  }
+  cost <- cauchy_tsne_cost(
     perplexity,
     inp_kernel,
     nn,
@@ -33,6 +44,25 @@ mutual_tsne <- function(
     n_threads,
     mutual_settings(theta, n_threads)
   )
+  if (rebuild_interval > 1L) {
+    cost$gradient_only <- TRUE
+    cost$gr <- function(cost, Y) {
+      # Prepared input can be shared by multiple starts. Each fit gets its
+      # own tree on its first gradient, after input preparation.
+      if (is.null(cost$mutual_workspace)) {
+        cost$mutual_workspace <- mutual_workspace_cpp(rebuild_interval)
+      }
+      sums <- mutual_cauchy_cpp(
+        Y,
+        theta,
+        FALSE,
+        n_threads,
+        cost$mutual_workspace
+      )
+      cauchy_tsne_gradient(cost, Y, sums, eps, n_threads)
+    }
+  }
+  cost
 }
 
 mutual_tee <- function(

@@ -530,16 +530,27 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// mutual_workspace_cpp
+SEXP mutual_workspace_cpp(int rebuild_interval);
+RcppExport SEXP _smallvis_mutual_workspace_cpp(SEXP rebuild_intervalSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< int >::type rebuild_interval(rebuild_intervalSEXP);
+    rcpp_result_gen = Rcpp::wrap(mutual_workspace_cpp(rebuild_interval));
+    return rcpp_result_gen;
+END_RCPP
+}
 // mutual_cauchy_cpp
-List mutual_cauchy_cpp(const NumericMatrix& Y, double theta, bool mass_only, int n_threads);
-RcppExport SEXP _smallvis_mutual_cauchy_cpp(SEXP YSEXP, SEXP thetaSEXP, SEXP mass_onlySEXP, SEXP n_threadsSEXP) {
+List mutual_cauchy_cpp(const NumericMatrix& Y, double theta, bool mass_only, int n_threads, SEXP workspace);
+RcppExport SEXP _smallvis_mutual_cauchy_cpp(SEXP YSEXP, SEXP thetaSEXP, SEXP mass_onlySEXP, SEXP n_threadsSEXP, SEXP workspaceSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< const NumericMatrix& >::type Y(YSEXP);
     Rcpp::traits::input_parameter< double >::type theta(thetaSEXP);
     Rcpp::traits::input_parameter< bool >::type mass_only(mass_onlySEXP);
     Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
-    rcpp_result_gen = Rcpp::wrap(mutual_cauchy_cpp(Y, theta, mass_only, n_threads));
+    Rcpp::traits::input_parameter< SEXP >::type workspace(workspaceSEXP);
+    rcpp_result_gen = Rcpp::wrap(mutual_cauchy_cpp(Y, theta, mass_only, n_threads, workspace));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -610,7 +621,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_smallvis_tweight_cpp", (DL_FUNC) &_smallvis_tweight_cpp, 2},
     {"_smallvis_tsne_grad_cpp", (DL_FUNC) &_smallvis_tsne_grad_cpp, 5},
     {"_smallvis_mmds_grad_cpp", (DL_FUNC) &_smallvis_mmds_grad_cpp, 5},
-    {"_smallvis_mutual_cauchy_cpp", (DL_FUNC) &_smallvis_mutual_cauchy_cpp, 4},
+    {"_smallvis_mutual_workspace_cpp", (DL_FUNC) &_smallvis_mutual_workspace_cpp, 1},
+    {"_smallvis_mutual_cauchy_cpp", (DL_FUNC) &_smallvis_mutual_cauchy_cpp, 5},
     {"_smallvis_find_beta_knn_cpp", (DL_FUNC) &_smallvis_find_beta_knn_cpp, 8},
     {"_smallvis_find_beta_cpp", (DL_FUNC) &_smallvis_find_beta_cpp, 6},
     {NULL, NULL, 0}

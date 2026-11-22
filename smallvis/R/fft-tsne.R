@@ -126,12 +126,16 @@ cauchy_tsne_cost <- function(
       cost
     },
     gr = function(cost, Y) {
-      repulsion <- engine$sums(Y)
-      P <- cost$P
-      attraction <- sne_sparse_attraction_cpp(P@i, P@p, P@x, Y, n_threads)
-      cost$G <- 4 * (attraction - repulsion$force / (repulsion$Z + eps))
-      cost
+      sums <- engine$sums(Y)
+      cauchy_tsne_gradient(cost, Y, sums, eps, n_threads)
     }
   )
   use_repulsion_cost(cost, engine)
+}
+
+cauchy_tsne_gradient <- function(cost, Y, repulsion, eps, n_threads) {
+  P <- cost$P
+  attraction <- sne_sparse_attraction_cpp(P@i, P@p, P@x, Y, n_threads)
+  cost$G <- 4 * (attraction - repulsion$force / (repulsion$Z + eps))
+  cost
 }

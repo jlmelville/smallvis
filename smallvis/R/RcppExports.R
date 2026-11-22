@@ -125,8 +125,12 @@ mmds_grad_cpp <- function(R, D, Y, eps, n_threads) {
     .Call(`_smallvis_mmds_grad_cpp`, R, D, Y, eps, n_threads)
 }
 
-mutual_cauchy_cpp <- function(Y, theta, mass_only, n_threads = 0L) {
-    .Call(`_smallvis_mutual_cauchy_cpp`, Y, theta, mass_only, n_threads)
+mutual_workspace_cpp <- function(rebuild_interval) {
+    .Call(`_smallvis_mutual_workspace_cpp`, rebuild_interval)
+}
+
+mutual_cauchy_cpp <- function(Y, theta, mass_only, n_threads = 0L, workspace = NULL) {
+    .Call(`_smallvis_mutual_cauchy_cpp`, Y, theta, mass_only, n_threads, workspace)
 }
 
 find_beta_knn_cpp <- function(knn_distances, knn_indices, perplexity = 15, tol = 1e-5, max_tries = 50L, ret_sparse = FALSE, n_threads = 1L, shift_rows = FALSE) {

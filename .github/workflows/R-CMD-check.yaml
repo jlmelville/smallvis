@@ -43,7 +43,7 @@ jobs:
           working-directory: smallvis
           args: 'c("--no-manual")'
           error-on: '"warning"'
-      - name: Run fused zufft t-SNE tests under ASan and UBSan
+      - name: Run fused zufft and mutual-tree tests under ASan and UBSan
         if: runner.os == 'Linux'
         working-directory: smallvis
         shell: bash
@@ -62,7 +62,7 @@ jobs:
           LD_PRELOAD="$(gcc -print-file-name=libasan.so)" Rscript --vanilla -e '
             Sys.unsetenv("LD_PRELOAD")
             stopifnot(requireNamespace("zufft", quietly = TRUE))
-            testthat::test_local(filter = "^fft_tsne$", load_package = "installed",
+            testthat::test_local(filter = "^(fft_tsne|mutual_repulsion)$", load_package = "installed",
                                  reporter = "summary", stop_on_warning = TRUE)
           '
 

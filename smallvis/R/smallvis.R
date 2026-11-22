@@ -224,6 +224,15 @@
 #' fixed order. Tree construction and field propagation are serial.
 #' \code{n_threads} also applies to neighbor calibration and sparse gradients.
 #'
+#' For mutual-tree t-SNE, set \code{rebuild_interval = 4} in the method list
+#' to rebuild on gradient updates 1, 5, 9, and so on. Between rebuilds, the
+#' tree keeps its cell membership and recomputes each cell's geometry from
+#' the current coordinates. This saves construction time but can change the
+#' approximate forces and final embedding. Larger intervals can also slow
+#' traversal when points move rapidly. The default of 1 rebuilds on every
+#' gradient. Intervals greater than 1 require a gradient-only optimizer such
+#' as \code{"dbd"}. Scores always use a fresh tree.
+#'
 #' For two-dimensional t-SNE, \code{repulsion = "hybrid"} uses zufft when
 #' the padded FFT grid has at most 14 cells per point and at most four
 #' million cells in total. Otherwise it uses the mutual tree. Each gradient

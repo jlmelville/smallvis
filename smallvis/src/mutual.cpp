@@ -2,6 +2,7 @@
 #include <Rcpp.h>
 #include <algorithm>
 #include <cmath>
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -77,6 +78,19 @@ public:
     build(0, points.size());
   }
 
+  void refit(const NumericMatrix &Y) {
+    if (static_cast<size_t>(Y.nrow()) != points.size())
+      Rcpp::stop("Mutual tree refit requires the same number of points");
+    for (Point &p : points) {
+      p.x = Y(p.row, 0);
+      p.y = Y(p.row, 1);
+      if (!std::isfinite(p.x) || !std::isfinite(p.y))
+        Rcpp::stop("Mutual tree coordinates must be finite");
+    }
+    for (Cell &cell : cells)
+      update_geometry(cell);
+  }
+
   template <bool Gradient> List evaluate(double theta, int threads) {
     theta2 = theta * theta;
     const size_t n = Gradient ? points.size() : 0;
@@ -121,16 +135,15 @@ private:
   std::vector<Cell> cells;
   double theta2 = 0;
 
-  int build(int lo, int hi) {
-    const int id = cells.size();
-    Cell cell{lo, hi};
-    for (int i = lo; i < hi; ++i) {
+  void update_geometry(Cell &cell) const {
+    cell.x = cell.y = cell.xx = cell.xy = cell.yy = cell.radius = 0;
+    for (int i = cell.lo; i < cell.hi; ++i) {
       cell.x += points[i].x;
       cell.y += points[i].y;
     }
     cell.x /= cell.size();
     cell.y /= cell.size();
-    for (int i = lo; i < hi; ++i) {
+    for (int i = cell.lo; i < cell.hi; ++i) {
       double x = points[i].x - cell.x, y = points[i].y - cell.y;
       cell.radius = std::max(cell.radius, x * x + y * y);
       cell.xx += x * x;
@@ -141,6 +154,12 @@ private:
     cell.xx /= cell.size();
     cell.xy /= cell.size();
     cell.yy /= cell.size();
+  }
+
+  int build(int lo, int hi) {
+    const int id = cells.size();
+    Cell cell{lo, hi};
+    update_geometry(cell);
     cells.push_back(cell);
     if (cell.size() > 12) {
       int mid = lo + (hi - lo) / 2;
@@ -252,17 +271,51 @@ private:
     }
   }
 };
+
+struct MutualWorkspace {
+  explicit MutualWorkspace(int interval) : interval(interval) {}
+  const int interval;
+  int age = 0;
+  std::unique_ptr<MutualTree> tree;
+
+  List gradient(const NumericMatrix &Y, double theta, int threads) {
+    if (age == 0) {
+      tree.reset();
+      tree = std::make_unique<MutualTree>(Y);
+    } else {
+      tree->refit(Y);
+    }
+    List result = tree->evaluate<true>(theta, threads);
+    age = (age + 1) % interval;
+    return result;
+  }
+};
 } // namespace
 
 // [[Rcpp::export(rng = false)]]
+SEXP mutual_workspace_cpp(int rebuild_interval) {
+  if (rebuild_interval < 1)
+    Rcpp::stop("rebuild_interval must be a positive integer");
+  return Rcpp::XPtr<MutualWorkspace>(new MutualWorkspace(rebuild_interval),
+                                     true, Rf_install("smallvis_mutual"));
+}
+
+// [[Rcpp::export(rng = false)]]
 List mutual_cauchy_cpp(const NumericMatrix &Y, double theta, bool mass_only,
-                       int n_threads = 0) {
+                       int n_threads = 0, SEXP workspace = R_NilValue) {
   if (n_threads < 0)
     Rcpp::stop("n_threads must be nonnegative");
   if (Y.ncol() != 2 || Y.nrow() < 2)
     Rcpp::stop("Mutual tree requires at least two points in two dimensions");
   if (!std::isfinite(theta) || theta < 0)
     Rcpp::stop("Mutual tree theta must be finite and nonnegative");
+  if (!mass_only && workspace != R_NilValue) {
+    if (TYPEOF(workspace) != EXTPTRSXP ||
+        R_ExternalPtrTag(workspace) != Rf_install("smallvis_mutual"))
+      Rcpp::stop("Invalid mutual tree workspace");
+    Rcpp::XPtr<MutualWorkspace> state(workspace);
+    return state->gradient(Y, theta, n_threads);
+  }
   MutualTree tree(Y);
   return mass_only ? tree.evaluate<false>(theta, n_threads)
                    : tree.evaluate<true>(theta, n_threads);
