@@ -924,11 +924,15 @@ This confirms my fears about the cavalier use of PCA for preprocessing:
 it might be a good idea to do it, but it does have an effect on the
 results of the nearest neighbors so you should have a good reason for
 doing it (and in the case of PaCMAP why 100 dimensions is the magic
-number). *January 14 2022*: see [Cooley and
-co-workers](https://doi.org/10.1101/689851) for a similar argument about
-the effect of PCA (and UMAP and t-SNE) on preserving neighborhoods. They
-use the Jaccard distance (sometimes referred to as Tanimoto) with
-20-nearest neighbors on a variety of single cell RNAseq datasets.
+number).
+
+[Hamilton et al.](https://www.biorxiv.org/content/10.1101/689851v8) ask
+a similar question about PCA, UMAP and t-SNE on single-cell RNA-seq
+datasets. They use Jaccard distance (also called Tanimoto distance) to
+compare each cell’s 20 nearest neighbors before and after a step. Shamus
+Cooley was the first author on [version
+6](https://www.biorxiv.org/content/10.1101/689851v6), which I originally
+cited here in January 2022.
 
 Looking at the scaled nearest neighbors, this has a more consistent
 effect on neighborhoods than PCA. For datasets like `oli` and `frey`
